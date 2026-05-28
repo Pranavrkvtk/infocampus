@@ -36,3 +36,26 @@
     transform: rotate(360deg);
   }
 }
+*{
+  box-sizing:border-box;
+}
+
+html,
+body,
+#root{
+  margin:0;
+  padding:0;
+  width:100%;
+  overflow-x:hidden;
+}
+
+img,
+svg,
+video,
+canvas{
+  max-width:100%;
+}
+
+body{
+  overflow-x:hidden;
+}
