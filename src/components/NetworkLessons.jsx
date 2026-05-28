@@ -19,6 +19,8 @@ export default function NetworkLessons() {
         fontFamily: "'Georgia', 'Times New Roman', serif",
         minHeight: "100vh",
         background: "#f8f8f6",
+        width: "100%",
+        overflowX: "hidden",
       }}
     >
       {/* Top Banner */}
@@ -29,7 +31,7 @@ export default function NetworkLessons() {
           alignItems: "center",
           justifyContent: "center",
           gap: "12px",
-          padding: "10px 16px",
+          padding: isMobile ? "12px" : "10px 16px",
           flexWrap: "wrap",
           textAlign: "center",
         }}
@@ -38,24 +40,28 @@ export default function NetworkLessons() {
           style={{
             fontFamily: "'Trebuchet MS', sans-serif",
             fontWeight: 500,
-            fontSize: isMobile ? "13px" : "15px",
+            fontSize: isMobile ? "12px" : "15px",
             color: "#1a1a1a",
+            lineHeight: "1.5",
           }}
         >
           Unlock Free Cisco Lessons – No Credit Card Needed!
         </span>
 
         <button
+          type="button"
           style={{
             background: "#3abf94",
             color: "#fff",
             border: "none",
             borderRadius: "6px",
-            padding: "8px 18px",
+            padding: isMobile ? "8px 14px" : "8px 18px",
             fontFamily: "'Trebuchet MS', sans-serif",
             fontWeight: 700,
-            fontSize: isMobile ? "13px" : "15px",
+            fontSize: isMobile ? "12px" : "15px",
             cursor: "pointer",
+            width: isMobile ? "100%" : "auto",
+            maxWidth: "260px",
           }}
         >
           Sign up for Free
@@ -69,7 +75,7 @@ export default function NetworkLessons() {
           flexDirection: "column",
           alignItems: "center",
           padding: isMobile
-            ? "20px 12px 48px"
+            ? "16px 10px 40px"
             : "40px 20px 60px",
         }}
       >
@@ -77,7 +83,7 @@ export default function NetworkLessons() {
         <div
           style={{
             width: "100%",
-            maxWidth: "680px",
+            maxWidth: isMobile ? "100%" : "680px",
             borderRadius: "10px",
             overflow: "hidden",
             boxShadow: "0 6px 32px rgba(0,0,0,0.16)",
@@ -95,7 +101,7 @@ export default function NetworkLessons() {
               alignItems: "center",
               justifyContent: "center",
               color: "#fff",
-              fontSize: isMobile ? "30px" : "42px",
+              fontSize: isMobile ? "26px" : "42px",
             }}
           >
             👨‍💻
@@ -163,13 +169,14 @@ export default function NetworkLessons() {
             border: "none",
             borderRadius: "7px",
             padding: isMobile
-              ? "13px 28px"
+              ? "13px 18px"
               : "16px 48px",
             fontFamily: "'Trebuchet MS', sans-serif",
             fontWeight: 700,
-            fontSize: isMobile ? "15px" : "18px",
+            fontSize: isMobile ? "14px" : "18px",
             cursor: "pointer",
             width: isMobile ? "100%" : "auto",
+            maxWidth: "420px",
           }}
         >
           Browse all Cisco Courses
@@ -182,12 +189,14 @@ export default function NetworkLessons() {
             textAlign: "center",
             lineHeight: "1.7",
             padding: "0 10px",
+            width: "100%",
+            maxWidth: "700px",
           }}
         >
           <p
             style={{
               color: "#444",
-              fontSize: isMobile ? "14px" : "16px",
+              fontSize: isMobile ? "13px" : "16px",
               margin: 0,
               fontFamily: "'Trebuchet MS', sans-serif",
             }}
@@ -199,7 +208,7 @@ export default function NetworkLessons() {
           <p
             style={{
               color: "#444",
-              fontSize: isMobile ? "14px" : "16px",
+              fontSize: isMobile ? "13px" : "16px",
               margin: 0,
               fontFamily: "'Trebuchet MS', sans-serif",
             }}
@@ -231,7 +240,7 @@ function TrainingSection({ isMobile }) {
       style={{
         background: "#fff",
         padding: isMobile
-          ? "48px 20px"
+          ? "40px 14px"
           : "64px 40px",
       }}
     >
@@ -248,8 +257,9 @@ function TrainingSection({ isMobile }) {
             color: "#e5a800",
             fontFamily: "'Trebuchet MS', sans-serif",
             fontWeight: 700,
-            fontSize: isMobile ? "24px" : "34px",
+            fontSize: isMobile ? "20px" : "34px",
             marginBottom: "20px",
+            lineHeight: "1.4",
           }}
         >
           Pick your Hands-On Training Category
@@ -260,7 +270,7 @@ function TrainingSection({ isMobile }) {
           style={{
             color: "#333",
             fontFamily: "'Trebuchet MS', sans-serif",
-            fontSize: isMobile ? "14px" : "15px",
+            fontSize: isMobile ? "13px" : "15px",
             lineHeight: "1.7",
             maxWidth: "860px",
             margin: "0 auto 40px",
@@ -275,9 +285,9 @@ function TrainingSection({ isMobile }) {
           style={{
             display: "grid",
             gridTemplateColumns: isMobile
-              ? "repeat(2, 1fr)"
+              ? "1fr 1fr"
               : "repeat(6, 1fr)",
-            gap: "10px",
+            gap: "12px",
             maxWidth: "900px",
             margin: "0 auto",
           }}
@@ -300,11 +310,13 @@ function TrainingSection({ isMobile }) {
                     fontFamily:
                       "'Trebuchet MS', sans-serif",
                     fontWeight: 700,
-                    fontSize: isMobile ? "13px" : "14px",
+                    fontSize: isMobile ? "12px" : "14px",
                     background: "transparent",
                     border: "none",
                     cursor: "pointer",
                     padding: "4px 0",
+                    width: "100%",
+                    textAlign: "left",
                   }}
                 >
                   {topic}
