@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 
 export default function NetworkLessons() {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -714,4 +715,32 @@ function MegaphoneIcon() {
   );
 }
 
+function NavItem({ label, hasDropdown }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? "rgba(255,255,255,0.12)" : "transparent",
+        border: "none", color: "#fff",
+        fontFamily: "'Trebuchet MS', sans-serif", fontSize: "15px",
+        fontWeight: 500, cursor: "pointer", padding: "8px 14px",
+        borderRadius: "4px", display: "flex", alignItems: "center",
+        gap: "4px", transition: "background 0.15s",
+      }}
+    >
+      {label}
+      {hasDropdown && <span style={{ fontSize: "10px", opacity: 0.8 }}>?</span>}
+    </button>
+  );
+}
 
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="6.5" cy="6.5" r="5" stroke="#4a7fb5" strokeWidth="1.8"/>
+      <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="#4a7fb5" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
