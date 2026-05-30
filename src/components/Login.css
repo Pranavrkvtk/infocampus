@@ -1,40 +1,290 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
+
+/* ── Reset inside login page ── */
+.login-container *,
+.login-container *::before,
+.login-container *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Page wrapper ── */
 .login-container {
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 80vh;
+  background: #f0f4f9;
+  position: relative;
+  overflow: hidden;
+  padding: 24px 16px;
 }
 
+/* ── Background blobs ── */
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.45;
+  pointer-events: none;
+  animation: float 8s ease-in-out infinite;
+}
+.blob-1 {
+  width: 420px; height: 420px;
+  background: #4a7fb5;
+  top: -100px; left: -100px;
+  animation-delay: 0s;
+}
+.blob-2 {
+  width: 320px; height: 320px;
+  background: #3abf94;
+  bottom: -80px; right: -60px;
+  animation-delay: 2.5s;
+}
+.blob-3 {
+  width: 200px; height: 200px;
+  background: #f5c842;
+  top: 60%; left: 20%;
+  animation-delay: 5s;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+}
+
+/* ── Card ── */
 .login-box {
-  width: 350px;
-  padding: 30px;
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 20px;
+  padding: 40px 36px 32px;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.04),
+    0 12px 40px rgba(74,127,181,0.14),
+    0 0 0 1px rgba(74,127,181,0.08);
+  animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Logo ── */
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.logo-icon { display: flex; }
+.logo-text {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  color: #1a2a3a;
+  letter-spacing: -0.3px;
+}
+.logo-text span { color: #4a7fb5; }
+
+/* ── Headings ── */
+.login-heading {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.login-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 28px;
+}
+
+/* ── Field ── */
+.field-group {
+  margin-bottom: 16px;
+}
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+  letter-spacing: 0.1px;
+}
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-icon {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.input-toggle {
+  position: absolute;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.input-toggle:hover { opacity: 1; }
+.login-input {
+  width: 100%;
+  padding: 11px 40px 11px 38px;
+  border: 1.5px solid #e5e7eb;
   border-radius: 10px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: #111827;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.login-input::placeholder { color: #9ca3af; }
+.login-input:focus {
+  border-color: #4a7fb5;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(74,127,181,0.12);
 }
 
-.login-box h2 {
-  text-align: center;
-  margin-bottom: 20px;
+/* ── Options row ── */
+.login-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+  margin-top: 4px;
 }
-
-.login-box input {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.login-box button {
-  width: 100%;
-  padding: 10px;
-  background: #0d6efd;
-  color: white;
-  border: none;
-  border-radius: 6px;
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #4b5563;
   cursor: pointer;
 }
+.remember-me input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #4a7fb5;
+  cursor: pointer;
+}
+.forgot-link {
+  font-size: 13px;
+  color: #4a7fb5;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+.forgot-link:hover { color: #2e5f8f; }
 
-.login-box button:hover {
-  background: #0b5ed7;
+/* ── Submit button ── */
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #4a7fb5 0%, #3a6fa5 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px rgba(74,127,181,0.35);
+  letter-spacing: 0.1px;
+}
+.login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(74,127,181,0.4);
+}
+.login-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(74,127,181,0.3);
+}
+
+/* ── Divider ── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 18px;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+/* ── Social buttons ── */
+.social-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.social-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.social-btn:hover {
+  border-color: #4a7fb5;
+  background: #f5f8ff;
+  transform: translateY(-1px);
+}
+
+/* ── Sign-up prompt ── */
+.signup-prompt {
+  text-align: center;
+  font-size: 13.5px;
+  color: #6b7280;
+}
+.signup-link {
+  color: #3abf94;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.signup-link:hover { color: #2eac82; }
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .login-box {
+    padding: 32px 22px 28px;
+    border-radius: 16px;
+  }
+  .login-heading { font-size: 22px; }
+  .social-row { flex-direction: column; }
 }
