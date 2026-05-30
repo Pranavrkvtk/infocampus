@@ -86,7 +86,7 @@ export default function Home() {
                 justifyContent: "center", fontSize: isMobile ? "24px" : "36px",
               }}>▶</div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "11px", fontFamily: "'Trebuchet MS', sans-serif" }}>
-                NetworkLessons.com
+                INFOCAMPUS.COM
               </div>
             </div>
             <div style={{
