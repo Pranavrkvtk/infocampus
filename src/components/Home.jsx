@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 
-export default function NetworkLessons() {
+export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 

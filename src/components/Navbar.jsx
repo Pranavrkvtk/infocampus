@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./Navbar.css";
-
+import { Link } from "react-router-dom";
 const courseItems = [
   "Network Fundamentals",
   "Cisco",
@@ -38,8 +38,9 @@ export default function Navbar() {
         <h2>CiscoCourses</h2>
 
         <div className="desktop-menu">
-          <button>Home</button>
-
+<Link to="/" className="nav-link">
+  Home
+</Link>
           <div className="menu-item">
             <button onClick={() => setCourses(!courses)}>
               Courses ▾
@@ -90,26 +91,34 @@ export default function Navbar() {
               </div>
             )}
           </div>
+<div className="menu-item">
+  <button onClick={() => setAbout(!about)}>
+    About ▾
+  </button>
 
-          <div className="menu-item">
-            <button onClick={() => setAbout(!about)}>
-              About ▾
-            </button>
+  {about && (
+    <div className="dropdown">
+      <Link to="/free-account" className="dropdown-link">
+        Free Account
+      </Link>
 
-            {about && (
-              <div className="dropdown">
-                <div>Free Account</div>
-                <div>Discounts and Promotions</div>
-                <div>Training for Teams</div>
-              </div>
-            )}
-          </div>
+      <div>Discounts and Promotions</div>
+      <div>Training for Teams</div>
+    </div>
+  )}
+</div>
 
-          <input
-            placeholder="Search..."
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-          />
+<Link to="/login" className="login-link">
+  <button className="login-btn">
+    Login
+  </button>
+</Link>
+
+<input
+  placeholder="Search..."
+  value={searchVal}
+  onChange={(e) => setSearchVal(e.target.value)}
+/>
         </div>
 
         <button
@@ -120,59 +129,62 @@ export default function Navbar() {
         </button>
       </div>
 
-      {mobileMenu && (
-        <div className="mobile-menu">
-          <div>Home</div>
+  {mobileMenu && (
+  <div className="mobile-menu">
+    <div>Home</div>
 
-          <div onClick={() => setCourses(!courses)}>
-            Courses {courses ? "−" : "+"}
-          </div>
+    <div onClick={() => setCourses(!courses)}>
+      Courses {courses ? "−" : "+"}
+    </div>
 
-          {courses && (
-            <div className="mobile-submenu">
-              {courseItems.map((item) => (
-                <div key={item}>{item}</div>
-              ))}
-            </div>
-          )}
+    {courses && (
+      <div className="mobile-submenu">
+        {courseItems.map((item) => (
+          <div key={item}>{item}</div>
+        ))}
+      </div>
+    )}
 
-          <div>Forum</div>
+    <div>Forum</div>
 
-          <div>Support</div>
+    <div>Support</div>
 
-          <div onClick={() => setTools(!tools)}>
-            Tools {tools ? "−" : "+"}
-          </div>
+    <div onClick={() => setTools(!tools)}>
+      Tools {tools ? "−" : "+"}
+    </div>
 
-          {tools && (
-            <div className="mobile-submenu">
-              <div>Packet Captures</div>
-              <div>Resources</div>
-              <div>Practice Exams</div>
-            </div>
-          )}
+    {tools && (
+      <div className="mobile-submenu">
+        <div>Packet Captures</div>
+        <div>Resources</div>
+        <div>Practice Exams</div>
+      </div>
+    )}
 
-          <div onClick={() => setAbout(!about)}>
-            About {about ? "−" : "+"}
-          </div>
+    <div onClick={() => setAbout(!about)}>
+      About {about ? "−" : "+"}
+    </div>
 
-          {about && (
-            <div className="mobile-submenu">
-              <div>Free Account</div>
-              <div>Discounts and Promotions</div>
-              <div>Training for Teams</div>
-            </div>
-          )}
+    {about && (
+      <div className="mobile-submenu">
+        <Link to="/free-account" className="mobile-link">
+          Free Account
+        </Link>
 
-          <div className="mobile-search">
-            <input
-              placeholder="Search..."
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-            />
-          </div>
-        </div>
-      )}
+        <div>Discounts and Promotions</div>
+        <div>Training for Teams</div>
+      </div>
+    )}
+
+    <div className="mobile-search">
+      <input
+        placeholder="Search..."
+        value={searchVal}
+        onChange={(e) => setSearchVal(e.target.value)}
+      />
+    </div>
+  </div>
+)}
     </nav>
   );
 }
