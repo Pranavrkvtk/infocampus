@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import Home from './components/Home';
 import FreeAccount from './components/About/FreeAccount';
 import Login from './components/Login';
+import CoursesPage from './components/CoursesPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/free-account" element={<FreeAccount />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/courses" element={<CoursesPage />} />
       </Routes>
     </BrowserRouter>
   );
