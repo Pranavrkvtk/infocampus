@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./Login.css";
+import { Link } from "react-router-dom";
 
 function Login() {
   const [showPass, setShowPass] = useState(false);
@@ -109,9 +110,33 @@ function Login() {
           </button>
         </div>
 
-        <p className="signup-prompt">
-          Don't have an account? <a href="/register" className="signup-link">Sign up free</a>
-        </p>
+<div className="signup-prompt">
+  <span>Don't have an account? </span>
+
+  <Link
+    to="/free-account"
+    style={{ textDecoration: "none" }}
+  >
+    <button
+      type="button"
+      style={{
+        background: "#3abf94",
+        color: "#fff",
+        border: "none",
+        borderRadius: "6px",
+        padding: "8px 18px",
+        fontFamily: "'Trebuchet MS', sans-serif",
+        fontWeight: 700,
+        fontSize: "15px",
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        marginLeft: "8px",
+      }}
+    >
+      Sign up for Free
+    </button>
+  </Link>
+</div>
       </div>
     </div>
   );

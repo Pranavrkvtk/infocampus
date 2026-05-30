@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import CoursesPage from "./CoursesPage";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
-  const [showCourses, setShowCourses] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -11,10 +11,6 @@ export default function Home() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  if (showCourses) {
-    return <CoursesPage isMobile={isMobile} onBack={() => setShowCourses(false)} />;
-  }
 
   return (
     <div style={{ fontFamily: "'Georgia', 'Times New Roman', serif", minHeight: "100vh", background: "#f8f8f6" }}>
@@ -32,20 +28,22 @@ export default function Home() {
         <span style={{ fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 500, fontSize: isMobile ? "13px" : "15px", color: "#1a1a1a" }}>
           Unlock Free Cisco Lessons – No Credit Card Needed!
         </span>
-        <button style={{
-          background: "#3abf94",
-          color: "#fff",
-          border: "none",
-          borderRadius: "6px",
-          padding: "8px 18px",
-          fontFamily: "'Trebuchet MS', sans-serif",
-          fontWeight: 700,
-          fontSize: isMobile ? "13px" : "15px",
-          cursor: "pointer",
-          whiteSpace: "nowrap",
-        }}>
-          Sign up for Free
-        </button>
+ <Link to="/free-account" style={{ textDecoration: "none" }}>
+  <button style={{
+    background: "#3abf94",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    padding: "8px 18px",
+    fontFamily: "'Trebuchet MS', sans-serif",
+    fontWeight: 700,
+    fontSize: isMobile ? "13px" : "15px",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  }}>
+    Sign up for Free
+  </button>
+</Link>
       </div>
 
       {/* Main Content */}
@@ -120,9 +118,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* CTA */}
+        {/* CTA — now navigates to /courses route */}
         <button
-          onClick={() => setShowCourses(true)}
+          onClick={() => navigate("/courses")}
           style={{
             marginTop: isMobile ? "24px" : "36px",
             background: "#3abf94", color: "#fff", border: "none",
@@ -147,7 +145,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Features Section */}
       <FeaturesSection isMobile={isMobile} />
       <TrainingSection isMobile={isMobile} />
       <TestimonialsSection isMobile={isMobile} />
