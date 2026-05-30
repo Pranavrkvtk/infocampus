@@ -266,10 +266,10 @@ function InstructorSection({ isMobile }) {
         <div style={{ flex: "0 0 auto", maxWidth: isMobile ? "100%" : "480px", zIndex: 1 }}>
           <h2 style={{ color: "#fff", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 400, fontSize: isMobile ? "26px" : "36px", margin: "0 0 24px", lineHeight: 1.2, letterSpacing: "-0.2px" }}>Stop Struggling &amp; Start Learning</h2>
           <p style={{ color: "rgba(255,255,255,0.92)", fontFamily: "Georgia, serif", fontSize: isMobile ? "14px" : "15.5px", lineHeight: "1.8", margin: "0 0 22px" }}>
-            "My name is Rene Molenaar, and I am here to help you to achieve your goals. Do you want to upgrade your skills? Want to start a career in networking? Become a CCIE in Enterprise Infrastructure? Let me help you! After teaching Cisco classroom courses for several years I decided to share my knowledge online on NetworkLessons.com."
+            "My name is Rene Molenaar, and I am here to help you to achieve your goals. Do you want to upgrade your skills? Want to start a career in networking? Become a CCIE in Enterprise Infrastructure? Let me help you! After teaching Cisco classroom courses for several years I decided to share my knowledge online on Infocampus.com."
           </p>
           <p style={{ color: "rgba(255,255,255,0.9)", fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "13px" : "14.5px", margin: 0 }}>
-            <strong style={{ color: "#fff" }}>Rene Molenaar</strong> CCIE #41726, founder of NetworkLessons.com (and primary course author)
+            <strong style={{ color: "#fff" }}>Rene Molenaar</strong> CCIE #41726, founder of Infocampus.com (and primary course author)
           </p>
         </div>
         <div style={{ flexShrink: 0, width: isMobile ? "220px" : "380px", alignSelf: "flex-end", position: "relative", zIndex: 1 }}>
@@ -320,9 +320,9 @@ function InstructorIllustration({ isMobile }) {
 
 function TestimonialsSection({ isMobile }) {
   const reviews = [
-    { name: "ETHAN MORISSETTE", role: "Network Analyst", date: "March 18, 2025", title: "Beyond Expectations", text: "What can I say... NetworkLessons.com is such a well put together site. The content helped me build my knowledge, link certain topics together, and deepen my understanding of networking. I really love that they included additional resources about note taking and building a home lab. Something I had never seen before is an instructor of a site reaching out (and actually replying) when you subscribe. Thank you for your hard work!", initials: "EM", color: "#7aa3c8" },
+    { name: "ETHAN MORISSETTE", role: "Network Analyst", date: "March 18, 2025", title: "Beyond Expectations", text: "What can I say... infocampus.com is such a well put together site. The content helped me build my knowledge, link certain topics together, and deepen my understanding of networking. I really love that they included additional resources about note taking and building a home lab. Something I had never seen before is an instructor of a site reaching out (and actually replying) when you subscribe. Thank you for your hard work!", initials: "EM", color: "#7aa3c8" },
     { name: "MURAT BILGIN", role: "Senior Systems Analyst", date: "December 17, 2024", title: "Clear and Concise", text: "Preparing for my ENRSI, I am a visual learner and learn best from examples. I like that I can follow along using CML/GNS3 to understand the basics and mechanics, then try to build a more difficult lab. Everything so far has been clear and concise.", initials: "MB", color: "#6b9abf" },
-    { name: "FARRAKH GILANI", role: "Network Engineer", date: "March 19, 2025", title: "Ideal for Certification", text: "NetworkLessons.com is simply the best trainer. Topics are explained in a way that makes them easy to understand. The content's quality and clear explanations make it ideal for certification or increasing your knowledge on a topic. Highly recommended!", initials: "FG", color: "#5b8dbf" },
+    { name: "FARRAKH GILANI", role: "Network Engineer", date: "March 19, 2025", title: "Ideal for Certification", text: "infocampus.com is simply the best trainer. Topics are explained in a way that makes them easy to understand. The content's quality and clear explanations make it ideal for certification or increasing your knowledge on a topic. Highly recommended!", initials: "FG", color: "#5b8dbf" },
   ];
 
   return (
