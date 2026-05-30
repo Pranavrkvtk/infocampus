@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 
 
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -85,7 +84,7 @@ export default function Home() {
                 borderRadius: "50%", background: "rgba(255,255,255,0.13)",
                 margin: "0 auto 8px", display: "flex", alignItems: "center",
                 justifyContent: "center", fontSize: isMobile ? "24px" : "36px",
-              }}>?????</div>
+              }}>▶</div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "11px", fontFamily: "'Trebuchet MS', sans-serif" }}>
                 NetworkLessons.com
               </div>
@@ -104,12 +103,12 @@ export default function Home() {
             padding: isMobile ? "8px 10px" : "8px 14px",
             gap: isMobile ? "8px" : "12px",
           }}>
-            <button style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", fontSize: "18px", display: "flex", flexShrink: 0 }}>?</button>
+            <button style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", fontSize: "18px", display: "flex", flexShrink: 0 }}>▶</button>
             <div style={{ flex: 1, height: "4px", background: "#444", borderRadius: "2px" }}>
               <div style={{ width: "8%", height: "100%", background: "#3abf94", borderRadius: "2px" }} />
             </div>
             <span style={{ color: "#aaa", fontSize: "11px", fontFamily: "monospace", flexShrink: 0 }}>01:42</span>
-            {["??", "CC", "?", "?", "?"].map((icon, i) => (
+            {["🔊", "CC", "⚙", "⛶", "↗"].map((icon, i) => (
               <button key={i} style={{
                 background: "none", border: "none", cursor: "pointer", color: "#ccc",
                 fontSize: isMobile ? "11px" : "13px", padding: "2px",
@@ -226,9 +225,6 @@ function FeaturesSection({ isMobile }) {
           </div>
         ))}
       </div>
-
-
-      
     </section>
   );
 }
@@ -279,11 +275,8 @@ function TrainingSection({ isMobile }) {
           flexWrap: "wrap",
           marginBottom: "44px",
         }}>
-          {/* CCNA Badge */}
           <CiscoBadge label="CCNA" />
-          {/* CCNP Badge */}
           <CiscoBadge label="CCNP" />
-          {/* CCIE Badge */}
           <CCIEBadge />
         </div>
 
@@ -308,7 +301,7 @@ function TrainingSection({ isMobile }) {
           {topics.map((col, ci) => (
             <div key={ci} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {col.map((topic, ti) => (
-                <a key={ti} href="#" style={{
+                <a key={ti} href="/courses" style={{
                   color: "#3a7fc1",
                   fontFamily: "'Trebuchet MS', sans-serif",
                   fontWeight: 700,
@@ -342,7 +335,6 @@ function CiscoBadge({ label }) {
       boxShadow: "0 3px 12px rgba(0,0,0,0.1)",
       background: "#fff",
     }}>
-      {/* Top: white area with logo */}
       <div style={{
         background: "#fff",
         padding: "16px 16px 10px",
@@ -351,19 +343,16 @@ function CiscoBadge({ label }) {
         alignItems: "center",
         gap: "4px",
       }}>
-        {/* Cisco signal bars */}
         <div style={{ display: "flex", alignItems: "flex-end", gap: "3px", marginBottom: "4px" }}>
           {[6,9,12,15,12,9,6].map((h, i) => (
             <div key={i} style={{ width: "5px", height: `${h}px`, background: "#1d6b72", borderRadius: "1px" }} />
           ))}
         </div>
-        {/* CISCO text */}
         <div style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: "22px", color: "#c8102e", letterSpacing: "2px" }}>
           CISCO
         </div>
         <div style={{ fontSize: "8px", color: "#888", letterSpacing: "1px", marginTop: "-4px" }}>™</div>
       </div>
-      {/* Bottom: teal label */}
       <div style={{
         background: "#1d6b72",
         color: "#fff",
@@ -383,7 +372,6 @@ function CiscoBadge({ label }) {
 function CCIEBadge() {
   return (
     <div style={{ textAlign: "center", width: "160px" }}>
-      {/* Outer ring with laurel feel */}
       <div style={{
         position: "relative",
         width: "150px",
@@ -394,11 +382,9 @@ function CCIEBadge() {
         alignItems: "center",
         justifyContent: "center",
       }}>
-        {/* Decorative ring */}
         <svg width="150" height="150" viewBox="0 0 150 150" style={{ position: "absolute", top: 0, left: 0 }}>
           <circle cx="75" cy="75" r="70" fill="none" stroke="#bbb" strokeWidth="1.5" strokeDasharray="4 3"/>
           <circle cx="75" cy="75" r="62" fill="none" stroke="#ccc" strokeWidth="0.8"/>
-          {/* Laurel leaves hint */}
           {Array.from({ length: 24 }).map((_, i) => {
             const angle = (i / 24) * 360;
             const rad = (angle * Math.PI) / 180;
@@ -409,7 +395,6 @@ function CCIEBadge() {
             return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#bbb" strokeWidth="1.5"/>;
           })}
         </svg>
-        {/* Inner content */}
         <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
           <div style={{ fontSize: "9px", color: "#555", letterSpacing: "2px", fontFamily: "'Trebuchet MS', sans-serif", marginBottom: "2px" }}>CISCO</div>
           <div style={{ fontSize: "9px", color: "#555", letterSpacing: "2px", fontFamily: "'Trebuchet MS', sans-serif", marginBottom: "4px" }}>CERTIFIED</div>
@@ -435,7 +420,6 @@ function InstructorSection({ isMobile }) {
       display: "flex",
       alignItems: "center",
     }}>
-      {/* Subtle radial glow on the right */}
       <div style={{
         position: "absolute", right: 0, top: 0, bottom: 0,
         width: "55%",
@@ -454,7 +438,6 @@ function InstructorSection({ isMobile }) {
         gap: "32px",
         flexDirection: isMobile ? "column" : "row",
       }}>
-        {/* Text side */}
         <div style={{ flex: "0 0 auto", maxWidth: isMobile ? "100%" : "480px", zIndex: 1 }}>
           <h2 style={{
             color: "#fff",
@@ -486,7 +469,6 @@ function InstructorSection({ isMobile }) {
           </p>
         </div>
 
-        {/* Instructor illustration */}
         <div style={{
           flexShrink: 0,
           width: isMobile ? "220px" : "380px",
@@ -506,59 +488,30 @@ function InstructorIllustration({ isMobile }) {
   const h = isMobile ? 260 : 420;
   return (
     <svg width={w} height={h} viewBox="0 0 380 420" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Subtle glow behind figure */}
       <ellipse cx="190" cy="300" rx="160" ry="120" fill="rgba(160,210,255,0.18)"/>
-
-      {/* Body / shirt - blue polo */}
       <ellipse cx="190" cy="370" rx="130" ry="80" fill="#5b90c8"/>
       <path d="M90 340 Q130 290 190 280 Q250 290 290 340 L310 420 L70 420 Z" fill="#5b90c8"/>
-
-      {/* Arms crossed */}
-      {/* Left arm */}
       <path d="M100 330 Q80 350 75 380 Q85 390 110 385 Q130 360 140 340 Z" fill="#5b90c8"/>
-      {/* Right arm over left */}
       <path d="M280 330 Q300 350 305 375 Q295 388 265 382 Q240 358 230 338 Z" fill="#4a7fb5"/>
-      {/* Arms crossing band */}
       <path d="M130 345 Q190 370 250 345 Q240 360 190 380 Q140 360 130 345Z" fill="#4a7fb5"/>
-
-      {/* Neck */}
       <rect x="172" y="240" width="36" height="44" rx="10" fill="#d4956a"/>
-
-      {/* Head */}
       <ellipse cx="190" cy="200" rx="68" ry="78" fill="#d4956a"/>
-
-      {/* Hair */}
       <path d="M126 178 Q128 118 190 110 Q252 118 254 178 Q240 148 190 145 Q140 148 126 178Z" fill="#5c3a1e"/>
-      {/* Hair sides */}
       <path d="M124 175 Q118 195 122 215 Q126 165 135 158Z" fill="#5c3a1e"/>
       <path d="M256 175 Q262 195 258 215 Q254 165 245 158Z" fill="#5c3a1e"/>
-
-      {/* Ears */}
       <ellipse cx="123" cy="202" rx="10" ry="14" fill="#c4845a"/>
       <ellipse cx="257" cy="202" rx="10" ry="14" fill="#c4845a"/>
-
-      {/* Eyes */}
       <ellipse cx="168" cy="196" rx="9" ry="10" fill="#fff"/>
       <ellipse cx="212" cy="196" rx="9" ry="10" fill="#fff"/>
       <circle cx="170" cy="197" r="5.5" fill="#3a2a1a"/>
       <circle cx="214" cy="197" r="5.5" fill="#3a2a1a"/>
       <circle cx="172" cy="195" r="2" fill="#fff"/>
       <circle cx="216" cy="195" r="2" fill="#fff"/>
-
-      {/* Eyebrows */}
       <path d="M158 183 Q168 178 178 182" stroke="#5c3a1e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
       <path d="M202 182 Q212 178 222 183" stroke="#5c3a1e" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-
-      {/* Nose */}
       <path d="M188 205 Q184 218 188 224 Q192 226 196 224 Q200 218 192 205" stroke="#c4845a" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-
-      {/* Smile */}
       <path d="M170 238 Q190 252 210 238" stroke="#b07040" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-
-      {/* Polo collar */}
       <path d="M172 280 L160 310 L190 300 L220 310 L208 280 L190 295 Z" fill="#4a7fb5"/>
-
-      {/* Logo on shirt */}
       <g transform="translate(215,310)">
         <polygon points="12,2 22,18 2,18" fill="#f5c842" opacity="0.9"/>
         <polygon points="12,6 19,17 5,17" fill="#5b90c8"/>
@@ -656,7 +609,7 @@ function TestimonialsSection({ isMobile }) {
         </div>
         <div style={{ textAlign: "center" }}>
           <p style={{ fontFamily: "'Trebuchet MS', sans-serif", fontSize: "16px", color: "#333" }}>
-            <span style={{ color: "#e5a800", fontWeight: 700, marginRight: "4px" }}>?</span>
+            <span style={{ color: "#e5a800", fontWeight: 700, marginRight: "4px" }}>★</span>
             <strong>3414 people</strong> signed up the last 30 days!
           </p>
         </div>
@@ -711,36 +664,6 @@ function MegaphoneIcon() {
       <path d="M20 22 L50 8 L50 52 L20 38 Z" fill="white"/>
       <rect x="10" y="38" width="10" height="14" rx="3" fill="white"/>
       <circle cx="54" cy="30" r="5" fill="white" opacity="0.7"/>
-    </svg>
-  );
-}
-
-function NavItem({ label, hasDropdown }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: hovered ? "rgba(255,255,255,0.12)" : "transparent",
-        border: "none", color: "#fff",
-        fontFamily: "'Trebuchet MS', sans-serif", fontSize: "15px",
-        fontWeight: 500, cursor: "pointer", padding: "8px 14px",
-        borderRadius: "4px", display: "flex", alignItems: "center",
-        gap: "4px", transition: "background 0.15s",
-      }}
-    >
-      {label}
-      {hasDropdown && <span style={{ fontSize: "10px", opacity: 0.8 }}>?</span>}
-    </button>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="6.5" cy="6.5" r="5" stroke="#4a7fb5" strokeWidth="1.8"/>
-      <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="#4a7fb5" strokeWidth="1.8" strokeLinecap="round"/>
     </svg>
   );
 }
