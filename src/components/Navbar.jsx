@@ -36,14 +36,13 @@ const FONT = "'Trebuchet MS', sans-serif";
 export default function Navbar() {
   const [searchVal, setSearchVal] = useState("");
   const [mobileMenu, setMobileMenu] = useState(false);
-  // "courses" | "tools" | "about" | null — only one open at a time
   const [openMenu, setOpenMenu] = useState(null);
   const [cisco, setCisco] = useState(false);
 
   const toggle = (name) => {
     if (openMenu === name) {
       setOpenMenu(null);
-      setCisco(false); // also close cisco sub when closing courses
+      setCisco(false);
     } else {
       setOpenMenu(name);
       if (name !== "courses") setCisco(false);
@@ -95,6 +94,7 @@ export default function Navbar() {
           searchVal={searchVal} setSearchVal={setSearchVal}
           openMenu={openMenu} toggle={toggle}
           cisco={cisco} setCisco={setCisco}
+          setMobileMenu={setMobileMenu}
         />
       )}
 
@@ -203,28 +203,21 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
         ))}
       </NavDropdown>
 
-<Link to="/forum">
-  <button className="nav-btn">Forum</button>
-</Link>      <button className="nav-btn">Support</button>
+      {/* ✅ FIXED: Forum link properly wrapped */}
+      <Link to="/forum" style={{ textDecoration: "none" }}>
+        <button className="nav-btn">Forum</button>
+      </Link>
 
-   {/* Tools */}
-<NavDropdown
-  name="tools"
-  label="Tools"
-  openMenu={openMenu}
-  toggle={toggle}
->
-  <div className="dd-row">Packet Captures</div>
+      <button className="nav-btn">Support</button>
 
-  <div className="dd-row">Resources</div>
-
-  <Link
-    to="/practice-exam"
-    style={{ textDecoration: "none" }}
-  >
-    <div className="dd-row">Practice Exams</div>
-  </Link>
-</NavDropdown>
+      {/* Tools */}
+      <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle}>
+        <div className="dd-row">Packet Captures</div>
+        <div className="dd-row">Resources</div>
+        <Link to="/practice-exam" style={{ textDecoration: "none" }}>
+          <div className="dd-row">Practice Exams</div>
+        </Link>
+      </NavDropdown>
 
       {/* About */}
       <NavDropdown name="about" label="About" openMenu={openMenu} toggle={toggle}>
@@ -262,7 +255,7 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
   );
 }
 
-function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco }) {
+function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco, setMobileMenu }) {
   const rowStyle = {
     padding: "13px 20px", color: "#fff", fontFamily: FONT, fontSize: "15px",
     borderBottom: "1px solid rgba(255,255,255,0.1)", cursor: "pointer",
@@ -282,7 +275,7 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
   return (
     <div style={{ background: NAV_BG, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
       <Link to="/" style={{ textDecoration: "none" }}>
-        <div style={rowStyle}>Home</div>
+        <div style={rowStyle} onClick={() => setMobileMenu(false)}>Home</div>
       </Link>
 
       {/* Courses */}
@@ -314,37 +307,27 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
         </div>
       ))}
 
-      <div style={rowStyle}>Forum</div>
+      {/* ✅ FIXED: Forum link for mobile */}
+      <Link to="/forum" style={{ textDecoration: "none" }}>
+        <div style={rowStyle} onClick={() => setMobileMenu(false)}>Forum</div>
+      </Link>
+
       <div style={rowStyle}>Support</div>
 
-{/* Tools */}
-<div
-  style={rowStyle}
-  onClick={() => toggle("tools")}
->
-  <span>Tools</span>
-  <span style={{ fontSize: "12px" }}>
-    {openMenu === "tools" ? "▴" : "▾"}
-  </span>
-</div>
-
-{openMenu === "tools" && (
-  <>
-    <div style={subRowStyle}>Packet Captures</div>
-
-    <div style={subRowStyle}>Resources</div>
-
-    <Link
-      to="/practice-exam"
-      style={{ textDecoration: "none" }}
-    >
-      <div style={subRowStyle}>Practice Exams</div>
-    </Link>
-  </>
-)}
-      {openMenu === "tools" && ["Packet Captures", "Resources", "Practice Exams"].map(t => (
-        <div key={t} style={subRowStyle}>{t}</div>
-      ))}
+      {/* Tools */}
+      <div style={rowStyle} onClick={() => toggle("tools")}>
+        <span>Tools</span>
+        <span style={{ fontSize: "12px" }}>{openMenu === "tools" ? "▴" : "▾"}</span>
+      </div>
+      {openMenu === "tools" && (
+        <>
+          <div style={subRowStyle}>Packet Captures</div>
+          <div style={subRowStyle}>Resources</div>
+          <Link to="/practice-exam" style={{ textDecoration: "none" }}>
+            <div style={subRowStyle}>Practice Exams</div>
+          </Link>
+        </>
+      )}
 
       {/* About */}
       <div style={rowStyle} onClick={() => toggle("about")}>
@@ -354,7 +337,7 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
       {openMenu === "about" && (
         <>
           <Link to="/free-account" style={{ textDecoration: "none" }}>
-            <div style={subRowStyle}>Free Account</div>
+            <div style={subRowStyle} onClick={() => setMobileMenu(false)}>Free Account</div>
           </Link>
           <div style={subRowStyle}>Discounts and Promotions</div>
           <div style={subRowStyle}>Training for Teams</div>
@@ -375,11 +358,14 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
       {/* Login */}
       <div style={{ padding: "12px 20px" }}>
         <Link to="/login" style={{ textDecoration: "none" }}>
-          <button style={{
-            background: GREEN, color: "#fff", border: "none", borderRadius: "5px",
-            padding: "10px 0", width: "100%", fontFamily: FONT,
-            fontWeight: 700, fontSize: "15px", cursor: "pointer",
-          }}>
+          <button 
+            onClick={() => setMobileMenu(false)}
+            style={{
+              background: GREEN, color: "#fff", border: "none", borderRadius: "5px",
+              padding: "10px 0", width: "100%", fontFamily: FONT,
+              fontWeight: 700, fontSize: "15px", cursor: "pointer",
+            }}
+          >
             Login
           </button>
         </Link>
