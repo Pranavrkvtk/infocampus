@@ -15,7 +15,8 @@ import CoursesPage from './components/CoursesPage';
 import WatchDemoPage from './components/WatchDemoPage';
 import EnrollPage from './components/EnrollPage';
 import PracticeExam from './components/Tools/PracticeExam';
-import ForumPage from './components/Forum/ForumPage'; // Import the new Forum component
+import ForumPage from './components/Forum/ForumPage'; // Import the Forum component
+import SupportPage from './components/Support/SupportPage'; // Import the Support component
 
 // Routes where Navbar should be hidden
 const HIDE_NAVBAR = ['/free-account', '/login'];
@@ -74,10 +75,21 @@ function AppRoutes() {
         element={<PracticeExam />}
       />
 
-      {/* Community Forum - New Route */}
+      {/* Community Forum */}
       <Route
         path="/forum"
         element={<ForumPage />}
+      />
+
+      {/* Support Page */}
+      <Route
+        path="/support"
+        element={
+          <SupportPage
+            isMobile={isMobile}
+            onBack={() => navigate('/')}
+          />
+        }
       />
     </Routes>
   );

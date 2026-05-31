@@ -203,12 +203,15 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
         ))}
       </NavDropdown>
 
-      {/* ✅ FIXED: Forum link properly wrapped */}
+      {/* Forum link */}
       <Link to="/forum" style={{ textDecoration: "none" }}>
         <button className="nav-btn">Forum</button>
       </Link>
 
-      <button className="nav-btn">Support</button>
+      {/* ✅ FIXED: Support link properly wrapped */}
+      <Link to="/support" style={{ textDecoration: "none" }}>
+        <button className="nav-btn">Support</button>
+      </Link>
 
       {/* Tools */}
       <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle}>
@@ -307,12 +310,15 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
         </div>
       ))}
 
-      {/* ✅ FIXED: Forum link for mobile */}
+      {/* Forum link for mobile */}
       <Link to="/forum" style={{ textDecoration: "none" }}>
         <div style={rowStyle} onClick={() => setMobileMenu(false)}>Forum</div>
       </Link>
 
-      <div style={rowStyle}>Support</div>
+      {/* ✅ FIXED: Support link for mobile */}
+      <Link to="/support" style={{ textDecoration: "none" }}>
+        <div style={rowStyle} onClick={() => setMobileMenu(false)}>Support</div>
+      </Link>
 
       {/* Tools */}
       <div style={rowStyle} onClick={() => toggle("tools")}>
