@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   HelpCircle, 
   Mail, 
@@ -29,7 +29,7 @@ import {
 // ==================== ANIMATED SECTION COMPONENT ====================
 function AnimatedSection({ children, delay = 0, className = "" }) {
   const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useState(null);
+  const sectionRef = useRef(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -42,13 +42,14 @@ function AnimatedSection({ children, delay = 0, className = "" }) {
       { threshold: 0.1, rootMargin: "50px" }
     );
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
+    const currentRef = sectionRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, []);
@@ -209,7 +210,7 @@ function SupportCard({ icon: Icon, title, description, actionText, onClick, colo
 }
 
 // ==================== RESOURCE CARD COMPONENT ====================
-function ResourceCard({ icon: Icon, title, description, link, color = "#4f46e5" }) {
+function ResourceCard({ icon: Icon, title, description, color = "#4f46e5" }) {
   return (
     <div 
       className="resource-card"
@@ -260,7 +261,6 @@ function ResourceCard({ icon: Icon, title, description, link, color = "#4f46e5" 
 export default function SupportPage({ isMobile, onBack }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [openFAQ, setOpenFAQ] = useState(null);
-  const [activeCategory, setActiveCategory] = useState("all");
   const [showContactForm, setShowContactForm] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -336,12 +336,12 @@ export default function SupportPage({ isMobile, onBack }) {
   ];
 
   const resources = [
-    { icon: FileText, title: "Getting Started Guide", description: "Learn how to navigate the platform", color: "#4f46e5", link: "/guides/getting-started" },
-    { icon: Video, title: "Video Tutorials", description: "Watch step-by-step guides", color: "#ec4899", link: "/tutorials" },
-    { icon: BookOpen, title: "Documentation", description: "Detailed technical documentation", color: "#06b6d4", link: "/docs" },
-    { icon: Users, title: "Community Forum", description: "Ask questions and share knowledge", color: "#10b981", link: "/forum" },
-    { icon: Download, title: "Resource Library", description: "Downloadable materials and tools", color: "#f59e0b", link: "/resources" },
-    { icon: CreditCard, title: "Billing & Invoices", description: "Manage payments and subscriptions", color: "#ef4444", link: "/billing" },
+    { icon: FileText, title: "Getting Started Guide", description: "Learn how to navigate the platform", color: "#4f46e5" },
+    { icon: Video, title: "Video Tutorials", description: "Watch step-by-step guides", color: "#ec4899" },
+    { icon: BookOpen, title: "Documentation", description: "Detailed technical documentation", color: "#06b6d4" },
+    { icon: Users, title: "Community Forum", description: "Ask questions and share knowledge", color: "#10b981" },
+    { icon: Download, title: "Resource Library", description: "Downloadable materials and tools", color: "#f59e0b" },
+    { icon: CreditCard, title: "Billing & Invoices", description: "Manage payments and subscriptions", color: "#ef4444" },
   ];
 
   const filteredFaqs = faqs.filter(faq =>
