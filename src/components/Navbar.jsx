@@ -206,12 +206,24 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
       <button className="nav-btn">Forum</button>
       <button className="nav-btn">Support</button>
 
-      {/* Tools */}
-      <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle}>
-        {["Packet Captures", "Resources", "Practice Exams"].map(t => (
-          <div key={t} className="dd-row">{t}</div>
-        ))}
-      </NavDropdown>
+   {/* Tools */}
+<NavDropdown
+  name="tools"
+  label="Tools"
+  openMenu={openMenu}
+  toggle={toggle}
+>
+  <div className="dd-row">Packet Captures</div>
+
+  <div className="dd-row">Resources</div>
+
+  <Link
+    to="/practice-exam"
+    style={{ textDecoration: "none" }}
+  >
+    <div className="dd-row">Practice Exams</div>
+  </Link>
+</NavDropdown>
 
       {/* About */}
       <NavDropdown name="about" label="About" openMenu={openMenu} toggle={toggle}>
@@ -304,11 +316,31 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
       <div style={rowStyle}>Forum</div>
       <div style={rowStyle}>Support</div>
 
-      {/* Tools */}
-      <div style={rowStyle} onClick={() => toggle("tools")}>
-        <span>Tools</span>
-        <span style={{ fontSize: "12px" }}>{openMenu === "tools" ? "▴" : "▾"}</span>
-      </div>
+{/* Tools */}
+<div
+  style={rowStyle}
+  onClick={() => toggle("tools")}
+>
+  <span>Tools</span>
+  <span style={{ fontSize: "12px" }}>
+    {openMenu === "tools" ? "▴" : "▾"}
+  </span>
+</div>
+
+{openMenu === "tools" && (
+  <>
+    <div style={subRowStyle}>Packet Captures</div>
+
+    <div style={subRowStyle}>Resources</div>
+
+    <Link
+      to="/practice-exam"
+      style={{ textDecoration: "none" }}
+    >
+      <div style={subRowStyle}>Practice Exams</div>
+    </Link>
+  </>
+)}
       {openMenu === "tools" && ["Packet Captures", "Resources", "Practice Exams"].map(t => (
         <div key={t} style={subRowStyle}>{t}</div>
       ))}

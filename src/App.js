@@ -14,6 +14,7 @@ import Login from './components/Login';
 import CoursesPage from './components/CoursesPage';
 import WatchDemoPage from './components/WatchDemoPage';
 import EnrollPage from './components/EnrollPage';
+import PracticeExam from './components/Tools/PracticeExam';
 
 // Routes where Navbar should be hidden
 const HIDE_NAVBAR = ['/free-account', '/login'];
@@ -64,6 +65,12 @@ function AppRoutes() {
             onBack={() => navigate('/courses')}
           />
         }
+      />
+
+      {/* Practice Exam */}
+      <Route
+        path="/practice-exam"
+        element={<PracticeExam />}
       />
     </Routes>
   );
