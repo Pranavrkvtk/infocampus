@@ -33,22 +33,16 @@ function CourseCard({ course, isMobile, hovered, onHover, levelColors, onWatchDe
           >
             {course.icon}
           </div>
-          <span
-            style={{
-              fontWeight: 700,
-              fontSize: "14px",
-              background: "#f0f0f0",
-              padding: "4px 10px",
-              borderRadius: "20px",
-            }}
-          >
+          <span style={{ fontWeight: 700, fontSize: "14px", background: "#f0f0f0", padding: "4px 10px", borderRadius: "20px" }}>
             🎥 {course.lessons} lessons
           </span>
         </div>
         <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1a1a2e" }}>{course.title}</h3>
         <p style={{ color: "#666", fontSize: "14px", lineHeight: "1.6", marginBottom: "16px" }}>{course.description}</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
-          <span style={{ background: levelColors[course.level].bg, color: levelColors[course.level].text, padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600 }}>{course.level}</span>
+          <span style={{ background: levelColors[course.level].bg, color: levelColors[course.level].text, padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600 }}>
+            {course.level}
+          </span>
           <span style={{ background: "#f0f0f0", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" }}>⏱ {course.duration}</span>
           <span style={{ background: "#f0f0f0", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" }}>👥 {course.students.toLocaleString()} students</span>
         </div>
@@ -97,6 +91,25 @@ function CourseCard({ course, isMobile, hovered, onHover, levelColors, onWatchDe
   );
 }
 
+// ==================== COURSES DATA ====================
+export const courses = [
+  { id: 1,  title: "CCNA 200-301 Complete Course",    description: "Master networking fundamentals, IP services, security fundamentals, and automation.",              level: "Beginner",     duration: "40+ hours",  lessons: 187, category: "ccna",     icon: "🌐", color: "#e5a800", featured: true,  students: 12450 },
+  { id: 2,  title: "Subnetting Mastery",              description: "Learn subnetting in seconds with proven techniques and practice labs.",                            level: "Beginner",     duration: "8+ hours",   lessons: 34,  category: "ccna",     icon: "🔢", color: "#e5a800", featured: false, students: 8750  },
+  { id: 3,  title: "Routing Fundamentals",            description: "Static routing, dynamic routing protocols, and advanced routing concepts.",                        level: "Intermediate", duration: "25+ hours",  lessons: 112, category: "ccna",     icon: "🔄", color: "#e5a800", featured: false, students: 6320  },
+  { id: 4,  title: "Switching and VLANs",             description: "Configure switches, VLANs, STP, EtherChannel, and switch security.",                              level: "Intermediate", duration: "20+ hours",  lessons: 89,  category: "ccna",     icon: "🔌", color: "#e5a800", featured: false, students: 7140  },
+  { id: 5,  title: "CCNP ENCOR (350-401)",            description: "Advanced routing, switching, VPNs, automation, and network assurance.",                           level: "Advanced",     duration: "60+ hours",  lessons: 245, category: "ccnp",     icon: "🎯", color: "#1d6b72", featured: true,  students: 5430  },
+  { id: 6,  title: "CCNP ENARSI (300-410)",           description: "Deep dive into advanced routing, VPN services, and infrastructure security.",                     level: "Advanced",     duration: "50+ hours",  lessons: 198, category: "ccnp",     icon: "🚀", color: "#1d6b72", featured: false, students: 3980  },
+  { id: 7,  title: "Advanced OSPF & BGP",             description: "Master OSPF areas, route redistribution, BGP attributes, and route filtering.",                  level: "Advanced",     duration: "35+ hours",  lessons: 145, category: "ccnp",     icon: "🌍", color: "#1d6b72", featured: false, students: 4670  },
+  { id: 8,  title: "CCIE Enterprise Infrastructure", description: "Expert-level preparation with complex labs, troubleshooting, and design.",                        level: "Expert",       duration: "120+ hours", lessons: 423, category: "ccie",     icon: "👑", color: "#c8102e", featured: true,  students: 2150  },
+  { id: 9,  title: "CCIE Lab Preparation",            description: "Full-scale lab simulations and topology design for CCIE certification.",                          level: "Expert",       duration: "80+ hours",  lessons: 267, category: "ccie",     icon: "🧪", color: "#c8102e", featured: false, students: 1890  },
+  { id: 10, title: "Network Security Fundamentals",  description: "Firewalls, VPNs, access control, and security best practices.",                                   level: "Intermediate", duration: "30+ hours",  lessons: 124, category: "security", icon: "🛡️", color: "#7aa3c8", featured: false, students: 5920  },
+  { id: 11, title: "Cisco Firepower & ASA",           description: "Configure and manage Next-Gen Firewalls and security policies.",                                  level: "Advanced",     duration: "45+ hours",  lessons: 167, category: "security", icon: "🔥", color: "#7aa3c8", featured: true,  students: 3340  },
+  { id: 12, title: "VPN Technologies",               description: "Site-to-site VPN, Remote Access VPN, DMVPN, and FlexVPN.",                                        level: "Advanced",     duration: "28+ hours",  lessons: 98,  category: "security", icon: "🔗", color: "#7aa3c8", featured: false, students: 4210  },
+  { id: 13, title: "Linux for Network Engineers",    description: "Essential Linux commands, scripting, and automation for networking.",                              level: "Beginner",     duration: "25+ hours",  lessons: 89,  category: "linux",    icon: "💻", color: "#5b8dbf", featured: false, students: 6780  },
+  { id: 14, title: "Python Network Automation",      description: "Automate network tasks with Python, Netmiko, and NAPALM.",                                         level: "Intermediate", duration: "35+ hours",  lessons: 134, category: "linux",    icon: "🐍", color: "#5b8dbf", featured: true,  students: 7530  },
+  { id: 15, title: "Ansible for Networking",         description: "Network automation using Ansible playbooks and roles.",                                            level: "Intermediate", duration: "22+ hours",  lessons: 76,  category: "linux",    icon: "📦", color: "#5b8dbf", featured: false, students: 4120  },
+];
+
 // ==================== MAIN COURSES PAGE ====================
 export default function CoursesPage({ isMobile, onBack }) {
   const navigate = useNavigate();
@@ -110,29 +123,6 @@ export default function CoursesPage({ isMobile, onBack }) {
     { id: "ccie",     name: "CCIE",        icon: "🏆", color: "#c8102e" },
     { id: "security", name: "Security",    icon: "🔒", color: "#7aa3c8" },
     { id: "linux",    name: "Linux",       icon: "🐧", color: "#5b8dbf" },
-  ];
-
-  const courses = [
-    // CCNA
-    { id: 1,  title: "CCNA 200-301 Complete Course",    description: "Master networking fundamentals, IP services, security fundamentals, and automation.",              level: "Beginner",     duration: "40+ hours",  lessons: 187, category: "ccna",     icon: "🌐", color: "#e5a800", featured: true,  students: 12450 },
-    { id: 2,  title: "Subnetting Mastery",              description: "Learn subnetting in seconds with proven techniques and practice labs.",                            level: "Beginner",     duration: "8+ hours",   lessons: 34,  category: "ccna",     icon: "🔢", color: "#e5a800", featured: false, students: 8750  },
-    { id: 3,  title: "Routing Fundamentals",            description: "Static routing, dynamic routing protocols, and advanced routing concepts.",                        level: "Intermediate", duration: "25+ hours",  lessons: 112, category: "ccna",     icon: "🔄", color: "#e5a800", featured: false, students: 6320  },
-    { id: 4,  title: "Switching and VLANs",             description: "Configure switches, VLANs, STP, EtherChannel, and switch security.",                              level: "Intermediate", duration: "20+ hours",  lessons: 89,  category: "ccna",     icon: "🔌", color: "#e5a800", featured: false, students: 7140  },
-    // CCNP
-    { id: 5,  title: "CCNP ENCOR (350-401)",            description: "Advanced routing, switching, VPNs, automation, and network assurance.",                           level: "Advanced",     duration: "60+ hours",  lessons: 245, category: "ccnp",     icon: "🎯", color: "#1d6b72", featured: true,  students: 5430  },
-    { id: 6,  title: "CCNP ENARSI (300-410)",           description: "Deep dive into advanced routing, VPN services, and infrastructure security.",                     level: "Advanced",     duration: "50+ hours",  lessons: 198, category: "ccnp",     icon: "🚀", color: "#1d6b72", featured: false, students: 3980  },
-    { id: 7,  title: "Advanced OSPF & BGP",             description: "Master OSPF areas, route redistribution, BGP attributes, and route filtering.",                  level: "Advanced",     duration: "35+ hours",  lessons: 145, category: "ccnp",     icon: "🌍", color: "#1d6b72", featured: false, students: 4670  },
-    // CCIE
-    { id: 8,  title: "CCIE Enterprise Infrastructure", description: "Expert-level preparation with complex labs, troubleshooting, and design.",                        level: "Expert",       duration: "120+ hours", lessons: 423, category: "ccie",     icon: "👑", color: "#c8102e", featured: true,  students: 2150  },
-    { id: 9,  title: "CCIE Lab Preparation",            description: "Full-scale lab simulations and topology design for CCIE certification.",                          level: "Expert",       duration: "80+ hours",  lessons: 267, category: "ccie",     icon: "🧪", color: "#c8102e", featured: false, students: 1890  },
-    // Security
-    { id: 10, title: "Network Security Fundamentals",  description: "Firewalls, VPNs, access control, and security best practices.",                                   level: "Intermediate", duration: "30+ hours",  lessons: 124, category: "security", icon: "🛡️", color: "#7aa3c8", featured: false, students: 5920  },
-    { id: 11, title: "Cisco Firepower & ASA",           description: "Configure and manage Next-Gen Firewalls and security policies.",                                  level: "Advanced",     duration: "45+ hours",  lessons: 167, category: "security", icon: "🔥", color: "#7aa3c8", featured: true,  students: 3340  },
-    { id: 12, title: "VPN Technologies",               description: "Site-to-site VPN, Remote Access VPN, DMVPN, and FlexVPN.",                                        level: "Advanced",     duration: "28+ hours",  lessons: 98,  category: "security", icon: "🔗", color: "#7aa3c8", featured: false, students: 4210  },
-    // Linux
-    { id: 13, title: "Linux for Network Engineers",    description: "Essential Linux commands, scripting, and automation for networking.",                              level: "Beginner",     duration: "25+ hours",  lessons: 89,  category: "linux",    icon: "💻", color: "#5b8dbf", featured: false, students: 6780  },
-    { id: 14, title: "Python Network Automation",      description: "Automate network tasks with Python, Netmiko, and NAPALM.",                                         level: "Intermediate", duration: "35+ hours",  lessons: 134, category: "linux",    icon: "🐍", color: "#5b8dbf", featured: true,  students: 7530  },
-    { id: 15, title: "Ansible for Networking",         description: "Network automation using Ansible playbooks and roles.",                                            level: "Intermediate", duration: "22+ hours",  lessons: 76,  category: "linux",    icon: "📦", color: "#5b8dbf", featured: false, students: 4120  },
   ];
 
   const levelColors = {
@@ -152,7 +142,7 @@ export default function CoursesPage({ isMobile, onBack }) {
     }
   };
 
-  // ✅ Uses useNavigate — no onWatchDemoRedirect prop needed
+  // ✅ Both use navigate — no prop callbacks needed
   const handleWatchDemo = (course) => {
     const demoData = {
       title: `${course.title} — Exclusive Preview`,
@@ -234,7 +224,6 @@ export default function CoursesPage({ isMobile, onBack }) {
         position: "relative",
         overflow: "hidden",
       }}>
-        {/* Decorative circles */}
         <div style={{ position: "absolute", width: "400px", height: "400px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", top: "-150px", right: "-100px" }} />
         <div style={{ position: "absolute", width: "300px", height: "300px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", bottom: "-120px", left: "-80px" }} />
 

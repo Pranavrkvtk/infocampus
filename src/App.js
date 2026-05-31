@@ -1,5 +1,11 @@
 import './App.css';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import Home from './components/Home';
@@ -12,6 +18,57 @@ import EnrollPage from './components/EnrollPage';
 // Routes where Navbar should be hidden
 const HIDE_NAVBAR = ['/free-account', '/login'];
 
+function AppRoutes() {
+  const navigate = useNavigate();
+  const isMobile = window.innerWidth < 768;
+
+  return (
+    <Routes>
+      {/* Home */}
+      <Route path="/" element={<Home />} />
+
+      {/* Free Account */}
+      <Route path="/free-account" element={<FreeAccount />} />
+
+      {/* Login */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Courses */}
+      <Route
+        path="/courses"
+        element={
+          <CoursesPage
+            isMobile={isMobile}
+            onBack={() => navigate('/')}
+          />
+        }
+      />
+
+      {/* Watch Demo */}
+      <Route
+        path="/watch-demo"
+        element={
+          <WatchDemoPage
+            isMobile={isMobile}
+            onBack={() => navigate('/courses')}
+          />
+        }
+      />
+
+      {/* Enroll */}
+      <Route
+        path="/enroll"
+        element={
+          <EnrollPage
+            isMobile={isMobile}
+            onBack={() => navigate('/courses')}
+          />
+        }
+      />
+    </Routes>
+  );
+}
+
 function Layout() {
   const location = useLocation();
   const showNavbar = !HIDE_NAVBAR.includes(location.pathname);
@@ -19,14 +76,7 @@ function Layout() {
   return (
     <>
       {showNavbar && <Navbar />}
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/free-account" element={<FreeAccount />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/courses" element={<CoursesPage isMobile={false} onBack={() => window.history.back()} />} />
-        <Route path="/watch-demo" element={<WatchDemoPage isMobile={false} onBack={() => window.history.back()} />} />
-        <Route path="/enroll" element={<EnrollPage isMobile={false} onBack={() => window.history.back()} />} />
-      </Routes>
+      <AppRoutes />
     </>
   );
 }
