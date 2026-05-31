@@ -15,6 +15,7 @@ import CoursesPage from './components/CoursesPage';
 import WatchDemoPage from './components/WatchDemoPage';
 import EnrollPage from './components/EnrollPage';
 import PracticeExam from './components/Tools/PracticeExam';
+import ForumPage from './components/Forum/ForumPage'; // Import the new Forum component
 
 // Routes where Navbar should be hidden
 const HIDE_NAVBAR = ['/free-account', '/login'];
@@ -71,6 +72,12 @@ function AppRoutes() {
       <Route
         path="/practice-exam"
         element={<PracticeExam />}
+      />
+
+      {/* Community Forum - New Route */}
+      <Route
+        path="/forum"
+        element={<ForumPage />}
       />
     </Routes>
   );

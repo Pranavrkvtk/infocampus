@@ -203,8 +203,9 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
         ))}
       </NavDropdown>
 
-      <button className="nav-btn">Forum</button>
-      <button className="nav-btn">Support</button>
+<Link to="/forum">
+  <button className="nav-btn">Forum</button>
+</Link>      <button className="nav-btn">Support</button>
 
    {/* Tools */}
 <NavDropdown
