@@ -4,7 +4,6 @@ import {
   Mail, 
   Phone, 
   MessageCircle, 
-  Clock, 
   CheckCircle, 
   ChevronRight, 
   Search,
@@ -13,16 +12,8 @@ import {
   Video,
   BookOpen,
   Users,
-  Globe,
-  Award,
-  Shield,
-  Zap,
-  MessageSquare,
-  ExternalLink,
   Download,
   CreditCard,
-  UserCheck,
-  Lock,
   FileQuestion
 } from 'lucide-react';
 
@@ -124,7 +115,7 @@ function FAQItem({ question, answer, isOpen, onToggle, index }) {
         style={{
           maxHeight: isOpen ? "200px" : "0",
           overflow: "hidden",
-          transition: "max-height 0.4s ease",
+          transition: "maxHeight 0.4s ease",
           paddingLeft: "20px",
           paddingRight: "20px",
         }}
