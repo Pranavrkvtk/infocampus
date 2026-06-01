@@ -27,8 +27,7 @@ const ciscoCourses = [
 const courseRoutes = {
   "CCNA 200-301": "/ccna200",
   "CCNP ENCOR 350-401": "/ccnp-encor",
-  "CCNP ENARSI 300-410": "/ccnp-enarsi",  // ← ADD THIS
-
+  "CCNP ENARSI 300-410": "/ccnp-enarsi",
 };
 
 const NAV_BG = "#4a7fb5";
@@ -46,14 +45,25 @@ export default function Navbar() {
   const [openMenu, setOpenMenu] = useState(null);
   const [cisco, setCisco] = useState(false);
 
+  // Function to close all dropdowns
+  const closeAllMenus = () => {
+    setOpenMenu(null);
+    setCisco(false);
+  };
+
   const toggle = (name) => {
     if (openMenu === name) {
-      setOpenMenu(null);
-      setCisco(false);
+      closeAllMenus();
     } else {
       setOpenMenu(name);
-      if (name !== "courses") setCisco(false);
+      setCisco(false);
     }
+  };
+
+  // Handle navigation - closes everything
+  const handleNavigation = () => {
+    closeAllMenus();
+    setMobileMenu(false);
   };
 
   return (
@@ -68,7 +78,7 @@ export default function Navbar() {
         gap: "4px",
       }}>
         {/* Logo */}
-        <Link to="/" style={{ textDecoration: "none", marginRight: "12px" }}>
+        <Link to="/" onClick={handleNavigation} style={{ textDecoration: "none", marginRight: "12px" }}>
           <span style={{ color: "#fff", fontWeight: 700, fontSize: "20px", letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
             Info<span style={{ color: ACCENT }}>campus</span>
           </span>
@@ -79,6 +89,8 @@ export default function Navbar() {
           searchVal={searchVal} setSearchVal={setSearchVal}
           openMenu={openMenu} toggle={toggle}
           cisco={cisco} setCisco={setCisco}
+          closeAllMenus={closeAllMenus}
+          handleNavigation={handleNavigation}
         />
 
         {/* Hamburger */}
@@ -102,6 +114,8 @@ export default function Navbar() {
           openMenu={openMenu} toggle={toggle}
           cisco={cisco} setCisco={setCisco}
           setMobileMenu={setMobileMenu}
+          closeAllMenus={closeAllMenus}
+          handleNavigation={handleNavigation}
         />
       )}
 
@@ -158,7 +172,7 @@ export default function Navbar() {
   );
 }
 
-function NavDropdown({ name, label, openMenu, toggle, children }) {
+function NavDropdown({ name, label, openMenu, toggle, children, closeAllMenus }) {
   const open = openMenu === name;
   return (
     <div style={{ position: "relative" }}>
@@ -179,22 +193,27 @@ function NavDropdown({ name, label, openMenu, toggle, children }) {
   );
 }
 
-function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco }) {
+function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco, closeAllMenus, handleNavigation }) {
   return (
     <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: "2px", flex: 1 }}>
-      <Link to="/" style={{ textDecoration: "none" }}>
+      <Link to="/" onClick={handleNavigation} style={{ textDecoration: "none" }}>
         <button className="nav-btn">Home</button>
       </Link>
 
       {/* Courses */}
-      <NavDropdown name="courses" label="Courses" openMenu={openMenu} toggle={toggle}>
+      <NavDropdown name="courses" label="Courses" openMenu={openMenu} toggle={toggle} closeAllMenus={closeAllMenus}>
         {courseItems.map((item) => (
           <div key={item}>
-            <div className="dd-row">
+            <div className="dd-row" onClick={() => {
+              if (item !== "Cisco") closeAllMenus();
+            }}>
               <span>{item}</span>
               {item === "Cisco" && (
                 <span
-                  onClick={(e) => { e.stopPropagation(); setCisco(!cisco); }}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setCisco(!cisco);
+                  }}
                   style={{
                     background: cisco ? ACCENT : "rgba(255,255,255,0.2)",
                     color: cisco ? "#1a1a1a" : "#fff",
@@ -214,6 +233,7 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
                     <Link
                       key={course}
                       to={courseRoutes[course]}
+                      onClick={closeAllMenus}
                       style={{ textDecoration: "none" }}
                     >
                       <div className="cisco-row-link">{course} →</div>
@@ -229,31 +249,31 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
       </NavDropdown>
 
       {/* Forum */}
-      <Link to="/forum" style={{ textDecoration: "none" }}>
+      <Link to="/forum" onClick={handleNavigation} style={{ textDecoration: "none" }}>
         <button className="nav-btn">Forum</button>
       </Link>
 
       {/* Support */}
-      <Link to="/support" style={{ textDecoration: "none" }}>
+      <Link to="/support" onClick={handleNavigation} style={{ textDecoration: "none" }}>
         <button className="nav-btn">Support</button>
       </Link>
 
       {/* Tools */}
-      <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle}>
-        <div className="dd-row">Packet Captures</div>
-        <div className="dd-row">Resources</div>
-        <Link to="/practice-exam" style={{ textDecoration: "none" }}>
+      <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle} closeAllMenus={closeAllMenus}>
+        <div className="dd-row" onClick={closeAllMenus}>Packet Captures</div>
+        <div className="dd-row" onClick={closeAllMenus}>Resources</div>
+        <Link to="/practice-exam" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
           <div className="dd-row">Practice Exams</div>
         </Link>
       </NavDropdown>
 
       {/* About */}
-      <NavDropdown name="about" label="About" openMenu={openMenu} toggle={toggle}>
-        <Link to="/free-account" style={{ textDecoration: "none" }}>
+      <NavDropdown name="about" label="About" openMenu={openMenu} toggle={toggle} closeAllMenus={closeAllMenus}>
+        <Link to="/free-account" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
           <div className="dd-row">Free Account</div>
         </Link>
-        <div className="dd-row">Discounts and Promotions</div>
-        <div className="dd-row">Training for Teams</div>
+        <div className="dd-row" onClick={closeAllMenus}>Discounts and Promotions</div>
+        <div className="dd-row" onClick={closeAllMenus}>Training for Teams</div>
       </NavDropdown>
 
       {/* Login + Search pushed right */}
@@ -264,7 +284,7 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
           value={searchVal}
           onChange={(e) => setSearchVal(e.target.value)}
         />
-        <Link to="/login" style={{ textDecoration: "none" }}>
+        <Link to="/login" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
           <button
             style={{
               background: GREEN, color: "#fff", border: "none",
@@ -283,7 +303,7 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
   );
 }
 
-function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco, setMobileMenu }) {
+function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco, setMobileMenu, closeAllMenus, handleNavigation }) {
   const rowStyle = {
     padding: "13px 20px", color: "#fff", fontFamily: FONT, fontSize: "15px",
     borderBottom: "1px solid rgba(255,255,255,0.1)", cursor: "pointer",
@@ -306,10 +326,18 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
     display: "block",
   };
 
+  const handleRowClick = (callback) => {
+    return () => {
+      if (callback) callback();
+      closeAllMenus();
+      setMobileMenu(false);
+    };
+  };
+
   return (
     <div style={{ background: NAV_BG, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
-      <Link to="/" style={{ textDecoration: "none" }}>
-        <div style={rowStyle} onClick={() => setMobileMenu(false)}>Home</div>
+      <Link to="/" onClick={handleNavigation} style={{ textDecoration: "none" }}>
+        <div style={rowStyle}>Home</div>
       </Link>
 
       {/* Courses */}
@@ -321,7 +349,14 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
         <div key={item}>
           <div
             style={{ ...subRowStyle, display: "flex", justifyContent: "space-between", alignItems: "center" }}
-            onClick={() => item === "Cisco" && setCisco(!cisco)}
+            onClick={() => {
+              if (item === "Cisco") {
+                setCisco(!cisco);
+              } else {
+                closeAllMenus();
+                setMobileMenu(false);
+              }
+            }}
           >
             <span>{item}</span>
             {item === "Cisco" && (
@@ -341,7 +376,7 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
                 key={course}
                 to={courseRoutes[course]}
                 style={{ textDecoration: "none" }}
-                onClick={() => setMobileMenu(false)}
+                onClick={handleNavigation}
               >
                 <div style={ciscoLinkStyle}>{course} →</div>
               </Link>
@@ -353,13 +388,13 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
       ))}
 
       {/* Forum */}
-      <Link to="/forum" style={{ textDecoration: "none" }}>
-        <div style={rowStyle} onClick={() => setMobileMenu(false)}>Forum</div>
+      <Link to="/forum" onClick={handleNavigation} style={{ textDecoration: "none" }}>
+        <div style={rowStyle}>Forum</div>
       </Link>
 
       {/* Support */}
-      <Link to="/support" style={{ textDecoration: "none" }}>
-        <div style={rowStyle} onClick={() => setMobileMenu(false)}>Support</div>
+      <Link to="/support" onClick={handleNavigation} style={{ textDecoration: "none" }}>
+        <div style={rowStyle}>Support</div>
       </Link>
 
       {/* Tools */}
@@ -369,10 +404,10 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
       </div>
       {openMenu === "tools" && (
         <>
-          <div style={subRowStyle}>Packet Captures</div>
-          <div style={subRowStyle}>Resources</div>
-          <Link to="/practice-exam" style={{ textDecoration: "none" }}>
-            <div style={subRowStyle} onClick={() => setMobileMenu(false)}>Practice Exams</div>
+          <div style={subRowStyle} onClick={handleNavigation}>Packet Captures</div>
+          <div style={subRowStyle} onClick={handleNavigation}>Resources</div>
+          <Link to="/practice-exam" onClick={handleNavigation} style={{ textDecoration: "none" }}>
+            <div style={subRowStyle}>Practice Exams</div>
           </Link>
         </>
       )}
@@ -384,11 +419,11 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
       </div>
       {openMenu === "about" && (
         <>
-          <Link to="/free-account" style={{ textDecoration: "none" }}>
-            <div style={subRowStyle} onClick={() => setMobileMenu(false)}>Free Account</div>
+          <Link to="/free-account" onClick={handleNavigation} style={{ textDecoration: "none" }}>
+            <div style={subRowStyle}>Free Account</div>
           </Link>
-          <div style={subRowStyle}>Discounts and Promotions</div>
-          <div style={subRowStyle}>Training for Teams</div>
+          <div style={subRowStyle} onClick={handleNavigation}>Discounts and Promotions</div>
+          <div style={subRowStyle} onClick={handleNavigation}>Training for Teams</div>
         </>
       )}
 
@@ -405,9 +440,8 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
 
       {/* Login */}
       <div style={{ padding: "12px 20px" }}>
-        <Link to="/login" style={{ textDecoration: "none" }}>
+        <Link to="/login" onClick={handleNavigation} style={{ textDecoration: "none" }}>
           <button
-            onClick={() => setMobileMenu(false)}
             style={{
               background: GREEN, color: "#fff", border: "none", borderRadius: "5px",
               padding: "10px 0", width: "100%", fontFamily: FONT,
