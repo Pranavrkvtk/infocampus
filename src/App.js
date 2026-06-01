@@ -17,6 +17,7 @@ import EnrollPage from './components/EnrollPage';
 import PracticeExam from './components/Tools/PracticeExam';
 import ForumPage from './components/Forum/ForumPage'; // Import the Forum component
 import SupportPage from './components/Support/SupportPage'; // Import the Support component
+import CCNA200 from './components/Course/Cisco/CCNA200';  // ← ADD THIS
 
 // Routes where Navbar should be hidden
 const HIDE_NAVBAR = ['/free-account', '/login'];
@@ -57,6 +58,8 @@ function AppRoutes() {
           />
         }
       />
+            <Route path="/ccna200" element={<CCNA200 />} />  {/* ← ADD THIS */}
+
 
       {/* Enroll */}
       <Route

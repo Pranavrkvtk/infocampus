@@ -24,6 +24,10 @@ const ciscoCourses = [
   "Cisco SD-WAN",
 ];
 
+const courseRoutes = {
+  "CCNA 200-301": "/ccna200",
+};
+
 const NAV_BG = "#4a7fb5";
 const NAV_HOVER = "#3a6fa5";
 const DROPDOWN_BG = "#3a6fa5";
@@ -130,6 +134,14 @@ export default function Navbar() {
           background: ${CISCO_BG};
         }
         .cisco-row:hover { background: #255080; }
+        .cisco-row-link {
+          padding: 9px 16px 9px 28px; color: ${ACCENT};
+          font-family: ${FONT}; font-size: 13px; font-weight: 600;
+          cursor: pointer; transition: background 0.12s;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          background: ${CISCO_BG}; display: block;
+        }
+        .cisco-row-link:hover { background: #255080; }
         .nav-search {
           background: rgba(255,255,255,0.15);
           border: 1px solid rgba(255,255,255,0.3); border-radius: 5px;
@@ -194,21 +206,31 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
             </div>
             {item === "Cisco" && cisco && (
               <div>
-                {ciscoCourses.map((course) => (
-                  <div key={course} className="cisco-row">{course}</div>
-                ))}
+                {ciscoCourses.map((course) =>
+                  courseRoutes[course] ? (
+                    <Link
+                      key={course}
+                      to={courseRoutes[course]}
+                      style={{ textDecoration: "none" }}
+                    >
+                      <div className="cisco-row-link">{course} →</div>
+                    </Link>
+                  ) : (
+                    <div key={course} className="cisco-row">{course}</div>
+                  )
+                )}
               </div>
             )}
           </div>
         ))}
       </NavDropdown>
 
-      {/* Forum link */}
+      {/* Forum */}
       <Link to="/forum" style={{ textDecoration: "none" }}>
         <button className="nav-btn">Forum</button>
       </Link>
 
-      {/* ✅ FIXED: Support link properly wrapped */}
+      {/* Support */}
       <Link to="/support" style={{ textDecoration: "none" }}>
         <button className="nav-btn">Support</button>
       </Link>
@@ -274,6 +296,12 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
     fontSize: "13px", borderBottom: "1px solid rgba(255,255,255,0.06)",
     cursor: "pointer", background: CISCO_BG,
   };
+  const ciscoLinkStyle = {
+    ...ciscoSubStyle,
+    color: ACCENT,
+    fontWeight: 600,
+    display: "block",
+  };
 
   return (
     <div style={{ background: NAV_BG, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
@@ -304,18 +332,29 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
               </span>
             )}
           </div>
-          {item === "Cisco" && cisco && ciscoCourses.map(course => (
-            <div key={course} style={ciscoSubStyle}>{course}</div>
-          ))}
+          {item === "Cisco" && cisco && ciscoCourses.map(course =>
+            courseRoutes[course] ? (
+              <Link
+                key={course}
+                to={courseRoutes[course]}
+                style={{ textDecoration: "none" }}
+                onClick={() => setMobileMenu(false)}
+              >
+                <div style={ciscoLinkStyle}>{course} →</div>
+              </Link>
+            ) : (
+              <div key={course} style={ciscoSubStyle}>{course}</div>
+            )
+          )}
         </div>
       ))}
 
-      {/* Forum link for mobile */}
+      {/* Forum */}
       <Link to="/forum" style={{ textDecoration: "none" }}>
         <div style={rowStyle} onClick={() => setMobileMenu(false)}>Forum</div>
       </Link>
 
-      {/* ✅ FIXED: Support link for mobile */}
+      {/* Support */}
       <Link to="/support" style={{ textDecoration: "none" }}>
         <div style={rowStyle} onClick={() => setMobileMenu(false)}>Support</div>
       </Link>
@@ -330,7 +369,7 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
           <div style={subRowStyle}>Packet Captures</div>
           <div style={subRowStyle}>Resources</div>
           <Link to="/practice-exam" style={{ textDecoration: "none" }}>
-            <div style={subRowStyle}>Practice Exams</div>
+            <div style={subRowStyle} onClick={() => setMobileMenu(false)}>Practice Exams</div>
           </Link>
         </>
       )}
@@ -364,7 +403,7 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
       {/* Login */}
       <div style={{ padding: "12px 20px" }}>
         <Link to="/login" style={{ textDecoration: "none" }}>
-          <button 
+          <button
             onClick={() => setMobileMenu(false)}
             style={{
               background: GREEN, color: "#fff", border: "none", borderRadius: "5px",
