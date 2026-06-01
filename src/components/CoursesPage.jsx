@@ -327,7 +327,7 @@ export default function CoursesPage({ isMobile, onBack }) {
         </div>
         <div>
           <h2 style={{ color: "#3abf94", margin: 0, fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "28px" : "36px" }}>
-            <CountUp end={49} suffix="★" />
+            <CountUp end={4.9} suffix="★" />
           </h2>
           <p style={{ fontFamily: "'Trebuchet MS', sans-serif", color: "#555" }}>Rating</p>
         </div>
