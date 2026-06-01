@@ -20,6 +20,7 @@ import SupportPage from './components/Support/SupportPage'; // Import the Suppor
 import CCNA200 from './components/Course/Cisco/CCNA200';  // ← ADD THIS
 import CCNA350 from './components/Course/Cisco/CCNA350'// Routes where Navbar should be hidden
 import CCNA300 from './components/Course/Cisco/CCNA300';
+import UpgradePage from './components/Tools/UpgradePage';
 
 
 
@@ -89,6 +90,8 @@ function AppRoutes() {
 
       <Route path="/ccnp-encor" element={<CCNA350 />} />
       <Route path="/ccnp-enarsi" element={<CCNA300 />} />
+              <Route path="/upgrade" element={<UpgradePage />} />
+
 
       {/* Support Page */}
       <Route
