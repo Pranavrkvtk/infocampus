@@ -326,13 +326,6 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
     display: "block",
   };
 
-  const handleRowClick = (callback) => {
-    return () => {
-      if (callback) callback();
-      closeAllMenus();
-      setMobileMenu(false);
-    };
-  };
 
   return (
     <div style={{ background: NAV_BG, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
