@@ -26,6 +26,9 @@ const ciscoCourses = [
 
 const courseRoutes = {
   "CCNA 200-301": "/ccna200",
+  "CCNP ENCOR 350-401": "/ccnp-encor",
+  "CCNP ENARSI 300-410": "/ccnp-enarsi",  // ← ADD THIS
+
 };
 
 const NAV_BG = "#4a7fb5";

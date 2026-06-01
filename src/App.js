@@ -18,8 +18,11 @@ import PracticeExam from './components/Tools/PracticeExam';
 import ForumPage from './components/Forum/ForumPage'; // Import the Forum component
 import SupportPage from './components/Support/SupportPage'; // Import the Support component
 import CCNA200 from './components/Course/Cisco/CCNA200';  // ← ADD THIS
+import CCNA350 from './components/Course/Cisco/CCNA350'// Routes where Navbar should be hidden
+import CCNA300 from './components/Course/Cisco/CCNA300';
 
-// Routes where Navbar should be hidden
+
+
 const HIDE_NAVBAR = ['/free-account', '/login'];
 
 function AppRoutes() {
@@ -83,6 +86,9 @@ function AppRoutes() {
         path="/forum"
         element={<ForumPage />}
       />
+
+      <Route path="/ccnp-encor" element={<CCNA350 />} />
+      <Route path="/ccnp-enarsi" element={<CCNA300 />} />
 
       {/* Support Page */}
       <Route
