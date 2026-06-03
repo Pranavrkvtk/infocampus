@@ -26,12 +26,11 @@ function Login() {
       console.log("Role:", res.data.role);
 alert("Role = " + res.data.role);
 
-if (res.data.role === "ADMIN") {
+if (res.data.role?.toUpperCase() === "ADMIN") {
   window.location.replace("/admin");
 } else {
   window.location.replace("/courses");
 }
-
     }
      catch (error) {
       console.log("Login Error:", error);
