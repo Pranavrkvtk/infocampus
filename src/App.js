@@ -22,7 +22,7 @@ import CCNA350 from './components/Course/Cisco/CCNA350'// Routes where Navbar sh
 import CCNA300 from './components/Course/Cisco/CCNA300';
 import UpgradePage from './components/Tools/UpgradePage';
 
-
+import AdminDashboard from './components/Admin/AdminDashboard';
 
 const HIDE_NAVBAR = ['/free-account', '/login'];
 
@@ -91,7 +91,7 @@ function AppRoutes() {
       <Route path="/ccnp-encor" element={<CCNA350 />} />
       <Route path="/ccnp-enarsi" element={<CCNA300 />} />
               <Route path="/upgrade" element={<UpgradePage />} />
-
+<Route path="/admin" element={<AdminDashboard />} />
 
       {/* Support Page */}
       <Route

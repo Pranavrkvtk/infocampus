@@ -11,28 +11,35 @@ function Login() {
 
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+const handleLogin = async (e) => {
+  e.preventDefault();
 
-    try {
-      const res = await loginUser({
-        email,
-        password,
-      });
+  try {
+    const res = await loginUser({
+      email,
+      password,
+    });
 
-      // store JWT token
-      localStorage.setItem("token", res.data.token);
+    // Save JWT Token
+    localStorage.setItem("token", res.data.token);
 
-      alert("Login Successful");
+    // Save User Role
+    localStorage.setItem("role", res.data.role);
 
-      // redirect to home/dashboard
-      navigate("/");
+    alert("Login Successful");
 
-    } catch (error) {
-      console.log("Login Error:", error);
-      alert("Invalid Email or Password");
+    // Redirect Based on Role
+    if (res.data.role === "ADMIN") {
+      navigate("/admin");
+    } else {
+      navigate("/courses");
     }
-  };
+
+  } catch (error) {
+    console.log("Login Error:", error);
+    alert("Invalid Email or Password");
+  }
+};
 
   return (
     <div className="login-container">
