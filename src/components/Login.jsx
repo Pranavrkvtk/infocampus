@@ -10,7 +10,6 @@ function Login() {
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
-
 const handleLogin = async (e) => {
   e.preventDefault();
 
@@ -20,27 +19,26 @@ const handleLogin = async (e) => {
       password,
     });
 
-    // Save JWT Token
     localStorage.setItem("token", res.data.token);
-
-    // Save User Role
     localStorage.setItem("role", res.data.role);
 
     alert("Login Successful");
 
-    // Redirect Based on Role
+    console.log("Login Response:", res.data);
+    console.log("Role:", res.data.role);
+
     if (res.data.role === "ADMIN") {
-      navigate("/admin");
+      window.location.href = "/admin";
     } else {
-      navigate("/courses");
+      window.location.href = "/courses";
     }
 
   } catch (error) {
-  console.log("Login Error:", error);
-  console.log("Response:", error.response);
+    console.log("Login Error:", error);
+    console.log("Response:", error.response);
 
-  alert(JSON.stringify(error.response?.data, null, 2));
-} 
+    alert(JSON.stringify(error.response?.data, null, 2));
+  }
 };
 
   return (
