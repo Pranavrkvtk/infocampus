@@ -10,7 +10,12 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
-  if (token) {
+  // Don't send JWT for login/register
+  if (
+    token &&
+    config.url !== "/auth/login" &&
+    config.url !== "/auth/register"
+  ) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 

@@ -36,14 +36,11 @@ const handleLogin = async (e) => {
     }
 
   } catch (error) {
-    console.log("Login Error:", error);
-      console.log("Response:", error.response);
+  console.log("Login Error:", error);
+  console.log("Response:", error.response);
 
-  alert(
-    error.response?.data?.message ||
-    error.response?.data ||
-    error.message
-  );  }
+  alert(JSON.stringify(error.response?.data, null, 2));
+} 
 };
 
   return (
