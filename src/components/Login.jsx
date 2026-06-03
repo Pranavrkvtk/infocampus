@@ -1,45 +1,50 @@
 import React, { useState } from "react";
 import "./Login.css";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { loginUser } from "../api/authApi";
 
 function Login() {
   const [showPass, setShowPass] = useState(false);
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const navigate = useNavigate();
-const handleLogin = async (e) => {
-  e.preventDefault();
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-  try {
-    const res = await loginUser({
-      email,
-      password,
-    });
+    try {
+      const res = await loginUser({
+        email,
+        password,
+      });
 
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("role", res.data.role);
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.role);
 
-    alert("Login Successful");
+      alert("Login Successful");
 
-    console.log("Login Response:", res.data);
-    console.log("Role:", res.data.role);
+      console.log("Login Response:", res.data);
+      console.log("Role:", res.data.role);
 
-    if (res.data.role === "ADMIN") {
-      window.location.href = "/admin";
-    } else {
-      window.location.href = "/courses";
+      if (res.data.role === "ADMIN") {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/courses";
+      }
+
+    } catch (error) {
+      console.log("Login Error:", error);
+      console.log("Response:", error.response);
+
+      alert(
+        JSON.stringify(
+          error.response?.data || error.message,
+          null,
+          2
+        )
+      );
     }
+  };
 
-  } catch (error) {
-    console.log("Login Error:", error);
-    console.log("Response:", error.response);
-
-    alert(JSON.stringify(error.response?.data, null, 2));
-  }
-};
 
   return (
     <div className="login-container">
