@@ -37,8 +37,13 @@ const handleLogin = async (e) => {
 
   } catch (error) {
     console.log("Login Error:", error);
-    alert("Invalid Email or Password");
-  }
+      console.log("Response:", error.response);
+
+  alert(
+    error.response?.data?.message ||
+    error.response?.data ||
+    error.message
+  );  }
 };
 
   return (
