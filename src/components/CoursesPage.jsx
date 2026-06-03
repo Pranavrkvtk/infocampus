@@ -43,7 +43,7 @@ function CountUp({ end, suffix = "", duration = 2000 }) {
 }
 
 // ==================== COURSE CARD COMPONENT ====================
-function CourseCard({ course, isMobile, hovered, onHover, levelColors, onWatchDemo, onEnrollNow }) {
+function CourseCard({ course, isMobile, hovered, onHover, levelColors, onEnrollNow }) {
   return (
     <div
       onMouseEnter={() => onHover(course.id)}
@@ -88,19 +88,18 @@ function CourseCard({ course, isMobile, hovered, onHover, levelColors, onWatchDe
           <span style={{ background: "#f0f0f0", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" }}>👥 {course.students.toLocaleString()} students</span>
         </div>
         <button
-          onClick={(e) => { e.stopPropagation(); onWatchDemo(course); }}
+          onClick={(e) => { e.stopPropagation(); onEnrollNow(course); }}
           style={{
             width: "100%",
             background: course.color,
             color: "#fff",
             border: "none",
             borderRadius: "10px",
-            padding: "12px",
+            padding: "14px",
             fontFamily: "'Trebuchet MS', sans-serif",
             fontWeight: 600,
             cursor: "pointer",
-            transition: "opacity 0.2s",
-            marginBottom: "8px",
+            transition: "all 0.2s",
             fontSize: "15px",
             display: "flex",
             alignItems: "center",
@@ -110,32 +109,7 @@ function CourseCard({ course, isMobile, hovered, onHover, levelColors, onWatchDe
           onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
           onMouseLeave={e => e.currentTarget.style.opacity = "1"}
         >
-          <span>▶</span> Watch Demo <span style={{ 
-            background: "rgba(255,255,255,0.2)", 
-            borderRadius: "20px", 
-            padding: "2px 8px", 
-            fontSize: "12px",
-            marginLeft: "4px"
-          }}>{course.demoViews?.toLocaleString() || 0}</span>
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onEnrollNow(course); }}
-          style={{
-            width: "100%",
-            background: "#f0f0f0",
-            color: "#333",
-            border: "none",
-            borderRadius: "10px",
-            padding: "10px",
-            fontFamily: "'Trebuchet MS', sans-serif",
-            fontWeight: 500,
-            cursor: "pointer",
-            fontSize: "13px",
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = "#e0e0e0"}
-          onMouseLeave={e => e.currentTarget.style.background = "#f0f0f0"}
-        >
-          Enroll Now →
+          <span>🎓</span> Enroll Now →
         </button>
       </div>
     </div>
@@ -144,21 +118,21 @@ function CourseCard({ course, isMobile, hovered, onHover, levelColors, onWatchDe
 
 // ==================== COURSES DATA ====================
 export const courses = [
-  { id: 1,  title: "CCNA 200-301 Complete Course",    description: "Master networking fundamentals, IP services, security fundamentals, and automation.",              level: "Beginner",     duration: "40+ hours",  lessons: 187, category: "ccna",     icon: "🌐", color: "#e5a800", featured: true,  students: 12450, demoViews: 15420 },
-  { id: 2,  title: "Subnetting Mastery",              description: "Learn subnetting in seconds with proven techniques and practice labs.",                            level: "Beginner",     duration: "8+ hours",   lessons: 34,  category: "ccna",     icon: "🔢", color: "#e5a800", featured: false, students: 8750,  demoViews: 8930  },
-  { id: 3,  title: "Routing Fundamentals",            description: "Static routing, dynamic routing protocols, and advanced routing concepts.",                        level: "Intermediate", duration: "25+ hours",  lessons: 112, category: "ccna",     icon: "🔄", color: "#e5a800", featured: false, students: 6320,  demoViews: 4570  },
-  { id: 4,  title: "Switching and VLANs",             description: "Configure switches, VLANs, STP, EtherChannel, and switch security.",                              level: "Intermediate", duration: "20+ hours",  lessons: 89,  category: "ccna",     icon: "🔌", color: "#e5a800", featured: false, students: 7140,  demoViews: 6210  },
-  { id: 5,  title: "CCNP ENCOR (350-401)",            description: "Advanced routing, switching, VPNs, automation, and network assurance.",                           level: "Advanced",     duration: "60+ hours",  lessons: 245, category: "ccnp",     icon: "🎯", color: "#1d6b72", featured: true,  students: 5430,  demoViews: 7820  },
-  { id: 6,  title: "CCNP ENARSI (300-410)",           description: "Deep dive into advanced routing, VPN services, and infrastructure security.",                     level: "Advanced",     duration: "50+ hours",  lessons: 198, category: "ccnp",     icon: "🚀", color: "#1d6b72", featured: false, students: 3980,  demoViews: 3540  },
-  { id: 7,  title: "Advanced OSPF & BGP",             description: "Master OSPF areas, route redistribution, BGP attributes, and route filtering.",                  level: "Advanced",     duration: "35+ hours",  lessons: 145, category: "ccnp",     icon: "🌍", color: "#1d6b72", featured: false, students: 4670,  demoViews: 4980  },
-  { id: 8,  title: "CCIE Enterprise Infrastructure", description: "Expert-level preparation with complex labs, troubleshooting, and design.",                        level: "Expert",       duration: "120+ hours", lessons: 423, category: "ccie",     icon: "👑", color: "#c8102e", featured: true,  students: 2150,  demoViews: 3120  },
-  { id: 9,  title: "CCIE Lab Preparation",            description: "Full-scale lab simulations and topology design for CCIE certification.",                          level: "Expert",       duration: "80+ hours",  lessons: 267, category: "ccie",     icon: "🧪", color: "#c8102e", featured: false, students: 1890,  demoViews: 2470  },
-  { id: 10, title: "Network Security Fundamentals",  description: "Firewalls, VPNs, access control, and security best practices.",                                   level: "Intermediate", duration: "30+ hours",  lessons: 124, category: "security", icon: "🛡️", color: "#7aa3c8", featured: false, students: 5920,  demoViews: 6850  },
-  { id: 11, title: "Cisco Firepower & ASA",           description: "Configure and manage Next-Gen Firewalls and security policies.",                                  level: "Advanced",     duration: "45+ hours",  lessons: 167, category: "security", icon: "🔥", color: "#7aa3c8", featured: true,  students: 3340,  demoViews: 4230  },
-  { id: 12, title: "VPN Technologies",               description: "Site-to-site VPN, Remote Access VPN, DMVPN, and FlexVPN.",                                        level: "Advanced",     duration: "28+ hours",  lessons: 98,  category: "security", icon: "🔗", color: "#7aa3c8", featured: false, students: 4210,  demoViews: 3880  },
-  { id: 13, title: "Linux for Network Engineers",    description: "Essential Linux commands, scripting, and automation for networking.",                              level: "Beginner",     duration: "25+ hours",  lessons: 89,  category: "linux",    icon: "💻", color: "#5b8dbf", featured: false, students: 6780,  demoViews: 5910  },
-  { id: 14, title: "Python Network Automation",      description: "Automate network tasks with Python, Netmiko, and NAPALM.",                                         level: "Intermediate", duration: "35+ hours",  lessons: 134, category: "linux",    icon: "🐍", color: "#5b8dbf", featured: true,  students: 7530,  demoViews: 9670  },
-  { id: 15, title: "Ansible for Networking",         description: "Network automation using Ansible playbooks and roles.",                                            level: "Intermediate", duration: "22+ hours",  lessons: 76,  category: "linux",    icon: "📦", color: "#5b8dbf", featured: false, students: 4120,  demoViews: 3360  },
+  { id: 1,  title: "CCNA 200-301 Complete Course",    description: "Master networking fundamentals, IP services, security fundamentals, and automation.",              level: "Beginner",     duration: "40+ hours",  lessons: 187, category: "ccna",     icon: "🌐", color: "#e5a800", featured: true,  students: 12450 },
+  { id: 2,  title: "Subnetting Mastery",              description: "Learn subnetting in seconds with proven techniques and practice labs.",                            level: "Beginner",     duration: "8+ hours",   lessons: 34,  category: "ccna",     icon: "🔢", color: "#e5a800", featured: false, students: 8750  },
+  { id: 3,  title: "Routing Fundamentals",            description: "Static routing, dynamic routing protocols, and advanced routing concepts.",                        level: "Intermediate", duration: "25+ hours",  lessons: 112, category: "ccna",     icon: "🔄", color: "#e5a800", featured: false, students: 6320  },
+  { id: 4,  title: "Switching and VLANs",             description: "Configure switches, VLANs, STP, EtherChannel, and switch security.",                              level: "Intermediate", duration: "20+ hours",  lessons: 89,  category: "ccna",     icon: "🔌", color: "#e5a800", featured: false, students: 7140  },
+  { id: 5,  title: "CCNP ENCOR (350-401)",            description: "Advanced routing, switching, VPNs, automation, and network assurance.",                           level: "Advanced",     duration: "60+ hours",  lessons: 245, category: "ccnp",     icon: "🎯", color: "#1d6b72", featured: true,  students: 5430  },
+  { id: 6,  title: "CCNP ENARSI (300-410)",           description: "Deep dive into advanced routing, VPN services, and infrastructure security.",                     level: "Advanced",     duration: "50+ hours",  lessons: 198, category: "ccnp",     icon: "🚀", color: "#1d6b72", featured: false, students: 3980  },
+  { id: 7,  title: "Advanced OSPF & BGP",             description: "Master OSPF areas, route redistribution, BGP attributes, and route filtering.",                  level: "Advanced",     duration: "35+ hours",  lessons: 145, category: "ccnp",     icon: "🌍", color: "#1d6b72", featured: false, students: 4670  },
+  { id: 8,  title: "CCIE Enterprise Infrastructure", description: "Expert-level preparation with complex labs, troubleshooting, and design.",                        level: "Expert",       duration: "120+ hours", lessons: 423, category: "ccie",     icon: "👑", color: "#c8102e", featured: true,  students: 2150  },
+  { id: 9,  title: "CCIE Lab Preparation",            description: "Full-scale lab simulations and topology design for CCIE certification.",                          level: "Expert",       duration: "80+ hours",  lessons: 267, category: "ccie",     icon: "🧪", color: "#c8102e", featured: false, students: 1890  },
+  { id: 10, title: "Network Security Fundamentals",  description: "Firewalls, VPNs, access control, and security best practices.",                                   level: "Intermediate", duration: "30+ hours",  lessons: 124, category: "security", icon: "🛡️", color: "#7aa3c8", featured: false, students: 5920  },
+  { id: 11, title: "Cisco Firepower & ASA",           description: "Configure and manage Next-Gen Firewalls and security policies.",                                  level: "Advanced",     duration: "45+ hours",  lessons: 167, category: "security", icon: "🔥", color: "#7aa3c8", featured: true,  students: 3340  },
+  { id: 12, title: "VPN Technologies",               description: "Site-to-site VPN, Remote Access VPN, DMVPN, and FlexVPN.",                                        level: "Advanced",     duration: "28+ hours",  lessons: 98,  category: "security", icon: "🔗", color: "#7aa3c8", featured: false, students: 4210  },
+  { id: 13, title: "Linux for Network Engineers",    description: "Essential Linux commands, scripting, and automation for networking.",                              level: "Beginner",     duration: "25+ hours",  lessons: 89,  category: "linux",    icon: "💻", color: "#5b8dbf", featured: false, students: 6780  },
+  { id: 14, title: "Python Network Automation",      description: "Automate network tasks with Python, Netmiko, and NAPALM.",                                         level: "Intermediate", duration: "35+ hours",  lessons: 134, category: "linux",    icon: "🐍", color: "#5b8dbf", featured: true,  students: 7530  },
+  { id: 15, title: "Ansible for Networking",         description: "Network automation using Ansible playbooks and roles.",                                            level: "Intermediate", duration: "22+ hours",  lessons: 76,  category: "linux",    icon: "📦", color: "#5b8dbf", featured: false, students: 4120  },
 ];
 
 // ==================== MAIN COURSES PAGE ====================
@@ -181,28 +155,6 @@ export default function CoursesPage({ isMobile, onBack }) {
     Intermediate: { bg: "#fff3e0", text: "#ef6c00" },
     Advanced:     { bg: "#fce4ec", text: "#c62828" },
     Expert:       { bg: "#f3e5f5", text: "#6a1b9a" },
-  };
-
-  const getVideoUrlForCourse = (course) => {
-    const base = "https://www.youtube.com/embed/";
-    switch (course.category) {
-      case "ccna":     return base + "0KZNRhjjC3s?autoplay=1&rel=0";
-      case "ccnp":     return base + "3rV5m7kALWg?autoplay=1&rel=0";
-      case "security": return base + "k2B1f3bBkaA?autoplay=1&rel=0";
-      default:         return base + "dQw4w9WgXcQ?autoplay=1&rel=0";
-    }
-  };
-
-  // ✅ Both use navigate — no prop callbacks needed
-  const handleWatchDemo = (course) => {
-    const demoData = {
-      title: `${course.title} — Exclusive Preview`,
-      description: `Get a sneak peek into our "${course.title}" course. Experience real instructor-led sessions, hands-on lab walkthroughs, and exam strategies. This demo covers key topics from ${course.category.toUpperCase()} track including practical configurations and troubleshooting scenarios.`,
-      instructor: course.category === "ccie" ? "Dr. James Chen, CCIE #10234" : "Senior Instructor Team",
-      duration: "15",
-      videoUrl: getVideoUrlForCourse(course),
-    };
-    navigate("/watch-demo", { state: { demoVideo: demoData } });
   };
 
   const handleEnrollNow = (course) => {
@@ -295,12 +247,6 @@ export default function CoursesPage({ isMobile, onBack }) {
             >
               🎓 Start Learning Free
             </button>
-            <button
-              onClick={() => handleWatchDemo(courses[0])}
-              style={{ background: "transparent", color: "#fff", border: "2px solid rgba(255,255,255,0.4)", borderRadius: "50px", padding: "16px 36px", fontWeight: 700, fontSize: "16px", cursor: "pointer", fontFamily: "'Trebuchet MS', sans-serif" }}
-            >
-              ▶ Watch Demo
-            </button>
           </div>
         </div>
       </div>
@@ -380,7 +326,6 @@ export default function CoursesPage({ isMobile, onBack }) {
                   hovered={hoveredCourse === course.id}
                   onHover={setHoveredCourse}
                   levelColors={levelColors}
-                  onWatchDemo={handleWatchDemo}
                   onEnrollNow={handleEnrollNow}
                 />
               ))}
@@ -411,7 +356,6 @@ export default function CoursesPage({ isMobile, onBack }) {
                 hovered={hoveredCourse === course.id}
                 onHover={setHoveredCourse}
                 levelColors={levelColors}
-                onWatchDemo={handleWatchDemo}
                 onEnrollNow={handleEnrollNow}
               />
             ))}
@@ -432,24 +376,14 @@ export default function CoursesPage({ isMobile, onBack }) {
         <p style={{ color: "#ccc", fontSize: isMobile ? "14px" : "16px", marginBottom: "32px", maxWidth: "600px", marginLeft: "auto", marginRight: "auto", fontFamily: "'Trebuchet MS', sans-serif" }}>
           Join thousands of successful network engineers who accelerated their careers
         </p>
-        <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-          <button
-            onClick={() => handleEnrollNow(courses[0])}
-            style={{ background: "#3abf94", color: "#fff", border: "none", borderRadius: "40px", padding: "14px 36px", fontSize: "16px", fontWeight: 700, cursor: "pointer", fontFamily: "'Trebuchet MS', sans-serif" }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-            onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-          >
-            🎓 Start Free Trial
-          </button>
-          <button
-            onClick={() => handleWatchDemo(courses[0])}
-            style={{ background: "transparent", color: "#3abf94", border: "2px solid #3abf94", borderRadius: "40px", padding: "14px 36px", fontSize: "16px", fontWeight: 700, cursor: "pointer", fontFamily: "'Trebuchet MS', sans-serif" }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(58,191,148,0.08)"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          >
-            ▶ Watch Demo
-          </button>
-        </div>
+        <button
+          onClick={() => handleEnrollNow(courses[0])}
+          style={{ background: "#3abf94", color: "#fff", border: "none", borderRadius: "40px", padding: "14px 36px", fontSize: "16px", fontWeight: 700, cursor: "pointer", fontFamily: "'Trebuchet MS', sans-serif" }}
+          onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+        >
+          🎓 Start Free Trial
+        </button>
       </div>
 
       {/* ── Footer ── */}
