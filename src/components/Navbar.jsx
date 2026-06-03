@@ -248,15 +248,8 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
         ))}
       </NavDropdown>
 
-      {/* Forum */}
-      <Link to="/forum" onClick={handleNavigation} style={{ textDecoration: "none" }}>
-        <button className="nav-btn">Forum</button>
-      </Link>
+   
 
-      {/* Support */}
-      <Link to="/support" onClick={handleNavigation} style={{ textDecoration: "none" }}>
-        <button className="nav-btn">Support</button>
-      </Link>
 
       {/* Tools */}
       <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle} closeAllMenus={closeAllMenus}>
@@ -380,15 +373,8 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
         </div>
       ))}
 
-      {/* Forum */}
-      <Link to="/forum" onClick={handleNavigation} style={{ textDecoration: "none" }}>
-        <div style={rowStyle}>Forum</div>
-      </Link>
+ 
 
-      {/* Support */}
-      <Link to="/support" onClick={handleNavigation} style={{ textDecoration: "none" }}>
-        <div style={rowStyle}>Support</div>
-      </Link>
 
       {/* Tools */}
       <div style={rowStyle} onClick={() => toggle("tools")}>
