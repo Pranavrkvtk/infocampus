@@ -1,9 +1,38 @@
 import React, { useState } from "react";
 import "./Login.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { loginUser } from "../api/authApi";
 
 function Login() {
   const [showPass, setShowPass] = useState(false);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await loginUser({
+        email,
+        password,
+      });
+
+      // store JWT token
+      localStorage.setItem("token", res.data.token);
+
+      alert("Login Successful");
+
+      // redirect to home/dashboard
+      navigate("/");
+
+    } catch (error) {
+      console.log("Login Error:", error);
+      alert("Invalid Email or Password");
+    }
+  };
 
   return (
     <div className="login-container">
@@ -13,6 +42,7 @@ function Login() {
       <div className="blob blob-3" />
 
       <div className="login-box">
+
         {/* Logo */}
         <div className="login-logo">
           <span className="logo-icon">
@@ -28,115 +58,89 @@ function Login() {
         <h2 className="login-heading">Welcome back</h2>
         <p className="login-sub">Sign in to continue learning</p>
 
-        <form onSubmit={e => e.preventDefault()}>
+        {/* FORM */}
+        <form onSubmit={handleLogin}>
+
+          {/* EMAIL */}
           <div className="field-group">
             <label className="field-label">Email address</label>
             <div className="input-wrap">
-              <span className="input-icon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <rect x="1" y="3" width="14" height="10" rx="2" stroke="#4a7fb5" strokeWidth="1.5"/>
-                  <path d="M1 5l7 5 7-5" stroke="#4a7fb5" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </span>
-              <input type="email" placeholder="you@example.com" className="login-input" />
+
+              <input
+                type="email"
+                placeholder="you@example.com"
+                className="login-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
           </div>
 
+          {/* PASSWORD */}
           <div className="field-group">
             <label className="field-label">Password</label>
             <div className="input-wrap">
-              <span className="input-icon">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="#4a7fb5" strokeWidth="1.5"/>
-                  <path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#4a7fb5" strokeWidth="1.5" strokeLinecap="round"/>
-                  <circle cx="8" cy="10.5" r="1" fill="#4a7fb5"/>
-                </svg>
-              </span>
+
               <input
                 type={showPass ? "text" : "password"}
                 placeholder="••••••••"
                 className="login-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
               />
-              <span className="input-toggle" onClick={() => setShowPass(!showPass)}>
-                {showPass ? (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="#888" strokeWidth="1.5"/>
-                    <circle cx="8" cy="8" r="2" stroke="#888" strokeWidth="1.5"/>
-                    <line x1="2" y1="2" x2="14" y2="14" stroke="#888" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" stroke="#888" strokeWidth="1.5"/>
-                    <circle cx="8" cy="8" r="2" stroke="#888" strokeWidth="1.5"/>
-                  </svg>
-                )}
+
+              {/* toggle password */}
+              <span
+                className="input-toggle"
+                onClick={() => setShowPass(!showPass)}
+                style={{ cursor: "pointer" }}
+              >
+                {showPass ? "Hide" : "Show"}
               </span>
+
             </div>
           </div>
 
+          {/* OPTIONS */}
           <div className="login-options">
             <label className="remember-me">
               <input type="checkbox" />
               <span>Remember me</span>
             </label>
-            <a href="/forgot" className="forgot-link">Forgot password?</a>
+
+            <a href="/forgot" className="forgot-link">
+              Forgot password?
+            </a>
           </div>
 
+          {/* BUTTON */}
           <button type="submit" className="login-btn">
             Sign In
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ marginLeft: "8px" }}>
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
           </button>
         </form>
 
+        {/* DIVIDER */}
         <div className="divider"><span>or continue with</span></div>
 
+        {/* SOCIAL */}
         <div className="social-row">
-          <button className="social-btn">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M17.1 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.6c-.2 1-.8 1.9-1.7 2.4v2h2.7c1.6-1.5 2.5-3.6 2.5-6z" fill="#4285F4"/>
-              <path d="M9 18c2.3 0 4.2-.8 5.6-2.1l-2.7-2c-.8.5-1.7.8-2.9.8-2.2 0-4.1-1.5-4.8-3.5H1.4v2.1C2.8 16 5.7 18 9 18z" fill="#34A853"/>
-              <path d="M4.2 11.2c-.2-.5-.3-1.1-.3-1.7s.1-1.2.3-1.7V5.7H1.4C.5 7.1 0 8.5 0 10s.5 2.9 1.4 4.3l2.8-3.1z" fill="#FBBC05"/>
-              <path d="M9 3.6c1.3 0 2.4.4 3.3 1.3l2.4-2.4C13.2.8 11.3 0 9 0 5.7 0 2.8 2 1.4 5l2.8 2.2C4.9 5.1 6.8 3.6 9 3.6z" fill="#EA4335"/>
-            </svg>
-            Google
-          </button>
-          <button className="social-btn">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M9 0C4 0 0 4 0 9c0 4 2.6 7.4 6.2 8.6.5.1.6-.2.6-.4v-1.5c-2.6.6-3.1-1.2-3.1-1.2-.4-1.1-1-1.4-1-1.4-.8-.6.1-.6.1-.6.9.1 1.4.9 1.4.9.8 1.4 2.1 1 2.6.7.1-.5.3-.9.5-1.1-2-.2-4.2-1-4.2-4.6 0-1 .4-1.9 1-2.5-.1-.3-.4-1.2.1-2.5 0 0 .8-.3 2.7 1 .8-.2 1.6-.3 2.4-.3.8 0 1.6.1 2.4.3 1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.2.1 2.5.6.7 1 1.5 1 2.5 0 3.6-2.2 4.4-4.2 4.6.3.3.6.8.6 1.6v2.4c0 .2.1.5.6.4C15.4 16.4 18 13 18 9c0-5-4-9-9-9z" fill="#24292F"/>
-            </svg>
-            GitHub
-          </button>
+          <button className="social-btn">Google</button>
+          <button className="social-btn">GitHub</button>
         </div>
 
-<div className="signup-prompt">
-  <span>Don't have an account? </span>
+        {/* SIGNUP */}
+        <div className="signup-prompt">
+          <span>Don't have an account? </span>
 
-  <Link
-    to="/free-account"
-    style={{ textDecoration: "none" }}
-  >
-    <button
-      type="button"
-      style={{
-        background: "#3abf94",
-        color: "#fff",
-        border: "none",
-        borderRadius: "6px",
-        padding: "8px 18px",
-        fontFamily: "'Trebuchet MS', sans-serif",
-        fontWeight: 700,
-        fontSize: "15px",
-        cursor: "pointer",
-        whiteSpace: "nowrap",
-        marginLeft: "8px",
-      }}
-    >
-      Sign up for Free
-    </button>
-  </Link>
-</div>
+          <Link to="/free-account">
+            <button type="button" className="signup-btn">
+              Sign up for Free
+            </button>
+          </Link>
+        </div>
+
       </div>
     </div>
   );
