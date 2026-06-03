@@ -24,14 +24,16 @@ function Login() {
 
       console.log("Login Response:", res.data);
       console.log("Role:", res.data.role);
+alert("Role = " + res.data.role);
 
-      if (res.data.role === "ADMIN") {
-        window.location.href = "/admin";
-      } else {
-        window.location.href = "/courses";
-      }
+if (res.data.role === "ADMIN") {
+  window.location.replace("/admin");
+} else {
+  window.location.replace("/courses");
+}
 
-    } catch (error) {
+    }
+     catch (error) {
       console.log("Login Error:", error);
       console.log("Response:", error.response);
 
