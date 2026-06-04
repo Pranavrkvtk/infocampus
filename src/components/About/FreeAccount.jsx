@@ -102,7 +102,7 @@ function FreeAccount() {
             <input
               type="password"
               name="register_password"
-              placeholder="Min. 8 characters"
+              placeholder="Min. 6 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
