@@ -25,8 +25,12 @@ import UpgradePage from './components/Tools/UpgradePage';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import Logout from './components/Logout';
 
-const HIDE_NAVBAR = ['/free-account', '/login'];
-
+const HIDE_NAVBAR = [
+  '/free-account',
+  '/login',
+  '/admin',
+  '/logout'
+];
 function AppRoutes() {
   const navigate = useNavigate();
   const isMobile = window.innerWidth < 768;

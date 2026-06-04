@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 // ================= LIGHT MODERN THEME =================
 const colors = {
   bgBase: "#F6F8FC",
@@ -34,6 +34,7 @@ const navItems = [
   { icon: "🌐", label: "Courses", id: "courses", badge: 12 },
   { icon: "💳", label: "Payments", id: "payments" },
   { icon: "👨‍🎓", label: "Students", id: "students", badge: 3 },
+
 ];
 
 // Dashboard Data
@@ -250,6 +251,15 @@ export default function AdminDashboard() {
   }, []);
 
 
+  const navigate = useNavigate();
+
+const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+
+  window.location.replace("/login");
+};
+
 
   const renderContent = () => {
     const commonTableStyles = {
@@ -375,8 +385,13 @@ export default function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
+                
               </div>
+
+              
             </div>
+
+            
           </>
         );
 
@@ -599,36 +614,30 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab(item.id)}
             />
           ))}
+<div style={{ flex: 1 }} />
 
-          {/* Spacer pushes logout to bottom */}
-          <div style={{ flex: 1 }} />
-
-          {/* ✅ LOGOUT BUTTON */}
-          {/* <div style={{ padding: "0 8px" }}>
-            <button
-              onClick={handleLogout}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                width: "100%",
-                padding: "12px 16px",
-                borderRadius: 12,
-                fontSize: 14,
-                fontWeight: 500,
-                color: colors.coral,
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                transition: "background 0.18s",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = colors.coralSoft}
-              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-            >
-              <span style={{ fontSize: 18 }}>🚪</span>
-              <span>Log Out</span>
-            </button>
-          </div> */}
+<div style={{ padding: "0 8px 20px 8px" }}>
+  <button
+    onClick={handleLogout}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      width: "100%",
+      padding: "12px 16px",
+      borderRadius: 12,
+      fontSize: 14,
+      fontWeight: 600,
+      color: colors.coral,
+      background: colors.coralSoft,
+      border: "none",
+      cursor: "pointer",
+    }}
+  >
+    <span style={{ fontSize: 18 }}>🚪</span>
+    <span>Logout</span>
+  </button>
+</div>
         </nav>
       )}
 
@@ -706,6 +715,7 @@ export default function AdminDashboard() {
               {activeTab === "courses" && "Course Catalog"}
               {activeTab === "payments" && "Payment Overview"}
               {activeTab === "students" && "Student Management"}
+              
             </h1>
             <p style={{ color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }}>
               {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
