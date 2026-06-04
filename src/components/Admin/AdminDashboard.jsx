@@ -196,41 +196,82 @@ function Badge({ status }) {
   );
 }
 
-function MobileBottomNav({ activeTab, onTabChange }) {
+function MobileBottomNav({ activeTab, onTabChange, onLogout }) {
   return (
-    <div style={{
-      position: "fixed",
-      bottom: 0, left: 0, right: 0,
-      background: colors.surface,
-      borderTop: `1px solid ${colors.borderLight}`,
-      display: "flex",
-      justifyContent: "space-around",
-      padding: "8px 16px 20px",
-      zIndex: 100,
-    }}>
-      {navItems.map(item => (
+    <div
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: colors.surface,
+        borderTop: `1px solid ${colors.borderLight}`,
+        display: "flex",
+        justifyContent: "space-around",
+        padding: "8px 16px 20px",
+        zIndex: 100,
+      }}
+    >
+      {navItems.map((item) => (
         <div
           key={item.id}
           onClick={() => onTabChange(item.id)}
           style={{
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
             cursor: "pointer",
-            color: activeTab === item.id ? colors.primary : colors.textMuted,
+            color:
+              activeTab === item.id
+                ? colors.primary
+                : colors.textMuted,
             position: "relative",
           }}
         >
           <span style={{ fontSize: 20 }}>{item.icon}</span>
-          <span style={{ fontSize: 10, fontWeight: 500 }}>{item.label}</span>
+          <span style={{ fontSize: 10, fontWeight: 500 }}>
+            {item.label}
+          </span>
+
           {item.badge && (
-            <span style={{
-              position: "absolute", top: -4, right: -8,
-              background: colors.primary, color: "#fff",
-              fontSize: 9, borderRadius: 10, padding: "1px 5px",
-              minWidth: 16, textAlign: "center",
-            }}>{item.badge}</span>
+            <span
+              style={{
+                position: "absolute",
+                top: -4,
+                right: -8,
+                background: colors.primary,
+                color: "#fff",
+                fontSize: 9,
+                borderRadius: 10,
+                padding: "1px 5px",
+                minWidth: 16,
+                textAlign: "center",
+              }}
+            >
+              {item.badge}
+            </span>
           )}
         </div>
       ))}
+
+      {/* Logout */}
+      <div
+        onClick={onLogout}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 4,
+          cursor: "pointer",
+          color: colors.coral,
+        }}
+      >
+        <span style={{ fontSize: 20 }}>🚪</span>
+        <span style={{ fontSize: 10, fontWeight: 500 }}>
+          Logout
+        </span>
+      </div>
     </div>
   );
 }
@@ -744,11 +785,14 @@ const handleLogout = () => {
 
         {renderContent()}
       </main>
-
-      {/* ===== MOBILE BOTTOM NAV ===== */}
-      {isMobile && (
-        <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-      )}
+{/* ===== MOBILE BOTTOM NAV ===== */}
+{isMobile && (
+  <MobileBottomNav
+    activeTab={activeTab}
+    onTabChange={setActiveTab}
+    onLogout={handleLogout}
+  />
+)}
     </div>
   );
 }
