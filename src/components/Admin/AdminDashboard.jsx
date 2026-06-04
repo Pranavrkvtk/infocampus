@@ -639,8 +639,8 @@ const handleLogout = () => {
               fontSize: 18, color: "#fff",
             }}>⚡</div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>NetLab</div>
-              <div style={{ fontSize: 10, color: colors.textMuted }}>Networking Academy</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>INFOCAMPUS</div>
+              <div style={{ fontSize: 10, color: colors.textMuted }}>ADMIN</div>
             </div>
           </div>
 
