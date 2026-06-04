@@ -27,8 +27,14 @@ function Login() {
 alert("Role = " + res.data.role);
 
 if (res.data.role?.toUpperCase() === "ADMIN") {
+  setEmail("");
+  setPassword("");
+
   window.location.replace("/admin");
 } else {
+  setEmail("");
+  setPassword("");
+
   window.location.replace("/courses");
 }
     }
@@ -72,21 +78,21 @@ if (res.data.role?.toUpperCase() === "ADMIN") {
         <p className="login-sub">Sign in to continue learning</p>
 
         {/* FORM */}
-        <form onSubmit={handleLogin}>
-
+<form onSubmit={handleLogin} autoComplete="off">
           {/* EMAIL */}
           <div className="field-group">
             <label className="field-label">Email address</label>
             <div className="input-wrap">
 
-              <input
-                type="email"
-                placeholder="you@example.com"
-                className="login-input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+      <input
+  type="email"
+  placeholder="you@example.com"
+  className="login-input"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  autoComplete="off"
+  required
+/>
             </div>
           </div>
 
@@ -95,14 +101,15 @@ if (res.data.role?.toUpperCase() === "ADMIN") {
             <label className="field-label">Password</label>
             <div className="input-wrap">
 
-              <input
-                type={showPass ? "text" : "password"}
-                placeholder="••••••••"
-                className="login-input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+       <input
+  type={showPass ? "text" : "password"}
+  placeholder="••••••••"
+  className="login-input"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  autoComplete="new-password"
+  required
+/>
 
               {/* toggle password */}
               <span
