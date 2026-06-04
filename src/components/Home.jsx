@@ -59,25 +59,27 @@ export default function Home() {
     background: "#111",
   }}
 >
-  <video
-    controls
-    controlsList="nodownload"
-    preload="metadata"
-    style={{
-      width: "100%",
-      height: "auto",
-      display: "block",
-      backgroundColor: "#000",
-    }}
-  >
-    {/* Replace with your actual video URL */}
-    <source
-      src="https://www.w3schools.com/html/mov_bbb.mp4"
-      type="video/mp4"
-    />
+<video
+  autoPlay
+  muted
+  loop
+  controls
+  controlsList="nodownload"
+  preload="metadata"
+  style={{
+    width: "100%",
+    height: "auto",
+    display: "block",
+    backgroundColor: "#000",
+  }}
+>
+  <source
+    src="https://www.w3schools.com/html/mov_bbb.mp4"
+    type="video/mp4"
+  />
 
-    Your browser does not support HTML5 video.
-  </video>
+  Your browser does not support HTML5 video.
+</video>
 </div>
 
         {/* CTA — now navigates to /courses route */}
