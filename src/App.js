@@ -21,6 +21,7 @@ import CCNA200 from './components/Course/Cisco/CCNA200';  // ← ADD THIS
 import CCNA350 from './components/Course/Cisco/CCNA350'// Routes where Navbar should be hidden
 import CCNA300 from './components/Course/Cisco/CCNA300';
 import UpgradePage from './components/Tools/UpgradePage';
+import MyCoursesPage from "./components/MyCoursesPage";
 
 import AdminDashboard from './components/Admin/AdminDashboard';
 import Logout from './components/Logout';
@@ -105,7 +106,8 @@ function AppRoutes() {
     </ProtectedAdminRoute>
   }
 />      <Route path="/logout" element={<Logout />} />
-
+// Add this route inside your Router
+<Route path="/my-courses" element={<MyCoursesPage isMobile={false} onBack={() => navigate("/courses")} />} />
       {/* Support Page */}
       <Route
         path="/support"

@@ -1,5 +1,6 @@
 import api from "./axios";
 
+// Course APIs
 export const getCourses = () => {
   return api.get("/courses");
 };
@@ -16,6 +17,26 @@ export const createCourse = (data) => {
   return api.post("/courses", data);
 };
 
-export const watchCourse = (id) => {
-  return api.get(`/courses/${id}/watch`);
+export const updateCourse = (id, data) => {
+  return api.put(`/courses/${id}`, data);
+};
+
+// Enrollment APIs
+export const enrollInCourse = (courseId) => {
+  return api.post(`/enrollments/enroll/${courseId}`);
+};
+
+export const getUserEnrollments = (userId) => {
+  // Make sure userId is a number
+  const id = parseInt(userId);
+  console.log("Calling API with userId:", id);
+  return api.get(`/enrollments/user/${id}`);
+};
+
+export const getAllEnrollments = () => {
+  return api.get("/enrollments");
+};
+
+export const watchCourse = (courseId) => {
+  return api.get(`/enrollments/${courseId}/watch`);
 };

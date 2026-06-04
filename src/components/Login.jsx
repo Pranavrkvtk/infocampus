@@ -8,51 +8,32 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-    try {
-      const res = await loginUser({
-        email,
-        password,
-      });
-
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
-
-      alert("Login Successful");
-
-      console.log("Login Response:", res.data);
-      console.log("Role:", res.data.role);
-alert("Role = " + res.data.role);
-
-if (res.data.role?.toUpperCase() === "ADMIN") {
-  setEmail("");
-  setPassword("");
-
-  window.location.replace("/admin");
-} else {
-  setEmail("");
-  setPassword("");
-
-  window.location.replace("/courses");
-}
+const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await loginUser({ email, password });
+    
+    console.log("Login Response:", res.data);
+    
+    // ✅ Store ALL data from backend
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("role", res.data.role);
+    localStorage.setItem("userId", res.data.userId);   // ← ADD THIS
+    localStorage.setItem("userName", res.data.name);   // ← ADD THIS
+    
+    alert("Login Successful");
+    
+    // Redirect based on role
+    if (res.data.role?.toUpperCase() === "ADMIN") {
+      window.location.replace("/admin");
+    } else {
+      window.location.replace("/courses");
     }
-     catch (error) {
-      console.log("Login Error:", error);
-      console.log("Response:", error.response);
-
-      alert(
-        JSON.stringify(
-          error.response?.data || error.message,
-          null,
-          2
-        )
-      );
-    }
-  };
-
-
+  } catch (error) {
+    console.error("Login Error:", error);
+    alert("Login failed");
+  }
+};
   return (
     <div className="login-container">
       {/* Background blobs */}
@@ -61,7 +42,6 @@ if (res.data.role?.toUpperCase() === "ADMIN") {
       <div className="blob blob-3" />
 
       <div className="login-box">
-
         {/* Logo */}
         <div className="login-logo">
           <span className="logo-icon">
@@ -78,21 +58,20 @@ if (res.data.role?.toUpperCase() === "ADMIN") {
         <p className="login-sub">Sign in to continue learning</p>
 
         {/* FORM */}
-<form onSubmit={handleLogin} autoComplete="off">
+        <form onSubmit={handleLogin} autoComplete="off">
           {/* EMAIL */}
           <div className="field-group">
             <label className="field-label">Email address</label>
             <div className="input-wrap">
-
-      <input
-  type="email"
-  placeholder="you@example.com"
-  className="login-input"
-  value={email}
-  onChange={(e) => setEmail(e.target.value)}
-  autoComplete="off"
-  required
-/>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                className="login-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
+                required
+              />
             </div>
           </div>
 
@@ -100,18 +79,15 @@ if (res.data.role?.toUpperCase() === "ADMIN") {
           <div className="field-group">
             <label className="field-label">Password</label>
             <div className="input-wrap">
-
-       <input
-  type={showPass ? "text" : "password"}
-  placeholder="••••••••"
-  className="login-input"
-  value={password}
-  onChange={(e) => setPassword(e.target.value)}
-  autoComplete="new-password"
-  required
-/>
-
-              {/* toggle password */}
+              <input
+                type={showPass ? "text" : "password"}
+                placeholder="••••••••"
+                className="login-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
               <span
                 className="input-toggle"
                 onClick={() => setShowPass(!showPass)}
@@ -119,7 +95,6 @@ if (res.data.role?.toUpperCase() === "ADMIN") {
               >
                 {showPass ? "Hide" : "Show"}
               </span>
-
             </div>
           </div>
 
@@ -129,16 +104,11 @@ if (res.data.role?.toUpperCase() === "ADMIN") {
               <input type="checkbox" />
               <span>Remember me</span>
             </label>
-
-            <a href="/forgot" className="forgot-link">
-              Forgot password?
-            </a>
+            <a href="/forgot" className="forgot-link">Forgot password?</a>
           </div>
 
           {/* BUTTON */}
-          <button type="submit" className="login-btn">
-            Sign In
-          </button>
+          <button type="submit" className="login-btn">Sign In</button>
         </form>
 
         {/* DIVIDER */}
@@ -153,14 +123,10 @@ if (res.data.role?.toUpperCase() === "ADMIN") {
         {/* SIGNUP */}
         <div className="signup-prompt">
           <span>Don't have an account? </span>
-
           <Link to="/free-account">
-            <button type="button" className="signup-btn">
-              Sign up for Free
-            </button>
+            <button type="button" className="signup-btn">Sign up for Free</button>
           </Link>
         </div>
-
       </div>
     </div>
   );

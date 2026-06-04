@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCourses } from "../api/courseApi";
+import { getCourses, enrollInCourse } from "../api/courseApi"; // ✅ Fixed import
 
 // ==================== COUNTER COMPONENT ====================
 function CountUp({ end, suffix = "", duration = 2000 }) {
@@ -37,15 +37,10 @@ function CountUp({ end, suffix = "", duration = 2000 }) {
 }
 
 // ==================== NORMALIZE API COURSE ====================
-// Maps real API fields to UI fields with safe fallbacks
 const CARD_COLORS = ["#3abf94", "#e5a800", "#1d6b72", "#c8102e", "#7aa3c8", "#5b8dbf"];
-const CARD_ICONS  = ["🖥️", "🔰", "⚡", "🏆", "🔒", "🐧"];
+const CARD_ICONS = ["🖥️", "🔰", "⚡", "🏆", "🔒", "🐧"];
 
 function normalizeCourse(course, index) {
-  // Handle null/undefined values properly
-
-
-  // Special handling for title - if null, generate a default based on price or id
   let title = course.title;
   if (!title || title === null) {
     if (course.price && course.price > 0) {
@@ -55,10 +50,8 @@ function normalizeCourse(course, index) {
     }
   }
 
-  // Handle instructor
   let instructor = course.instructor;
   if (!instructor || instructor === null) {
-    // Check if there's any instructor info in description
     if (course.description && course.description.includes("by ")) {
       const match = course.description.match(/by\s+([^,\s]+)/);
       instructor = match ? match[1] : "Staff";
@@ -67,32 +60,27 @@ function normalizeCourse(course, index) {
     }
   }
 
-  // Handle duration
   let duration = course.duration;
   if (!duration || duration === null) {
     duration = "Self-paced";
   }
 
-  // Handle price
   let priceDisplay = "Free";
   if (course.price != null && course.price > 0) {
     priceDisplay = `₹${course.price}`;
   }
 
-  // Handle imageUrl - use placeholder if null
   let imageUrl = course.imageUrl;
   if (!imageUrl || imageUrl === null) {
-    // Use placeholder images from picsum with consistent IDs based on course id
     imageUrl = `https://picsum.photos/id/${(course.id || index) % 100}/300/200`;
   }
 
-  // Generate a meaningful description if missing
   let description = course.description;
   if (!description || description === null || description === "null") {
     if (course.title && course.title !== "null") {
-      description = `Master ${course.title} with hands-on labs, real-world projects, and expert instruction. Perfect for aspiring network engineers.`;
+      description = `Master ${course.title} with hands-on labs, real-world projects, and expert instruction.`;
     } else {
-      description = "Comprehensive networking course with practical labs, expert guidance, and industry-recognized certification preparation.";
+      description = "Comprehensive networking course with practical labs and expert guidance.";
     }
   }
 
@@ -106,12 +94,10 @@ function normalizeCourse(course, index) {
     color: CARD_COLORS[index % CARD_COLORS.length],
     icon: CARD_ICONS[index % CARD_ICONS.length],
     imageUrl: imageUrl,
-    // Add category based on title/content if missing
     category: getCategoryFromCourse(course, title)
   };
 }
 
-// Helper function to determine course category
 function getCategoryFromCourse(course, title) {
   const titleLower = (title || "").toLowerCase();
   const descLower = (course.description || "").toLowerCase();
@@ -121,12 +107,20 @@ function getCategoryFromCourse(course, title) {
   if (titleLower.includes("ccie") || descLower.includes("ccie")) return "ccie";
   if (titleLower.includes("security") || descLower.includes("security")) return "security";
   if (titleLower.includes("linux") || descLower.includes("linux")) return "linux";
-  if (titleLower.includes("spring") || titleLower.includes("java")) return "all";
-  return "all"; // Default category
+  return "all";
 }
 
 // ==================== COURSE CARD COMPONENT ====================
-function CourseCard({ course, isMobile, hovered, onHover, onEnrollNow }) {
+function CourseCard({ course, isMobile, hovered, onHover, onEnroll }) { // ✅ Changed from onEnrollNow to onEnroll
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
+  const handleEnrollClick = async (e) => {
+    e.stopPropagation();
+    setIsEnrolling(true);
+    await onEnroll(course);
+    setIsEnrolling(false);
+  };
+
   return (
     <div
       onMouseEnter={() => onHover(course.id)}
@@ -141,7 +135,6 @@ function CourseCard({ course, isMobile, hovered, onHover, onEnrollNow }) {
         cursor: "pointer",
       }}
     >
-      {/* Course image */}
       <img
         src={course.imageUrl}
         alt={course.title}
@@ -152,7 +145,6 @@ function CourseCard({ course, isMobile, hovered, onHover, onEnrollNow }) {
       />
 
       <div style={{ padding: "20px" }}>
-        {/* Icon + Instructor */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
           <div style={{
             width: "52px", height: "52px", borderRadius: "50%",
@@ -167,17 +159,14 @@ function CourseCard({ course, isMobile, hovered, onHover, onEnrollNow }) {
           </span>
         </div>
 
-        {/* Title */}
         <h3 style={{ margin: "0 0 10px", fontSize: isMobile ? "18px" : "20px", color: "#1a1a2e" }}>
           {course.title}
         </h3>
 
-        {/* Description */}
         <p style={{ color: "#666", fontSize: "14px", lineHeight: "1.6", marginBottom: "16px" }}>
           {course.description}
         </p>
 
-        {/* Tags */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "20px" }}>
           <span style={{ background: "#f0f0f0", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" }}>
             ⏱ {course.duration}
@@ -198,20 +187,36 @@ function CourseCard({ course, isMobile, hovered, onHover, onEnrollNow }) {
           )}
         </div>
 
-        {/* Enroll Button */}
         <button
-          onClick={(e) => { e.stopPropagation(); onEnrollNow(course); }}
+          onClick={handleEnrollClick} // ✅ Changed to use handleEnrollClick
+          disabled={isEnrolling}
           style={{
-            width: "100%", background: course.color, color: "#fff",
-            border: "none", borderRadius: "10px", padding: "14px",
-            fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 600,
-            cursor: "pointer", transition: "all 0.2s", fontSize: "15px",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+            width: "100%", 
+            background: course.color, 
+            color: "#fff",
+            border: "none", 
+            borderRadius: "10px", 
+            padding: "14px",
+            fontFamily: "'Trebuchet MS', sans-serif", 
+            fontWeight: 600,
+            cursor: isEnrolling ? "wait" : "pointer", 
+            transition: "all 0.2s", 
+            fontSize: "15px",
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center", 
+            gap: "8px",
+            opacity: isEnrolling ? 0.7 : 1,
           }}
-          onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+          onMouseEnter={e => {
+            if (!isEnrolling) e.currentTarget.style.opacity = "0.85";
+          }}
+          onMouseLeave={e => {
+            if (!isEnrolling) e.currentTarget.style.opacity = "1";
+          }}
         >
-          <span>🎓</span> Enroll Now →
+          <span>🎓</span> 
+          {isEnrolling ? "Enrolling..." : "Enroll Now →"}
         </button>
       </div>
     </div>
@@ -227,12 +232,12 @@ export default function CoursesPage({ isMobile, onBack }) {
   const [loading, setLoading] = useState(true);
 
   const categories = [
-    { id: "all",      name: "All Courses", icon: "📚", color: "#3abf94" },
-    { id: "ccna",     name: "CCNA",        icon: "🔰", color: "#e5a800" },
-    { id: "ccnp",     name: "CCNP",        icon: "⚡", color: "#1d6b72" },
-    { id: "ccie",     name: "CCIE",        icon: "🏆", color: "#c8102e" },
-    { id: "security", name: "Security",    icon: "🔒", color: "#7aa3c8" },
-    { id: "linux",    name: "Linux",       icon: "🐧", color: "#5b8dbf" },
+    { id: "all", name: "All Courses", icon: "📚", color: "#3abf94" },
+    { id: "ccna", name: "CCNA", icon: "🔰", color: "#e5a800" },
+    { id: "ccnp", name: "CCNP", icon: "⚡", color: "#1d6b72" },
+    { id: "ccie", name: "CCIE", icon: "🏆", color: "#c8102e" },
+    { id: "security", name: "Security", icon: "🔒", color: "#7aa3c8" },
+    { id: "linux", name: "Linux", icon: "🐧", color: "#5b8dbf" },
   ];
 
   useEffect(() => {
@@ -243,12 +248,9 @@ export default function CoursesPage({ isMobile, onBack }) {
     try {
       setLoading(true);
       const res = await getCourses();
-      console.log("API Response:", res.data); // Debug log
+      console.log("API Response:", res.data);
       
-      // Filter out completely invalid courses (where both title and description are null)
       const validCourses = res.data.filter(c => c && (c.title !== null || c.description !== null));
-      
-      // Normalize each course from the API so the UI fields are always safe
       const normalized = validCourses.map((c, i) => normalizeCourse(c, i));
       setCourses(normalized);
     } catch (error) {
@@ -258,16 +260,65 @@ export default function CoursesPage({ isMobile, onBack }) {
     }
   };
 
-  const handleEnrollNow = (course) => {
-    navigate("/enroll", { state: { course } });
-  };
+ const handleEnroll = async (course) => {
+  try {
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    
+    if (!token || !userId) {
+      alert("Please login first!");
+      navigate("/login");
+      return;
+    }
+    
+    console.log("Enrolling in course:", course.id);
+    
+    // Try both methods
+    let response;
+    try {
+      // Method 1: Just the courseId in URL
+      response = await fetch(`http://localhost:8080/api/enrollments/enroll/${course.id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (err) {
+      console.log("Method 1 failed, trying Method 2");
+      // Method 2: Send JSON body
+      response = await fetch(`http://localhost:8080/api/enrollments`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user: { id: parseInt(userId) },
+          course: { id: course.id }
+        })
+      });
+    }
+    
+    const data = await response.text();
+    console.log("Enrollment response:", data);
+    
+    if (response.ok) {
+      alert(`✅ Successfully enrolled in ${course.title}!`);
+      window.location.href = "/my-courses";
+    } else {
+      alert(`❌ Failed: ${data}`);
+    }
+  } catch (error) {
+    console.error("Enrollment error:", error);
+    alert("Failed to enroll. Please try again.");
+  }
+};
 
-  // Category filter: uses course.category from normalize function
   const filteredCourses = selectedCategory === "all"
     ? courses
     : courses.filter(c => c.category === selectedCategory);
 
-  // First 3 courses shown as "featured"
   const featuredCourses = courses.slice(0, 3);
 
   if (loading) {
@@ -290,7 +341,7 @@ export default function CoursesPage({ isMobile, onBack }) {
   return (
     <div style={{ fontFamily: "'Georgia', 'Times New Roman', serif", minHeight: "100vh", background: "#f8f8f6" }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{
         background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
         padding: isMobile ? "16px" : "20px 40px",
@@ -319,14 +370,32 @@ export default function CoursesPage({ isMobile, onBack }) {
           </h1>
         </div>
 
-        <div style={{ background: "rgba(58,191,148,0.2)", padding: "8px 16px", borderRadius: "20px" }}>
-          <span style={{ color: "#3abf94", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 600 }}>
-            {courses.length} Courses Available
-          </span>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          {/* ✅ Added My Courses button */}
+          <button
+            onClick={() => navigate("/my-courses")}
+            style={{
+              background: "rgba(58,191,148,0.2)",
+              border: "1px solid #3abf94",
+              borderRadius: "20px",
+              padding: "8px 16px",
+              color: "#3abf94",
+              fontFamily: "'Trebuchet MS', sans-serif",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            📖 My Courses
+          </button>
+          <div style={{ background: "rgba(58,191,148,0.2)", padding: "8px 16px", borderRadius: "20px" }}>
+            <span style={{ color: "#3abf94", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 600 }}>
+              {courses.length} Courses Available
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ── Hero Banner ── */}
+      {/* Hero Banner */}
       <div style={{
         background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3abf94 100%)",
         padding: isMobile ? "70px 20px" : "100px 40px",
@@ -346,7 +415,7 @@ export default function CoursesPage({ isMobile, onBack }) {
             Learn CCNA, CCNP, CCIE, Security, Linux and Network Automation through hands-on labs, video lessons, quizzes and real-world projects.
           </p>
           <button
-            onClick={() => courses.length > 0 && handleEnrollNow(courses[0])}
+            onClick={() => courses.length > 0 && handleEnroll(courses[0])}
             style={{ background: "#fff", color: "#1e3a8a", border: "none", borderRadius: "50px", padding: "16px 36px", fontWeight: 700, fontSize: "16px", cursor: "pointer", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", fontFamily: "'Trebuchet MS', sans-serif" }}
           >
             🎓 Start Learning Free
@@ -354,13 +423,13 @@ export default function CoursesPage({ isMobile, onBack }) {
         </div>
       </div>
 
-      {/* ── Stats ── */}
+      {/* Stats */}
       <div style={{ background: "#fff", padding: "40px 20px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: "20px", textAlign: "center" }}>
         {[
           { end: courses.length || 15, suffix: "+", label: "Courses" },
-          { end: 50,   suffix: "K+", label: "Students" },
-          { end: 2000, suffix: "+",  label: "Labs" },
-          { end: 4.9,  suffix: "★", label: "Rating" },
+          { end: 50, suffix: "K+", label: "Students" },
+          { end: 2000, suffix: "+", label: "Labs" },
+          { end: 4.9, suffix: "★", label: "Rating" },
         ].map(({ end, suffix, label }) => (
           <div key={label}>
             <h2 style={{ color: "#3abf94", margin: 0, fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "28px" : "36px" }}>
@@ -371,7 +440,7 @@ export default function CoursesPage({ isMobile, onBack }) {
         ))}
       </div>
 
-      {/* ── Category Filter ── */}
+      {/* Category Filter */}
       <div style={{ padding: isMobile ? "24px 16px" : "32px 40px", background: "#fff", borderBottom: "1px solid #e0e0e0" }}>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "12px", maxWidth: "900px", margin: "0 auto" }}>
           {categories.map(cat => (
@@ -394,7 +463,7 @@ export default function CoursesPage({ isMobile, onBack }) {
         </div>
       </div>
 
-      {/* ── Featured Courses (first 3) ── */}
+      {/* Featured Courses */}
       {selectedCategory === "all" && featuredCourses.length > 0 && (
         <div style={{ padding: isMobile ? "32px 16px" : "48px 40px", background: "#f0f2f5" }}>
           <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -410,7 +479,7 @@ export default function CoursesPage({ isMobile, onBack }) {
                   isMobile={isMobile}
                   hovered={hoveredCourse === course.id}
                   onHover={setHoveredCourse}
-                  onEnrollNow={handleEnrollNow}
+                  onEnroll={handleEnroll} // ✅ Changed from onEnrollNow to onEnroll
                 />
               ))}
             </div>
@@ -418,7 +487,7 @@ export default function CoursesPage({ isMobile, onBack }) {
         </div>
       )}
 
-      {/* ── All Courses Grid ── */}
+      {/* All Courses Grid */}
       <div style={{ padding: isMobile ? "32px 16px 64px" : "48px 40px 80px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           {selectedCategory !== "all" && (
@@ -445,7 +514,7 @@ export default function CoursesPage({ isMobile, onBack }) {
                   isMobile={isMobile}
                   hovered={hoveredCourse === course.id}
                   onHover={setHoveredCourse}
-                  onEnrollNow={handleEnrollNow}
+                  onEnroll={handleEnroll} // ✅ Changed from onEnrollNow to onEnroll
                 />
               ))}
             </div>
@@ -459,7 +528,7 @@ export default function CoursesPage({ isMobile, onBack }) {
         </div>
       </div>
 
-      {/* ── CTA Banner ── */}
+      {/* CTA Banner */}
       <div style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)", padding: isMobile ? "48px 20px" : "64px 40px", textAlign: "center" }}>
         <h2 style={{ color: "#fff", fontSize: isMobile ? "24px" : "36px", marginBottom: "16px", fontFamily: "'Trebuchet MS', sans-serif" }}>
           Ready to Start Learning?
@@ -468,7 +537,7 @@ export default function CoursesPage({ isMobile, onBack }) {
           Join thousands of successful network engineers who accelerated their careers
         </p>
         <button
-          onClick={() => courses.length > 0 && handleEnrollNow(courses[0])}
+          onClick={() => courses.length > 0 && handleEnroll(courses[0])}
           style={{ background: "#3abf94", color: "#fff", border: "none", borderRadius: "40px", padding: "14px 36px", fontSize: "16px", fontWeight: 700, cursor: "pointer", fontFamily: "'Trebuchet MS', sans-serif" }}
           onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
           onMouseLeave={e => e.currentTarget.style.opacity = "1"}
@@ -477,7 +546,7 @@ export default function CoursesPage({ isMobile, onBack }) {
         </button>
       </div>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <div style={{ background: "#0f172a", padding: "32px 20px", textAlign: "center", color: "#aaa", fontFamily: "'Trebuchet MS', sans-serif", fontSize: "14px" }}>
         <p style={{ margin: 0 }}>© 2025 Cisco Networking Academy — Empowering Network Engineers Worldwide</p>
       </div>
