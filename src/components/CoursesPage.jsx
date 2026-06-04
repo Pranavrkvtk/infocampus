@@ -43,9 +43,7 @@ const CARD_ICONS  = ["🖥️", "🔰", "⚡", "🏆", "🔒", "🐧"];
 
 function normalizeCourse(course, index) {
   // Handle null/undefined values properly
-  const getSafeValue = (value, defaultValue) => {
-    return value != null && value !== "" ? value : defaultValue;
-  };
+
 
   // Special handling for title - if null, generate a default based on price or id
   let title = course.title;
