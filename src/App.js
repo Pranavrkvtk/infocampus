@@ -24,6 +24,7 @@ import UpgradePage from './components/Tools/UpgradePage';
 
 import AdminDashboard from './components/Admin/AdminDashboard';
 import Logout from './components/Logout';
+import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 
 const HIDE_NAVBAR = [
   '/free-account',
@@ -96,8 +97,14 @@ function AppRoutes() {
       <Route path="/ccnp-encor" element={<CCNA350 />} />
       <Route path="/ccnp-enarsi" element={<CCNA300 />} />
       <Route path="/upgrade" element={<UpgradePage />} />
-      <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/logout" element={<Logout />} />
+<Route
+  path="/admin"
+  element={
+    <ProtectedAdminRoute>
+      <AdminDashboard />
+    </ProtectedAdminRoute>
+  }
+/>      <Route path="/logout" element={<Logout />} />
 
       {/* Support Page */}
       <Route
