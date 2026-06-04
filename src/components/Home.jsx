@@ -49,74 +49,36 @@ export default function Home() {
       {/* Main Content */}
       <main style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: isMobile ? "20px 12px 48px" : "40px 20px 60px" }}>
         {/* Video Player */}
-        <div style={{
-          width: "100%",
-          maxWidth: "680px",
-          borderRadius: isMobile ? "6px" : "10px",
-          overflow: "hidden",
-          boxShadow: "0 6px 32px rgba(0,0,0,0.16)",
-          background: "#111",
-        }}>
-          <div style={{
-            width: "100%",
-            aspectRatio: "16/9",
-            background: "linear-gradient(135deg, #2c3e50 0%, #4a6d8c 60%, #c0392b 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            position: "relative", overflow: "hidden",
-          }}>
-            <div style={{
-              position: "absolute", inset: 0,
-              backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(0,0,0,0.07) 18px, rgba(0,0,0,0.07) 19px)",
-            }} />
-            <div style={{
-              position: "absolute", right: "12%", top: "10%", bottom: "0",
-              width: isMobile ? "60px" : "90px",
-              background: "rgba(0,0,0,0.3)", borderRadius: "4px 4px 0 0",
-              display: "flex", flexDirection: "column", padding: "6px", gap: "4px",
-            }}>
-              {[...Array(7)].map((_, i) => (
-                <div key={i} style={{ height: "9px", background: "rgba(255,255,255,0.13)", borderRadius: "2px" }} />
-              ))}
-            </div>
-            <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
-              <div style={{
-                width: isMobile ? "52px" : "80px", height: isMobile ? "52px" : "80px",
-                borderRadius: "50%", background: "rgba(255,255,255,0.13)",
-                margin: "0 auto 8px", display: "flex", alignItems: "center",
-                justifyContent: "center", fontSize: isMobile ? "24px" : "36px",
-              }}>▶</div>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "11px", fontFamily: "'Trebuchet MS', sans-serif" }}>
-                INFOCAMPUS.course
-              </div>
-            </div>
-            <div style={{
-              position: "absolute", left: "10px", bottom: "44px",
-              background: "rgba(0,0,0,0.7)", color: "#fff",
-              fontFamily: "monospace", fontSize: "11px",
-              padding: "2px 6px", borderRadius: "3px",
-            }}>01:42</div>
-          </div>
-          <div style={{
-            background: "#1a1a1a", display: "flex", alignItems: "center",
-            padding: isMobile ? "8px 10px" : "8px 14px",
-            gap: isMobile ? "8px" : "12px",
-          }}>
-            <button style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", fontSize: "18px", display: "flex", flexShrink: 0 }}>▶</button>
-            <div style={{ flex: 1, height: "4px", background: "#444", borderRadius: "2px" }}>
-              <div style={{ width: "8%", height: "100%", background: "#3abf94", borderRadius: "2px" }} />
-            </div>
-            <span style={{ color: "#aaa", fontSize: "11px", fontFamily: "monospace", flexShrink: 0 }}>01:42</span>
-            {["🔊", "CC", "⚙", "⛶", "↗"].map((icon, i) => (
-              <button key={i} style={{
-                background: "none", border: "none", cursor: "pointer", color: "#ccc",
-                fontSize: isMobile ? "11px" : "13px", padding: "2px",
-                display: isMobile && i > 2 ? "none" : "block",
-              }}>
-                {icon}
-              </button>
-            ))}
-          </div>
-        </div>
+   <div
+  style={{
+    width: "100%",
+    maxWidth: "680px",
+    borderRadius: isMobile ? "6px" : "10px",
+    overflow: "hidden",
+    boxShadow: "0 6px 32px rgba(0,0,0,0.16)",
+    background: "#111",
+  }}
+>
+  <video
+    controls
+    controlsList="nodownload"
+    preload="metadata"
+    style={{
+      width: "100%",
+      height: "auto",
+      display: "block",
+      backgroundColor: "#000",
+    }}
+  >
+    {/* Replace with your actual video URL */}
+    <source
+      src="https://www.w3schools.com/html/mov_bbb.mp4"
+      type="video/mp4"
+    />
+
+    Your browser does not support HTML5 video.
+  </video>
+</div>
 
         {/* CTA — now navigates to /courses route */}
         <button
