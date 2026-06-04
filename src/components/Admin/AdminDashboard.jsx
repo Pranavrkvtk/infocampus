@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 // ================= LIGHT MODERN THEME =================
 const colors = {
   bgBase: "#F6F8FC",
@@ -251,7 +250,6 @@ export default function AdminDashboard() {
   }, []);
 
 
-  const navigate = useNavigate();
 
 const handleLogout = () => {
   localStorage.removeItem("token");
