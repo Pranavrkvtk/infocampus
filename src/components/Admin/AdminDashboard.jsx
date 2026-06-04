@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 // ================= LIGHT MODERN THEME =================
 const colors = {
@@ -85,7 +86,7 @@ const allPayments = [
   { id: 7, student: "Thomas Lee", course: "Wireless Networking", amount: "$179", status: "Paid", date: "2026-05-29" },
 ];
 
-// Students Data with networking focus
+// Students Data
 const allStudents = [
   { id: 1, name: "Michael Chen", email: "michael.chen@example.com", course: "CCNA 200-301", progress: 92, status: "Active", enrolled: "2026-01-15", lab_completed: 18 },
   { id: 2, name: "Sarah Johnson", email: "sarah.j@example.com", course: "Network Fundamentals", progress: 78, status: "Active", enrolled: "2026-02-10", lab_completed: 12 },
@@ -97,20 +98,14 @@ const allStudents = [
   { id: 8, name: "Maria Garcia", email: "maria.g@example.com", course: "IPv6 Fundamentals", progress: 42, status: "Pending", enrolled: "2026-04-15", lab_completed: 5 },
 ];
 
-// Components
-function NavItem({ icon, label, badge, active, onClick, isMobile, onMobileNavClick }) {
+// ================= COMPONENTS =================
+
+function NavItem({ icon, label, badge, active, onClick }) {
   const [hovered, setHovered] = useState(false);
-  
-  const handleClick = () => {
-    onClick();
-    if (isMobile && onMobileNavClick) {
-      onMobileNavClick();
-    }
-  };
-  
+
   return (
     <div
-      onClick={handleClick}
+      onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -146,23 +141,25 @@ function NavItem({ icon, label, badge, active, onClick, isMobile, onMobileNavCli
 
 function KpiCard({ label, value, delta, up, iconBg, icon }) {
   return (
-    <div style={{
-      background: colors.surface,
-      borderRadius: 16,
-      padding: "16px",
-      border: `1px solid ${colors.borderLight}`,
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
-      transition: "transform 0.2s, box-shadow 0.2s",
-      cursor: "pointer",
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = "translateY(-2px)";
-      e.currentTarget.style.boxShadow = "0 8px 20px rgba(0, 0, 0, 0.08)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = "translateY(0)";
-      e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.04)";
-    }}>
+    <div
+      style={{
+        background: colors.surface,
+        borderRadius: 16,
+        padding: "16px",
+        border: `1px solid ${colors.borderLight}`,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        transition: "transform 0.2s, box-shadow 0.2s",
+        cursor: "pointer",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)";
+      }}
+    >
       <div style={{
         width: 36, height: 36, borderRadius: 10,
         background: iconBg,
@@ -181,14 +178,14 @@ function KpiCard({ label, value, delta, up, iconBg, icon }) {
 function Badge({ status }) {
   const map = {
     Published: { bg: colors.tealSoft, color: colors.teal },
-    Paid: { bg: colors.tealSoft, color: colors.teal },
-    Pending: { bg: colors.amberSoft, color: colors.amber },
-    Refunded: { bg: "#F0F2F8", color: colors.textMuted },
-    Active: { bg: colors.tealSoft, color: colors.teal },
-    Draft: { bg: "#F0F2F8", color: colors.textMuted },
-    Beginner: { bg: colors.primarySoft, color: colors.primary },
-    Intermediate: { bg: colors.amberSoft, color: colors.amber },
-    Advanced: { bg: colors.coralSoft, color: colors.coral },
+    Paid:      { bg: colors.tealSoft, color: colors.teal },
+    Pending:   { bg: colors.amberSoft, color: colors.amber },
+    Refunded:  { bg: "#F0F2F8", color: colors.textMuted },
+    Active:    { bg: colors.tealSoft, color: colors.teal },
+    Draft:     { bg: "#F0F2F8", color: colors.textMuted },
+    Beginner:      { bg: colors.primarySoft, color: colors.primary },
+    Intermediate:  { bg: colors.amberSoft, color: colors.amber },
+    Advanced:      { bg: colors.coralSoft, color: colors.coral },
   };
   const s = map[status] || { bg: "#F0F2F8", color: colors.textMuted };
   return (
@@ -200,14 +197,11 @@ function Badge({ status }) {
   );
 }
 
-// Mobile Bottom Navigation
 function MobileBottomNav({ activeTab, onTabChange }) {
   return (
     <div style={{
       position: "fixed",
-      bottom: 0,
-      left: 0,
-      right: 0,
+      bottom: 0, left: 0, right: 0,
       background: colors.surface,
       borderTop: `1px solid ${colors.borderLight}`,
       display: "flex",
@@ -220,10 +214,7 @@ function MobileBottomNav({ activeTab, onTabChange }) {
           key={item.id}
           onClick={() => onTabChange(item.id)}
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 4,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
             cursor: "pointer",
             color: activeTab === item.id ? colors.primary : colors.textMuted,
             position: "relative",
@@ -233,16 +224,10 @@ function MobileBottomNav({ activeTab, onTabChange }) {
           <span style={{ fontSize: 10, fontWeight: 500 }}>{item.label}</span>
           {item.badge && (
             <span style={{
-              position: "absolute",
-              top: -4,
-              right: -8,
-              background: colors.primary,
-              color: "#fff",
-              fontSize: 9,
-              borderRadius: 10,
-              padding: "1px 5px",
-              minWidth: 16,
-              textAlign: "center",
+              position: "absolute", top: -4, right: -8,
+              background: colors.primary, color: "#fff",
+              fontSize: 9, borderRadius: 10, padding: "1px 5px",
+              minWidth: 16, textAlign: "center",
             }}>{item.badge}</span>
           )}
         </div>
@@ -251,22 +236,27 @@ function MobileBottomNav({ activeTab, onTabChange }) {
   );
 }
 
+// ================= MAIN COMPONENT =================
+
 export default function AdminDashboard() {
+  const navigate = useNavigate(); // ✅ FIXED: hook at top level, not inside renderContent
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-React.useEffect(() => {
-  const handleResize = () => {
-    setIsMobile(window.innerWidth <= 768);
-  };
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  window.addEventListener("resize", handleResize);
-
-  return () => {
-    window.removeEventListener("resize", handleResize);
-  };
-}, []);
+  // ✅ FIXED: handleLogout defined at component level
+  // const handleLogout = () => {
+  //   localStorage.removeItem("token");
+  //   localStorage.removeItem("role");
+  //   navigate("/login");
+  // };
 
   const renderContent = () => {
     const commonTableStyles = {
@@ -274,11 +264,11 @@ React.useEffect(() => {
       WebkitOverflowScrolling: "touch",
     };
 
-    switch(activeTab) {
+    switch (activeTab) {
       case "dashboard":
         return (
           <>
-            {/* KPI Grid - Responsive */}
+            {/* KPI Grid */}
             <div style={{
               display: "grid",
               gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
@@ -297,13 +287,13 @@ React.useEffect(() => {
             }}>
               {/* Top Enrolled Courses */}
               <div style={{
-                flex: 1,
-                background: colors.surface,
+                flex: 1, background: colors.surface,
                 border: `1px solid ${colors.borderLight}`,
-                borderRadius: 16,
-                padding: isMobile ? 16 : 20,
+                borderRadius: 16, padding: isMobile ? 16 : 20,
               }}>
-                <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, marginBottom: 16 }}>📊 Top Networking Courses</h3>
+                <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, marginBottom: 16 }}>
+                  📊 Top Networking Courses
+                </h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {courseEnrollments.map(c => (
                     <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -325,13 +315,13 @@ React.useEffect(() => {
 
               {/* Activity Feed */}
               <div style={{
-                flex: 1,
-                background: colors.surface,
+                flex: 1, background: colors.surface,
                 border: `1px solid ${colors.borderLight}`,
-                borderRadius: 16,
-                padding: isMobile ? 16 : 20,
+                borderRadius: 16, padding: isMobile ? 16 : 20,
               }}>
-                <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, marginBottom: 16 }}>🔄 Recent Activity</h3>
+                <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, marginBottom: 16 }}>
+                  🔄 Recent Activity
+                </h3>
                 {activities.map((a, i) => (
                   <div key={i} style={{
                     display: "flex", gap: 10,
@@ -355,23 +345,22 @@ React.useEffect(() => {
               </div>
             </div>
 
-            {/* Recent Students Preview */}
+            {/* Top Students */}
             <div style={{
               background: colors.surface,
               border: `1px solid ${colors.borderLight}`,
-              borderRadius: 16,
-              padding: isMobile ? 16 : 20,
+              borderRadius: 16, padding: isMobile ? 16 : 20,
             }}>
-              <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, marginBottom: 16 }}>👨‍🎓 Top Performing Students</h3>
+              <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, marginBottom: 16 }}>
+                👨‍🎓 Top Performing Students
+              </h3>
               <div style={commonTableStyles}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                      <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Student</th>
-                      <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Course</th>
-                      <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Labs Done</th>
-                      <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Progress</th>
-                      <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Status</th>
+                      {["Student", "Course", "Labs Done", "Progress", "Status"].map(h => (
+                        <th key={h} style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -403,42 +392,33 @@ React.useEffect(() => {
           <div style={{
             background: colors.surface,
             border: `1px solid ${colors.borderLight}`,
-            borderRadius: 16,
-            padding: isMobile ? 16 : 20,
+            borderRadius: 16, padding: isMobile ? 16 : 20,
           }}>
-            <div style={{ 
-              display: "flex", 
+            <div style={{
+              display: "flex",
               flexDirection: isMobile ? "column" : "row",
-              justifyContent: "space-between", 
-              alignItems: isMobile ? "stretch" : "center", 
+              justifyContent: "space-between",
+              alignItems: isMobile ? "stretch" : "center",
               gap: isMobile ? 12 : 0,
-              marginBottom: 20 
+              marginBottom: 20,
             }}>
               <div>
                 <h2 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 700 }}>🌐 Networking Courses</h2>
                 <p style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>CCNA, CCNP, and professional network training</p>
               </div>
               <button style={{
-                background: colors.primary,
-                color: "#fff",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: 40,
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: "pointer",
+                background: colors.primary, color: "#fff",
+                border: "none", padding: "8px 16px",
+                borderRadius: 40, fontSize: 13, fontWeight: 500, cursor: "pointer",
               }}>+ New Course</button>
             </div>
             <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Course</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Instructor</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Level</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Students</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Price</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Status</th>
+                    {["Course", "Instructor", "Level", "Students", "Price", "Status"].map(h => (
+                      <th key={h} style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -466,19 +446,16 @@ React.useEffect(() => {
           <div style={{
             background: colors.surface,
             border: `1px solid ${colors.borderLight}`,
-            borderRadius: 16,
-            padding: isMobile ? 16 : 20,
+            borderRadius: 16, padding: isMobile ? 16 : 20,
           }}>
             <h2 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 700, marginBottom: 20 }}>💳 Payment Transactions</h2>
             <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Student</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Course</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Amount</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Date</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Status</th>
+                    {["Student", "Course", "Amount", "Date", "Status"].map(h => (
+                      <th key={h} style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -486,7 +463,10 @@ React.useEffect(() => {
                     <tr key={p.id} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
                       <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 500 }}>{p.student}</td>
                       <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{p.course}</td>
-                      <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 600, color: p.status === "Paid" ? colors.teal : p.status === "Pending" ? colors.amber : colors.textMuted }}>{p.amount}</td>
+                      <td style={{
+                        padding: "12px 0", fontSize: 13, fontWeight: 600,
+                        color: p.status === "Paid" ? colors.teal : p.status === "Pending" ? colors.amber : colors.textMuted,
+                      }}>{p.amount}</td>
                       <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{p.date}</td>
                       <td><Badge status={p.status} /></td>
                     </tr>
@@ -494,7 +474,11 @@ React.useEffect(() => {
                 </tbody>
               </table>
             </div>
-            <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${colors.borderLight}`, display: "flex", justifyContent: "space-between" }}>
+            <div style={{
+              marginTop: 16, paddingTop: 12,
+              borderTop: `1px solid ${colors.borderLight}`,
+              display: "flex", justifyContent: "space-between",
+            }}>
               <span style={{ fontSize: 12, color: colors.textSecondary }}>Total Revenue (June): $2,874</span>
               <span style={{ fontSize: 12, color: colors.teal, fontWeight: 500 }}>↑ +15.3% vs last month</span>
             </div>
@@ -506,16 +490,15 @@ React.useEffect(() => {
           <div style={{
             background: colors.surface,
             border: `1px solid ${colors.borderLight}`,
-            borderRadius: 16,
-            padding: isMobile ? 16 : 20,
+            borderRadius: 16, padding: isMobile ? 16 : 20,
           }}>
-            <div style={{ 
-              display: "flex", 
+            <div style={{
+              display: "flex",
               flexDirection: isMobile ? "column" : "row",
-              justifyContent: "space-between", 
-              alignItems: isMobile ? "stretch" : "center", 
+              justifyContent: "space-between",
+              alignItems: isMobile ? "stretch" : "center",
               gap: isMobile ? 12 : 0,
-              marginBottom: 20 
+              marginBottom: 20,
             }}>
               <div>
                 <h2 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 700 }}>👨‍🎓 Student Directory</h2>
@@ -529,8 +512,7 @@ React.useEffect(() => {
                 style={{
                   padding: "8px 14px",
                   border: `1px solid ${colors.borderLight}`,
-                  borderRadius: 40,
-                  fontSize: 13,
+                  borderRadius: 40, fontSize: 13,
                   width: isMobile ? "100%" : 240,
                   outline: "none",
                 }}
@@ -540,12 +522,9 @@ React.useEffect(() => {
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 650 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Name</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Email</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Course</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Labs</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Progress</th>
-                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Status</th>
+                    {["Name", "Email", "Course", "Labs", "Progress", "Status"].map(h => (
+                      <th key={h} style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -587,7 +566,7 @@ React.useEffect(() => {
       fontFamily: "'Inter', -apple-system, sans-serif",
       paddingBottom: isMobile ? 70 : 0,
     }}>
-      {/* Sidebar - Desktop */}
+      {/* ===== SIDEBAR — Desktop ===== */}
       {!isMobile && (
         <nav style={{
           width: 260,
@@ -601,12 +580,10 @@ React.useEffect(() => {
           height: "100vh",
           overflowY: "auto",
         }}>
+          {/* Logo */}
           <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "0 20px",
-            marginBottom: 32,
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "0 20px", marginBottom: 32,
           }}>
             <div style={{
               width: 38, height: 38, borderRadius: 12,
@@ -620,6 +597,7 @@ React.useEffect(() => {
             </div>
           </div>
 
+          {/* Nav links */}
           {navItems.map(item => (
             <NavItem
               key={item.id}
@@ -628,16 +606,44 @@ React.useEffect(() => {
               onClick={() => setActiveTab(item.id)}
             />
           ))}
+
+          {/* Spacer pushes logout to bottom */}
+          <div style={{ flex: 1 }} />
+
+          {/* ✅ LOGOUT BUTTON */}
+          {/* <div style={{ padding: "0 8px" }}>
+            <button
+              onClick={handleLogout}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: 12,
+                fontSize: 14,
+                fontWeight: 500,
+                color: colors.coral,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                transition: "background 0.18s",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = colors.coralSoft}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+            >
+              <span style={{ fontSize: 18 }}>🚪</span>
+              <span>Log Out</span>
+            </button>
+          </div> */}
         </nav>
       )}
 
-      {/* Mobile Header */}
+      {/* ===== MOBILE HEADER ===== */}
       {isMobile && (
         <div style={{
           position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
+          top: 0, left: 0, right: 0,
           background: colors.surface,
           borderBottom: `1px solid ${colors.borderLight}`,
           padding: "12px 16px",
@@ -658,7 +664,7 @@ React.useEffect(() => {
               <div style={{ fontSize: 9, color: colors.textMuted }}>Networking Academy</div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 10 }}>
             <div style={{
               width: 32, height: 32, borderRadius: 32,
               border: `1px solid ${colors.borderLight}`,
@@ -671,11 +677,22 @@ React.useEffect(() => {
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
             }}>AD</div>
+            {/* <button
+              onClick={handleLogout}
+              style={{
+                width: 32, height: 32, borderRadius: 32,
+                border: `1px solid ${colors.borderLight}`,
+                background: colors.coralSoft,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 14, cursor: "pointer",
+              }}
+              title="Log Out"
+            >🚪</button> */}
           </div>
         </div>
       )}
 
-      {/* Main Content */}
+      {/* ===== MAIN CONTENT ===== */}
       <main style={{
         flex: 1,
         padding: isMobile ? "70px 16px 20px" : "32px 40px",
@@ -704,8 +721,8 @@ React.useEffect(() => {
               {activeTab === "students" && "Manage and monitor student progress in networking courses"}
             </p>
           </div>
-          
-          {/* Desktop top bar */}
+
+          {/* Desktop topbar icons */}
           {!isMobile && (
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <div style={{
@@ -727,7 +744,7 @@ React.useEffect(() => {
         {renderContent()}
       </main>
 
-      {/* Mobile Bottom Navigation */}
+      {/* ===== MOBILE BOTTOM NAV ===== */}
       {isMobile && (
         <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       )}

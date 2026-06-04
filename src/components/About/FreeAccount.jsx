@@ -7,30 +7,47 @@ function FreeAccount() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
+const handleRegister = async (e) => {
+  e.preventDefault();
 
-    try {
-      const res = await registerUser({
-        name,
-        email,
-        password,
-      });
+  if (!name.trim()) {
+    alert("Please enter your name");
+    return;
+  }
 
-      console.log("Success:", res.data);
-      alert("Account Created Successfully");
+  if (!email.trim()) {
+    alert("Please enter your email");
+    return;
+  }
 
-      // clear form after success
-      setName("");
-      setEmail("");
-      setPassword("");
+  if (!password.trim()) {
+    alert("Please enter your password");
+    return;
+  }
 
-    } catch (error) {
-      console.log("Error:", error);
-      alert("Registration Failed");
-    }
-  };
+  try {
+    console.log("Name:", name);
+    console.log("Email:", email);
+    console.log("Password:", password);
 
+    const res = await registerUser({
+      name,
+      email,
+      password,
+    });
+
+    console.log("Success:", res.data);
+    alert("Account Created Successfully");
+
+    setName("");
+    setEmail("");
+    setPassword("");
+
+  } catch (error) {
+    console.log("Error:", error);
+    alert("Registration Failed");
+  }
+};
   return (
     <div className="fa-page">
       <div className="fa-card">

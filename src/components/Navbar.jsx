@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const courseItems = [
   "Network Fundamentals",
@@ -37,15 +37,29 @@ const DROPDOWN_HOVER = "#2e5f8f";
 const CISCO_BG = "#2e5f8f";
 const ACCENT = "#f5c842";
 const GREEN = "#3abf94";
+const LOGOUT_COLOR = "#e05252";
+const LOGOUT_HOVER = "#c94444";
 const FONT = "'Trebuchet MS', sans-serif";
 
 export default function Navbar() {
+  const navigate = useNavigate();
   const [searchVal, setSearchVal] = useState("");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
   const [cisco, setCisco] = useState(false);
 
-  // Function to close all dropdowns
+  // ✅ Check if user is logged in
+  const isLoggedIn = !!localStorage.getItem("token");
+
+  // ✅ Logout handler
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    closeAllMenus();
+    setMobileMenu(false);
+    navigate("/login");
+  };
+
   const closeAllMenus = () => {
     setOpenMenu(null);
     setCisco(false);
@@ -60,7 +74,6 @@ export default function Navbar() {
     }
   };
 
-  // Handle navigation - closes everything
   const handleNavigation = () => {
     closeAllMenus();
     setMobileMenu(false);
@@ -91,6 +104,8 @@ export default function Navbar() {
           cisco={cisco} setCisco={setCisco}
           closeAllMenus={closeAllMenus}
           handleNavigation={handleNavigation}
+          isLoggedIn={isLoggedIn}
+          handleLogout={handleLogout}
         />
 
         {/* Hamburger */}
@@ -116,6 +131,8 @@ export default function Navbar() {
           setMobileMenu={setMobileMenu}
           closeAllMenus={closeAllMenus}
           handleNavigation={handleNavigation}
+          isLoggedIn={isLoggedIn}
+          handleLogout={handleLogout}
         />
       )}
 
@@ -172,7 +189,7 @@ export default function Navbar() {
   );
 }
 
-function NavDropdown({ name, label, openMenu, toggle, children, closeAllMenus }) {
+function NavDropdown({ name, label, openMenu, toggle, children }) {
   const open = openMenu === name;
   return (
     <div style={{ position: "relative" }}>
@@ -193,7 +210,11 @@ function NavDropdown({ name, label, openMenu, toggle, children, closeAllMenus })
   );
 }
 
-function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco, closeAllMenus, handleNavigation }) {
+function DesktopMenu({
+  searchVal, setSearchVal, openMenu, toggle,
+  cisco, setCisco, closeAllMenus, handleNavigation,
+  isLoggedIn, handleLogout,
+}) {
   return (
     <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: "2px", flex: 1 }}>
       <Link to="/" onClick={handleNavigation} style={{ textDecoration: "none" }}>
@@ -210,8 +231,8 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
               <span>{item}</span>
               {item === "Cisco" && (
                 <span
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setCisco(!cisco);
                   }}
                   style={{
@@ -248,9 +269,6 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
         ))}
       </NavDropdown>
 
-   
-
-
       {/* Tools */}
       <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle} closeAllMenus={closeAllMenus}>
         <div className="dd-row" onClick={closeAllMenus}>Packet Captures</div>
@@ -269,7 +287,7 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
         <div className="dd-row" onClick={closeAllMenus}>Training for Teams</div>
       </NavDropdown>
 
-      {/* Login + Search pushed right */}
+      {/* Right side: search + login/logout */}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
         <input
           className="nav-search"
@@ -277,26 +295,48 @@ function DesktopMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisc
           value={searchVal}
           onChange={(e) => setSearchVal(e.target.value)}
         />
-        <Link to="/login" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
+
+        {/* ✅ Show Logout if logged in, Login if not */}
+        {isLoggedIn ? (
           <button
+            onClick={handleLogout}
             style={{
-              background: GREEN, color: "#fff", border: "none",
+              background: LOGOUT_COLOR, color: "#fff", border: "none",
               borderRadius: "5px", padding: "7px 18px", fontFamily: FONT,
               fontWeight: 700, fontSize: "14px", cursor: "pointer",
               whiteSpace: "nowrap", transition: "background 0.15s",
             }}
-            onMouseEnter={e => e.currentTarget.style.background = "#2eac82"}
-            onMouseLeave={e => e.currentTarget.style.background = GREEN}
+            onMouseEnter={e => e.currentTarget.style.background = LOGOUT_HOVER}
+            onMouseLeave={e => e.currentTarget.style.background = LOGOUT_COLOR}
           >
-            Login
+            Logout
           </button>
-        </Link>
+        ) : (
+          <Link to="/login" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
+            <button
+              style={{
+                background: GREEN, color: "#fff", border: "none",
+                borderRadius: "5px", padding: "7px 18px", fontFamily: FONT,
+                fontWeight: 700, fontSize: "14px", cursor: "pointer",
+                whiteSpace: "nowrap", transition: "background 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#2eac82"}
+              onMouseLeave={e => e.currentTarget.style.background = GREEN}
+            >
+              Login
+            </button>
+          </Link>
+        )}
       </div>
     </div>
   );
 }
 
-function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco, setMobileMenu, closeAllMenus, handleNavigation }) {
+function MobileMenu({
+  searchVal, setSearchVal, openMenu, toggle,
+  cisco, setCisco, setMobileMenu, closeAllMenus, handleNavigation,
+  isLoggedIn, handleLogout,
+}) {
   const rowStyle = {
     padding: "13px 20px", color: "#fff", fontFamily: FONT, fontSize: "15px",
     borderBottom: "1px solid rgba(255,255,255,0.1)", cursor: "pointer",
@@ -318,7 +358,6 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
     fontWeight: 600,
     display: "block",
   };
-
 
   return (
     <div style={{ background: NAV_BG, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
@@ -373,9 +412,6 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
         </div>
       ))}
 
- 
-
-
       {/* Tools */}
       <div style={rowStyle} onClick={() => toggle("tools")}>
         <span>Tools</span>
@@ -417,19 +453,32 @@ function MobileMenu({ searchVal, setSearchVal, openMenu, toggle, cisco, setCisco
         />
       </div>
 
-      {/* Login */}
+      {/* ✅ Login / Logout */}
       <div style={{ padding: "12px 20px" }}>
-        <Link to="/login" onClick={handleNavigation} style={{ textDecoration: "none" }}>
+        {isLoggedIn ? (
           <button
+            onClick={handleLogout}
             style={{
-              background: GREEN, color: "#fff", border: "none", borderRadius: "5px",
-              padding: "10px 0", width: "100%", fontFamily: FONT,
-              fontWeight: 700, fontSize: "15px", cursor: "pointer",
+              background: LOGOUT_COLOR, color: "#fff", border: "none",
+              borderRadius: "5px", padding: "10px 0", width: "100%",
+              fontFamily: FONT, fontWeight: 700, fontSize: "15px", cursor: "pointer",
             }}
           >
-            Login
+            Logout
           </button>
-        </Link>
+        ) : (
+          <Link to="/login" onClick={handleNavigation} style={{ textDecoration: "none" }}>
+            <button
+              style={{
+                background: GREEN, color: "#fff", border: "none",
+                borderRadius: "5px", padding: "10px 0", width: "100%",
+                fontFamily: FONT, fontWeight: 700, fontSize: "15px", cursor: "pointer",
+              }}
+            >
+              Login
+            </button>
+          </Link>
+        )}
       </div>
     </div>
   );

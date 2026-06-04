@@ -23,6 +23,7 @@ import CCNA300 from './components/Course/Cisco/CCNA300';
 import UpgradePage from './components/Tools/UpgradePage';
 
 import AdminDashboard from './components/Admin/AdminDashboard';
+import Logout from './components/Logout';
 
 const HIDE_NAVBAR = ['/free-account', '/login'];
 
@@ -62,7 +63,7 @@ function AppRoutes() {
           />
         }
       />
-            <Route path="/ccna200" element={<CCNA200 />} />  {/* ← ADD THIS */}
+      <Route path="/ccna200" element={<CCNA200 />} />  {/* ← ADD THIS */}
 
 
       {/* Enroll */}
@@ -90,8 +91,9 @@ function AppRoutes() {
 
       <Route path="/ccnp-encor" element={<CCNA350 />} />
       <Route path="/ccnp-enarsi" element={<CCNA300 />} />
-              <Route path="/upgrade" element={<UpgradePage />} />
-<Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/upgrade" element={<UpgradePage />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/logout" element={<Logout />} />
 
       {/* Support Page */}
       <Route
