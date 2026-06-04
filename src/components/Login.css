@@ -310,3 +310,105 @@
 .signup-btn:active {
   transform: scale(0.98);
 }
+
+/* ── Mobile Responsive ── */
+@media (max-width: 768px) {
+
+  .login-container {
+    padding: 0;
+    background: #f0f4f9;
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: none;
+  }
+
+  .login-logo {
+    justify-content: center;
+  }
+
+  .login-heading,
+  .login-sub {
+    text-align: center;
+  }
+
+  .login-heading {
+    font-size: 28px;
+  }
+
+  .login-sub {
+    margin-bottom: 30px;
+  }
+
+  .social-row {
+    flex-direction: column;
+  }
+
+  .login-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .signup-prompt {
+    text-align: center;
+  }
+
+  .signup-btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .blob-1 {
+    width: 250px;
+    height: 250px;
+  }
+
+  .blob-2 {
+    width: 180px;
+    height: 180px;
+  }
+
+  .blob-3 {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+/* Small Phones */
+@media (max-width: 480px) {
+
+  .login-box {
+    padding: 24px 16px;
+  }
+
+  .logo-text {
+    font-size: 24px;
+  }
+
+  .login-heading {
+    font-size: 24px;
+  }
+
+  .login-sub {
+    font-size: 13px;
+  }
+
+  .login-input {
+    font-size: 16px; /* prevents zoom on iPhone */
+  }
+
+  .login-btn,
+  .social-btn,
+  .signup-btn {
+    width: 100%;
+  }
+}

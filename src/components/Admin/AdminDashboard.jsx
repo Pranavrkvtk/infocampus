@@ -701,8 +701,8 @@ const handleLogout = () => {
               fontSize: 16, color: "#fff",
             }}>⚡</div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700 }}>NetLab</div>
-              <div style={{ fontSize: 9, color: colors.textMuted }}>Networking Academy</div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>INFOCAMPUS</div>
+              <div style={{ fontSize: 9, color: colors.textMuted }}>ADMIN DASHBOARD</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
