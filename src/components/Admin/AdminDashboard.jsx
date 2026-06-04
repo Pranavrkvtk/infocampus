@@ -764,23 +764,7 @@ const handleLogout = () => {
             </p>
           </div>
 
-          {/* Desktop topbar icons */}
-          {!isMobile && (
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 40,
-                border: `1px solid ${colors.borderLight}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer",
-              }}>🔔</div>
-              <div style={{
-                width: 40, height: 40, borderRadius: 40,
-                background: colors.gradPrimary,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: "#fff", fontWeight: 600, cursor: "pointer",
-              }}>AD</div>
-            </div>
-          )}
+   
         </div>
 
         {renderContent()}
