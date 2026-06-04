@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCourses, enrollInCourse } from "../api/courseApi"; // ✅ Fixed import
+import { getCourses } from "../api/courseApi"; // ✅ Fixed import
 
 // ==================== COUNTER COMPONENT ====================
 function CountUp({ end, suffix = "", duration = 2000 }) {

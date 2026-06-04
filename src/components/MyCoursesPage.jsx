@@ -1,59 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getUserEnrollments, watchCourse } from "../api/courseApi";
+import { getUserEnrollments } from "../api/courseApi";
 
 export default function MyCoursesPage({ isMobile, onBack }) {
   const navigate = useNavigate();
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadEnrolledCourses();
-  }, []);
-
-  const loadEnrolledCourses = async () => {
-    try {
-      setLoading(true);
-      const storedUserId = localStorage.getItem("userId");
-      
-      console.log("Stored userId:", storedUserId);
-      
-      if (!storedUserId) {
-        alert("Please login first");
-        navigate("/login");
-        return;
-      }
-
-      // Get user's enrollments
-      const enrollmentsRes = await getUserEnrollments(storedUserId);
-      console.log("API Response:", enrollmentsRes.data);
-      
-      // ✅ Extract course data from the response
-      // Your response has course object inside each enrollment
-      const courses = enrollmentsRes.data.map((enrollment) => ({
-        id: enrollment.course.id,
-        title: enrollment.course.title,
-        description: enrollment.course.description,
-        price: enrollment.course.price,
-        instructor: enrollment.course.instructor,
-        duration: enrollment.course.duration,
-        videoUrl: enrollment.course.videoUrl,
-        imageUrl: enrollment.course.imageUrl,
-        enrollmentId: enrollment.id,
-        enrolledAt: enrollment.enrolledAt,
-        progress: enrollment.progress || 0
-      }));
-      
-      console.log("Processed courses:", courses);
-      setEnrolledCourses(courses);
-      
-    } catch (error) {
-      console.error("Error loading enrolled courses:", error);
-      alert("Failed to load your courses: " + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   const handleWatchCourse = (course) => {
     try {
