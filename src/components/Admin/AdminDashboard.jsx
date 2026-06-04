@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 // ================= LIGHT MODERN THEME =================
 const colors = {
@@ -239,7 +238,6 @@ function MobileBottomNav({ activeTab, onTabChange }) {
 // ================= MAIN COMPONENT =================
 
 export default function AdminDashboard() {
-  const navigate = useNavigate(); // ✅ FIXED: hook at top level, not inside renderContent
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
@@ -251,12 +249,7 @@ export default function AdminDashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ✅ FIXED: handleLogout defined at component level
-  // const handleLogout = () => {
-  //   localStorage.removeItem("token");
-  //   localStorage.removeItem("role");
-  //   navigate("/login");
-  // };
+
 
   const renderContent = () => {
     const commonTableStyles = {
