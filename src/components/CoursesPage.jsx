@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { getCourses } from "../api/courseApi";
 
 // ==================== COUNTER COMPONENT ====================
 function CountUp({ end, suffix = "", duration = 2000 }) {
@@ -28,22 +29,106 @@ function CountUp({ end, suffix = "", duration = 2000 }) {
       },
       { threshold: 0.3 }
     );
-
-    if (elementRef.current) {
-      observer.observe(elementRef.current);
-    }
+    if (elementRef.current) observer.observe(elementRef.current);
     return () => observer.disconnect();
   }, [end, duration, hasAnimated]);
 
-  return (
-    <span ref={elementRef}>
-      {count.toLocaleString()}{suffix}
-    </span>
-  );
+  return <span ref={elementRef}>{count.toLocaleString()}{suffix}</span>;
+}
+
+// ==================== NORMALIZE API COURSE ====================
+// Maps real API fields to UI fields with safe fallbacks
+const CARD_COLORS = ["#3abf94", "#e5a800", "#1d6b72", "#c8102e", "#7aa3c8", "#5b8dbf"];
+const CARD_ICONS  = ["🖥️", "🔰", "⚡", "🏆", "🔒", "🐧"];
+
+function normalizeCourse(course, index) {
+  // Handle null/undefined values properly
+  const getSafeValue = (value, defaultValue) => {
+    return value != null && value !== "" ? value : defaultValue;
+  };
+
+  // Special handling for title - if null, generate a default based on price or id
+  let title = course.title;
+  if (!title || title === null) {
+    if (course.price && course.price > 0) {
+      title = `Course (₹${course.price})`;
+    } else {
+      title = `Course #${course.id || index + 1}`;
+    }
+  }
+
+  // Handle instructor
+  let instructor = course.instructor;
+  if (!instructor || instructor === null) {
+    // Check if there's any instructor info in description
+    if (course.description && course.description.includes("by ")) {
+      const match = course.description.match(/by\s+([^,\s]+)/);
+      instructor = match ? match[1] : "Staff";
+    } else {
+      instructor = "TBA";
+    }
+  }
+
+  // Handle duration
+  let duration = course.duration;
+  if (!duration || duration === null) {
+    duration = "Self-paced";
+  }
+
+  // Handle price
+  let priceDisplay = "Free";
+  if (course.price != null && course.price > 0) {
+    priceDisplay = `₹${course.price}`;
+  }
+
+  // Handle imageUrl - use placeholder if null
+  let imageUrl = course.imageUrl;
+  if (!imageUrl || imageUrl === null) {
+    // Use placeholder images from picsum with consistent IDs based on course id
+    imageUrl = `https://picsum.photos/id/${(course.id || index) % 100}/300/200`;
+  }
+
+  // Generate a meaningful description if missing
+  let description = course.description;
+  if (!description || description === null || description === "null") {
+    if (course.title && course.title !== "null") {
+      description = `Master ${course.title} with hands-on labs, real-world projects, and expert instruction. Perfect for aspiring network engineers.`;
+    } else {
+      description = "Comprehensive networking course with practical labs, expert guidance, and industry-recognized certification preparation.";
+    }
+  }
+
+  return {
+    ...course,
+    title: title,
+    description: description,
+    duration: duration,
+    instructor: instructor,
+    price: priceDisplay,
+    color: CARD_COLORS[index % CARD_COLORS.length],
+    icon: CARD_ICONS[index % CARD_ICONS.length],
+    imageUrl: imageUrl,
+    // Add category based on title/content if missing
+    category: getCategoryFromCourse(course, title)
+  };
+}
+
+// Helper function to determine course category
+function getCategoryFromCourse(course, title) {
+  const titleLower = (title || "").toLowerCase();
+  const descLower = (course.description || "").toLowerCase();
+  
+  if (titleLower.includes("ccna") || descLower.includes("ccna")) return "ccna";
+  if (titleLower.includes("ccnp") || descLower.includes("ccnp")) return "ccnp";
+  if (titleLower.includes("ccie") || descLower.includes("ccie")) return "ccie";
+  if (titleLower.includes("security") || descLower.includes("security")) return "security";
+  if (titleLower.includes("linux") || descLower.includes("linux")) return "linux";
+  if (titleLower.includes("spring") || titleLower.includes("java")) return "all";
+  return "all"; // Default category
 }
 
 // ==================== COURSE CARD COMPONENT ====================
-function CourseCard({ course, isMobile, hovered, onHover, levelColors, onEnrollNow }) {
+function CourseCard({ course, isMobile, hovered, onHover, onEnrollNow }) {
   return (
     <div
       onMouseEnter={() => onHover(course.id)}
@@ -58,53 +143,72 @@ function CourseCard({ course, isMobile, hovered, onHover, levelColors, onEnrollN
         cursor: "pointer",
       }}
     >
+      {/* Course image */}
+      <img
+        src={course.imageUrl}
+        alt={course.title}
+        style={{ width: "100%", height: "160px", objectFit: "cover" }}
+        onError={(e) => {
+          e.target.src = `https://picsum.photos/id/${(course.id || 1) % 100}/300/200`;
+        }}
+      />
+
       <div style={{ padding: "20px" }}>
+        {/* Icon + Instructor */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-          <div
-            style={{
-              width: "52px",
-              height: "52px",
-              borderRadius: "50%",
-              background: `${course.color}20`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "28px",
-            }}
-          >
+          <div style={{
+            width: "52px", height: "52px", borderRadius: "50%",
+            background: `${course.color}20`, display: "flex",
+            alignItems: "center", justifyContent: "center",
+            fontSize: "28px", flexShrink: 0,
+          }}>
             {course.icon}
           </div>
-          <span style={{ fontWeight: 700, fontSize: "14px", background: "#f0f0f0", padding: "4px 10px", borderRadius: "20px" }}>
-            🎥 {course.lessons} lessons
+          <span style={{ fontWeight: 600, fontSize: "13px", color: "#555" }}>
+            👨‍🏫 {course.instructor}
           </span>
         </div>
-        <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1a1a2e" }}>{course.title}</h3>
-        <p style={{ color: "#666", fontSize: "14px", lineHeight: "1.6", marginBottom: "16px" }}>{course.description}</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
-          <span style={{ background: levelColors[course.level].bg, color: levelColors[course.level].text, padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600 }}>
-            {course.level}
+
+        {/* Title */}
+        <h3 style={{ margin: "0 0 10px", fontSize: isMobile ? "18px" : "20px", color: "#1a1a2e" }}>
+          {course.title}
+        </h3>
+
+        {/* Description */}
+        <p style={{ color: "#666", fontSize: "14px", lineHeight: "1.6", marginBottom: "16px" }}>
+          {course.description}
+        </p>
+
+        {/* Tags */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "20px" }}>
+          <span style={{ background: "#f0f0f0", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" }}>
+            ⏱ {course.duration}
           </span>
-          <span style={{ background: "#f0f0f0", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" }}>⏱ {course.duration}</span>
-          <span style={{ background: "#f0f0f0", padding: "4px 12px", borderRadius: "20px", fontSize: "12px" }}>👥 {course.students.toLocaleString()} students</span>
+          <span style={{ background: "#e8f5e9", color: "#2e7d32", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600 }}>
+            {course.price}
+          </span>
+          {course.videoUrl && course.videoUrl !== "null" && (
+            <a
+              href={course.videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{ background: "#fce4ec", color: "#c62828", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
+            >
+              🎥 Preview
+            </a>
+          )}
         </div>
+
+        {/* Enroll Button */}
         <button
           onClick={(e) => { e.stopPropagation(); onEnrollNow(course); }}
           style={{
-            width: "100%",
-            background: course.color,
-            color: "#fff",
-            border: "none",
-            borderRadius: "10px",
-            padding: "14px",
-            fontFamily: "'Trebuchet MS', sans-serif",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.2s",
-            fontSize: "15px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
+            width: "100%", background: course.color, color: "#fff",
+            border: "none", borderRadius: "10px", padding: "14px",
+            fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 600,
+            cursor: "pointer", transition: "all 0.2s", fontSize: "15px",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
           }}
           onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
           onMouseLeave={e => e.currentTarget.style.opacity = "1"}
@@ -116,30 +220,13 @@ function CourseCard({ course, isMobile, hovered, onHover, levelColors, onEnrollN
   );
 }
 
-// ==================== COURSES DATA ====================
-export const courses = [
-  { id: 1,  title: "CCNA 200-301 Complete Course",    description: "Master networking fundamentals, IP services, security fundamentals, and automation.",              level: "Beginner",     duration: "40+ hours",  lessons: 187, category: "ccna",     icon: "🌐", color: "#e5a800", featured: true,  students: 12450 },
-  { id: 2,  title: "Subnetting Mastery",              description: "Learn subnetting in seconds with proven techniques and practice labs.",                            level: "Beginner",     duration: "8+ hours",   lessons: 34,  category: "ccna",     icon: "🔢", color: "#e5a800", featured: false, students: 8750  },
-  { id: 3,  title: "Routing Fundamentals",            description: "Static routing, dynamic routing protocols, and advanced routing concepts.",                        level: "Intermediate", duration: "25+ hours",  lessons: 112, category: "ccna",     icon: "🔄", color: "#e5a800", featured: false, students: 6320  },
-  { id: 4,  title: "Switching and VLANs",             description: "Configure switches, VLANs, STP, EtherChannel, and switch security.",                              level: "Intermediate", duration: "20+ hours",  lessons: 89,  category: "ccna",     icon: "🔌", color: "#e5a800", featured: false, students: 7140  },
-  { id: 5,  title: "CCNP ENCOR (350-401)",            description: "Advanced routing, switching, VPNs, automation, and network assurance.",                           level: "Advanced",     duration: "60+ hours",  lessons: 245, category: "ccnp",     icon: "🎯", color: "#1d6b72", featured: true,  students: 5430  },
-  { id: 6,  title: "CCNP ENARSI (300-410)",           description: "Deep dive into advanced routing, VPN services, and infrastructure security.",                     level: "Advanced",     duration: "50+ hours",  lessons: 198, category: "ccnp",     icon: "🚀", color: "#1d6b72", featured: false, students: 3980  },
-  { id: 7,  title: "Advanced OSPF & BGP",             description: "Master OSPF areas, route redistribution, BGP attributes, and route filtering.",                  level: "Advanced",     duration: "35+ hours",  lessons: 145, category: "ccnp",     icon: "🌍", color: "#1d6b72", featured: false, students: 4670  },
-  { id: 8,  title: "CCIE Enterprise Infrastructure", description: "Expert-level preparation with complex labs, troubleshooting, and design.",                        level: "Expert",       duration: "120+ hours", lessons: 423, category: "ccie",     icon: "👑", color: "#c8102e", featured: true,  students: 2150  },
-  { id: 9,  title: "CCIE Lab Preparation",            description: "Full-scale lab simulations and topology design for CCIE certification.",                          level: "Expert",       duration: "80+ hours",  lessons: 267, category: "ccie",     icon: "🧪", color: "#c8102e", featured: false, students: 1890  },
-  { id: 10, title: "Network Security Fundamentals",  description: "Firewalls, VPNs, access control, and security best practices.",                                   level: "Intermediate", duration: "30+ hours",  lessons: 124, category: "security", icon: "🛡️", color: "#7aa3c8", featured: false, students: 5920  },
-  { id: 11, title: "Cisco Firepower & ASA",           description: "Configure and manage Next-Gen Firewalls and security policies.",                                  level: "Advanced",     duration: "45+ hours",  lessons: 167, category: "security", icon: "🔥", color: "#7aa3c8", featured: true,  students: 3340  },
-  { id: 12, title: "VPN Technologies",               description: "Site-to-site VPN, Remote Access VPN, DMVPN, and FlexVPN.",                                        level: "Advanced",     duration: "28+ hours",  lessons: 98,  category: "security", icon: "🔗", color: "#7aa3c8", featured: false, students: 4210  },
-  { id: 13, title: "Linux for Network Engineers",    description: "Essential Linux commands, scripting, and automation for networking.",                              level: "Beginner",     duration: "25+ hours",  lessons: 89,  category: "linux",    icon: "💻", color: "#5b8dbf", featured: false, students: 6780  },
-  { id: 14, title: "Python Network Automation",      description: "Automate network tasks with Python, Netmiko, and NAPALM.",                                         level: "Intermediate", duration: "35+ hours",  lessons: 134, category: "linux",    icon: "🐍", color: "#5b8dbf", featured: true,  students: 7530  },
-  { id: 15, title: "Ansible for Networking",         description: "Network automation using Ansible playbooks and roles.",                                            level: "Intermediate", duration: "22+ hours",  lessons: 76,  category: "linux",    icon: "📦", color: "#5b8dbf", featured: false, students: 4120  },
-];
-
 // ==================== MAIN COURSES PAGE ====================
 export default function CoursesPage({ isMobile, onBack }) {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [hoveredCourse, setHoveredCourse] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = [
     { id: "all",      name: "All Courses", icon: "📚", color: "#3abf94" },
@@ -150,22 +237,57 @@ export default function CoursesPage({ isMobile, onBack }) {
     { id: "linux",    name: "Linux",       icon: "🐧", color: "#5b8dbf" },
   ];
 
-  const levelColors = {
-    Beginner:     { bg: "#e8f5e9", text: "#2e7d32" },
-    Intermediate: { bg: "#fff3e0", text: "#ef6c00" },
-    Advanced:     { bg: "#fce4ec", text: "#c62828" },
-    Expert:       { bg: "#f3e5f5", text: "#6a1b9a" },
+  useEffect(() => {
+    loadCourses();
+  }, []);
+
+  const loadCourses = async () => {
+    try {
+      setLoading(true);
+      const res = await getCourses();
+      console.log("API Response:", res.data); // Debug log
+      
+      // Filter out completely invalid courses (where both title and description are null)
+      const validCourses = res.data.filter(c => c && (c.title !== null || c.description !== null));
+      
+      // Normalize each course from the API so the UI fields are always safe
+      const normalized = validCourses.map((c, i) => normalizeCourse(c, i));
+      setCourses(normalized);
+    } catch (error) {
+      console.error("Error loading courses:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEnrollNow = (course) => {
     navigate("/enroll", { state: { course } });
   };
 
+  // Category filter: uses course.category from normalize function
   const filteredCourses = selectedCategory === "all"
     ? courses
     : courses.filter(c => c.category === selectedCategory);
 
-  const featuredCourses = courses.filter(c => c.featured);
+  // First 3 courses shown as "featured"
+  const featuredCourses = courses.slice(0, 3);
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        height: "100vh",
+        fontFamily: "'Trebuchet MS', sans-serif"
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>📚</div>
+          <p>Loading courses...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ fontFamily: "'Georgia', 'Times New Roman', serif", minHeight: "100vh", background: "#f8f8f6" }}>
@@ -174,30 +296,17 @@ export default function CoursesPage({ isMobile, onBack }) {
       <div style={{
         background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
         padding: isMobile ? "16px" : "20px 40px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
-        gap: "16px",
-        borderBottom: "3px solid #3abf94",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: "16px", borderBottom: "3px solid #3abf94",
       }}>
         <button
           onClick={onBack}
           style={{
-            background: "rgba(255,255,255,0.1)",
-            border: "1px solid rgba(255,255,255,0.3)",
-            borderRadius: "8px",
-            padding: "10px 20px",
-            color: "#fff",
-            fontFamily: "'Trebuchet MS', sans-serif",
-            fontWeight: 600,
-            fontSize: "14px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            backdropFilter: "blur(10px)",
-            transition: "all 0.2s",
+            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)",
+            borderRadius: "8px", padding: "10px 20px", color: "#fff",
+            fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 600, fontSize: "14px",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: "8px",
+            backdropFilter: "blur(10px)", transition: "all 0.2s",
           }}
           onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
           onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
@@ -223,9 +332,7 @@ export default function CoursesPage({ isMobile, onBack }) {
       <div style={{
         background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3abf94 100%)",
         padding: isMobile ? "70px 20px" : "100px 40px",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
+        textAlign: "center", position: "relative", overflow: "hidden",
       }}>
         <div style={{ position: "absolute", width: "400px", height: "400px", borderRadius: "50%", background: "rgba(255,255,255,0.05)", top: "-150px", right: "-100px" }} />
         <div style={{ position: "absolute", width: "300px", height: "300px", borderRadius: "50%", background: "rgba(255,255,255,0.04)", bottom: "-120px", left: "-80px" }} />
@@ -240,43 +347,30 @@ export default function CoursesPage({ isMobile, onBack }) {
           <p style={{ color: "rgba(255,255,255,0.9)", fontSize: isMobile ? "16px" : "20px", lineHeight: "1.8", maxWidth: "750px", margin: "0 auto 35px", fontFamily: "'Trebuchet MS', sans-serif" }}>
             Learn CCNA, CCNP, CCIE, Security, Linux and Network Automation through hands-on labs, video lessons, quizzes and real-world projects.
           </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
-            <button
-              onClick={() => handleEnrollNow(courses[0])}
-              style={{ background: "#fff", color: "#1e3a8a", border: "none", borderRadius: "50px", padding: "16px 36px", fontWeight: 700, fontSize: "16px", cursor: "pointer", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", fontFamily: "'Trebuchet MS', sans-serif" }}
-            >
-              🎓 Start Learning Free
-            </button>
-          </div>
+          <button
+            onClick={() => courses.length > 0 && handleEnrollNow(courses[0])}
+            style={{ background: "#fff", color: "#1e3a8a", border: "none", borderRadius: "50px", padding: "16px 36px", fontWeight: 700, fontSize: "16px", cursor: "pointer", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", fontFamily: "'Trebuchet MS', sans-serif" }}
+          >
+            🎓 Start Learning Free
+          </button>
         </div>
       </div>
 
-      {/* ── Stats with Incrementing Counters ── */}
+      {/* ── Stats ── */}
       <div style={{ background: "#fff", padding: "40px 20px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: "20px", textAlign: "center" }}>
-        <div>
-          <h2 style={{ color: "#3abf94", margin: 0, fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "28px" : "36px" }}>
-            <CountUp end={15} suffix="+" />
-          </h2>
-          <p style={{ fontFamily: "'Trebuchet MS', sans-serif", color: "#555" }}>Courses</p>
-        </div>
-        <div>
-          <h2 style={{ color: "#3abf94", margin: 0, fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "28px" : "36px" }}>
-            <CountUp end={50} suffix="K+" />
-          </h2>
-          <p style={{ fontFamily: "'Trebuchet MS', sans-serif", color: "#555" }}>Students</p>
-        </div>
-        <div>
-          <h2 style={{ color: "#3abf94", margin: 0, fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "28px" : "36px" }}>
-            <CountUp end={2000} suffix="+" />
-          </h2>
-          <p style={{ fontFamily: "'Trebuchet MS', sans-serif", color: "#555" }}>Labs</p>
-        </div>
-        <div>
-          <h2 style={{ color: "#3abf94", margin: 0, fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "28px" : "36px" }}>
-            <CountUp end={4.9} suffix="★" />
-          </h2>
-          <p style={{ fontFamily: "'Trebuchet MS', sans-serif", color: "#555" }}>Rating</p>
-        </div>
+        {[
+          { end: courses.length || 15, suffix: "+", label: "Courses" },
+          { end: 50,   suffix: "K+", label: "Students" },
+          { end: 2000, suffix: "+",  label: "Labs" },
+          { end: 4.9,  suffix: "★", label: "Rating" },
+        ].map(({ end, suffix, label }) => (
+          <div key={label}>
+            <h2 style={{ color: "#3abf94", margin: 0, fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "28px" : "36px" }}>
+              <CountUp end={end} suffix={suffix} />
+            </h2>
+            <p style={{ fontFamily: "'Trebuchet MS', sans-serif", color: "#555" }}>{label}</p>
+          </div>
+        ))}
       </div>
 
       {/* ── Category Filter ── */}
@@ -289,17 +383,10 @@ export default function CoursesPage({ isMobile, onBack }) {
               style={{
                 background: selectedCategory === cat.id ? cat.color : "#f0f0f0",
                 color: selectedCategory === cat.id ? "#fff" : "#333",
-                border: "none",
-                borderRadius: "40px",
-                padding: "12px 24px",
-                fontFamily: "'Trebuchet MS', sans-serif",
-                fontWeight: 600,
-                fontSize: isMobile ? "13px" : "14px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                transition: "all 0.2s",
+                border: "none", borderRadius: "40px", padding: "12px 24px",
+                fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 600,
+                fontSize: isMobile ? "13px" : "14px", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s",
                 boxShadow: selectedCategory === cat.id ? `0 4px 12px ${cat.color}40` : "none",
               }}
             >
@@ -309,8 +396,8 @@ export default function CoursesPage({ isMobile, onBack }) {
         </div>
       </div>
 
-      {/* ── Featured Courses ── */}
-      {selectedCategory === "all" && (
+      {/* ── Featured Courses (first 3) ── */}
+      {selectedCategory === "all" && featuredCourses.length > 0 && (
         <div style={{ padding: isMobile ? "32px 16px" : "48px 40px", background: "#f0f2f5" }}>
           <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
@@ -325,7 +412,6 @@ export default function CoursesPage({ isMobile, onBack }) {
                   isMobile={isMobile}
                   hovered={hoveredCourse === course.id}
                   onHover={setHoveredCourse}
-                  levelColors={levelColors}
                   onEnrollNow={handleEnrollNow}
                 />
               ))}
@@ -347,20 +433,27 @@ export default function CoursesPage({ isMobile, onBack }) {
               </p>
             </div>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(350px, 1fr))", gap: "24px" }}>
-            {filteredCourses.map(course => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                isMobile={isMobile}
-                hovered={hoveredCourse === course.id}
-                onHover={setHoveredCourse}
-                levelColors={levelColors}
-                onEnrollNow={handleEnrollNow}
-              />
-            ))}
-          </div>
-          {filteredCourses.length === 0 && (
+
+          {courses.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "60px" }}>
+              <p style={{ fontSize: "18px", color: "#999", fontFamily: "'Trebuchet MS', sans-serif" }}>No courses available.</p>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(350px, 1fr))", gap: "24px" }}>
+              {filteredCourses.map(course => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  isMobile={isMobile}
+                  hovered={hoveredCourse === course.id}
+                  onHover={setHoveredCourse}
+                  onEnrollNow={handleEnrollNow}
+                />
+              ))}
+            </div>
+          )}
+
+          {courses.length > 0 && filteredCourses.length === 0 && (
             <div style={{ textAlign: "center", padding: "60px" }}>
               <p style={{ fontSize: "18px", color: "#999", fontFamily: "'Trebuchet MS', sans-serif" }}>No courses found in this category.</p>
             </div>
@@ -377,7 +470,7 @@ export default function CoursesPage({ isMobile, onBack }) {
           Join thousands of successful network engineers who accelerated their careers
         </p>
         <button
-          onClick={() => handleEnrollNow(courses[0])}
+          onClick={() => courses.length > 0 && handleEnrollNow(courses[0])}
           style={{ background: "#3abf94", color: "#fff", border: "none", borderRadius: "40px", padding: "14px 36px", fontSize: "16px", fontWeight: 700, cursor: "pointer", fontFamily: "'Trebuchet MS', sans-serif" }}
           onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
           onMouseLeave={e => e.currentTarget.style.opacity = "1"}
