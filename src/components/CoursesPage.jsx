@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ==================== MOCK DATA (Premium Design) ====================
 const MOCK_COURSES = [
@@ -120,7 +120,7 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled }) {
       onClick={() => onViewCourse(course)}
       style={{
         background: "linear-gradient(135deg, #ffffff 0%, #faf9ff 100%)",
-        borderRadius: "20px",
+        borderRadius: "clamp(16px, 5vw, 20px)",
         overflow: "hidden",
         boxShadow: hovered 
           ? "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(139, 92, 246, 0.1)" 
@@ -131,7 +131,7 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled }) {
         border: "1px solid rgba(139, 92, 246, 0.1)",
       }}
     >
-      <div style={{ position: "relative", overflow: "hidden", height: "200px" }}>
+      <div style={{ position: "relative", overflow: "hidden", height: "clamp(160px, 30vw, 200px)" }}>
         <img
           src={course.image}
           alt={course.title}
@@ -153,7 +153,7 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled }) {
           ★ {course.rating}
         </div>
       </div>
-      <div style={{ padding: "24px" }}>
+      <div style={{ padding: "clamp(16px, 4vw, 24px)" }}>
         <div style={{
           display: "inline-block", background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
           color: "#fff",
@@ -162,23 +162,23 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled }) {
         }}>
           {course.tag}
         </div>
-        <h3 style={{ margin: "0 0 12px", fontSize: "18px", fontWeight: 700, color: "#1f2937", lineHeight: 1.3 }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: "clamp(16px, 4vw, 18px)", fontWeight: 700, color: "#1f2937", lineHeight: 1.3 }}>
           {course.title}
         </h3>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#6b7280", fontSize: "13px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#6b7280", fontSize: "clamp(12px, 3vw, 13px)" }}>
           <span>⏱ {course.duration}</span>
           <span>📋 {course.steps} lessons</span>
         </div>
         <button
           onClick={e => { e.stopPropagation(); onEnroll(course); }}
           style={{
-            marginTop: "20px", width: "100%", padding: "12px",
+            marginTop: "20px", width: "100%", padding: "clamp(10px, 3vw, 12px)",
             background: enrolled 
               ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" 
               : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
             color: "#fff",
             border: "none",
-            borderRadius: "12px", fontSize: "14px", fontWeight: 600,
+            borderRadius: "12px", fontSize: "clamp(13px, 3.5vw, 14px)", fontWeight: 600,
             cursor: "pointer", transition: "all 0.3s ease",
             boxShadow: hovered ? "0 10px 15px -3px rgba(139, 92, 246, 0.3)" : "none",
           }}
@@ -193,37 +193,37 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled }) {
 }
 
 // ==================== COURSE DETAIL PAGE ====================
-function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
+function CourseDetailPage({ course, onBack, onEnroll, enrolled, isMobile }) {
   const [activeTab, setActiveTab] = useState("course");
   const tabs = ["course", `Reviews (${course.reviews})`, "Forum"];
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)", fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #8b5cf6" }}>
-        <span style={{ color: "#fff", fontSize: "14px" }}>
+      <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: isMobile ? "12px 20px" : "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "2px solid #8b5cf6" }}>
+        <span style={{ color: "#fff", fontSize: isMobile ? "12px" : "14px" }}>
           <span style={{ cursor: "pointer", opacity: 0.8, transition: "opacity 0.3s" }} onClick={onBack}>Courses</span>
           {" / "}
-          <span style={{ fontWeight: 700, color: "#8b5cf6" }}>{course.title}</span>
+          <span style={{ fontWeight: 700, color: "#8b5cf6" }}>{isMobile ? course.title.substring(0, 20) + "..." : course.title}</span>
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(139, 92, 246, 0.1)", borderRadius: "12px", padding: "6px 14px", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
-          <input placeholder="Search courses" style={{ background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: "14px", width: "160px" }} />
+          <input placeholder="Search courses" style={{ background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: "14px", width: isMobile ? "120px" : "160px" }} />
           <span style={{ color: "#8b5cf6" }}>🔍</span>
         </div>
       </div>
 
-      <div style={{ background: "linear-gradient(135deg, #2d1b69 0%, #4c1d95 50%, #7c3aed 100%)", padding: "60px 40px 0", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: "500px", height: "500px", borderRadius: "50%", background: "rgba(139, 92, 246, 0.1)", top: "-200px", right: "-100px" }} />
-        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", gap: "48px", alignItems: "flex-end", position: "relative", zIndex: 2 }}>
-          <div style={{ width: "220px", height: "220px", flexShrink: 0, background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "20px", overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
+      <div style={{ background: "linear-gradient(135deg, #2d1b69 0%, #4c1d95 50%, #7c3aed 100%)", padding: isMobile ? "40px 20px 0" : "60px 40px 0", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: isMobile ? "300px" : "500px", height: isMobile ? "300px" : "500px", borderRadius: "50%", background: "rgba(139, 92, 246, 0.1)", top: "-200px", right: "-100px" }} />
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", gap: isMobile ? "24px" : "48px", alignItems: "flex-end", flexWrap: "wrap", position: "relative", zIndex: 2 }}>
+          <div style={{ width: isMobile ? "120px" : "220px", height: isMobile ? "120px" : "220px", flexShrink: 0, background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "clamp(12px, 4vw, 20px)", overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
             <img src={course.image} alt={course.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div style={{ flex: 1, paddingBottom: "20px" }}>
-            <h1 style={{ color: "#fff", fontSize: "52px", fontWeight: 800, margin: "0 0 16px", lineHeight: 1.1, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>{course.title}</h1>
+            <h1 style={{ color: "#fff", fontSize: isMobile ? "32px" : "52px", fontWeight: 800, margin: "0 0 16px", lineHeight: 1.1, textShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>{course.title}</h1>
             <Stars rating={course.rating} />
           </div>
         </div>
 
-        <div style={{ maxWidth: "1100px", margin: "32px auto 0", display: "flex", gap: "0" }}>
+        <div style={{ maxWidth: "1100px", margin: "32px auto 0", display: "flex", gap: "0", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {tabs.map(tab => {
             const key = tab.toLowerCase().startsWith("reviews") ? "reviews" : tab.toLowerCase();
             return (
@@ -231,13 +231,14 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
                 key={tab}
                 onClick={() => setActiveTab(key)}
                 style={{
-                  padding: "14px 32px", border: "none", cursor: "pointer",
+                  padding: isMobile ? "12px 20px" : "14px 32px", border: "none", cursor: "pointer",
                   background: activeTab === key ? "#fff" : "transparent",
                   color: activeTab === key ? "#7c3aed" : "rgba(255,255,255,0.8)",
-                  fontWeight: 700, fontSize: "15px",
+                  fontWeight: 700, fontSize: isMobile ? "13px" : "15px",
                   borderRadius: "12px 12px 0 0",
                   transition: "all 0.3s ease",
                   backdropFilter: activeTab === key ? "none" : "blur(10px)",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {key === "course" && "📚 "}{tab}
@@ -247,23 +248,23 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px", display: "grid", gridTemplateColumns: "280px 1fr", gap: "40px" }}>
-        <div>
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: isMobile ? "20px" : "40px", display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "24px" : "40px" }}>
+        <div style={{ width: isMobile ? "100%" : "280px" }}>
           <div style={{ background: "#fff", borderRadius: "20px", overflow: "hidden", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}>
             <button
               onClick={() => onEnroll(course)}
               style={{
-                width: "100%", padding: "18px", background: enrolled 
+                width: "100%", padding: isMobile ? "14px" : "18px", background: enrolled 
                   ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" 
                   : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
                 color: "#fff", border: "none",
-                fontWeight: 700, fontSize: "16px", cursor: "pointer",
+                fontWeight: 700, fontSize: isMobile ? "14px" : "16px", cursor: "pointer",
                 letterSpacing: "0.5px",
               }}
             >
               {enrolled ? "✅ Enrolled" : "Join this Course"}
             </button>
-            <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ padding: isMobile ? "20px" : "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
               {[
                 { label: "Last Update", value: course.lastUpdate, icon: "🔄" },
                 { label: "Completion Time", value: course.duration, icon: "⏱️" },
@@ -271,7 +272,7 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
               ].map(({ label, value, icon }) => (
                 <div key={label} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   <span style={{ fontSize: "12px", color: "#8b5cf6", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{icon} {label}</span>
-                  <span style={{ fontSize: "16px", fontWeight: 700, color: "#1f2937" }}>{value}</span>
+                  <span style={{ fontSize: isMobile ? "14px" : "16px", fontWeight: 700, color: "#1f2937" }}>{value}</span>
                   <div style={{ height: "1px", background: "linear-gradient(90deg, #e5e7eb 0%, #e5e7eb 100%)", marginTop: "8px" }} />
                 </div>
               ))}
@@ -279,33 +280,35 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
           </div>
         </div>
 
-        <div>
+        <div style={{ flex: 1 }}>
           {activeTab === "course" && (
             <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", overflow: "hidden" }}>
-              <div style={{ padding: "20px 28px", borderBottom: "2px solid #f0f0f0", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
+              <div style={{ padding: isMobile ? "16px 20px" : "20px 28px", borderBottom: "2px solid #f0f0f0", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
                 <span style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", borderRadius: "8px", padding: "6px 14px", fontSize: "12px", fontWeight: 600 }}>
                   {course.tag}
                 </span>
               </div>
-              <div style={{ padding: "20px 28px", background: "#f9fafb", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontWeight: 700, fontSize: "18px", color: "#1f2937" }}>Course Curriculum</span>
+              <div style={{ padding: isMobile ? "16px 20px" : "20px 28px", background: "#f9fafb", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                <span style={{ fontWeight: 700, fontSize: isMobile ? "16px" : "18px", color: "#1f2937" }}>Course Curriculum</span>
                 <span style={{ fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>{course.lessons.length} Lessons · {course.duration}</span>
               </div>
               {course.lessons.map((lesson, i) => (
                 <div key={lesson.id} style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "16px 28px",
+                  padding: isMobile ? "14px 20px" : "16px 28px",
+                  flexWrap: "wrap",
+                  gap: "12px",
                   borderBottom: i < course.lessons.length - 1 ? "1px solid #f3f4f6" : "none",
                   transition: "background 0.3s ease",
                 }}
                 onMouseEnter={e => e.currentTarget.style.background = "#faf9ff"}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
                     <span style={{ color: "#8b5cf6", fontSize: "18px", fontWeight: 600 }}>{String(i + 1).padStart(2, '0')}</span>
-                    <span style={{ fontSize: "15px", color: "#374151", fontWeight: 500 }}>{lesson.title}</span>
+                    <span style={{ fontSize: isMobile ? "13px" : "15px", color: "#374151", fontWeight: 500 }}>{lesson.title}</span>
                   </div>
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
                     {lesson.preview && (
                       <span style={{ background: "#10b981", color: "#fff", borderRadius: "6px", padding: "4px 12px", fontSize: "11px", fontWeight: 600 }}>
                         Preview
@@ -320,11 +323,11 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
             </div>
           )}
           {activeTab === "reviews" && (
-            <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", padding: "40px" }}>
-              <h2 style={{ color: "#1f2937", marginTop: 0, fontSize: "28px", fontWeight: 700 }}>Student Reviews</h2>
-              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px", padding: "20px", background: "#f9fafb", borderRadius: "16px" }}>
+            <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", padding: isMobile ? "24px" : "40px" }}>
+              <h2 style={{ color: "#1f2937", marginTop: 0, fontSize: isMobile ? "24px" : "28px", fontWeight: 700 }}>Student Reviews</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px", padding: "20px", background: "#f9fafb", borderRadius: "16px", flexWrap: "wrap" }}>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "48px", fontWeight: 800, color: "#8b5cf6" }}>{course.rating}</div>
+                  <div style={{ fontSize: isMobile ? "36px" : "48px", fontWeight: 800, color: "#8b5cf6" }}>{course.rating}</div>
                   <Stars rating={course.rating} />
                   <div style={{ fontSize: "14px", color: "#6b7280", marginTop: "8px" }}>Based on {course.reviews} reviews</div>
                 </div>
@@ -334,8 +337,8 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
                 { name: "Michael Chen", rating: 5, text: "Best investment in my career. The hands-on projects and real-world examples are invaluable.", avatar: "MC" },
                 { name: "Emma Williams", rating: 4, text: "Great content and structure. Would love to see more advanced topics covered in future updates.", avatar: "EW" },
               ].map((review, i) => (
-                <div key={i} style={{ marginTop: "24px", padding: "24px", background: "#faf9ff", borderRadius: "16px", border: "1px solid #e9d5ff" }}>
-                  <div style={{ display: "flex", gap: "16px", marginBottom: "12px", alignItems: "center" }}>
+                <div key={i} style={{ marginTop: "24px", padding: isMobile ? "16px" : "24px", background: "#faf9ff", borderRadius: "16px", border: "1px solid #e9d5ff" }}>
+                  <div style={{ display: "flex", gap: "16px", marginBottom: "12px", alignItems: "center", flexWrap: "wrap" }}>
                     <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#fff" }}>
                       {review.avatar}
                     </div>
@@ -344,17 +347,17 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
                       <Stars rating={review.rating} />
                     </div>
                   </div>
-                  <p style={{ margin: 0, color: "#4b5563", fontSize: "15px", lineHeight: 1.6 }}>{review.text}</p>
+                  <p style={{ margin: 0, color: "#4b5563", fontSize: isMobile ? "13px" : "15px", lineHeight: 1.6 }}>{review.text}</p>
                 </div>
               ))}
             </div>
           )}
           {activeTab === "forum" && (
-            <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", padding: "40px", textAlign: "center" }}>
-              <div style={{ fontSize: "64px", marginBottom: "20px" }}>💬</div>
-              <h2 style={{ color: "#1f2937", marginBottom: "12px" }}>Discussion Forum</h2>
-              <p style={{ color: "#6b7280", marginBottom: "32px" }}>Connect with 50,000+ learners. Ask questions, share insights, and grow together.</p>
-              <button style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", padding: "14px 32px", borderRadius: "12px", fontWeight: 600, cursor: "pointer" }}>
+            <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", padding: isMobile ? "32px 24px" : "40px", textAlign: "center" }}>
+              <div style={{ fontSize: isMobile ? "48px" : "64px", marginBottom: "20px" }}>💬</div>
+              <h2 style={{ color: "#1f2937", marginBottom: "12px", fontSize: isMobile ? "22px" : "28px" }}>Discussion Forum</h2>
+              <p style={{ color: "#6b7280", marginBottom: "32px", fontSize: isMobile ? "14px" : "16px" }}>Connect with 50,000+ learners. Ask questions, share insights, and grow together.</p>
+              <button style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", padding: isMobile ? "12px 24px" : "14px 32px", borderRadius: "12px", fontWeight: 600, cursor: "pointer", fontSize: isMobile ? "14px" : "16px" }}>
                 Start a Discussion →
               </button>
             </div>
@@ -366,38 +369,38 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled }) {
 }
 
 // ==================== MY COURSES PAGE ====================
-function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack }) {
+function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile }) {
   const myCourses = courses.filter(c => enrolledIds.includes(c.id));
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
-      <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #8b5cf6" }}>
-        <span style={{ color: "#fff", fontWeight: 700, fontSize: "18px" }}>📖 My Learning Journey</span>
-        <button onClick={onBack} style={{ background: "rgba(139, 92, 246, 0.2)", border: "1px solid #8b5cf6", borderRadius: "10px", padding: "8px 20px", color: "#8b5cf6", cursor: "pointer", fontWeight: 600, transition: "all 0.3s" }}>← Explore More Courses</button>
+      <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: isMobile ? "12px 20px" : "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "2px solid #8b5cf6" }}>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: isMobile ? "16px" : "18px" }}>📖 My Learning Journey</span>
+        <button onClick={onBack} style={{ background: "rgba(139, 92, 246, 0.2)", border: "1px solid #8b5cf6", borderRadius: "10px", padding: "8px 16px", color: "#8b5cf6", cursor: "pointer", fontWeight: 600, transition: "all 0.3s", fontSize: isMobile ? "12px" : "14px" }}>← Explore More Courses</button>
       </div>
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "48px 40px" }}>
-        <h1 style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontSize: "36px", marginTop: 0, marginBottom: "40px", fontWeight: 800 }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: isMobile ? "24px 20px" : "48px 40px" }}>
+        <h1 style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontSize: isMobile ? "28px" : "36px", marginTop: 0, marginBottom: isMobile ? "24px" : "40px", fontWeight: 800 }}>
           My Enrolled Courses
         </h1>
         {myCourses.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 0", background: "#fff", borderRadius: "24px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}>
-            <div style={{ fontSize: "80px", marginBottom: "20px" }}>🎓</div>
-            <p style={{ fontSize: "20px", color: "#6b7280", marginBottom: "24px" }}>Start your learning journey today!</p>
-            <button onClick={onBack} style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", borderRadius: "12px", padding: "14px 32px", fontWeight: 600, cursor: "pointer" }}>
+          <div style={{ textAlign: "center", padding: isMobile ? "60px 20px" : "80px 0", background: "#fff", borderRadius: "24px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}>
+            <div style={{ fontSize: isMobile ? "60px" : "80px", marginBottom: "20px" }}>🎓</div>
+            <p style={{ fontSize: isMobile ? "18px" : "20px", color: "#6b7280", marginBottom: "24px" }}>Start your learning journey today!</p>
+            <button onClick={onBack} style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", borderRadius: "12px", padding: isMobile ? "12px 24px" : "14px 32px", fontWeight: 600, cursor: "pointer", fontSize: isMobile ? "14px" : "16px" }}>
               Browse Courses
             </button>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "32px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? "20px" : "32px" }}>
             {myCourses.map(course => (
               <div key={course.id} onClick={() => onViewCourse(course)} style={{ background: "#fff", borderRadius: "20px", overflow: "hidden", cursor: "pointer", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", transition: "transform 0.3s ease", border: "1px solid rgba(139, 92, 246, 0.1)" }}>
                 <div style={{ position: "relative" }}>
-                  <img src={course.image} alt={course.title} style={{ width: "100%", height: "180px", objectFit: "cover" }} />
+                  <img src={course.image} alt={course.title} style={{ width: "100%", height: isMobile ? "160px" : "180px", objectFit: "cover" }} />
                   <div style={{ position: "absolute", top: "16px", right: "16px", background: "#10b981", color: "#fff", borderRadius: "12px", padding: "6px 14px", fontSize: "12px", fontWeight: 700 }}>
                     ✓ Enrolled
                   </div>
                 </div>
-                <div style={{ padding: "24px" }}>
-                  <h3 style={{ margin: "0 0 12px", fontSize: "20px", color: "#1f2937" }}>{course.title}</h3>
+                <div style={{ padding: isMobile ? "20px" : "24px" }}>
+                  <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1f2937" }}>{course.title}</h3>
                   <div style={{ marginBottom: "12px" }}><Stars rating={course.rating} /></div>
                   <div style={{ color: "#6b7280", fontSize: "14px" }}>⏱ {course.duration} · 📋 {course.steps} lessons</div>
                   <div style={{ marginTop: "16px", height: "4px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
@@ -415,12 +418,14 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack }) {
 }
 
 // ==================== MAIN COURSES LIST PAGE ====================
-function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCoursesNav }) {
+function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCoursesNav, isMobile }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [search, setSearch] = useState("");
 
   const filtered = courses.filter(c => {
     const matchCat = selectedCategory === "all" || c.category === selectedCategory;
-    return matchCat ;
+    const matchSearch = c.title.toLowerCase().includes(search.toLowerCase());
+    return matchCat && matchSearch;
   });
 
   const featuredCourses = courses.slice(0, 3);
@@ -428,28 +433,83 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif", minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
       {/* Premium Navbar */}
-  
+      <div style={{
+        background: "rgba(31, 41, 55, 0.95)",
+        backdropFilter: "blur(20px)",
+        padding: isMobile ? "12px 20px" : "16px 48px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: "16px",
+        borderBottom: "2px solid #8b5cf6",
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ width: isMobile ? "32px" : "40px", height: isMobile ? "32px" : "40px", background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: isMobile ? "18px" : "22px" }}>🎓</span>
+          </div>
+          <h1 style={{ color: "#fff", margin: 0, fontSize: isMobile ? "18px" : "24px", fontWeight: 700, letterSpacing: "-0.5px" }}>
+            Cisco Academy
+          </h1>
+        </div>
+
+        <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(139, 92, 246, 0.15)", borderRadius: "12px", padding: isMobile ? "6px 12px" : "8px 20px", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search courses..."
+              style={{ background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: "14px", width: isMobile ? "120px" : "200px" }}
+            />
+            <span style={{ color: "#8b5cf6" }}>🔍</span>
+          </div>
+          <button
+            onClick={onMyCoursesNav}
+            style={{
+              background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+              border: "none",
+              borderRadius: "40px",
+              padding: isMobile ? "8px 16px" : "10px 24px",
+              color: "#fff",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "transform 0.3s ease",
+              boxShadow: "0 4px 6px -1px rgba(139, 92, 246, 0.3)",
+              fontSize: isMobile ? "12px" : "14px",
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+          >
+            📚 My Courses {enrolledIds.length > 0 && `(${enrolledIds.length})`}
+          </button>
+        </div>
+      </div>
 
       {/* Premium Hero Section */}
       <div style={{
         background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)",
-        padding: "100px 48px",
+        padding: isMobile ? "60px 20px" : "100px 48px",
         textAlign: "center",
         position: "relative",
         overflow: "hidden",
       }}>
-        <div style={{ position: "absolute", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)", top: "-300px", right: "-200px" }} />
-        <div style={{ position: "absolute", width: "500px", height: "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)", bottom: "-250px", left: "-150px" }} />
+        <div style={{ position: "absolute", width: isMobile ? "300px" : "600px", height: isMobile ? "300px" : "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)", top: "-150px", right: "-100px" }} />
+        <div style={{ position: "absolute", width: isMobile ? "250px" : "500px", height: isMobile ? "250px" : "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)", bottom: "-125px", left: "-75px" }} />
         
         <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 2 }}>
-       
-          <h1 style={{ color: "#fff", fontSize: "64px", fontWeight: 800, lineHeight: "1.1", marginBottom: "24px", letterSpacing: "-1px" }}>
+          <div style={{ display: "inline-block", background: "rgba(139, 92, 246, 0.2)", backdropFilter: "blur(10px)", padding: "8px 20px", borderRadius: "40px", color: "#c4b5fd", fontWeight: 600, marginBottom: "24px", fontSize: isMobile ? "12px" : "14px", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
+            🚀 Trusted by 50,000+ Network Engineers
+          </div>
+          <h1 style={{ color: "#fff", fontSize: isMobile ? "36px" : "64px", fontWeight: 800, lineHeight: "1.2", marginBottom: "20px", letterSpacing: "-0.5px" }}>
             Master Cisco Networking<br />Build Your Dream Career
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "18px", lineHeight: "1.6", maxWidth: "700px", margin: "0 auto 40px" }}>
+          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: isMobile ? "14px" : "18px", lineHeight: "1.6", maxWidth: "700px", margin: "0 auto 30px" }}>
             Learn CCNA, CCNP, CCIE, Security, Linux and Network Automation through hands-on labs, video lessons, quizzes and real-world projects.
           </p>
-          <div style={{ display: "flex", gap: "20px", justifyContent: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
             <button
               onClick={() => courses.length > 0 && onEnroll(courses[0])}
               style={{
@@ -457,9 +517,9 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
                 color: "#fff",
                 border: "none",
                 borderRadius: "60px",
-                padding: "16px 40px",
+                padding: isMobile ? "12px 24px" : "16px 40px",
                 fontWeight: 700,
-                fontSize: "16px",
+                fontSize: isMobile ? "14px" : "16px",
                 cursor: "pointer",
                 transition: "transform 0.3s ease, box-shadow 0.3s ease",
                 boxShadow: "0 20px 25px -5px rgba(139, 92, 246, 0.4)",
@@ -475,9 +535,9 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
                 background: "transparent",
                 border: "2px solid #8b5cf6",
                 borderRadius: "60px",
-                padding: "16px 40px",
+                padding: isMobile ? "12px 24px" : "16px 40px",
                 fontWeight: 700,
-                fontSize: "16px",
+                fontSize: isMobile ? "14px" : "16px",
                 cursor: "pointer",
                 color: "#fff",
                 transition: "all 0.3s ease",
@@ -492,7 +552,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
       </div>
 
       {/* Premium Stats */}
-      <div style={{ background: "#fff", padding: "48px 48px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "32px", textAlign: "center", boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)" }}>
+      <div style={{ background: "#fff", padding: isMobile ? "32px 20px" : "48px 48px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? "24px" : "32px", textAlign: "center", boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)" }}>
         {[
           { end: courses.length || 15, suffix: "+", label: "Expert Courses", icon: "📚" },
           { end: 50, suffix: "K+", label: "Active Students", icon: "👥" },
@@ -500,18 +560,18 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
           { end: 4.9, suffix: "★", label: "Student Rating", icon: "⭐" },
         ].map(({ end, suffix, label, icon }) => (
           <div key={label} style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "40px", marginBottom: "12px" }}>{icon}</div>
-            <h2 style={{ color: "#8b5cf6", margin: 0, fontSize: "40px", fontWeight: 800 }}>
+            <div style={{ fontSize: isMobile ? "32px" : "40px", marginBottom: "8px" }}>{icon}</div>
+            <h2 style={{ color: "#8b5cf6", margin: 0, fontSize: isMobile ? "32px" : "40px", fontWeight: 800 }}>
               {end}{suffix}
             </h2>
-            <p style={{ color: "#6b7280", fontSize: "14px", fontWeight: 500, marginTop: "8px" }}>{label}</p>
+            <p style={{ color: "#6b7280", fontSize: "12px", fontWeight: 500, marginTop: "8px" }}>{label}</p>
           </div>
         ))}
       </div>
 
       {/* Premium Category Filter */}
-      <div style={{ padding: "32px 48px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "12px", maxWidth: "1000px", margin: "0 auto" }}>
+      <div style={{ padding: isMobile ? "20px 16px" : "32px 48px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", maxWidth: "1000px", margin: "0 auto" }}>
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}
@@ -521,20 +581,19 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
                 color: selectedCategory === cat.id ? "#fff" : "#374151",
                 border: "none",
                 borderRadius: "40px",
-                padding: "12px 28px",
+                padding: isMobile ? "8px 16px" : "12px 28px",
                 fontWeight: 600,
-                fontSize: "14px",
+                fontSize: isMobile ? "12px" : "14px",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                gap: "6px",
                 transition: "all 0.3s ease",
                 boxShadow: selectedCategory === cat.id ? `0 10px 15px -3px ${cat.color}40` : "none",
               }}
-              onMouseEnter={e => { if (selectedCategory !== cat.id) e.currentTarget.style.background = "#e5e7eb"; }}
-              onMouseLeave={e => { if (selectedCategory !== cat.id) e.currentTarget.style.background = "#f3f4f6"; }}
             >
-              <span>{cat.icon}</span> {cat.label}
+              <span style={{ fontSize: isMobile ? "14px" : "16px" }}>{cat.icon}</span> 
+              <span>{isMobile && cat.label === "All Courses" ? "All" : cat.label}</span>
             </button>
           ))}
         </div>
@@ -542,16 +601,16 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
 
       {/* Featured Courses Section */}
       {selectedCategory === "all" && featuredCourses.length > 0 && (
-        <div style={{ padding: "64px 48px", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
+        <div style={{ padding: isMobile ? "40px 20px" : "64px 48px", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
           <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-            <div style={{ textAlign: "center", marginBottom: "48px" }}>
-              <div style={{ display: "inline-block", background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", width: "60px", height: "4px", borderRadius: "2px", marginBottom: "16px" }} />
-              <h2 style={{ margin: 0, fontSize: "36px", fontWeight: 800, background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <div style={{ textAlign: "center", marginBottom: isMobile ? "32px" : "48px" }}>
+              <div style={{ display: "inline-block", background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", width: "50px", height: "4px", borderRadius: "2px", marginBottom: "16px" }} />
+              <h2 style={{ margin: 0, fontSize: isMobile ? "28px" : "36px", fontWeight: 800, background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                 Featured Courses
               </h2>
-              <p style={{ color: "#6b7280", marginTop: "12px" }}>Most popular courses chosen by our community</p>
+              <p style={{ color: "#6b7280", marginTop: "12px", fontSize: isMobile ? "14px" : "16px" }}>Most popular courses chosen by our community</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? "20px" : "32px" }}>
               {featuredCourses.map(course => (
                 <CourseCard
                   key={course.id}
@@ -567,18 +626,18 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
       )}
 
       {/* All Courses Grid */}
-      <div style={{ padding: "64px 48px" }}>
+      <div style={{ padding: isMobile ? "40px 20px" : "64px 48px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           {selectedCategory !== "all" && (
-            <div style={{ marginBottom: "40px", textAlign: "center" }}>
-              <h2 style={{ fontSize: "32px", fontWeight: 800, color: "#1f2937", marginBottom: "8px" }}>
+            <div style={{ marginBottom: "32px", textAlign: "center" }}>
+              <h2 style={{ fontSize: isMobile ? "24px" : "32px", fontWeight: 800, color: "#1f2937", marginBottom: "8px" }}>
                 {CATEGORIES.find(c => c.id === selectedCategory)?.label} Courses
               </h2>
-              <p style={{ color: "#6b7280" }}>{filtered.length} premium courses available</p>
+              <p style={{ color: "#6b7280", fontSize: isMobile ? "14px" : "16px" }}>{filtered.length} premium courses available</p>
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "32px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(350px, 1fr))", gap: isMobile ? "20px" : "32px" }}>
             {filtered.map(course => (
               <CourseCard
                 key={course.id}
@@ -591,7 +650,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
           </div>
 
           {filtered.length === 0 && (
-            <div style={{ textAlign: "center", padding: "80px 0", background: "#fff", borderRadius: "24px" }}>
+            <div style={{ textAlign: "center", padding: "60px 20px", background: "#fff", borderRadius: "24px" }}>
               <p style={{ fontSize: "18px", color: "#6b7280" }}>No courses found in this category.</p>
             </div>
           )}
@@ -599,13 +658,13 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
       </div>
 
       {/* Premium CTA Banner */}
-      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)", padding: "80px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)", top: "-200px", left: "10%" }} />
-        <div style={{ position: "absolute", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)", bottom: "-150px", right: "10%" }} />
+      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)", padding: isMobile ? "60px 20px" : "80px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: isMobile ? "250px" : "400px", height: isMobile ? "250px" : "400px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)", top: "-125px", left: "10%" }} />
+        <div style={{ position: "absolute", width: isMobile ? "200px" : "300px", height: isMobile ? "200px" : "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)", bottom: "-100px", right: "10%" }} />
         
         <div style={{ position: "relative", zIndex: 2 }}>
-          <h2 style={{ color: "#fff", fontSize: "42px", marginBottom: "20px", fontWeight: 800 }}>Ready to Accelerate Your Career?</h2>
-          <p style={{ color: "#c4b5fd", fontSize: "18px", marginBottom: "40px", maxWidth: "600px", marginLeft: "auto", marginRight: "auto" }}>
+          <h2 style={{ color: "#fff", fontSize: isMobile ? "28px" : "42px", marginBottom: "16px", fontWeight: 800 }}>Ready to Accelerate Your Career?</h2>
+          <p style={{ color: "#c4b5fd", fontSize: isMobile ? "14px" : "18px", marginBottom: "32px", maxWidth: "600px", marginLeft: "auto", marginRight: "auto" }}>
             Join thousands of successful network engineers who transformed their careers with our courses
           </p>
           <button
@@ -615,8 +674,8 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
               color: "#fff",
               border: "none",
               borderRadius: "60px",
-              padding: "18px 48px",
-              fontSize: "18px",
+              padding: isMobile ? "14px 32px" : "18px 48px",
+              fontSize: isMobile ? "16px" : "18px",
               fontWeight: 700,
               cursor: "pointer",
               transition: "transform 0.3s ease",
@@ -630,15 +689,15 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
       </div>
 
       {/* Premium Footer */}
-      <div style={{ background: "#111827", padding: "48px 48px 32px", textAlign: "center" }}>
+      <div style={{ background: "#111827", padding: isMobile ? "32px 20px 24px" : "48px 48px 32px", textAlign: "center" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ marginBottom: "32px" }}>
-            <span style={{ fontSize: "32px" }}>🎓</span>
-            <h3 style={{ color: "#fff", marginTop: "12px", fontSize: "20px" }}>Cisco Networking Academy</h3>
-            <p style={{ color: "#9ca3af", fontSize: "14px" }}>Empowering Network Engineers Worldwide</p>
+          <div style={{ marginBottom: "24px" }}>
+            <span style={{ fontSize: isMobile ? "28px" : "32px" }}>🎓</span>
+            <h3 style={{ color: "#fff", marginTop: "12px", fontSize: isMobile ? "18px" : "20px" }}>Cisco Networking Academy</h3>
+            <p style={{ color: "#9ca3af", fontSize: "12px" }}>Empowering Network Engineers Worldwide</p>
           </div>
-          <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, #374151, transparent)", margin: "24px 0" }} />
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>© 2025 Cisco Networking Academy — Excellence in Network Education</p>
+          <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, #374151, transparent)", margin: "20px 0" }} />
+          <p style={{ margin: 0, color: "#6b7280", fontSize: "12px" }}>© 2025 Cisco Networking Academy — Excellence in Network Education</p>
         </div>
       </div>
     </div>
@@ -646,11 +705,22 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
 }
 
 // ==================== APP ROOT ====================
-export default function CoursesPage({ isMobile, onBack }) {
+export default function CoursesPage({ isMobile = false, onBack }) {
   const [page, setPage] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses] = useState(MOCK_COURSES);
   const [enrolledIds, setEnrolledIds] = useState([]);
+
+  // Detect mobile screen size
+  const [mobileView, setMobileView] = useState(window.innerWidth <= 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setMobileView(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleEnroll = async (course) => {
     const userId = localStorage.getItem("userId");
@@ -683,12 +753,12 @@ export default function CoursesPage({ isMobile, onBack }) {
   };
 
   if (page === "detail" && selectedCourse) {
-    return <CourseDetailPage course={selectedCourse} onBack={() => setPage("list")} onEnroll={handleEnroll} enrolled={enrolledIds.includes(selectedCourse.id)} />;
+    return <CourseDetailPage course={selectedCourse} onBack={() => setPage("list")} onEnroll={handleEnroll} enrolled={enrolledIds.includes(selectedCourse.id)} isMobile={mobileView} />;
   }
 
   if (page === "mycourses") {
-    return <MyCoursesPage enrolledIds={enrolledIds} courses={courses} onViewCourse={handleViewCourse} onBack={() => setPage("list")} />;
+    return <MyCoursesPage enrolledIds={enrolledIds} courses={courses} onViewCourse={handleViewCourse} onBack={() => setPage("list")} isMobile={mobileView} />;
   }
 
-  return <CoursesListPage courses={courses} onViewCourse={handleViewCourse} onEnroll={handleEnroll} enrolledIds={enrolledIds} onMyCoursesNav={() => setPage("mycourses")} />;
+  return <CoursesListPage courses={courses} onViewCourse={handleViewCourse} onEnroll={handleEnroll} enrolledIds={enrolledIds} onMyCoursesNav={() => setPage("mycourses")} isMobile={mobileView} />;
 }
