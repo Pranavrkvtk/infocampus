@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 // ==================== MOCK DATA (Premium Design) ====================
 const MOCK_COURSES = [
@@ -418,12 +417,10 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack }) {
 // ==================== MAIN COURSES LIST PAGE ====================
 function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCoursesNav }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [search, setSearch] = useState("");
 
   const filtered = courses.filter(c => {
     const matchCat = selectedCategory === "all" || c.category === selectedCategory;
-    const matchSearch = c.title.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
+    return matchCat ;
   });
 
   const featuredCourses = courses.slice(0, 3);
@@ -650,7 +647,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
 
 // ==================== APP ROOT ====================
 export default function CoursesPage({ isMobile, onBack }) {
-  const navigate = useNavigate();
   const [page, setPage] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses] = useState(MOCK_COURSES);
