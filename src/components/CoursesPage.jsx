@@ -420,12 +420,10 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile })
 // ==================== MAIN COURSES LIST PAGE ====================
 function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCoursesNav, isMobile }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [search, setSearch] = useState("");
 
   const filtered = courses.filter(c => {
     const matchCat = selectedCategory === "all" || c.category === selectedCategory;
-    const matchSearch = c.title.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
+    return matchCat ;
   });
 
   const featuredCourses = courses.slice(0, 3);
