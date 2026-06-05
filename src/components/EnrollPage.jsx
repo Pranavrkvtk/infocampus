@@ -36,27 +36,27 @@ export default function EnrollPage({ isMobile, onBack }) {
     );
   }
 
-  const handleEnroll = async () => {
-    // Check for userId first
-    const userId = localStorage.getItem("userId");
-    
-    if (!userId) {
-      alert("Please create a user first using the 'Create Test User' button above.");
-      return;
-    }
+const handleEnroll = async () => {
+  // Check for userId first
+  const userId = localStorage.getItem("userId");
+  
+  if (!userId) {
+    alert("Please create a user first using the 'Create Test User' button above.");
+    return;
+  }
 
-    try {
-      setIsLoading(true);
-      const response = await enrollInCourse(course.id);
-      alert("Successfully enrolled!");
-      setIsEnrolled(true);
-    } catch (error) {
-      console.error("Enrollment error:", error);
-      alert(error.message || "Enrollment failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  try {
+    setIsLoading(true);
+    await enrollInCourse(course.id);  // ✅ Removed 'const response ='
+    alert("Successfully enrolled!");
+    setIsEnrolled(true);
+  } catch (error) {
+    console.error("Enrollment error:", error);
+    alert(error.message || "Enrollment failed");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // ── Success screen ──────────────────────────────────────────────
   if (isEnrolled) {
