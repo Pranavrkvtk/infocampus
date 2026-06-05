@@ -23,7 +23,9 @@ export const updateCourse = (id, data) => {
 
 // Enrollment APIs
 export const enrollInCourse = (courseId) => {
-  return api.post(`/enrollments/enroll/${courseId}`);
+  const userId = localStorage.getItem("userId");
+
+  return api.post(`/enrollments/enroll/${courseId}/${userId}`);
 };
 
 export const getUserEnrollments = (userId) => {
