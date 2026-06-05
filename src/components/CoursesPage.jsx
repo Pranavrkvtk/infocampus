@@ -194,8 +194,7 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled }) {
 
 // ==================== COURSE DETAIL PAGE ====================
 function CourseDetailPage({ course, onBack, onEnroll, enrolled, isMobile }) {
-  const [activeTab, setActiveTab] = useState("course");
-
+const [activeTab] = useState("course");
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)", fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
       <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: isMobile ? "12px 20px" : "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "2px solid #8b5cf6" }}>
