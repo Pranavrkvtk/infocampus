@@ -494,23 +494,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
         </div>
       </div>
 
-      {/* Premium Stats */}
-      <div style={{ background: "#fff", padding: isMobile ? "32px 20px" : "48px 48px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? "24px" : "32px", textAlign: "center", boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)" }}>
-        {[
-          { end: courses.length || 15, suffix: "+", label: "Expert Courses", icon: "📚" },
-          { end: 50, suffix: "K+", label: "Active Students", icon: "👥" },
-          { end: 2000, suffix: "+", label: "Practice Labs", icon: "💻" },
-          { end: 4.9, suffix: "★", label: "Student Rating", icon: "⭐" },
-        ].map(({ end, suffix, label, icon }) => (
-          <div key={label} style={{ textAlign: "center" }}>
-            <div style={{ fontSize: isMobile ? "32px" : "40px", marginBottom: "8px" }}>{icon}</div>
-            <h2 style={{ color: "#8b5cf6", margin: 0, fontSize: isMobile ? "32px" : "40px", fontWeight: 800 }}>
-              {end}{suffix}
-            </h2>
-            <p style={{ color: "#6b7280", fontSize: "12px", fontWeight: 500, marginTop: "8px" }}>{label}</p>
-          </div>
-        ))}
-      </div>
+
 
       {/* Premium Category Filter */}
       <div style={{ padding: isMobile ? "20px 16px" : "32px 48px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
