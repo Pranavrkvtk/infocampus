@@ -195,7 +195,6 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled }) {
 // ==================== COURSE DETAIL PAGE ====================
 function CourseDetailPage({ course, onBack, onEnroll, enrolled, isMobile }) {
   const [activeTab, setActiveTab] = useState("course");
-  const tabs = ["course", `Reviews (${course.reviews})`, "Forum"];
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)", fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
@@ -223,29 +222,7 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, isMobile }) {
           </div>
         </div>
 
-        <div style={{ maxWidth: "1100px", margin: "32px auto 0", display: "flex", gap: "0", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {tabs.map(tab => {
-            const key = tab.toLowerCase().startsWith("reviews") ? "reviews" : tab.toLowerCase();
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(key)}
-                style={{
-                  padding: isMobile ? "12px 20px" : "14px 32px", border: "none", cursor: "pointer",
-                  background: activeTab === key ? "#fff" : "transparent",
-                  color: activeTab === key ? "#7c3aed" : "rgba(255,255,255,0.8)",
-                  fontWeight: 700, fontSize: isMobile ? "13px" : "15px",
-                  borderRadius: "12px 12px 0 0",
-                  transition: "all 0.3s ease",
-                  backdropFilter: activeTab === key ? "none" : "blur(10px)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {key === "course" && "📚 "}{tab}
-              </button>
-            );
-          })}
-        </div>
+     
       </div>
 
       <div style={{ maxWidth: "1100px", margin: "0 auto", padding: isMobile ? "20px" : "40px", display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "24px" : "40px" }}>
@@ -352,16 +329,7 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, isMobile }) {
               ))}
             </div>
           )}
-          {activeTab === "forum" && (
-            <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", padding: isMobile ? "32px 24px" : "40px", textAlign: "center" }}>
-              <div style={{ fontSize: isMobile ? "48px" : "64px", marginBottom: "20px" }}>💬</div>
-              <h2 style={{ color: "#1f2937", marginBottom: "12px", fontSize: isMobile ? "22px" : "28px" }}>Discussion Forum</h2>
-              <p style={{ color: "#6b7280", marginBottom: "32px", fontSize: isMobile ? "14px" : "16px" }}>Connect with 50,000+ learners. Ask questions, share insights, and grow together.</p>
-              <button style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", padding: isMobile ? "12px 24px" : "14px 32px", borderRadius: "12px", fontWeight: 600, cursor: "pointer", fontSize: isMobile ? "14px" : "16px" }}>
-                Start a Discussion →
-              </button>
-            </div>
-          )}
+       
         </div>
       </div>
     </div>
