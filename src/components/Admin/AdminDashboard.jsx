@@ -40,8 +40,6 @@ const navItems = [
 const kpis = [
   { label: "Total Students", value: "8,247", delta: "+12.4% this month", up: true, accent: colors.primary, iconBg: colors.primarySoft, icon: "👨‍🎓" },
   { label: "Active Courses", value: "18", delta: "+3 this week", up: true, accent: colors.teal, iconBg: colors.tealSoft, icon: "🌐" },
-  { label: "Certifications", value: "2,156", delta: "+28% vs last month", up: true, accent: colors.coral, iconBg: colors.coralSoft, icon: "🏆" },
-  { label: "Lab Hours", value: "4,892", delta: "+15.3% this week", up: true, accent: colors.amber, iconBg: colors.amberSoft, icon: "💻" },
 ];
 
 // CCNA & Networking Courses Data
