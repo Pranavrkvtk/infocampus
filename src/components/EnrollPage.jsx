@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import { enrollInCourse } from "../api/courseApi";
 // ==================== ENROLL PAGE ====================
 export default function EnrollPage({ isMobile, onBack }) {
   // ✅ Course comes from navigate("/enroll", { state: { course } })
@@ -35,13 +35,25 @@ export default function EnrollPage({ isMobile, onBack }) {
     );
   }
 
-  const handleEnroll = () => {
+const handleEnroll = async () => {
+  try {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsEnrolled(true);
-    }, 1500);
-  };
+
+    const response = await enrollInCourse(course.id);
+
+    alert(response.data);
+
+    setIsEnrolled(true);
+
+  } catch (error) {
+    alert(
+      error.response?.data ||
+      "Enrollment failed"
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // ── Success screen ──────────────────────────────────────────────
   if (isEnrolled) {
