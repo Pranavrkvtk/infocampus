@@ -433,60 +433,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif", minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
       {/* Premium Navbar */}
-      <div style={{
-        background: "rgba(31, 41, 55, 0.95)",
-        backdropFilter: "blur(20px)",
-        padding: isMobile ? "12px 20px" : "16px 48px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: "16px",
-        borderBottom: "2px solid #8b5cf6",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: isMobile ? "32px" : "40px", height: isMobile ? "32px" : "40px", background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: isMobile ? "18px" : "22px" }}>🎓</span>
-          </div>
-          <h1 style={{ color: "#fff", margin: 0, fontSize: isMobile ? "18px" : "24px", fontWeight: 700, letterSpacing: "-0.5px" }}>
-            Cisco Academy
-          </h1>
-        </div>
-
-        <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(139, 92, 246, 0.15)", borderRadius: "12px", padding: isMobile ? "6px 12px" : "8px 20px", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search courses..."
-              style={{ background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: "14px", width: isMobile ? "120px" : "200px" }}
-            />
-            <span style={{ color: "#8b5cf6" }}>🔍</span>
-          </div>
-          <button
-            onClick={onMyCoursesNav}
-            style={{
-              background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-              border: "none",
-              borderRadius: "40px",
-              padding: isMobile ? "8px 16px" : "10px 24px",
-              color: "#fff",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "transform 0.3s ease",
-              boxShadow: "0 4px 6px -1px rgba(139, 92, 246, 0.3)",
-              fontSize: isMobile ? "12px" : "14px",
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-          >
-            📚 My Courses {enrolledIds.length > 0 && `(${enrolledIds.length})`}
-          </button>
-        </div>
-      </div>
+    
 
       {/* Premium Hero Section */}
       <div style={{
@@ -500,9 +447,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
         <div style={{ position: "absolute", width: isMobile ? "250px" : "500px", height: isMobile ? "250px" : "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)", bottom: "-125px", left: "-75px" }} />
         
         <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 2 }}>
-          <div style={{ display: "inline-block", background: "rgba(139, 92, 246, 0.2)", backdropFilter: "blur(10px)", padding: "8px 20px", borderRadius: "40px", color: "#c4b5fd", fontWeight: 600, marginBottom: "24px", fontSize: isMobile ? "12px" : "14px", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
-            🚀 Trusted by 50,000+ Network Engineers
-          </div>
+      
           <h1 style={{ color: "#fff", fontSize: isMobile ? "36px" : "64px", fontWeight: 800, lineHeight: "1.2", marginBottom: "20px", letterSpacing: "-0.5px" }}>
             Master Cisco Networking<br />Build Your Dream Career
           </h1>
@@ -689,17 +634,190 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, onMyCou
       </div>
 
       {/* Premium Footer */}
-      <div style={{ background: "#111827", padding: isMobile ? "32px 20px 24px" : "48px 48px 32px", textAlign: "center" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ marginBottom: "24px" }}>
-            <span style={{ fontSize: isMobile ? "28px" : "32px" }}>🎓</span>
-            <h3 style={{ color: "#fff", marginTop: "12px", fontSize: isMobile ? "18px" : "20px" }}>Cisco Networking Academy</h3>
-            <p style={{ color: "#9ca3af", fontSize: "12px" }}>Empowering Network Engineers Worldwide</p>
-          </div>
-          <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, #374151, transparent)", margin: "20px 0" }} />
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "12px" }}>© 2025 Cisco Networking Academy — Excellence in Network Education</p>
-        </div>
+  <div
+  style={{
+    background: "#111827",
+    padding: isMobile ? "40px 20px" : "60px 48px",
+    color: "#fff",
+  }}
+>
+  <div
+    style={{
+      maxWidth: "1200px",
+      margin: "0 auto",
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr",
+      gap: "40px",
+    }}
+  >
+    {/* Scholarship Section */}
+    <div>
+      <h2
+        style={{
+          fontSize: isMobile ? "24px" : "32px",
+          marginBottom: "16px",
+          color: "#fff",
+        }}
+      >
+        Test Your Skills
+      </h2>
+
+      <p
+        style={{
+          color: "#d1d5db",
+          lineHeight: "1.8",
+          marginBottom: "24px",
+        }}
+      >
+        Solve the challenge and earn up to a
+        <strong style={{ color: "#8b5cf6" }}> 10% scholarship </strong>
+        for our programs!
+      </p>
+
+      <button
+        style={{
+          background:
+            "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+          color: "#fff",
+          border: "none",
+          borderRadius: "10px",
+          padding: "14px 28px",
+          fontWeight: "700",
+          cursor: "pointer",
+        }}
+      >
+        Test Your Skills Now →
+      </button>
+    </div>
+
+    {/* Contact */}
+    <div>
+      <h3
+        style={{
+          marginBottom: "20px",
+          color: "#fff",
+          fontSize: "20px",
+        }}
+      >
+        Contact
+      </h3>
+
+      <p style={{ color: "#d1d5db", marginBottom: "10px" }}>
+        📞 +91-9037555777
+      </p>
+
+      <p style={{ color: "#d1d5db", marginBottom: "10px" }}>
+        📞 +91-8792633595
+      </p>
+
+      <p style={{ color: "#d1d5db", marginBottom: "20px" }}>
+        ✉️ info@infocampus.in
+      </p>
+
+      <h4
+        style={{
+          color: "#8b5cf6",
+          marginBottom: "10px",
+        }}
+      >
+        Follow Us
+      </h4>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          fontSize: "24px",
+        }}
+      >
+        <span>📘</span>
+        <span>📷</span>
+        <span>💼</span>
+        <span>▶️</span>
       </div>
+    </div>
+
+    {/* Locations */}
+    <div>
+      <h3
+        style={{
+          marginBottom: "20px",
+          color: "#fff",
+          fontSize: "20px",
+        }}
+      >
+        Locations
+      </h3>
+
+      <div style={{ marginBottom: "24px" }}>
+        <h4
+          style={{
+            color: "#8b5cf6",
+            marginBottom: "8px",
+          }}
+        >
+          📍 Calicut
+        </h4>
+
+        <p
+          style={{
+            color: "#d1d5db",
+            lineHeight: "1.7",
+            fontSize: "14px",
+          }}
+        >
+          6th Floor, Markaz Complex Mavoor Road,
+          Opposite Private Bus Stand,
+          Calicut - 04
+        </p>
+      </div>
+
+      <div>
+        <h4
+          style={{
+            color: "#8b5cf6",
+            marginBottom: "8px",
+          }}
+        >
+          📍 Bengaluru
+        </h4>
+
+        <p
+          style={{
+            color: "#d1d5db",
+            lineHeight: "1.7",
+            fontSize: "14px",
+          }}
+        >
+          No.50, 1st Floor, JKN Arcade,
+          1st Cross Road, 27th Main,
+          Old Madiwala, BTM 1st Stage,
+          Bengaluru - 560068
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div
+    style={{
+      height: "1px",
+      background:
+        "linear-gradient(90deg, transparent, #374151, transparent)",
+      margin: "40px 0 20px",
+    }}
+  />
+
+  <p
+    style={{
+      textAlign: "center",
+      color: "#9ca3af",
+      margin: 0,
+      fontSize: "14px",
+    }}
+  >
+    © 2026 INFO CAMPUS Learning Platform. All Rights Reserved.
+  </p>
+</div>
     </div>
   );
 }
