@@ -705,31 +705,7 @@ const handleLogout = () => {
               <div style={{ fontSize: 9, color: colors.textMuted }}>ADMIN DASHBOARD</div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 32,
-              border: `1px solid ${colors.borderLight}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 14, cursor: "pointer",
-            }}>🔔</div>
-            <div style={{
-              width: 32, height: 32, borderRadius: 32,
-              background: colors.gradPrimary,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer",
-            }}>AD</div>
-            {/* <button
-              onClick={handleLogout}
-              style={{
-                width: 32, height: 32, borderRadius: 32,
-                border: `1px solid ${colors.borderLight}`,
-                background: colors.coralSoft,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 14, cursor: "pointer",
-              }}
-              title="Log Out"
-            >🚪</button> */}
-          </div>
+    
         </div>
       )}
 
