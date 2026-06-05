@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { enrollInCourse } from "../api/courseApi";
+
 // ==================== ENROLL PAGE ====================
 export default function EnrollPage({ isMobile, onBack }) {
   // ✅ Course comes from navigate("/enroll", { state: { course } })
@@ -35,25 +36,27 @@ export default function EnrollPage({ isMobile, onBack }) {
     );
   }
 
-const handleEnroll = async () => {
-  try {
-    setIsLoading(true);
+  const handleEnroll = async () => {
+    // Check for userId first
+    const userId = localStorage.getItem("userId");
+    
+    if (!userId) {
+      alert("Please create a user first using the 'Create Test User' button above.");
+      return;
+    }
 
-    const response = await enrollInCourse(course.id);
-
-    alert(response.data);
-
-    setIsEnrolled(true);
-
-  } catch (error) {
-    alert(
-      error.response?.data ||
-      "Enrollment failed"
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+    try {
+      setIsLoading(true);
+      const response = await enrollInCourse(course.id);
+      alert("Successfully enrolled!");
+      setIsEnrolled(true);
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      alert(error.message || "Enrollment failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // ── Success screen ──────────────────────────────────────────────
   if (isEnrolled) {
@@ -81,7 +84,6 @@ const handleEnroll = async () => {
 
   return (
     <div style={{ fontFamily: "'Georgia', 'Times New Roman', serif", minHeight: "100vh", background: "#f8f8f6" }}>
-
       {/* ── Header ── */}
       <div style={{
         background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
@@ -114,6 +116,48 @@ const handleEnroll = async () => {
         >
           ← Back to Courses
         </button>
+
+        {/* ✅ TEST BUTTON - Click this to create a user */}
+        <button
+          onClick={async () => {
+            try {
+              const response = await fetch('http://localhost:8080/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: 'Test Student',
+                  email: `student${Date.now()}@example.com`
+                })
+              });
+              const user = await response.json();
+              localStorage.setItem('userId', user.id);
+              alert(`✅ User created successfully!\n\nYour User ID: ${user.id}\n\nNow click "Enroll Now" button to enroll in this course.`);
+              console.log('User created:', user);
+            } catch (error) {
+              alert('❌ Error creating user. Make sure backend is running on http://localhost:8080\n\nError: ' + error.message);
+              console.error('Error:', error);
+            }
+          }}
+          style={{
+            background: "#4caf50",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "10px 20px",
+            fontSize: "14px",
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "'Trebuchet MS', sans-serif",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "#45a049"}
+          onMouseLeave={e => e.currentTarget.style.background = "#4caf50"}
+        >
+          👤 Create Test User
+        </button>
+
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span style={{ fontSize: "28px" }}>💳</span>
           <h1 style={{ color: "#fff", margin: 0, fontSize: isMobile ? "20px" : "28px", fontFamily: "'Trebuchet MS', sans-serif" }}>Enroll Now</h1>

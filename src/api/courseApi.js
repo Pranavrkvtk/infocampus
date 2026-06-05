@@ -24,6 +24,17 @@ export const updateCourse = (id, data) => {
 // Enrollment APIs
 export const enrollInCourse = (courseId) => {
   const userId = localStorage.getItem("userId");
+  
+  console.log("=== DEBUG ENROLLMENT ===");
+  console.log("Course ID:", courseId);
+  console.log("User ID from localStorage:", userId);
+  console.log("Full URL:", `/enrollments/enroll/${courseId}/${userId}`);
+  console.log("========================");
+  
+  // Add this check
+  if (!userId) {
+    throw new Error("User not logged in. Please create a user first.");
+  }
 
   return api.post(`/enrollments/enroll/${courseId}/${userId}`);
 };

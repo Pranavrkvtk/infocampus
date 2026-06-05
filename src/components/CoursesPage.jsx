@@ -258,53 +258,34 @@ export default function CoursesPage({ isMobile, onBack }) {
       setLoading(false);
     }
   };
-
- const handleEnroll = async (course) => {
+const handleEnroll = async (course) => {
   try {
-    const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId");
     
-    if (!token || !userId) {
-      alert("Please login first!");
-      navigate("/login");
+    // Check if user exists
+    if (!userId) {
+      alert("❌ Please create a user first!\n\nClick the 'Create Test User' button at the top of the page.");
       return;
     }
     
     console.log("Enrolling in course:", course.id);
+    console.log("Using userId:", userId);
     
-    // Try both methods
-    let response;
-    try {
-      // Method 1: Just the courseId in URL
-      response = await fetch(`http://localhost:8080/api/enrollments/enroll/${course.id}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-    } catch (err) {
-      console.log("Method 1 failed, trying Method 2");
-      // Method 2: Send JSON body
-      response = await fetch(`http://localhost:8080/api/enrollments`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user: { id: parseInt(userId) },
-          course: { id: course.id }
-        })
-      });
-    }
+    // Correct API call with both courseId AND userId in URL
+    const response = await fetch(`http://localhost:8080/api/enrollments/enroll/${course.id}/${userId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     
     const data = await response.text();
     console.log("Enrollment response:", data);
     
     if (response.ok) {
       alert(`✅ Successfully enrolled in ${course.title}!`);
-      window.location.href = "/my-courses";
+      // Optionally navigate to my courses
+      navigate("/my-courses");
     } else {
       alert(`❌ Failed: ${data}`);
     }
