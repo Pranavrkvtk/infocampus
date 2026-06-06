@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   getDashboardStats,
   getAdminStudents,
+  getAllStudents,
   getAdminCoursesSimple,
-  createAdminCourse  
+  createAdminCourse,
+  searchUsersByName
 } from "../../api/adminApi";
-
 
 // ================= LIGHT MODERN THEME =================
 const colors = {
@@ -37,7 +38,7 @@ const colors = {
 
 const navItems = [
   { icon: "📊", label: "Dashboard", id: "dashboard" },
-  { icon: "🌐", label: "Courses",   id: "courses" },
+  { icon: "🌐", label: "Courses", id: "courses" },
   { icon: "👨‍🎓", label: "Students", id: "students" },
 ];
 
@@ -116,14 +117,17 @@ function KpiCard({ label, value, iconBg, icon, loading }) {
 
 function Badge({ status }) {
   const map = {
-    PUBLISHED:    { bg: colors.tealSoft,    color: colors.teal },
-    DRAFT:        { bg: "#F0F2F8",           color: colors.textMuted },
-    ACTIVE:       { bg: colors.tealSoft,    color: colors.teal },
-    PENDING:      { bg: colors.amberSoft,   color: colors.amber },
-    INACTIVE:     { bg: "#F0F2F8",           color: colors.textMuted },
-    Beginner:     { bg: colors.primarySoft, color: colors.primary },
-    Intermediate: { bg: colors.amberSoft,   color: colors.amber },
-    Advanced:     { bg: colors.coralSoft,   color: colors.coral },
+    PUBLISHED: { bg: colors.tealSoft, color: colors.teal },
+    DRAFT: { bg: "#F0F2F8", color: colors.textMuted },
+    ACTIVE: { bg: colors.tealSoft, color: colors.teal },
+    PENDING: { bg: colors.amberSoft, color: colors.amber },
+    INACTIVE: { bg: colors.coralSoft, color: colors.coral },
+    STUDENT: { bg: colors.primarySoft, color: colors.primary },
+    ADMIN: { bg: colors.amberSoft, color: colors.amber },
+    INSTRUCTOR: { bg: colors.tealSoft, color: colors.teal },
+    Beginner: { bg: colors.primarySoft, color: colors.primary },
+    Intermediate: { bg: colors.amberSoft, color: colors.amber },
+    Advanced: { bg: colors.coralSoft, color: colors.coral },
   };
   const s = map[status] || { bg: "#F0F2F8", color: colors.textMuted };
   return (
@@ -150,7 +154,6 @@ function LoadingSpinner() {
   );
 }
 
-// Live clock widget shown in the page header
 function DateTimeWidget({ isMobile, currentTime }) {
   return (
     <div style={{
@@ -164,18 +167,15 @@ function DateTimeWidget({ isMobile, currentTime }) {
       minWidth: isMobile ? "100%" : "auto",
       boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
     }}>
-      {/* Calendar block */}
       <div style={{
         width: 40, height: 40, borderRadius: 10,
         background: colors.primarySoft,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 20, flexShrink: 0,
       }}>📅</div>
-
       <div>
         <div style={{
-          fontSize: 13, fontWeight: 600, color: colors.textPrimary,
-          lineHeight: 1.3,
+          fontSize: 13, fontWeight: 600, color: colors.textPrimary, lineHeight: 1.3,
         }}>
           {getCurrentDate()}
         </div>
@@ -247,54 +247,11 @@ function AddCourseModal({ isOpen, onClose, onCourseCreated }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-// Inside AddCourseModal component, update the handleSubmit function:
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
-
-  // Prepare data matching your exact payload structure
-  const courseData = {
-    title: formData.title,
-    description: formData.description || null,
-    price: parseFloat(formData.price),
-    instructor: formData.instructor,
-    duration: formData.duration || null,
-    videoUrl: formData.videoUrl || null,
-    imageUrl: formData.imageUrl || null,
-    level: formData.level || null
-  };
-
-  try {
-    // Use the correct API function createAdminCourse
-    const response = await createAdminCourse(courseData);
-    console.log("Course created successfully:", response.data);
-    
-    // Show success message (optional)
-    alert("Course created successfully!");
-    
-    // Refresh the course list
-    if (onCourseCreated) await onCourseCreated();
-    onClose();
-    resetForm();
-  } catch (err) {
-    console.error("Error creating course:", err);
-    setError(err.response?.data?.message || "Failed to create course");
-  } finally {
-    setLoading(false);
-  }
-};
   const resetForm = () => {
     setFormData({
-      title: "",
-      description: "",
-      price: "",
-      instructor: "",
-      duration: "",
-      level: "",
-      videoUrl: "",
-      imageUrl: "",
+      title: "", description: "", price: "",
+      instructor: "", duration: "", level: "",
+      videoUrl: "", imageUrl: "",
     });
     setError("");
   };
@@ -304,39 +261,66 @@ const handleSubmit = async (e) => {
     onClose();
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const courseData = {
+      title: formData.title,
+      description: formData.description || null,
+      price: parseFloat(formData.price),
+      instructor: formData.instructor,
+      duration: formData.duration || null,
+      videoUrl: formData.videoUrl || null,
+      imageUrl: formData.imageUrl || null,
+      level: formData.level || null,
+    };
+
+    try {
+      const response = await createAdminCourse(courseData);
+      console.log("Course created successfully:", response.data);
+      alert("Course created successfully!");
+      if (onCourseCreated) await onCourseCreated();
+      onClose();
+      resetForm();
+    } catch (err) {
+      console.error("Error creating course:", err);
+      setError(err.response?.data?.message || "Failed to create course");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
+
+  const inputStyle = {
+    width: "100%", padding: "10px 14px",
+    border: `1px solid ${colors.borderLight}`,
+    borderRadius: 12, fontSize: 14, outline: "none",
+    transition: "border-color 0.2s", boxSizing: "border-box",
+  };
+  const labelStyle = {
+    display: "block", fontSize: 13, fontWeight: 600,
+    color: colors.textPrimary, marginBottom: 6,
+  };
 
   return (
     <div style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000,
-      backdropFilter: "blur(4px)",
+      position: "fixed", inset: 0,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 1000, backdropFilter: "blur(4px)",
     }} onClick={handleClose}>
       <div style={{
-        backgroundColor: colors.surface,
-        borderRadius: 24,
-        width: "90%",
-        maxWidth: 600,
-        maxHeight: "90vh",
-        overflowY: "auto",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+        backgroundColor: colors.surface, borderRadius: 24,
+        width: "90%", maxWidth: 600, maxHeight: "90vh",
+        overflowY: "auto", boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
       }} onClick={(e) => e.stopPropagation()}>
-        
-        {/* Modal Header */}
+
         <div style={{
-          padding: "20px 24px",
-          borderBottom: `1px solid ${colors.borderLight}`,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
+          padding: "20px 24px", borderBottom: `1px solid ${colors.borderLight}`,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>➕ Add New Course</h2>
@@ -345,233 +329,79 @@ const handleSubmit = async (e) => {
             </p>
           </div>
           <button onClick={handleClose} style={{
-            background: "transparent",
-            border: "none",
-            fontSize: 24,
-            cursor: "pointer",
-            color: colors.textMuted,
-            padding: 4,
-            borderRadius: 8,
-            transition: "background 0.2s",
-          }} onMouseEnter={(e) => e.currentTarget.style.background = colors.borderLight}
-             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-            ✕
-          </button>
+            background: "transparent", border: "none",
+            fontSize: 24, cursor: "pointer", color: colors.textMuted,
+            padding: 4, borderRadius: 8,
+          }}>✕</button>
         </div>
 
-        {/* Modal Body - Form */}
         <form onSubmit={handleSubmit} style={{ padding: "24px" }}>
           {error && (
             <div style={{
-              background: colors.coralSoft,
-              color: colors.coral,
-              padding: "12px",
-              borderRadius: 12,
-              fontSize: 13,
-              marginBottom: 20,
-            }}>
-              ⚠️ {error}
-            </div>
+              background: colors.coralSoft, color: colors.coral,
+              padding: "12px", borderRadius: 12, fontSize: 13, marginBottom: 20,
+            }}>⚠️ {error}</div>
           )}
 
-          {/* Title */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{
-              display: "block",
-              fontSize: 13,
-              fontWeight: 600,
-              color: colors.textPrimary,
-              marginBottom: 6,
-            }}>
-              Course Title *
-            </label>
+            <label style={labelStyle}>Course Title *</label>
             <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              required
+              type="text" name="title" value={formData.title}
+              onChange={handleChange} required
               placeholder="e.g., Advanced JavaScript"
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: `1px solid ${colors.borderLight}`,
-                borderRadius: 12,
-                fontSize: 14,
-                outline: "none",
-                transition: "border-color 0.2s",
-              }}
-              onFocus={(e) => e.target.style.borderColor = colors.primary}
-              onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+              style={inputStyle}
             />
           </div>
 
-          {/* Description */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{
-              display: "block",
-              fontSize: 13,
-              fontWeight: 600,
-              color: colors.textPrimary,
-              marginBottom: 6,
-            }}>
-              Description
-            </label>
+            <label style={labelStyle}>Description</label>
             <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={3}
+              name="description" value={formData.description}
+              onChange={handleChange} rows={3}
               placeholder="Brief description of the course..."
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: `1px solid ${colors.borderLight}`,
-                borderRadius: 12,
-                fontSize: 14,
-                fontFamily: "inherit",
-                resize: "vertical",
-                outline: "none",
-              }}
-              onFocus={(e) => e.target.style.borderColor = colors.primary}
-              onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+              style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
             />
           </div>
 
-          {/* Price and Instructor Row */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
-            marginBottom: 20,
-          }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
             <div>
-              <label style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                color: colors.textPrimary,
-                marginBottom: 6,
-              }}>
-                Price ($) *
-              </label>
+              <label style={labelStyle}>Price ($) *</label>
               <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                required
-                step="0.01"
-                placeholder="0.00"
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  border: `1px solid ${colors.borderLight}`,
-                  borderRadius: 12,
-                  fontSize: 14,
-                  outline: "none",
-                }}
-                onFocus={(e) => e.target.style.borderColor = colors.primary}
-                onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+                type="number" name="price" value={formData.price}
+                onChange={handleChange} required step="0.01" placeholder="0.00"
+                style={inputStyle}
               />
             </div>
             <div>
-              <label style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                color: colors.textPrimary,
-                marginBottom: 6,
-              }}>
-                Instructor *
-              </label>
+              <label style={labelStyle}>Instructor *</label>
               <input
-                type="text"
-                name="instructor"
-                value={formData.instructor}
-                onChange={handleChange}
-                required
-                placeholder="e.g., John Doe"
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  border: `1px solid ${colors.borderLight}`,
-                  borderRadius: 12,
-                  fontSize: 14,
-                  outline: "none",
-                }}
-                onFocus={(e) => e.target.style.borderColor = colors.primary}
-                onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+                type="text" name="instructor" value={formData.instructor}
+                onChange={handleChange} required placeholder="e.g., John Doe"
+                style={inputStyle}
               />
             </div>
           </div>
 
-          {/* Duration and Level Row */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 16,
-            marginBottom: 20,
-          }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
             <div>
-              <label style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                color: colors.textPrimary,
-                marginBottom: 6,
-              }}>
-                Duration
-              </label>
+              <label style={labelStyle}>Duration</label>
               <select
-                name="duration"
-                value={formData.duration}
-                onChange={handleChange}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  border: `1px solid ${colors.borderLight}`,
-                  borderRadius: 12,
-                  fontSize: 14,
-                  backgroundColor: colors.surface,
-                  cursor: "pointer",
-                  outline: "none",
-                }}
-                onFocus={(e) => e.target.style.borderColor = colors.primary}
-                onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+                name="duration" value={formData.duration} onChange={handleChange}
+                style={{ ...inputStyle, backgroundColor: colors.surface, cursor: "pointer" }}
               >
                 <option value="">Select duration</option>
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
+                <option value="1-2 hours">1–2 hours</option>
+                <option value="3-5 hours">3–5 hours</option>
+                <option value="6-10 hours">6–10 hours</option>
+                <option value="10-20 hours">10–20 hours</option>
+                <option value="20+ hours">20+ hours</option>
               </select>
             </div>
             <div>
-              <label style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                color: colors.textPrimary,
-                marginBottom: 6,
-              }}>
-                Level
-              </label>
+              <label style={labelStyle}>Level</label>
               <select
-                name="level"
-                value={formData.level}
-                onChange={handleChange}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  border: `1px solid ${colors.borderLight}`,
-                  borderRadius: 12,
-                  fontSize: 14,
-                  backgroundColor: colors.surface,
-                  cursor: "pointer",
-                  outline: "none",
-                }}
-                onFocus={(e) => e.target.style.borderColor = colors.primary}
-                onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+                name="level" value={formData.level} onChange={handleChange}
+                style={{ ...inputStyle, backgroundColor: colors.surface, cursor: "pointer" }}
               >
                 <option value="">Select level</option>
                 <option value="Beginner">Beginner</option>
@@ -581,116 +411,35 @@ const handleSubmit = async (e) => {
             </div>
           </div>
 
-          {/* Video URL */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{
-              display: "block",
-              fontSize: 13,
-              fontWeight: 600,
-              color: colors.textPrimary,
-              marginBottom: 6,
-            }}>
-              Video URL
-            </label>
+            <label style={labelStyle}>Video URL</label>
             <input
-              type="url"
-              name="videoUrl"
-              value={formData.videoUrl}
-              onChange={handleChange}
-              placeholder="https://youtube.com/..."
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: `1px solid ${colors.borderLight}`,
-                borderRadius: 12,
-                fontSize: 14,
-                outline: "none",
-              }}
-              onFocus={(e) => e.target.style.borderColor = colors.primary}
-              onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+              type="url" name="videoUrl" value={formData.videoUrl}
+              onChange={handleChange} placeholder="https://youtube.com/..."
+              style={inputStyle}
             />
           </div>
 
-          {/* Image URL */}
           <div style={{ marginBottom: 24 }}>
-            <label style={{
-              display: "block",
-              fontSize: 13,
-              fontWeight: 600,
-              color: colors.textPrimary,
-              marginBottom: 6,
-            }}>
-              Image URL
-            </label>
+            <label style={labelStyle}>Image URL</label>
             <input
-              type="url"
-              name="imageUrl"
-              value={formData.imageUrl}
-              onChange={handleChange}
-              placeholder="https://example.com/course-image.jpg"
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: `1px solid ${colors.borderLight}`,
-                borderRadius: 12,
-                fontSize: 14,
-                outline: "none",
-              }}
-              onFocus={(e) => e.target.style.borderColor = colors.primary}
-              onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+              type="url" name="imageUrl" value={formData.imageUrl}
+              onChange={handleChange} placeholder="https://example.com/image.jpg"
+              style={inputStyle}
             />
           </div>
 
-          {/* Form Actions */}
-          <div style={{
-            display: "flex",
-            gap: 12,
-            justifyContent: "flex-end",
-            paddingTop: 8,
-          }}>
-            <button
-              type="button"
-              onClick={handleClose}
-              style={{
-                padding: "10px 20px",
-                borderRadius: 40,
-                fontSize: 13,
-                fontWeight: 500,
-                background: "transparent",
-                border: `1px solid ${colors.borderLight}`,
-                color: colors.textSecondary,
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = colors.borderLight;
-                e.currentTarget.style.borderColor = colors.textMuted;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.borderColor = colors.borderLight;
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: "10px 24px",
-                borderRadius: 40,
-                fontSize: 13,
-                fontWeight: 600,
-                background: colors.gradPrimary,
-                border: "none",
-                color: "#fff",
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1,
-                transition: "transform 0.2s, opacity 0.2s",
-              }}
-            >
-              {loading ? "Creating..." : "Create Course"}
-            </button>
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", paddingTop: 8 }}>
+            <button type="button" onClick={handleClose} style={{
+              padding: "10px 20px", borderRadius: 40, fontSize: 13, fontWeight: 500,
+              background: "transparent", border: `1px solid ${colors.borderLight}`,
+              color: colors.textSecondary, cursor: "pointer",
+            }}>Cancel</button>
+            <button type="submit" disabled={loading} style={{
+              padding: "10px 24px", borderRadius: 40, fontSize: 13, fontWeight: 600,
+              background: colors.gradPrimary, border: "none", color: "#fff",
+              cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1,
+            }}>{loading ? "Creating..." : "Create Course"}</button>
           </div>
         </form>
       </div>
@@ -701,17 +450,17 @@ const handleSubmit = async (e) => {
 // ================= MAIN COMPONENT =================
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab]     = useState("dashboard");
-  const [searchTerm, setSearchTerm]   = useState("");
-  const [isMobile, setIsMobile]       = useState(window.innerWidth <= 768);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState(null);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
-  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false); // Modal state
+  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
 
   const [dashboardStats, setDashboardStats] = useState(null);
-  const [courses, setCourses]               = useState([]);
-  const [students, setStudents]             = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [students, setStudents] = useState([]);
 
   // Resize listener
   useEffect(() => {
@@ -726,47 +475,93 @@ export default function AdminDashboard() {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch all students (without search)
+  const fetchAllStudents = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getAllStudents();
+      setStudents(response.data || []);
+    } catch (err) {
+      console.error("Fetch users error:", err);
+      setError(err.response?.data?.message || "Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search students by name
+  const searchStudents = async (name) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await searchUsersByName(name);
+      setStudents(response.data || []);
+    } catch (err) {
+      console.error("Search error:", err);
+      setError(err.response?.data?.message || "Failed to search users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchDashboardStats = async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       const response = await getDashboardStats();
       setDashboardStats(response.data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load dashboard data");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchCourses = async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       const response = await getAdminCoursesSimple();
       setCourses(response.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load courses");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const fetchStudents = async () => {
-    setLoading(true); setError(null);
-    try {
-      const response = await getAdminStudents();
-      setStudents(response.data || []);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to load students");
-    } finally { setLoading(false); }
+  // Handle search input change
+  const handleSearch = async (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (!value.trim()) {
+      await fetchAllStudents();
+    } else {
+      await searchStudents(value);
+    }
   };
 
+  // Tab change effect
   useEffect(() => {
-    if (activeTab === "dashboard")     fetchDashboardStats();
-    else if (activeTab === "courses")  fetchCourses();
-    else if (activeTab === "students") fetchStudents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setSearchTerm("");
+    if (activeTab === "dashboard") {
+      fetchDashboardStats();
+    } else if (activeTab === "courses") {
+      fetchCourses();
+    } else if (activeTab === "students") {
+      fetchAllStudents();
+    }
   }, [activeTab]);
 
-  const filteredStudents = students.filter((s) =>
-    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleUpdateRole = (studentId, currentRole) => {
+    alert(`Edit role for user ${studentId}\nCurrent role: ${currentRole}\nThis feature requires updateUserRole API endpoint.`);
+  };
+
+  const handleToggleStatus = (studentId, currentStatus) => {
+    alert(`Toggle status for user ${studentId}\nCurrent status: ${currentStatus}\nThis feature requires updateUserStatus API endpoint.`);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -776,14 +571,14 @@ export default function AdminDashboard() {
   };
 
   const kpis = dashboardStats ? [
-    { label: "Total Students",    value: dashboardStats.totalStudents?.toLocaleString()    || "0", iconBg: colors.primarySoft, icon: "👨‍🎓" },
-    { label: "Total Courses",     value: dashboardStats.totalCourses?.toString()            || "0", iconBg: colors.tealSoft,    icon: "🌐"  },
-    { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0", iconBg: colors.amberSoft,   icon: "📚"  },
+    { label: "Total Students", value: dashboardStats.totalStudents?.toLocaleString() || "0", iconBg: colors.primarySoft, icon: "👨‍🎓" },
+    { label: "Total Courses", value: dashboardStats.totalCourses?.toString() || "0", iconBg: colors.tealSoft, icon: "🌐" },
+    { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0", iconBg: colors.amberSoft, icon: "📚" },
   ] : [];
 
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
-    if (error)   return (
+    if (error) return (
       <div style={{ textAlign: "center", color: colors.coral, padding: "40px" }}>
         ⚠️ {error}
       </div>
@@ -800,7 +595,6 @@ export default function AdminDashboard() {
             }}>
               {kpis.map((k, i) => <KpiCard key={i} {...k} loading={loading} />)}
             </div>
-
             <div style={{
               background: colors.surface, border: `1px solid ${colors.borderLight}`,
               borderRadius: 16, padding: isMobile ? 20 : 30, textAlign: "center",
@@ -812,20 +606,6 @@ export default function AdminDashboard() {
               <p style={{ color: colors.textSecondary, fontSize: 14 }}>
                 Manage your courses, track student progress, and monitor your learning platform
               </p>
-              <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 24, flexWrap: "wrap" }}>
-                <div style={{ textAlign: "center", padding: "12px 20px", background: colors.primarySoft, borderRadius: 12 }}>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: colors.primary }}>{dashboardStats?.totalStudents || 0}</div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Active Students</div>
-                </div>
-                <div style={{ textAlign: "center", padding: "12px 20px", background: colors.tealSoft, borderRadius: 12 }}>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: colors.teal }}>{dashboardStats?.totalCourses || 0}</div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Active Courses</div>
-                </div>
-                <div style={{ textAlign: "center", padding: "12px 20px", background: colors.amberSoft, borderRadius: 12 }}>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: colors.amber }}>{dashboardStats?.totalEnrollments || 0}</div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Total Enrollments</div>
-                </div>
-              </div>
             </div>
           </>
         );
@@ -847,11 +627,12 @@ export default function AdminDashboard() {
                   Total {courses.length} courses available
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsAddCourseModalOpen(true)}
                 style={{
                   background: colors.primary, color: "#fff", border: "none",
-                  padding: "8px 16px", borderRadius: 40, fontSize: 13, fontWeight: 500, cursor: "pointer",
+                  padding: "8px 16px", borderRadius: 40, fontSize: 13,
+                  fontWeight: 500, cursor: "pointer",
                 }}
               >+ New Course</button>
             </div>
@@ -904,18 +685,23 @@ export default function AdminDashboard() {
               <div>
                 <h2 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 700 }}>👨‍🎓 All Students</h2>
                 <p style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
-                  Total {students.length} students enrolled
+                  Total {students.length} students found
                 </p>
               </div>
               <input
                 type="text"
-                placeholder="Search students..."
+                placeholder="Search users by name..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearch}
                 style={{
-                  padding: "8px 14px", border: `1px solid ${colors.borderLight}`,
-                  borderRadius: 40, fontSize: 13,
-                  width: isMobile ? "100%" : 240, outline: "none",
+                  padding: "8px 14px",
+                  border: `1px solid ${colors.borderLight}`,
+                  borderRadius: 40,
+                  fontSize: 13,
+                  width: isMobile ? "100%" : 240,
+                  outline: "none",
+                  transition: "all 0.2s",
+                  boxSizing: "border-box",
                 }}
               />
             </div>
@@ -926,23 +712,46 @@ export default function AdminDashboard() {
                     <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>ID</th>
                     <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Name</th>
                     <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Email</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Role</th>
                     <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Status</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((s) => (
+                  {students.length > 0 ? (
+                    students.map((s) => (
                       <tr key={s.id} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
                         <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{s.id}</td>
                         <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 500 }}>{s.name}</td>
                         <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{s.email}</td>
+                        <td style={{ padding: "12px 0" }}><Badge status={s.role || "STUDENT"} /></td>
                         <td style={{ padding: "12px 0" }}><Badge status={s.status || "ACTIVE"} /></td>
+                        <td style={{ padding: "12px 0" }}>
+                          <button
+                            onClick={() => handleUpdateRole(s.id, s.role)}
+                            style={{
+                              padding: "4px 10px", fontSize: 11, borderRadius: 6,
+                              border: `1px solid ${colors.borderLight}`,
+                              background: colors.surface, cursor: "pointer", marginRight: 8,
+                            }}
+                          >Edit Role</button>
+                          <button
+                            onClick={() => handleToggleStatus(s.id, s.status)}
+                            style={{
+                              padding: "4px 10px", fontSize: 11, borderRadius: 6,
+                              border: `1px solid ${colors.borderLight}`,
+                              background: s.status === "ACTIVE" ? colors.coralSoft : colors.tealSoft,
+                              color: s.status === "ACTIVE" ? colors.coral : colors.teal,
+                              cursor: "pointer",
+                            }}
+                          >{s.status === "ACTIVE" ? "Deactivate" : "Activate"}</button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} style={{ textAlign: "center", padding: "40px", color: colors.textMuted }}>
-                        No students found
+                      <td colSpan={6} style={{ textAlign: "center", padding: "40px", color: colors.textMuted }}>
+                        {searchTerm ? `No students found matching "${searchTerm}"` : "No students found"}
                       </td>
                     </tr>
                   )}
@@ -963,7 +772,6 @@ export default function AdminDashboard() {
       fontFamily: "'Inter', -apple-system, sans-serif",
       paddingBottom: isMobile ? 70 : 0,
     }}>
-      {/* Desktop Sidebar */}
       {!isMobile && (
         <nav style={{
           width: 260, background: colors.surface,
@@ -1011,7 +819,6 @@ export default function AdminDashboard() {
         </nav>
       )}
 
-      {/* Mobile Header */}
       {isMobile && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0,
@@ -1031,7 +838,6 @@ export default function AdminDashboard() {
               <div style={{ fontSize: 9, color: colors.textMuted }}>ADMIN DASHBOARD</div>
             </div>
           </div>
-          {/* Compact time in mobile header */}
           <div style={{ fontSize: 11, color: colors.textMuted, textAlign: "right" }}>
             <div style={{ fontWeight: 600, color: colors.primary }}>{currentTime}</div>
             <div>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
@@ -1039,11 +845,9 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Main Content */}
       <main style={{
         flex: 1, padding: isMobile ? "70px 16px 20px" : "32px 40px", overflowY: "auto",
       }}>
-        {/* Page Header — title left, date/time widget right */}
         <div style={{
           display: "flex", justifyContent: "space-between",
           alignItems: isMobile ? "flex-start" : "center",
@@ -1053,24 +857,20 @@ export default function AdminDashboard() {
           <div>
             <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, marginBottom: 4 }}>
               {activeTab === "dashboard" && "Dashboard"}
-              {activeTab === "courses"   && "Course Catalog"}
-              {activeTab === "students"  && "Student Management"}
+              {activeTab === "courses" && "Course Catalog"}
+              {activeTab === "students" && "Student Management"}
             </h1>
             <p style={{ color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }}>
               {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
-              {activeTab === "courses"   && "Manage all your courses from one place"}
-              {activeTab === "students"  && "View and manage all enrolled students"}
+              {activeTab === "courses" && "Manage all your courses from one place"}
+              {activeTab === "students" && "View and manage all enrolled students"}
             </p>
           </div>
-
-          {/* ── DATE / TIME WIDGET ── */}
           <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
         </div>
-
         {renderContent()}
       </main>
 
-      {/* Mobile Bottom Nav */}
       {isMobile && (
         <MobileBottomNav
           activeTab={activeTab}
@@ -1079,7 +879,6 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* Add Course Modal */}
       <AddCourseModal
         isOpen={isAddCourseModalOpen}
         onClose={() => setIsAddCourseModalOpen(false)}

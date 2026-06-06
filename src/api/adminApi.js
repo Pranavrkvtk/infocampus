@@ -66,12 +66,57 @@ export const getAdminCoursesSimple = () => {
   return api.get("/admin/courses");
 };
 
+// ==================== USER MANAGEMENT APIs ====================
+
+// Search users by name
+export const searchUsersByName = (name) => {
+  const token = localStorage.getItem("token");
+
+  return api.get("/admin/users/search", {
+    params: { name },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+};
+// Get all users
+export const getAllUsers = () => {
+  return api.get("/admin/users");
+};
+
+// Get user by ID
+export const getUserById = (id) => {
+  return api.get(`/admin/users/${id}`);
+};
+
+// Update user role
+export const updateUserRole = (id, role) => {
+  return api.put(`/admin/users/${id}/role`, null, {
+    params: { role: role }
+  });
+};
+
+// Update user status
+export const updateUserStatus = (id, status) => {
+  return api.put(`/admin/users/${id}/status`, null, {
+    params: { status: status }
+  });
+};
+
+// Delete user
+export const deleteUser = (id) => {
+  return api.delete(`/admin/users/${id}`);
+};
+
 // ==================== STUDENT MANAGEMENT APIs ====================
 
-// Get all students with pagination and filters
-export const getAllStudents = (search = "", status = "", page = 0, size = 20) => {
-  return api.get("/admin/students/all", {
-    params: { search, status, page, size }
+export const getAllStudents = () => {
+  const token = localStorage.getItem("token");
+
+  return api.get("/admin/users", {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
   });
 };
 
@@ -86,7 +131,7 @@ export const getStudentProgress = (id) => {
 };
 
 // Update student status
-export const updateStudentStatus = (id, status) => {
+export const updateStudentStatusById = (id, status) => {
   return api.put(`/admin/students/${id}/status`, null, {
     params: { status }
   });
