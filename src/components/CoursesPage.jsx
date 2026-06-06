@@ -152,16 +152,16 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
   const [error, setError] = useState(null);
 
   // Fetch full course detail if lessons not already loaded
+  const hasLessons = Boolean(detail.lessons?.length);
   useEffect(() => {
-    if (detail.lessons?.length) return; // already have it
-    if (!course.id) return;
-
+    if (hasLessons || !course.id) return;
+ 
     setLoading(true);
     getCourseById(course.id)
       .then(res => setDetail(res.data))
       .catch(() => setError("Failed to load course details."))
       .finally(() => setLoading(false));
-  }, [course.id]);
+  }, [course.id, hasLessons]);
 
   const lessons = detail.lessons ?? [];
 
