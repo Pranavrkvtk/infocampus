@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "./Login.css";
 import { Link } from "react-router-dom";
 import { loginUser } from "../api/authApi";
+import Swal from "sweetalert2";
 
 function Login() {
   const [showPass, setShowPass] = useState(false);
@@ -10,28 +11,50 @@ function Login() {
 
 const handleLogin = async (e) => {
   e.preventDefault();
+
   try {
     const res = await loginUser({ email, password });
-    
+
     console.log("Login Response:", res.data);
-    
-    // ✅ Store ALL data from backend
+
+    // Store data
     localStorage.setItem("token", res.data.token);
     localStorage.setItem("role", res.data.role);
-    localStorage.setItem("userId", res.data.userId);   // ← ADD THIS
-    localStorage.setItem("userName", res.data.name);   // ← ADD THIS
-    
-    alert("Login Successful");
-    
+    localStorage.setItem("userId", res.data.userId);
+    localStorage.setItem("userName", res.data.name);
+
+    await Swal.fire({
+      icon: "success",
+      title: `Welcome ${res.data.name}! 👋`,
+      text: "Login Successful",
+      confirmButtonColor: "#10b981",
+      timer: 2000,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    });
+
     // Redirect based on role
     if (res.data.role?.toUpperCase() === "ADMIN") {
       window.location.replace("/admin");
     } else {
       window.location.replace("/courses");
     }
+
   } catch (error) {
     console.error("Login Error:", error);
-    alert("Login failed");
+
+    const msg =
+      typeof error?.response?.data === "string"
+        ? error.response.data
+        : error?.response?.data?.message ||
+          "Invalid email or password";
+
+    Swal.fire({
+      icon: "error",
+      title: "Login Failed ❌",
+      text: msg,
+      confirmButtonColor: "#ef4444",
+    });
   }
 };
   return (

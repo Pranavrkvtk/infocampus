@@ -5,7 +5,7 @@ import {
   enrollInCourse,
   getUserEnrollments,
 } from "../api/courseApi"; // adjust path if needed
-
+import Swal from "sweetalert2";
 // ==================== CATEGORIES ====================
 const CATEGORIES = [
   { id: "all", label: "All Courses", icon: "📚", color: "#6366f1" },
@@ -577,32 +577,67 @@ export default function CoursesPage() {
     fetchEnrollments();
   }, [fetchCourses, fetchEnrollments]);
 
-  // ---- Enroll in a course ----
-  const handleEnroll = useCallback(async (course) => {
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      alert("❌ Please log in first.");
-      return;
-    }
-    if (enrolledIds.includes(course.id)) return; // already enrolled
-    if (enrollingIds.has(course.id)) return;      // already in progress
+ const handleEnroll = useCallback(async (course) => {
+  const userId = localStorage.getItem("userId");
 
-    setEnrollingIds(prev => new Set(prev).add(course.id));
-    try {
-      await enrollInCourse(course.id);
-      setEnrolledIds(prev => [...prev, course.id]);
-      alert(`✅ Enrolled in "${course.title}"!`);
-    } catch (err) {
-      console.error("Enrollment error:", err);
-      // Backend returns a plain string on error (e.g. "Already enrolled in this course")
-      const msg = typeof err?.response?.data === "string"
+  if (!userId) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "Please log in first to enroll in a course.",
+      confirmButtonColor: "#2563eb",
+    });
+    return;
+  }
+
+  if (enrolledIds.includes(course.id)) return;
+  if (enrollingIds.has(course.id)) return;
+
+  setEnrollingIds((prev) => new Set(prev).add(course.id));
+
+  try {
+    await enrollInCourse(course.id);
+
+    setEnrolledIds((prev) => [...prev, course.id]);
+
+    Swal.fire({
+      icon: "success",
+      title: "🎉 Enrollment Successful!",
+      html: `
+        <p>You have successfully enrolled in:</p>
+        <strong>${course.title}</strong>
+      `,
+      confirmButtonText: "Continue Learning",
+      confirmButtonColor: "#10b981",
+      timer: 3000,
+      timerProgressBar: true,
+    });
+
+  } catch (err) {
+    console.error("Enrollment error:", err);
+
+    const msg =
+      typeof err?.response?.data === "string"
         ? err.response.data
-        : err?.response?.data?.message ?? err.message ?? "Enrollment failed.";
-      alert(`❌ ${msg}`);
-    } finally {
-      setEnrollingIds(prev => { const s = new Set(prev); s.delete(course.id); return s; });
-    }
-  }, [enrolledIds, enrollingIds]);
+        : err?.response?.data?.message ||
+          err.message ||
+          "Enrollment failed.";
+
+    Swal.fire({
+      icon: "error",
+      title: "Enrollment Failed",
+      text: msg,
+      confirmButtonColor: "#ef4444",
+    });
+
+  } finally {
+    setEnrollingIds((prev) => {
+      const s = new Set(prev);
+      s.delete(course.id);
+      return s;
+    });
+  }
+}, [enrolledIds, enrollingIds]);
 
   const handleViewCourse = useCallback((course) => {
     setSelectedCourse(course);
