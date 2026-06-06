@@ -6,6 +6,7 @@ import {
   getUserEnrollments,
 } from "../api/courseApi"; // adjust path if needed
 import Swal from "sweetalert2";
+import { Navigate, useNavigate } from "react-router-dom";
 // ==================== CATEGORIES ====================
 const CATEGORIES = [
   { id: "all", label: "All Courses", icon: "📚", color: "#6366f1" },
@@ -510,6 +511,8 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
 
 // ==================== APP ROOT ====================
 export default function CoursesPage() {
+    const navigate = useNavigate(); // Initialize navigate hook
+
   const [page, setPage] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
 
@@ -576,8 +579,7 @@ export default function CoursesPage() {
     fetchCourses();
     fetchEnrollments();
   }, [fetchCourses, fetchEnrollments]);
-
- const handleEnroll = useCallback(async (course) => {
+const handleEnroll = useCallback(async (course) => {
   const userId = localStorage.getItem("userId");
 
   if (!userId) {
@@ -623,6 +625,36 @@ export default function CoursesPage() {
           err.message ||
           "Enrollment failed.";
 
+    // Check if the error indicates the user needs a free/premium account
+    const needsFreeAccount = 
+      msg.toLowerCase().includes("premium") ||
+      msg.toLowerCase().includes("upgrade") ||
+      msg.toLowerCase().includes("subscription") ||
+      msg.toLowerCase().includes("free account") ||
+      err?.response?.status === 402 || // Payment Required
+      err?.response?.status === 403;   // Forbidden
+
+    if (needsFreeAccount) {
+      // Show info message with only one button
+      await Swal.fire({
+        icon: "info",
+        title: "Free Account Required",
+        html: `
+          <p>You need a <strong>free account</strong> to enroll in this course.</p>
+          <p>Please create a free account to continue.</p>
+        `,
+        confirmButtonText: "Create Free Account",
+        confirmButtonColor: "#10b981",
+        showCancelButton: false, // Set to false to hide cancel button
+        allowOutsideClick: false, // Optional: prevent closing by clicking outside
+      });
+
+      // Redirect to free account page
+      navigate("/free-account");
+      return;
+    }
+
+    // Regular error message for other failures
     Swal.fire({
       icon: "error",
       title: "Enrollment Failed",
@@ -637,7 +669,7 @@ export default function CoursesPage() {
       return s;
     });
   }
-}, [enrolledIds, enrollingIds]);
+}, [enrolledIds, enrollingIds, navigate]); // Make sure 'navigate' is lowercase
 
   const handleViewCourse = useCallback((course) => {
     setSelectedCourse(course);
