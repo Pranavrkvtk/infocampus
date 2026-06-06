@@ -284,8 +284,7 @@ const handleSubmit = async (e) => {
   } finally {
     setLoading(false);
   }
-};x
-
+};
   const resetForm = () => {
     setFormData({
       title: "",
