@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   getDashboardStats,
-  getAdminStudents,
   getAllStudents,
   getAdminCoursesSimple,
   createAdminCourse,
