@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import {
   getDashboardStats,
   getAdminStudents,
-  getAdminCoursesSimple
+  getAdminCoursesSimple,
+  createAdminCourse  
 } from "../../api/adminApi";
+
 
 // ================= LIGHT MODERN THEME =================
 const colors = {
@@ -224,6 +226,479 @@ function MobileBottomNav({ activeTab, onTabChange, onLogout }) {
   );
 }
 
+// ================= ADD COURSE MODAL =================
+
+function AddCourseModal({ isOpen, onClose, onCourseCreated }) {
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    price: "",
+    instructor: "",
+    duration: "",
+    level: "",
+    videoUrl: "",
+    imageUrl: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+// Inside AddCourseModal component, update the handleSubmit function:
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
+
+  // Prepare data matching your exact payload structure
+  const courseData = {
+    title: formData.title,
+    description: formData.description || null,
+    price: parseFloat(formData.price),
+    instructor: formData.instructor,
+    duration: formData.duration || null,
+    videoUrl: formData.videoUrl || null,
+    imageUrl: formData.imageUrl || null,
+    level: formData.level || null
+  };
+
+  try {
+    // Use the correct API function createAdminCourse
+    const response = await createAdminCourse(courseData);
+    console.log("Course created successfully:", response.data);
+    
+    // Show success message (optional)
+    alert("Course created successfully!");
+    
+    // Refresh the course list
+    if (onCourseCreated) await onCourseCreated();
+    onClose();
+    resetForm();
+  } catch (err) {
+    console.error("Error creating course:", err);
+    setError(err.response?.data?.message || "Failed to create course");
+  } finally {
+    setLoading(false);
+  }
+};x
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      price: "",
+      instructor: "",
+      duration: "",
+      level: "",
+      videoUrl: "",
+      imageUrl: "",
+    });
+    setError("");
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+      backdropFilter: "blur(4px)",
+    }} onClick={handleClose}>
+      <div style={{
+        backgroundColor: colors.surface,
+        borderRadius: 24,
+        width: "90%",
+        maxWidth: 600,
+        maxHeight: "90vh",
+        overflowY: "auto",
+        boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+      }} onClick={(e) => e.stopPropagation()}>
+        
+        {/* Modal Header */}
+        <div style={{
+          padding: "20px 24px",
+          borderBottom: `1px solid ${colors.borderLight}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}>
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>➕ Add New Course</h2>
+            <p style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, marginBottom: 0 }}>
+              Fill in the details below to create a new course
+            </p>
+          </div>
+          <button onClick={handleClose} style={{
+            background: "transparent",
+            border: "none",
+            fontSize: 24,
+            cursor: "pointer",
+            color: colors.textMuted,
+            padding: 4,
+            borderRadius: 8,
+            transition: "background 0.2s",
+          }} onMouseEnter={(e) => e.currentTarget.style.background = colors.borderLight}
+             onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+            ✕
+          </button>
+        </div>
+
+        {/* Modal Body - Form */}
+        <form onSubmit={handleSubmit} style={{ padding: "24px" }}>
+          {error && (
+            <div style={{
+              background: colors.coralSoft,
+              color: colors.coral,
+              padding: "12px",
+              borderRadius: 12,
+              fontSize: 13,
+              marginBottom: 20,
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          {/* Title */}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{
+              display: "block",
+              fontSize: 13,
+              fontWeight: 600,
+              color: colors.textPrimary,
+              marginBottom: 6,
+            }}>
+              Course Title *
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              required
+              placeholder="e.g., Advanced JavaScript"
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: 12,
+                fontSize: 14,
+                outline: "none",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => e.target.style.borderColor = colors.primary}
+              onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+            />
+          </div>
+
+          {/* Description */}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{
+              display: "block",
+              fontSize: 13,
+              fontWeight: 600,
+              color: colors.textPrimary,
+              marginBottom: 6,
+            }}>
+              Description
+            </label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Brief description of the course..."
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: 12,
+                fontSize: 14,
+                fontFamily: "inherit",
+                resize: "vertical",
+                outline: "none",
+              }}
+              onFocus={(e) => e.target.style.borderColor = colors.primary}
+              onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+            />
+          </div>
+
+          {/* Price and Instructor Row */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 16,
+            marginBottom: 20,
+          }}>
+            <div>
+              <label style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 600,
+                color: colors.textPrimary,
+                marginBottom: 6,
+              }}>
+                Price ($) *
+              </label>
+              <input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                required
+                step="0.01"
+                placeholder="0.00"
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: `1px solid ${colors.borderLight}`,
+                  borderRadius: 12,
+                  fontSize: 14,
+                  outline: "none",
+                }}
+                onFocus={(e) => e.target.style.borderColor = colors.primary}
+                onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+              />
+            </div>
+            <div>
+              <label style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 600,
+                color: colors.textPrimary,
+                marginBottom: 6,
+              }}>
+                Instructor *
+              </label>
+              <input
+                type="text"
+                name="instructor"
+                value={formData.instructor}
+                onChange={handleChange}
+                required
+                placeholder="e.g., John Doe"
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: `1px solid ${colors.borderLight}`,
+                  borderRadius: 12,
+                  fontSize: 14,
+                  outline: "none",
+                }}
+                onFocus={(e) => e.target.style.borderColor = colors.primary}
+                onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+              />
+            </div>
+          </div>
+
+          {/* Duration and Level Row */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 16,
+            marginBottom: 20,
+          }}>
+            <div>
+              <label style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 600,
+                color: colors.textPrimary,
+                marginBottom: 6,
+              }}>
+                Duration
+              </label>
+              <select
+                name="duration"
+                value={formData.duration}
+                onChange={handleChange}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: `1px solid ${colors.borderLight}`,
+                  borderRadius: 12,
+                  fontSize: 14,
+                  backgroundColor: colors.surface,
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+                onFocus={(e) => e.target.style.borderColor = colors.primary}
+                onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+              >
+                <option value="">Select duration</option>
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </div>
+            <div>
+              <label style={{
+                display: "block",
+                fontSize: 13,
+                fontWeight: 600,
+                color: colors.textPrimary,
+                marginBottom: 6,
+              }}>
+                Level
+              </label>
+              <select
+                name="level"
+                value={formData.level}
+                onChange={handleChange}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: `1px solid ${colors.borderLight}`,
+                  borderRadius: 12,
+                  fontSize: 14,
+                  backgroundColor: colors.surface,
+                  cursor: "pointer",
+                  outline: "none",
+                }}
+                onFocus={(e) => e.target.style.borderColor = colors.primary}
+                onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+              >
+                <option value="">Select level</option>
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Video URL */}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{
+              display: "block",
+              fontSize: 13,
+              fontWeight: 600,
+              color: colors.textPrimary,
+              marginBottom: 6,
+            }}>
+              Video URL
+            </label>
+            <input
+              type="url"
+              name="videoUrl"
+              value={formData.videoUrl}
+              onChange={handleChange}
+              placeholder="https://youtube.com/..."
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: 12,
+                fontSize: 14,
+                outline: "none",
+              }}
+              onFocus={(e) => e.target.style.borderColor = colors.primary}
+              onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+            />
+          </div>
+
+          {/* Image URL */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{
+              display: "block",
+              fontSize: 13,
+              fontWeight: 600,
+              color: colors.textPrimary,
+              marginBottom: 6,
+            }}>
+              Image URL
+            </label>
+            <input
+              type="url"
+              name="imageUrl"
+              value={formData.imageUrl}
+              onChange={handleChange}
+              placeholder="https://example.com/course-image.jpg"
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: 12,
+                fontSize: 14,
+                outline: "none",
+              }}
+              onFocus={(e) => e.target.style.borderColor = colors.primary}
+              onBlur={(e) => e.target.style.borderColor = colors.borderLight}
+            />
+          </div>
+
+          {/* Form Actions */}
+          <div style={{
+            display: "flex",
+            gap: 12,
+            justifyContent: "flex-end",
+            paddingTop: 8,
+          }}>
+            <button
+              type="button"
+              onClick={handleClose}
+              style={{
+                padding: "10px 20px",
+                borderRadius: 40,
+                fontSize: 13,
+                fontWeight: 500,
+                background: "transparent",
+                border: `1px solid ${colors.borderLight}`,
+                color: colors.textSecondary,
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = colors.borderLight;
+                e.currentTarget.style.borderColor = colors.textMuted;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.borderColor = colors.borderLight;
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: "10px 24px",
+                borderRadius: 40,
+                fontSize: 13,
+                fontWeight: 600,
+                background: colors.gradPrimary,
+                border: "none",
+                color: "#fff",
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.7 : 1,
+                transition: "transform 0.2s, opacity 0.2s",
+              }}
+            >
+              {loading ? "Creating..." : "Create Course"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ================= MAIN COMPONENT =================
 
 export default function AdminDashboard() {
@@ -232,7 +707,8 @@ export default function AdminDashboard() {
   const [isMobile, setIsMobile]       = useState(window.innerWidth <= 768);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
-  const [currentTime, setCurrentTime] = useState(getCurrentTime()); // ← live clock
+  const [currentTime, setCurrentTime] = useState(getCurrentTime());
+  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false); // Modal state
 
   const [dashboardStats, setDashboardStats] = useState(null);
   const [courses, setCourses]               = useState([]);
@@ -372,39 +848,43 @@ export default function AdminDashboard() {
                   Total {courses.length} courses available
                 </p>
               </div>
-              <button style={{
-                background: colors.primary, color: "#fff", border: "none",
-                padding: "8px 16px", borderRadius: 40, fontSize: 13, fontWeight: 500, cursor: "pointer",
-              }}>+ New Course</button>
+              <button 
+                onClick={() => setIsAddCourseModalOpen(true)}
+                style={{
+                  background: colors.primary, color: "#fff", border: "none",
+                  padding: "8px 16px", borderRadius: 40, fontSize: 13, fontWeight: 500, cursor: "pointer",
+                }}
+              >+ New Course</button>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                    {["ID", "Course Name", "Instructor", "Price", "Status"].map((h) => (
-                      <th key={h} style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>{h}</th>
-                    ))}
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>ID</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Course Name</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Instructor</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Price</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {courses.length > 0
-                    ? courses.map((c) => (
-                        <tr key={c.id} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                          <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{c.id}</td>
-                          <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 500 }}>{c.title}</td>
-                          <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{c.instructor || "—"}</td>
-                          <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 500 }}>${c.price}</td>
-                          <td style={{ padding: "12px 0" }}><Badge status={c.status || "PUBLISHED"} /></td>
-                        </tr>
-                      ))
-                    : (
-                        <tr>
-                          <td colSpan={5} style={{ textAlign: "center", padding: "40px", color: colors.textMuted }}>
-                            No courses available
-                          </td>
-                        </tr>
-                      )
-                  }
+                  {courses.length > 0 ? (
+                    courses.map((c) => (
+                      <tr key={c.id} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
+                        <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{c.id}</td>
+                        <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 500 }}>{c.title}</td>
+                        <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{c.instructor || "—"}</td>
+                        <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 500 }}>${c.price}</td>
+                        <td style={{ padding: "12px 0" }}><Badge status={c.status || "PUBLISHED"} /></td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", padding: "40px", color: colors.textMuted }}>
+                        No courses available
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -444,29 +924,29 @@ export default function AdminDashboard() {
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 650 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                    {["ID", "Name", "Email", "Status"].map((h) => (
-                      <th key={h} style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>{h}</th>
-                    ))}
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>ID</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Name</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Email</th>
+                    <th style={{ textAlign: "left", padding: "10px 0", fontSize: 11, color: colors.textMuted }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStudents.length > 0
-                    ? filteredStudents.map((s) => (
-                        <tr key={s.id} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
-                          <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{s.id}</td>
-                          <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 500 }}>{s.name}</td>
-                          <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{s.email}</td>
-                          <td style={{ padding: "12px 0" }}><Badge status={s.status || "ACTIVE"} /></td>
-                        </tr>
-                      ))
-                    : (
-                        <tr>
-                          <td colSpan={4} style={{ textAlign: "center", padding: "40px", color: colors.textMuted }}>
-                            No students found
-                          </td>
-                        </tr>
-                      )
-                  }
+                  {filteredStudents.length > 0 ? (
+                    filteredStudents.map((s) => (
+                      <tr key={s.id} style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
+                        <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{s.id}</td>
+                        <td style={{ padding: "12px 0", fontSize: 13, fontWeight: 500 }}>{s.name}</td>
+                        <td style={{ padding: "12px 0", fontSize: 12, color: colors.textSecondary }}>{s.email}</td>
+                        <td style={{ padding: "12px 0" }}><Badge status={s.status || "ACTIVE"} /></td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: "center", padding: "40px", color: colors.textMuted }}>
+                        No students found
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -599,6 +1079,13 @@ export default function AdminDashboard() {
           onLogout={handleLogout}
         />
       )}
+
+      {/* Add Course Modal */}
+      <AddCourseModal
+        isOpen={isAddCourseModalOpen}
+        onClose={() => setIsAddCourseModalOpen(false)}
+        onCourseCreated={fetchCourses}
+      />
     </div>
   );
 }
