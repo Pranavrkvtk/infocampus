@@ -1,7 +1,7 @@
-// axios.js
 import axios from "axios";
 
 const api = axios.create({
+  baseURL: "https://backendrender-3-3pdg.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -12,7 +12,6 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      // Important: Use the exact format your backend expects
       config.headers.Authorization = `Bearer ${token}`;
       console.log(`[API Request] ${config.method.toUpperCase()} ${config.url} - Token added`);
     } else {
@@ -34,7 +33,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.error("Token expired or invalid. Please login again.");
-      // Clear local storage and redirect to login
       localStorage.removeItem("token");
       localStorage.removeItem("userId");
       localStorage.removeItem("role");
