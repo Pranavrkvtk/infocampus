@@ -155,7 +155,7 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
   const hasLessons = Boolean(detail.lessons?.length);
   useEffect(() => {
     if (hasLessons || !course.id) return;
- 
+
     setLoading(true);
     getCourseById(course.id)
       .then(res => setDetail(res.data))
@@ -560,9 +560,9 @@ export default function CoursesPage() {
     setEnrollmentsError(null);
     try {
       const res = await getUserEnrollments(userId);
-      // API may return enrollment objects or courseIds directly
-      const data = Array.isArray(res.data) ? res.data : res.data?.enrollments ?? [];
-      const ids = data.map(e => e.courseId ?? e.course?.id ?? e.id).filter(Boolean);
+      // Backend returns List<Enrollment> — each has a nested course: { id, title, ... }
+      const data = Array.isArray(res.data) ? res.data : [];
+      const ids = data.map(e => e.course?.id).filter(Boolean);
       setEnrolledIds(ids);
     } catch (err) {
       console.error("Failed to load enrollments:", err);
@@ -594,7 +594,10 @@ export default function CoursesPage() {
       alert(`✅ Enrolled in "${course.title}"!`);
     } catch (err) {
       console.error("Enrollment error:", err);
-      const msg = err?.response?.data?.message ?? err.message ?? "Enrollment failed.";
+      // Backend returns a plain string on error (e.g. "Already enrolled in this course")
+      const msg = typeof err?.response?.data === "string"
+        ? err.response.data
+        : err?.response?.data?.message ?? err.message ?? "Enrollment failed.";
       alert(`❌ ${msg}`);
     } finally {
       setEnrollingIds(prev => { const s = new Set(prev); s.delete(course.id); return s; });
