@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   getDashboardStats,
   getAllStudents,
@@ -456,6 +456,11 @@ export default function AdminDashboard() {
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
+  
+  // Add refs to track ongoing requests
+  const abortControllerRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
+  const currentSearchTermRef = useRef("");
 
   const [dashboardStats, setDashboardStats] = useState(null);
   const [courses, setCourses] = useState([]);
@@ -476,33 +481,91 @@ export default function AdminDashboard() {
 
   // Fetch all students (without search)
   const fetchAllStudents = async () => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    
     setLoading(true);
     setError(null);
     try {
       const response = await getAllStudents();
+      console.log("All students fetched:", response.data?.length || 0);
       setStudents(response.data || []);
     } catch (err) {
-      console.error("Fetch users error:", err);
-      setError(err.response?.data?.message || "Failed to load users");
+      if (err.name !== 'AbortError') {
+        console.error("Fetch users error:", err);
+        setError(err.response?.data?.message || "Failed to load users");
+        setStudents([]);
+      }
     } finally {
       setLoading(false);
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
     }
   };
 
-  // Search students by name
-  const searchStudents = async (name) => {
+  // Search students by name with abort capability
+  const searchStudents = useCallback(async (name) => {
+    // Clear any pending timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    const trimmedName = name?.trim();
+    currentSearchTermRef.current = trimmedName || "";
+    
+    // If empty search, fetch all students
+    if (!trimmedName) {
+      await fetchAllStudents();
+      return;
+    }
+    
+    // Create new abort controller for this search
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    
     setLoading(true);
     setError(null);
+    
     try {
-      const response = await searchUsersByName(name);
-      setStudents(response.data || []);
+      console.log("Searching for students with name:", trimmedName);
+      const response = await searchUsersByName(trimmedName);
+      
+      // Check if this response is still relevant (prevent race condition)
+      if (currentSearchTermRef.current === trimmedName) {
+        console.log("Search response:", response.data?.length || 0, "students found");
+        setStudents(response.data || []);
+      } else {
+        console.log("Search response ignored - search term changed");
+      }
     } catch (err) {
-      console.error("Search error:", err);
-      setError(err.response?.data?.message || "Failed to search users");
+      // Only set error if not aborted and search term is still relevant
+      if (err.name !== 'AbortError' && currentSearchTermRef.current === trimmedName) {
+        console.error("Search error:", err);
+        setError(err.response?.data?.message || "Failed to search users");
+        setStudents([]);
+      }
     } finally {
-      setLoading(false);
+      // Only clear loading if this is still the current search
+      if (currentSearchTermRef.current === trimmedName) {
+        setLoading(false);
+      }
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
     }
-  };
+  }, []);
 
   const fetchDashboardStats = async () => {
     setLoading(true);
@@ -530,21 +593,50 @@ export default function AdminDashboard() {
     }
   };
 
-  // Handle search input change
-  const handleSearch = async (e) => {
+  // Handle search input change with debounce
+  const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
     
-    if (!value.trim()) {
-      await fetchAllStudents();
-    } else {
-      await searchStudents(value);
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
+    
+    // Set new timeout for search
+    searchTimeoutRef.current = setTimeout(() => {
+      searchStudents(value);
+    }, 500);
   };
+
+  // Cleanup on unmount or tab change
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Tab change effect
   useEffect(() => {
+    // Clear search when changing tabs
     setSearchTerm("");
+    currentSearchTermRef.current = "";
+    
+    // Cancel any ongoing requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
     if (activeTab === "dashboard") {
       fetchDashboardStats();
     } else if (activeTab === "courses") {
@@ -580,6 +672,20 @@ export default function AdminDashboard() {
     if (error) return (
       <div style={{ textAlign: "center", color: colors.coral, padding: "40px" }}>
         ⚠️ {error}
+        <button 
+          onClick={() => activeTab === "students" ? fetchAllStudents() : activeTab === "courses" ? fetchCourses() : fetchDashboardStats()}
+          style={{
+            marginLeft: 12,
+            padding: "6px 12px",
+            background: colors.primary,
+            color: "white",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer"
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
 
@@ -685,13 +791,14 @@ export default function AdminDashboard() {
                 <h2 style={{ fontSize: isMobile ? 18 : 20, fontWeight: 700 }}>👨‍🎓 All Students</h2>
                 <p style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
                   Total {students.length} students found
+                  {searchTerm && ` for "${searchTerm}"`}
                 </p>
               </div>
               <input
                 type="text"
                 placeholder="Search users by name..."
                 value={searchTerm}
-                onChange={handleSearch}
+                onChange={handleSearchChange}
                 style={{
                   padding: "8px 14px",
                   border: `1px solid ${colors.borderLight}`,
