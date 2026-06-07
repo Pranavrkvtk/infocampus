@@ -251,53 +251,66 @@ export function LoadingSpinner() {
 // ================= DATE TIME WIDGET =================
 
 export function DateTimeWidget({ isMobile, currentTime }) {
+  const currentDate = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 12,
+        gap: isMobile ? 10 : 14,
         background: colors.surface,
         border: `1px solid ${colors.borderLight}`,
         borderRadius: 14,
-        padding: isMobile ? "10px 16px" : "10px 20px",
-        minWidth: isMobile ? "100%" : "auto",
+        padding: isMobile ? "10px 12px" : "12px 18px",
+        width: isMobile ? "100%" : "auto",
+        maxWidth: isMobile ? "100%" : "320px",
         boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
       }}
     >
+      {/* Date Icon */}
       <div
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
+          width: isMobile ? 38 : 46,
+          height: isMobile ? 38 : 46,
+          borderRadius: 12,
           background: colors.primarySoft,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 20,
+          fontSize: isMobile ? 18 : 22,
           flexShrink: 0,
         }}
       >
         📅
       </div>
-      <div>
+
+      {/* Date & Time */}
+      <div style={{ overflow: "hidden" }}>
         <div
           style={{
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: isMobile ? 12 : 14,
+            fontWeight: 700,
             color: colors.textPrimary,
-            lineHeight: 1.3,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
-          {getCurrentDate()}
+          {currentDate}
         </div>
+
         <div
           style={{
-            fontSize: 12,
+            fontSize: isMobile ? 11 : 13,
             color: colors.primary,
-            fontWeight: 500,
-            fontVariantNumeric: "tabular-nums",
+            fontWeight: 600,
             marginTop: 2,
+            fontVariantNumeric: "tabular-nums",
           }}
         >
           🕐 {currentTime}
