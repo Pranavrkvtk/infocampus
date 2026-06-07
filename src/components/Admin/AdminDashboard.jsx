@@ -3,10 +3,8 @@ import {
   getDashboardStats,
   getAllStudents,
   getAdminCoursesSimple,
-  createAdminCourse,
   searchUsersByName,
   deleteAdminCourse,
-  updateUserRole,
   updateUserStatus
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
