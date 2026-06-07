@@ -32,32 +32,40 @@ export const navItems = [
   { icon: "👨‍🎓", label: "Students", id: "students" },
 ];
 
-export function Badge({ status }) {
+export const Badge = ({ status }) => {
   const map = {
-    PUBLISHED: { bg: colors.tealSoft, color: colors.teal },
-    DRAFT: { bg: "#F0F2F8", color: colors.textMuted },
-    ACTIVE: { bg: colors.tealSoft, color: colors.teal },
-    INACTIVE: { bg: colors.coralSoft, color: colors.coral },
-    STUDENT: { bg: colors.primarySoft, color: colors.primary },
-    ADMIN: { bg: colors.amberSoft, color: colors.amber },
-    INSTRUCTOR: { bg: colors.tealSoft, color: colors.teal },
+    PUBLISHED: { bg: "#E0F9F2", color: "#14B895" },
+    DRAFT: { bg: "#F0F2F8", color: "#8C9AB0" },
+    ACTIVE: { bg: "#E0F9F2", color: "#14B895" },
+    INACTIVE: { bg: "#FEF2EF", color: "#E8644A" },
+    STUDENT: { bg: "#EEF0FF", color: "#5E5BFF" },
+    ADMIN: { bg: "#FEF5E8", color: "#E68A2E" },
+    INSTRUCTOR: { bg: "#E0F9F2", color: "#14B895" },
   };
-  const s = map[status] || { bg: "#F0F2F8", color: colors.textMuted };
+  const s = map[status] || { bg: "#F0F2F8", color: "#8C9AB0" };
   return (
     <span style={{
-      display: "inline-flex", fontSize: 10.5, padding: "3px 10px",
-      borderRadius: 50, fontWeight: 600, background: s.bg, color: s.color,
-    }}>{status}</span>
+      display: "inline-flex",
+      fontSize: 10.5,
+      padding: "3px 10px",
+      borderRadius: 50,
+      fontWeight: 600,
+      background: s.bg,
+      color: s.color,
+    }}>
+      {status}
+    </span>
   );
-}
+};
 
-export function LoadingSpinner() {
+export const LoadingSpinner = () => {
   return (
     <div style={{ textAlign: "center", padding: "60px" }}>
       <div style={{
-        width: 50, height: 50,
-        border: `3px solid ${colors.borderLight}`,
-        borderTop: `3px solid ${colors.primary}`,
+        width: 50,
+        height: 50,
+        border: `3px solid #E9EDF2`,
+        borderTop: `3px solid #875bff`,
         borderRadius: "50%",
         animation: "spin 0.8s linear infinite",
         margin: "0 auto",
@@ -65,18 +73,36 @@ export function LoadingSpinner() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
-}
+};
 
-export function KpiCard({ label, value, iconBg, icon, loading }) {
+export const KpiCard = ({ label, value, iconBg, icon, loading }) => {
   return (
     <div style={{
-      background: colors.surface, borderRadius: 16, padding: "16px",
-      border: `1px solid ${colors.borderLight}`,
+      background: "#FFFFFF",
+      borderRadius: 16,
+      padding: "16px",
+      border: `1px solid #E9EDF2`,
       boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
     }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, marginBottom: 12 }}>{icon}</div>
-      <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: colors.textPrimary }}>{loading ? "..." : value}</div>
+      <div style={{
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        background: iconBg,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 18,
+        marginBottom: 12
+      }}>
+        {icon}
+      </div>
+      <div style={{ fontSize: 11, color: "#8C9AB0", marginBottom: 4 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: "#1E293B" }}>
+        {loading ? "..." : value}
+      </div>
     </div>
   );
-}
+};
