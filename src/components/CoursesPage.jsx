@@ -6,7 +6,7 @@ import {
   getUserEnrollments,
 } from "../api/courseApi"; // adjust path if needed
 import Swal from "sweetalert2";
-import { Navigate, useNavigate } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
 // ==================== CATEGORIES ====================
 const CATEGORIES = [
   { id: "all", label: "All Courses", icon: "📚", color: "#6366f1" },
