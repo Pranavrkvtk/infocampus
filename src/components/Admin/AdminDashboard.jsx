@@ -305,144 +305,144 @@ function AddCourseModal({ isOpen, onClose, onCourseCreated }) {
   };
 
   return (
+ <div style={{
+  position: "fixed", inset: 0,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  display: "flex", alignItems: "center", justifyContent: "center",
+  zIndex: 1000, backdropFilter: "blur(4px)",
+}} onClick={handleClose}>
+  <div style={{
+    backgroundColor: colors.surface, borderRadius: 20,
+    width: "90%", maxWidth: 500, maxHeight: "85vh",
+    overflowY: "auto", boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+  }} onClick={(e) => e.stopPropagation()}>
+
     <div style={{
-      position: "fixed", inset: 0,
-      backgroundColor: "rgba(0,0,0,0.5)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      zIndex: 1000, backdropFilter: "blur(4px)",
-    }} onClick={handleClose}>
-      <div style={{
-        backgroundColor: colors.surface, borderRadius: 24,
-        width: "90%", maxWidth: 600, maxHeight: "90vh",
-        overflowY: "auto", boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
-      }} onClick={(e) => e.stopPropagation()}>
-
-        <div style={{
-          padding: "20px 24px", borderBottom: `1px solid ${colors.borderLight}`,
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
-          <div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>➕ Add New Course</h2>
-            <p style={{ fontSize: 12, color: colors.textMuted, marginTop: 4, marginBottom: 0 }}>
-              Fill in the details below to create a new course
-            </p>
-          </div>
-          <button onClick={handleClose} style={{
-            background: "transparent", border: "none",
-            fontSize: 24, cursor: "pointer", color: colors.textMuted,
-            padding: 4, borderRadius: 8,
-          }}>✕</button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ padding: "24px" }}>
-          {error && (
-            <div style={{
-              background: colors.coralSoft, color: colors.coral,
-              padding: "12px", borderRadius: 12, fontSize: 13, marginBottom: 20,
-            }}>⚠️ {error}</div>
-          )}
-
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Course Title *</label>
-            <input
-              type="text" name="title" value={formData.title}
-              onChange={handleChange} required
-              placeholder="e.g., Advanced JavaScript"
-              style={inputStyle}
-            />
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Description</label>
-            <textarea
-              name="description" value={formData.description}
-              onChange={handleChange} rows={3}
-              placeholder="Brief description of the course..."
-              style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
-            />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-            <div>
-              <label style={labelStyle}>Price ($) *</label>
-              <input
-                type="number" name="price" value={formData.price}
-                onChange={handleChange} required step="0.01" placeholder="0.00"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Instructor *</label>
-              <input
-                type="text" name="instructor" value={formData.instructor}
-                onChange={handleChange} required placeholder="e.g., John Doe"
-                style={inputStyle}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-            <div>
-              <label style={labelStyle}>Duration</label>
-              <select
-                name="duration" value={formData.duration} onChange={handleChange}
-                style={{ ...inputStyle, backgroundColor: colors.surface, cursor: "pointer" }}
-              >
-                <option value="">Select duration</option>
-                <option value="1-2 hours">1–2 hours</option>
-                <option value="3-5 hours">3–5 hours</option>
-                <option value="6-10 hours">6–10 hours</option>
-                <option value="10-20 hours">10–20 hours</option>
-                <option value="20+ hours">20+ hours</option>
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Level</label>
-              <select
-                name="level" value={formData.level} onChange={handleChange}
-                style={{ ...inputStyle, backgroundColor: colors.surface, cursor: "pointer" }}
-              >
-                <option value="">Select level</option>
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Video URL</label>
-            <input
-              type="url" name="videoUrl" value={formData.videoUrl}
-              onChange={handleChange} placeholder="https://youtube.com/..."
-              style={inputStyle}
-            />
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
-            <label style={labelStyle}>Image URL</label>
-            <input
-              type="url" name="imageUrl" value={formData.imageUrl}
-              onChange={handleChange} placeholder="https://example.com/image.jpg"
-              style={inputStyle}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", paddingTop: 8 }}>
-            <button type="button" onClick={handleClose} style={{
-              padding: "10px 20px", borderRadius: 40, fontSize: 13, fontWeight: 500,
-              background: "transparent", border: `1px solid ${colors.borderLight}`,
-              color: colors.textSecondary, cursor: "pointer",
-            }}>Cancel</button>
-            <button type="submit" disabled={loading} style={{
-              padding: "10px 24px", borderRadius: 40, fontSize: 13, fontWeight: 600,
-              background: colors.gradPrimary, border: "none", color: "#fff",
-              cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1,
-            }}>{loading ? "Creating..." : "Create Course"}</button>
-          </div>
-        </form>
+      padding: "16px 20px", borderBottom: `1px solid ${colors.borderLight}`,
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+    }}>
+      <div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>➕ Add Course</h2>
+        <p style={{ fontSize: 11, color: colors.textMuted, marginTop: 2, marginBottom: 0 }}>
+          Fill in course details
+        </p>
       </div>
+      <button onClick={handleClose} style={{
+        background: "transparent", border: "none",
+        fontSize: 20, cursor: "pointer", color: colors.textMuted,
+        padding: 2, borderRadius: 6,
+      }}>✕</button>
     </div>
+
+    <form onSubmit={handleSubmit} style={{ padding: "16px 20px" }}>
+      {error && (
+        <div style={{
+          background: colors.coralSoft, color: colors.coral,
+          padding: "8px 12px", borderRadius: 10, fontSize: 12, marginBottom: 16,
+        }}>⚠️ {error}</div>
+      )}
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>Course Title *</label>
+        <input
+          type="text" name="title" value={formData.title}
+          onChange={handleChange} required
+          placeholder="e.g., Advanced JavaScript"
+          style={inputStyle}
+        />
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>Description</label>
+        <textarea
+          name="description" value={formData.description}
+          onChange={handleChange} rows={2}
+          placeholder="Brief description..."
+          style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
+        />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        <div>
+          <label style={labelStyle}>Price ($) *</label>
+          <input
+            type="number" name="price" value={formData.price}
+            onChange={handleChange} required step="0.01" placeholder="0.00"
+            style={inputStyle}
+          />
+        </div>
+        <div>
+          <label style={labelStyle}>Instructor *</label>
+          <input
+            type="text" name="instructor" value={formData.instructor}
+            onChange={handleChange} required placeholder="e.g., John Doe"
+            style={inputStyle}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        <div>
+          <label style={labelStyle}>Duration</label>
+          <select
+            name="duration" value={formData.duration} onChange={handleChange}
+            style={{ ...inputStyle, backgroundColor: colors.surface, cursor: "pointer" }}
+          >
+            <option value="">Select</option>
+            <option value="1-2 hours">1–2 hours</option>
+            <option value="3-5 hours">3–5 hours</option>
+            <option value="6-10 hours">6–10 hours</option>
+            <option value="10-20 hours">10–20 hours</option>
+            <option value="20+ hours">20+ hours</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Level</label>
+          <select
+            name="level" value={formData.level} onChange={handleChange}
+            style={{ ...inputStyle, backgroundColor: colors.surface, cursor: "pointer" }}
+          >
+            <option value="">Select</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={labelStyle}>Video URL</label>
+        <input
+          type="url" name="videoUrl" value={formData.videoUrl}
+          onChange={handleChange} placeholder="https://youtube.com/..."
+          style={inputStyle}
+        />
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>Image URL</label>
+        <input
+          type="url" name="imageUrl" value={formData.imageUrl}
+          onChange={handleChange} placeholder="https://example.com/image.jpg"
+          style={inputStyle}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4 }}>
+        <button type="button" onClick={handleClose} style={{
+          padding: "6px 16px", borderRadius: 30, fontSize: 12, fontWeight: 500,
+          background: "transparent", border: `1px solid ${colors.borderLight}`,
+          color: colors.textSecondary, cursor: "pointer",
+        }}>Cancel</button>
+        <button type="submit" disabled={loading} style={{
+          padding: "6px 20px", borderRadius: 30, fontSize: 12, fontWeight: 600,
+          background: colors.gradPrimary, border: "none", color: "#fff",
+          cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1,
+        }}>{loading ? "Creating..." : "Create"}</button>
+      </div>
+    </form>
+  </div>
+</div>
   );
 }
 
