@@ -1,30 +1,41 @@
-// src/components/Admin/AdminStyles.js
+import React from "react";
+
+// ================= COLORS =================
+
 export const colors = {
   bgBase: "#F6F8FC",
   surface: "#FFFFFF",
   borderLight: "#E9EDF2",
+
   primary: "#5E5BFF",
   primaryLight: "#8C8AFF",
   primarySoft: "#EEF0FF",
   primaryDark: "#4C47E6",
+
   teal: "#14B895",
   tealLight: "#4FCFB2",
   tealSoft: "#E0F9F2",
+
   coral: "#E8644A",
   coralLight: "#F08F7A",
   coralSoft: "#FEF2EF",
+
   amber: "#E68A2E",
   amberLight: "#F0B06B",
   amberSoft: "#FEF5E8",
+
   textPrimary: "#1E293B",
   textSecondary: "#5A6A85",
   textMuted: "#8C9AB0",
   textFaint: "#B7C1D4",
+
   gradPrimary: "linear-gradient(135deg, #5E5BFF 0%, #8C8AFF 100%)",
   gradTeal: "linear-gradient(135deg, #14B895 0%, #4FCFB2 100%)",
   gradCoral: "linear-gradient(135deg, #E8644A 0%, #F08F7A 100%)",
   gradAmber: "linear-gradient(135deg, #E68A2E 0%, #F0B06B 100%)",
 };
+
+// ================= NAVIGATION =================
 
 export const navItems = [
   { icon: "📊", label: "Dashboard", id: "dashboard" },
@@ -32,77 +43,266 @@ export const navItems = [
   { icon: "👨‍🎓", label: "Students", id: "students" },
 ];
 
-export const Badge = ({ status }) => {
+// ================= HELPERS =================
+
+export const getCurrentDate = () =>
+  new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+export const getCurrentTime = () =>
+  new Date().toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+// ================= BADGE =================
+
+export function Badge({ status }) {
   const map = {
-    PUBLISHED: { bg: "#E0F9F2", color: "#14B895" },
-    DRAFT: { bg: "#F0F2F8", color: "#8C9AB0" },
-    ACTIVE: { bg: "#E0F9F2", color: "#14B895" },
-    INACTIVE: { bg: "#FEF2EF", color: "#E8644A" },
-    STUDENT: { bg: "#EEF0FF", color: "#5E5BFF" },
-    ADMIN: { bg: "#FEF5E8", color: "#E68A2E" },
-    INSTRUCTOR: { bg: "#E0F9F2", color: "#14B895" },
+    PUBLISHED: {
+      bg: colors.tealSoft,
+      color: colors.teal,
+    },
+
+    DRAFT: {
+      bg: "#F0F2F8",
+      color: colors.textMuted,
+    },
+
+    ACTIVE: {
+      bg: colors.tealSoft,
+      color: colors.teal,
+    },
+
+    INACTIVE: {
+      bg: colors.coralSoft,
+      color: colors.coral,
+    },
+
+    PENDING: {
+      bg: colors.amberSoft,
+      color: colors.amber,
+    },
+
+    STUDENT: {
+      bg: colors.primarySoft,
+      color: colors.primary,
+    },
+
+    ADMIN: {
+      bg: colors.amberSoft,
+      color: colors.amber,
+    },
+
+    INSTRUCTOR: {
+      bg: colors.tealSoft,
+      color: colors.teal,
+    },
+
+    Beginner: {
+      bg: colors.primarySoft,
+      color: colors.primary,
+    },
+
+    Intermediate: {
+      bg: colors.amberSoft,
+      color: colors.amber,
+    },
+
+    Advanced: {
+      bg: colors.coralSoft,
+      color: colors.coral,
+    },
   };
-  const s = map[status] || { bg: "#F0F2F8", color: "#8C9AB0" };
+
+  const style = map[status] || {
+    bg: "#F0F2F8",
+    color: colors.textMuted,
+  };
+
   return (
-    <span style={{
-      display: "inline-flex",
-      fontSize: 10.5,
-      padding: "3px 10px",
-      borderRadius: 50,
-      fontWeight: 600,
-      background: s.bg,
-      color: s.color,
-    }}>
+    <span
+      style={{
+        display: "inline-flex",
+        padding: "3px 10px",
+        borderRadius: 50,
+        fontSize: 10.5,
+        fontWeight: 600,
+        background: style.bg,
+        color: style.color,
+      }}
+    >
       {status}
     </span>
   );
-};
+}
 
-export const LoadingSpinner = () => {
-  return (
-    <div style={{ textAlign: "center", padding: "60px" }}>
-      <div style={{
-        width: 50,
-        height: 50,
-        border: `3px solid #E9EDF2`,
-        borderTop: `3px solid #875bff`,
-        borderRadius: "50%",
-        animation: "spin 0.8s linear infinite",
-        margin: "0 auto",
-      }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
-};
+// ================= KPI CARD =================
 
-export const KpiCard = ({ label, value, iconBg, icon, loading }) => {
+export function KpiCard({
+  label,
+  value,
+  iconBg,
+  icon,
+  loading,
+}) {
   return (
-    <div style={{
-      background: "#FFFFFF",
-      borderRadius: 16,
-      padding: "16px",
-      border: `1px solid #E9EDF2`,
-      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-    }}>
-      <div style={{
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        background: iconBg,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 18,
-        marginBottom: 12
-      }}>
+    <div
+      style={{
+        background: colors.surface,
+        borderRadius: 16,
+        padding: 16,
+        border: `1px solid ${colors.borderLight}`,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow =
+          "0 8px 20px rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow =
+          "0 2px 8px rgba(0,0,0,0.04)";
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: iconBg,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+          marginBottom: 12,
+        }}
+      >
         {icon}
       </div>
-      <div style={{ fontSize: 11, color: "#8C9AB0", marginBottom: 4 }}>
+
+      <div
+        style={{
+          fontSize: 11,
+          color: colors.textMuted,
+          marginBottom: 4,
+        }}
+      >
         {label}
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: "#1E293B" }}>
+
+      <div
+        style={{
+          fontSize: 22,
+          fontWeight: 700,
+          color: colors.textPrimary,
+        }}
+      >
         {loading ? "..." : value}
       </div>
     </div>
   );
-};
+}
+
+// ================= LOADING SPINNER =================
+
+export function LoadingSpinner() {
+  return (
+    <div
+      style={{
+        textAlign: "center",
+        padding: "60px",
+      }}
+    >
+      <div
+        style={{
+          width: 50,
+          height: 50,
+          border: `3px solid ${colors.borderLight}`,
+          borderTop: `3px solid ${colors.primary}`,
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+          margin: "0 auto",
+        }}
+      />
+
+      <style>{`
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Add this at the end of your AdminStyles.js file
+
+// ================= DATE TIME WIDGET =================
+
+export function DateTimeWidget({ isMobile, currentTime }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        background: colors.surface,
+        border: `1px solid ${colors.borderLight}`,
+        borderRadius: 14,
+        padding: isMobile ? "10px 16px" : "10px 20px",
+        minWidth: isMobile ? "100%" : "auto",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+      }}
+    >
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          background: colors.primarySoft,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 20,
+          flexShrink: 0,
+        }}
+      >
+        📅
+      </div>
+      <div>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: colors.textPrimary,
+            lineHeight: 1.3,
+          }}
+        >
+          {getCurrentDate()}
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: colors.primary,
+            fontWeight: 500,
+            fontVariantNumeric: "tabular-nums",
+            marginTop: 2,
+          }}
+        >
+          🕐 {currentTime}
+        </div>
+      </div>
+    </div>
+  );
+}
