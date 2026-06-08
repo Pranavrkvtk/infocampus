@@ -1,4 +1,3 @@
-// src/components/Admin/MobileBottomNav.jsx
 import React from "react";
 import { colors, navItems } from "./AdminStyles";
 
@@ -14,7 +13,8 @@ export default function MobileBottomNav({ activeTab, onTabChange, onLogout }) {
         borderTop: `1px solid ${colors.borderLight}`,
         display: "flex",
         justifyContent: "space-around",
-        padding: "8px 16px 20px",
+        padding: "8px 16px",
+        paddingBottom: "max(8px, env(safe-area-inset-bottom))", // Added safe area
         zIndex: 100,
       }}
     >

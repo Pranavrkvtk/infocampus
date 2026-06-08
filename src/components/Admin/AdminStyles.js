@@ -37,12 +37,14 @@ export const colors = {
 
 // ================= NAVIGATION =================
 
+// ================= NAVIGATION =================
+
 export const navItems = [
   { icon: "📊", label: "Dashboard", id: "dashboard" },
   { icon: "🌐", label: "Courses", id: "courses" },
   { icon: "👨‍🎓", label: "Students", id: "students" },
+  { icon: "👨‍🏫", label: "Instructors", id: "instructors" }  // Add this line
 ];
-
 // ================= HELPERS =================
 
 export const getCurrentDate = () =>
