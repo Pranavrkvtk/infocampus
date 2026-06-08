@@ -5,7 +5,10 @@ import {
   getAdminCoursesSimple,
   searchUsersByName,
   deleteAdminCourse,
-  updateUserStatus
+  updateUserStatus,
+  getAllInstructors,
+  deleteInstructor,
+  updateInstructorStatus
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
@@ -17,6 +20,7 @@ import EditRoleModal from "./EditRoleModal";
 import DashboardTab from "./DashboardTab";
 import CoursesTab from "./CoursesTab";
 import StudentsTab from "./StudentsTab";
+import InstructorsTab from "./InstructorsTab";
 
 // ================= MAIN COMPONENT =================
 export default function AdminDashboard() {
@@ -39,6 +43,7 @@ export default function AdminDashboard() {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [instructors, setInstructors] = useState([]);
 
   // Resize listener
   useEffect(() => {
@@ -71,6 +76,27 @@ export default function AdminDashboard() {
       if (err.name !== 'AbortError') {
         setError(err.response?.data?.message || "Failed to load users");
         setStudents([]);
+      }
+    } finally {
+      setLoading(false);
+      if (abortControllerRef.current === abortController) abortControllerRef.current = null;
+    }
+  };
+
+  // Fetch all instructors
+  const fetchAllInstructors = async () => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getAllInstructors();
+      setInstructors(response.data || []);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError(err.response?.data?.message || "Failed to load instructors");
+        setInstructors([]);
       }
     } finally {
       setLoading(false);
@@ -153,6 +179,59 @@ export default function AdminDashboard() {
     }
   };
 
+  // Delete Instructor
+  const handleDeleteInstructor = async (instructorId, instructorName) => {
+    const result = await Swal.fire({
+      title: 'Delete Instructor?',
+      html: `<p>Delete <strong>${instructorName}</strong>? This cannot be undone!</p>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Delete',
+      confirmButtonColor: '#E8644A',
+    });
+
+    if (result.isConfirmed) {
+      Swal.fire({ title: 'Deleting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      
+      try {
+        await deleteInstructor(instructorId);
+        await fetchAllInstructors();
+        Swal.fire({ title: 'Deleted!', icon: 'success', timer: 2000, showConfirmButton: false });
+      } catch (error) {
+        console.error("Delete error:", error);
+        Swal.fire({ title: 'Failed!', text: error.response?.data?.message || 'Failed to delete instructor', icon: 'error' });
+      }
+    }
+  };
+
+  // Toggle Instructor Status
+  const handleToggleInstructorStatus = async (instructorId, currentStatus) => {
+    const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const action = newStatus === "ACTIVE" ? "activate" : "deactivate";
+    
+    const result = await Swal.fire({
+      title: `${action === 'activate' ? 'Activate' : 'Deactivate'} Instructor?`,
+      text: `Are you sure you want to ${action} this instructor?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: `Yes, ${action}`,
+      confirmButtonColor: action === 'activate' ? colors.teal : colors.coral,
+    });
+    
+    if (result.isConfirmed) {
+      Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      
+      try {
+        await updateInstructorStatus(instructorId, newStatus);
+        await fetchAllInstructors();
+        Swal.fire({ title: `Instructor ${action}d!`, icon: 'success', timer: 2000, showConfirmButton: false });
+      } catch (error) {
+        console.error("Status update error:", error);
+        Swal.fire({ title: 'Failed!', text: error.response?.data?.message || `Failed to ${action} instructor`, icon: 'error' });
+      }
+    }
+  };
+
   // Toggle User Status with API
   const handleToggleStatus = async (studentId, currentStatus) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
@@ -203,6 +282,7 @@ export default function AdminDashboard() {
     if (activeTab === "dashboard") fetchDashboardStats();
     else if (activeTab === "courses") fetchCourses();
     else if (activeTab === "students") fetchAllStudents();
+    else if (activeTab === "instructors") fetchAllInstructors();
   }, [activeTab]);
 
   const handleUpdateRole = (userId, currentRole) => {
@@ -222,6 +302,7 @@ export default function AdminDashboard() {
     { label: "Total Students", value: dashboardStats.totalStudents?.toLocaleString() || "0", iconBg: colors.primarySoft, icon: "👨‍🎓" },
     { label: "Total Courses", value: dashboardStats.totalCourses?.toString() || "0", iconBg: colors.tealSoft, icon: "🌐" },
     { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0", iconBg: colors.amberSoft, icon: "📚" },
+    { label: "Total Instructors", value: instructors.length.toString() || "0", iconBg: colors.purpleSoft, icon: "👨‍🏫" },
   ] : [];
 
   const renderContent = () => {
@@ -232,6 +313,7 @@ export default function AdminDashboard() {
         <button onClick={() => {
           if (activeTab === "students") fetchAllStudents();
           else if (activeTab === "courses") fetchCourses();
+          else if (activeTab === "instructors") fetchAllInstructors();
           else fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: colors.primary, color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>Retry</button>
       </div>
@@ -263,6 +345,16 @@ export default function AdminDashboard() {
             isMobile={isMobile}
           />
         );
+      case "instructors":
+        return (
+          <InstructorsTab
+            instructors={instructors}
+            isMobile={isMobile}
+            handleDeleteInstructor={handleDeleteInstructor}
+            handleToggleInstructorStatus={handleToggleInstructorStatus}
+            fetchAllInstructors={fetchAllInstructors}
+          />
+        );
       default:
         return null;
     }
@@ -281,12 +373,17 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {[{ icon: "📊", label: "Dashboard", id: "dashboard" }, { icon: "🌐", label: "Courses", id: "courses" }, { icon: "👨‍🎓", label: "Students", id: "students" }].map((item) => (
+          {[
+            { icon: "📊", label: "Dashboard", id: "dashboard" }, 
+            { icon: "🌐", label: "Courses", id: "courses" }, 
+            { icon: "👨‍🎓", label: "Students", id: "students" },
+            { icon: "👨‍🏫", label: "Instructors", id: "instructors" }
+          ].map((item) => (
             <NavItem
               key={item.id}
               icon={item.icon}
               label={item.label}
-              badge={item.id === "courses" ? courses.length : item.id === "students" ? students.length : 0}
+              badge={item.id === "courses" ? courses.length : item.id === "students" ? students.length : item.id === "instructors" ? instructors.length : 0}
               active={activeTab === item.id}
               onClick={() => setActiveTab(item.id)}
             />
@@ -327,11 +424,13 @@ export default function AdminDashboard() {
               {activeTab === "dashboard" && "Dashboard"}
               {activeTab === "courses" && "Course Catalog"}
               {activeTab === "students" && "Student Management"}
+              {activeTab === "instructors" && "Instructor Management"}
             </h1>
             <p style={{ color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }}>
               {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
               {activeTab === "courses" && "Manage all your courses from one place"}
               {activeTab === "students" && "View and manage all enrolled students"}
+              {activeTab === "instructors" && "Manage instructors, their status and permissions"}
             </p>
           </div>
           <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />

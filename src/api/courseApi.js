@@ -53,3 +53,14 @@ export const getAllEnrollments = () => {
 export const watchCourse = (courseId) => {
   return api.get(`/enrollments/${courseId}/watch`);
 };
+
+// Fixed deleteEnrollment function - using api instance instead of axios
+export const deleteEnrollment = async (enrollmentId) => {
+  try {
+    const response = await api.delete(`/enrollments/${enrollmentId}`);
+    return response;
+  } catch (error) {
+    console.error("Error deleting enrollment:", error);
+    throw error;
+  }
+};

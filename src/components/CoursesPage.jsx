@@ -4,9 +4,11 @@ import {
   getCourseById,
   enrollInCourse,
   getUserEnrollments,
+  deleteEnrollment,
 } from "../api/courseApi"; // adjust path if needed
 import Swal from "sweetalert2";
-import {  useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
 // ==================== CATEGORIES ====================
 const CATEGORIES = [
   { id: "all", label: "All Courses", icon: "📚", color: "#6366f1" },
@@ -284,9 +286,93 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
   );
 }
 
-// ==================== MY COURSES PAGE ====================
+// ==================== MY COURSES PAGE WITH DELETE BUTTON ====================
 function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, loading, error, onRetry }) {
+  const [deletingId, setDeletingId] = useState(null);
+  
+  // Get enrollment data from localStorage or state
+  const [enrollments, setEnrollments] = useState([]);
+  
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        try {
+          const res = await getUserEnrollments(userId);
+          setEnrollments(res.data);
+        } catch (err) {
+          console.error("Failed to fetch enrollments:", err);
+        }
+      }
+    };
+    fetchEnrollments();
+  }, [enrolledIds]);
+
+  // Filter courses that are enrolled
   const myCourses = courses.filter(c => enrolledIds.includes(c.id));
+
+  const handleDeleteCourse = async (course, event) => {
+    event.stopPropagation(); // Prevent opening course detail
+    
+    // Find the enrollment record for this course
+    const enrollment = enrollments.find(e => e.course?.id === course.id);
+    
+    if (!enrollment) {
+      Swal.fire({
+        title: 'Error!',
+        text: 'Enrollment record not found.',
+        icon: 'error',
+        confirmButtonColor: '#dc3545'
+      });
+      return;
+    }
+    
+    const result = await Swal.fire({
+      title: 'Remove Course?',
+      text: `Are you sure you want to remove "${course.title}" from your enrolled courses?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, remove it!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      setDeletingId(course.id);
+      
+      try {
+        // Delete using enrollment ID
+        await deleteEnrollment(enrollment.id);
+        
+        Swal.fire({
+          title: 'Removed!',
+          text: 'Course has been removed from your enrolled list.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
+        // Refresh enrollments
+        if (onRetry) {
+          onRetry();
+        } else {
+          window.location.reload();
+        }
+        
+      } catch (err) {
+        console.error("Delete error:", err);
+        Swal.fire({
+          title: 'Error!',
+          text: err.response?.data?.message || 'Failed to remove course. Please try again.',
+          icon: 'error',
+          confirmButtonColor: '#dc3545'
+        });
+      } finally {
+        setDeletingId(null);
+      }
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
@@ -312,23 +398,100 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? "20px" : "32px" }}>
-            {myCourses.map(course => (
-              <div key={course.id} onClick={() => onViewCourse(course)} style={{ background: "#fff", borderRadius: "20px", overflow: "hidden", cursor: "pointer", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", transition: "transform 0.3s ease", border: "1px solid rgba(139,92,246,0.1)" }}>
-                <div style={{ position: "relative" }}>
-                  <img src={course.image || course.imageUrl || `https://picsum.photos/id/${(course.id ?? 1) * 10}/400/220`} alt={course.title} style={{ width: "100%", height: isMobile ? "160px" : "180px", objectFit: "cover" }} />
-                  <div style={{ position: "absolute", top: "16px", right: "16px", background: "#10b981", color: "#fff", borderRadius: "12px", padding: "6px 14px", fontSize: "12px", fontWeight: 700 }}>✓ Enrolled</div>
-                </div>
-                <div style={{ padding: isMobile ? "20px" : "24px" }}>
-                  <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1f2937" }}>{course.title}</h3>
-                  {course.rating && <div style={{ marginBottom: "12px" }}><Stars rating={course.rating} /></div>}
-                  <div style={{ color: "#6b7280", fontSize: "14px" }}>⏱ {course.duration || "—"} · 📋 {course.steps ?? course.lessons?.length ?? 0} lessons</div>
-                  <div style={{ marginTop: "16px", height: "4px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
-                    <div style={{ width: "60%", height: "100%", background: "linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "4px" }} />
+            {myCourses.map(course => {
+              const enrollment = enrollments.find(e => e.course?.id === course.id);
+              return (
+                <div key={course.id} style={{ 
+                  background: "#fff", 
+                  borderRadius: "20px", 
+                  overflow: "hidden", 
+                  cursor: "pointer", 
+                  boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", 
+                  transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                  border: "1px solid rgba(139,92,246,0.1)",
+                  position: "relative"
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = "translateY(-5px)";
+                  e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0,0,0,0.15)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
+                }}
+                >
+                  <div style={{ position: "relative" }}>
+                    <img 
+                      src={course.image || course.imageUrl || `https://picsum.photos/id/${(course.id ?? 1) * 10}/400/220`} 
+                      alt={course.title} 
+                      style={{ width: "100%", height: isMobile ? "160px" : "180px", objectFit: "cover" }} 
+                    />
+                    <div style={{ 
+                      position: "absolute", 
+                      top: "16px", 
+                      right: "16px", 
+                      background: "#10b981", 
+                      color: "#fff", 
+                      borderRadius: "12px", 
+                      padding: "6px 14px", 
+                      fontSize: "12px", 
+                      fontWeight: 700 
+                    }}>
+                      ✓ Enrolled
+                    </div>
+                    
+                    {/* DELETE BUTTON */}
+                    <button
+                      onClick={(e) => handleDeleteCourse(course, e)}
+                      disabled={deletingId === course.id}
+                      style={{
+                        position: "absolute",
+                        bottom: "16px",
+                        right: "16px",
+                        background: "#dc3545",
+                        border: "none",
+                        borderRadius: "10px",
+                        padding: "8px 16px",
+                        color: "#fff",
+                        cursor: deletingId === course.id ? "not-allowed" : "pointer",
+                        fontWeight: "bold",
+                        fontSize: "13px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                        zIndex: 10
+                      }}
+                      onMouseEnter={e => {
+                        if (deletingId !== course.id) {
+                          e.currentTarget.style.background = "#c82333";
+                          e.currentTarget.style.transform = "scale(1.05)";
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (deletingId !== course.id) {
+                          e.currentTarget.style.background = "#dc3545";
+                          e.currentTarget.style.transform = "scale(1)";
+                        }
+                      }}
+                    >
+                      {deletingId === course.id ? "⏳ Removing..." : "🗑️ Remove"}
+                    </button>
                   </div>
-                  <div style={{ marginTop: "12px", fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>60% Complete</div>
+                  
+                  <div onClick={() => onViewCourse(course)} style={{ padding: isMobile ? "20px" : "24px" }}>
+                    <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1f2937" }}>{course.title}</h3>
+                    {course.rating && <div style={{ marginBottom: "12px" }}><Stars rating={course.rating} /></div>}
+                    <div style={{ color: "#6b7280", fontSize: "14px" }}>⏱ {course.duration || "—"} · 📋 {course.steps ?? course.lessons?.length ?? 0} lessons</div>
+                    <div style={{ marginTop: "16px", height: "4px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
+                      <div style={{ width: "60%", height: "100%", background: "linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "4px" }} />
+                    </div>
+                    <div style={{ marginTop: "12px", fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>60% Complete</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -511,7 +674,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
 
 // ==================== APP ROOT ====================
 export default function CoursesPage() {
-    const navigate = useNavigate(); // Initialize navigate hook
+  const navigate = useNavigate();
 
   const [page, setPage] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -543,7 +706,6 @@ export default function CoursesPage() {
     setCoursesError(null);
     try {
       const res = await getCourses();
-      // API may return { data: [...] } or directly an array
       const list = Array.isArray(res.data) ? res.data : res.data?.content ?? res.data?.courses ?? [];
       setCourses(list);
     } catch (err) {
@@ -557,13 +719,12 @@ export default function CoursesPage() {
   // ---- Fetch enrolled courses for current user ----
   const fetchEnrollments = useCallback(async () => {
     const userId = localStorage.getItem("userId");
-    if (!userId) return; // not logged in, skip
+    if (!userId) return;
 
     setEnrollmentsLoading(true);
     setEnrollmentsError(null);
     try {
       const res = await getUserEnrollments(userId);
-      // Backend returns List<Enrollment> — each has a nested course: { id, title, ... }
       const data = Array.isArray(res.data) ? res.data : [];
       const ids = data.map(e => e.course?.id).filter(Boolean);
       setEnrolledIds(ids);
@@ -579,97 +740,93 @@ export default function CoursesPage() {
     fetchCourses();
     fetchEnrollments();
   }, [fetchCourses, fetchEnrollments]);
-const handleEnroll = useCallback(async (course) => {
-  const userId = localStorage.getItem("userId");
 
-  if (!userId) {
-    Swal.fire({
-      icon: "warning",
-      title: "Login Required",
-      text: "Please log in first to enroll in a course.",
-      confirmButtonColor: "#2563eb",
-    });
-    return;
-  }
+  const handleEnroll = useCallback(async (course) => {
+    const userId = localStorage.getItem("userId");
 
-  if (enrolledIds.includes(course.id)) return;
-  if (enrollingIds.has(course.id)) return;
-
-  setEnrollingIds((prev) => new Set(prev).add(course.id));
-
-  try {
-    await enrollInCourse(course.id);
-
-    setEnrolledIds((prev) => [...prev, course.id]);
-
-    Swal.fire({
-      icon: "success",
-      title: "🎉 Enrollment Successful!",
-      html: `
-        <p>You have successfully enrolled in:</p>
-        <strong>${course.title}</strong>
-      `,
-      confirmButtonText: "Continue Learning",
-      confirmButtonColor: "#10b981",
-      timer: 3000,
-      timerProgressBar: true,
-    });
-
-  } catch (err) {
-    console.error("Enrollment error:", err);
-
-    const msg =
-      typeof err?.response?.data === "string"
-        ? err.response.data
-        : err?.response?.data?.message ||
-          err.message ||
-          "Enrollment failed.";
-
-    // Check if the error indicates the user needs a free/premium account
-    const needsFreeAccount = 
-      msg.toLowerCase().includes("premium") ||
-      msg.toLowerCase().includes("upgrade") ||
-      msg.toLowerCase().includes("subscription") ||
-      msg.toLowerCase().includes("free account") ||
-      err?.response?.status === 402 || // Payment Required
-      err?.response?.status === 403;   // Forbidden
-
-    if (needsFreeAccount) {
-      // Show info message with only one button
-      await Swal.fire({
-        icon: "info",
-        title: "Free Account Required",
-        html: `
-          <p>You need a <strong>free account</strong> to enroll in this course.</p>
-          <p>Please create a free account to continue.</p>
-        `,
-        confirmButtonText: "Create Free Account",
-        confirmButtonColor: "#10b981",
-        showCancelButton: false, // Set to false to hide cancel button
-        allowOutsideClick: false, // Optional: prevent closing by clicking outside
+    if (!userId) {
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "Please log in first to enroll in a course.",
+        confirmButtonColor: "#2563eb",
       });
-
-      // Redirect to free account page
-      navigate("/free-account");
       return;
     }
 
-    // Regular error message for other failures
-    Swal.fire({
-      icon: "error",
-      title: "Enrollment Failed",
-      text: msg,
-      confirmButtonColor: "#ef4444",
-    });
+    if (enrolledIds.includes(course.id)) return;
+    if (enrollingIds.has(course.id)) return;
 
-  } finally {
-    setEnrollingIds((prev) => {
-      const s = new Set(prev);
-      s.delete(course.id);
-      return s;
-    });
-  }
-}, [enrolledIds, enrollingIds, navigate]); // Make sure 'navigate' is lowercase
+    setEnrollingIds((prev) => new Set(prev).add(course.id));
+
+    try {
+      await enrollInCourse(course.id);
+      setEnrolledIds((prev) => [...prev, course.id]);
+
+      Swal.fire({
+        icon: "success",
+        title: "🎉 Enrollment Successful!",
+        html: `
+          <p>You have successfully enrolled in:</p>
+          <strong>${course.title}</strong>
+        `,
+        confirmButtonText: "Continue Learning",
+        confirmButtonColor: "#10b981",
+        timer: 3000,
+        timerProgressBar: true,
+      });
+
+    } catch (err) {
+      console.error("Enrollment error:", err);
+
+      const msg =
+        typeof err?.response?.data === "string"
+          ? err.response.data
+          : err?.response?.data?.message ||
+            err.message ||
+            "Enrollment failed.";
+
+      const needsFreeAccount = 
+        msg.toLowerCase().includes("premium") ||
+        msg.toLowerCase().includes("upgrade") ||
+        msg.toLowerCase().includes("subscription") ||
+        msg.toLowerCase().includes("free account") ||
+        err?.response?.status === 402 ||
+        err?.response?.status === 403;
+
+      if (needsFreeAccount) {
+        await Swal.fire({
+          icon: "info",
+          title: "Free Account Required",
+          html: `
+            <p>You need a <strong>free account</strong> to enroll in this course.</p>
+            <p>Please create a free account to continue.</p>
+          `,
+          confirmButtonText: "Create Free Account",
+          confirmButtonColor: "#10b981",
+          showCancelButton: false,
+          allowOutsideClick: false,
+        });
+
+        navigate("/free-account");
+        return;
+      }
+
+      Swal.fire({
+        icon: "error",
+        title: "Enrollment Failed",
+        text: msg,
+        confirmButtonColor: "#ef4444",
+      });
+
+    } finally {
+      setEnrollingIds((prev) => {
+        const s = new Set(prev);
+        s.delete(course.id);
+        return s;
+      });
+    }
+  }, [enrolledIds, enrollingIds, navigate]);
 
   const handleViewCourse = useCallback((course) => {
     setSelectedCourse(course);

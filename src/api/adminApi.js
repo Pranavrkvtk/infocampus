@@ -147,6 +147,60 @@ export const getAdminStudents = () => {
   return api.get("/admin/students");
 };
 
+// ==================== INSTRUCTOR MANAGEMENT APIs ====================
+
+// Get all instructors
+export const getAllInstructors = () => {
+  return api.get("/admin/instructors");
+};
+
+// Get instructor by ID
+export const getInstructorById = (instructorId) => {
+  return api.get(`/admin/instructors/${instructorId}`);
+};
+
+// Create new instructor
+export const createInstructor = (instructorData) => {
+  return api.post("/admin/instructors", instructorData);
+};
+
+// Update instructor
+export const updateInstructor = (instructorId, instructorData) => {
+  return api.put(`/admin/instructors/${instructorId}`, instructorData);
+};
+
+// Delete instructor
+export const deleteInstructor = (instructorId) => {
+  return api.delete(`/admin/instructors/${instructorId}`);
+};
+
+// Update instructor status (ACTIVE, INACTIVE)
+export const updateInstructorStatus = (instructorId, status) => {
+  return api.patch(`/admin/instructors/${instructorId}/status`, null, {
+    params: { status }
+  });
+};
+
+// Get courses taught by instructor
+export const getInstructorCourses = (instructorId) => {
+  return api.get(`/admin/instructors/${instructorId}/courses`);
+};
+
+// Assign course to instructor
+export const assignCourseToInstructor = (instructorId, courseId) => {
+  return api.post(`/admin/instructors/${instructorId}/courses/${courseId}`);
+};
+
+// Remove course from instructor
+export const removeCourseFromInstructor = (instructorId, courseId) => {
+  return api.delete(`/admin/instructors/${instructorId}/courses/${courseId}`);
+};
+
+// Get instructor statistics
+export const getInstructorStats = (instructorId) => {
+  return api.get(`/admin/instructors/${instructorId}/stats`);
+};
+
 // ==================== STATISTICS APIs ====================
 
 // Get lab completion statistics
