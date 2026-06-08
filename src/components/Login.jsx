@@ -34,8 +34,12 @@ const handleLogin = async (e) => {
     });
 
     // Redirect based on role
-    if (res.data.role?.toUpperCase() === "ADMIN") {
+    const role = res.data.role?.toUpperCase();
+    
+    if (role === "ADMIN") {
       window.location.replace("/admin");
+    } else if (role === "INSTRUCTOR") {
+      window.location.replace("/instructor");
     } else {
       window.location.replace("/courses");
     }

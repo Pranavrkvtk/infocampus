@@ -23,13 +23,16 @@ import CCNA300 from './components/Course/Cisco/CCNA300';
 import UpgradePage from './components/Tools/UpgradePage';
 import MyCoursesPage from "./components/MyCoursesPage";
 import AdminDashboard from './components/Admin/AdminDashboard';
+import InstructorDashboard from './components/Instructor/InstructorDashboard';
 import Logout from './components/Logout';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
+import ProtectedInstructorRoute from './components/ProtectedInstructorRoute';
 
 const HIDE_NAVBAR = [
   '/free-account',
   '/login',
   '/admin',
+  '/instructor',
   '/logout'
 ];
 
@@ -81,6 +84,14 @@ function AppRoutes() {
           <ProtectedAdminRoute>
             <AdminDashboard />
           </ProtectedAdminRoute>
+        }
+      />
+      <Route
+        path="/instructor"
+        element={
+          <ProtectedInstructorRoute>
+            <InstructorDashboard />
+          </ProtectedInstructorRoute>
         }
       />
       <Route path="/logout" element={<Logout />} />
