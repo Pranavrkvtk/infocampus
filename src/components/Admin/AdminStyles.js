@@ -274,22 +274,7 @@ export function DateTimeWidget({ isMobile, currentTime }) {
         boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
       }}
     >
-      {/* Date Icon */}
-      <div
-        style={{
-          width: isMobile ? 38 : 46,
-          height: isMobile ? 38 : 46,
-          borderRadius: 12,
-          background: colors.primarySoft,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: isMobile ? 18 : 22,
-          flexShrink: 0,
-        }}
-      >
-        📅
-      </div>
+  
 
       {/* Date & Time */}
       <div style={{ overflow: "hidden" }}>
