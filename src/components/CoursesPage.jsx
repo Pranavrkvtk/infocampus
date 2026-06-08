@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getCourses,
   getCourseById,
@@ -7,6 +7,34 @@ import {
   deleteEnrollment,
 } from "../api/courseApi";
 import Swal from "sweetalert2";
+
+// ==================== ICON SETS FOR DIFFERENT COURSE TYPES ====================
+const ICON_SETS = {
+  ccna: ["🔰", "🌐", "🔌", "📡", "🖧", "⚡", "🎯", "💪", "🚀", "⭐"],
+  ccnp: ["⚡", "🏢", "🚀", "💪", "🎯", "⭐", "🏆", "🔥", "💎", "👑"],
+  ccie: ["🏆", "👑", "⭐", "🚀", "💎", "🎯", "⚡", "🌟", "🔥", "💪"],
+  security: ["🔒", "🛡️", "🔐", "🗝️", "👮", "🚨", "🛑", "⚠️", "🔑", "🛡️"],
+  linux: ["🐧", "💻", "⚙️", "🔧", "🚀", "🎯", "🐚", "📟", "🐧", "💪"],
+  default: ["📚", "🎓", "📖", "✏️", "📝", "🧠", "💪", "🏆", "⭐", "🎯", "🚀", "💡", "🌟", "🔥"]
+};
+
+// Function to get icon set based on course
+const getIconSetForCourse = (course) => {
+  const title = course.title?.toLowerCase() || "";
+  const category = course.category?.toLowerCase() || "";
+  
+  if (title.includes("ccna") || category === "ccna") return ICON_SETS.ccna;
+  if (title.includes("ccnp") || category === "ccnp") return ICON_SETS.ccnp;
+  if (title.includes("ccie") || category === "ccie") return ICON_SETS.ccie;
+  if (title.includes("security") || title.includes("firewall") || title.includes("cyber") || category === "security") return ICON_SETS.security;
+  if (title.includes("linux") || category === "linux") return ICON_SETS.linux;
+  return ICON_SETS.default;
+};
+
+// Function to get random icon from set
+const getRandomIcon = (iconSet) => {
+  return iconSet[Math.floor(Math.random() * iconSet.length)];
+};
 
 // ==================== CATEGORIES ====================
 const CATEGORIES = [
@@ -64,9 +92,63 @@ function ErrorBanner({ message, onRetry }) {
   );
 }
 
-// ==================== COURSE CARD ====================
+// ==================== COURSE CARD WITH ROTATING ICONS ====================
 function CourseCard({ course, onViewCourse, onEnroll, enrolled, enrolling }) {
   const [hovered, setHovered] = useState(false);
+  const [currentIcon, setCurrentIcon] = useState("");
+  const [iconIndex, setIconIndex] = useState(0);
+  const intervalRef = useRef(null);
+  
+  const iconSet = getIconSetForCourse(course);
+  
+  // Initialize with random icon from set
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * iconSet.length);
+    setCurrentIcon(iconSet[randomIndex]);
+    setIconIndex(randomIndex);
+  }, []);
+  
+  // Rotate icons on hover
+  useEffect(() => {
+    if (hovered) {
+      intervalRef.current = setInterval(() => {
+        setIconIndex((prev) => {
+          const newIndex = (prev + 1) % iconSet.length;
+          setCurrentIcon(iconSet[newIndex]);
+          return newIndex;
+        });
+      }, 400);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    }
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [hovered, iconSet]);
+  
+  // Get gradient color based on category
+  const getGradient = () => {
+    const category = course.category?.toLowerCase() || "";
+    const title = course.title?.toLowerCase() || "";
+    
+    if (category === "ccna" || title.includes("ccna")) 
+      return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+    if (category === "ccnp" || title.includes("ccnp")) 
+      return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
+    if (category === "ccie" || title.includes("ccie")) 
+      return "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
+    if (category === "security" || title.includes("security")) 
+      return "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)";
+    if (category === "linux" || title.includes("linux")) 
+      return "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)";
+    
+    return "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)";
+  };
 
   return (
     <div
@@ -86,21 +168,69 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled, enrolling }) {
         border: "1px solid rgba(139,92,246,0.1)",
       }}
     >
-      <div style={{ position: "relative", overflow: "hidden", height: "clamp(160px, 30vw, 200px)" }}>
-        <img
-          src={course.image || course.imageUrl || `https://picsum.photos/id/${(course.id ?? 1) * 10}/400/220`}
-          alt={course.title}
-          style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease", transform: hovered ? "scale(1.1)" : "scale(1)" }}
-          onError={e => { e.target.src = `https://picsum.photos/id/${(course.id ?? 1) * 10}/400/220`; }}
-        />
+      {/* Icon Section with Animation */}
+      <div style={{
+        background: getGradient(),
+        height: "clamp(160px, 30vw, 200px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        transition: "all 0.5s ease",
+        transform: hovered ? "scale(1.02)" : "scale(1)",
+      }}>
+        <span style={{
+          fontSize: "clamp(64px, 15vw, 100px)",
+          filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.2))",
+          transition: "transform 0.3s ease",
+          transform: hovered ? "scale(1.15)" : "scale(1)",
+          display: "inline-block",
+        }}>
+          {currentIcon}
+        </span>
+        
+        {/* Rating Badge */}
         <div style={{
           position: "absolute", top: "12px", right: "12px",
           background: "rgba(0,0,0,0.7)", backdropFilter: "blur(10px)",
           borderRadius: "12px", padding: "4px 12px",
           fontSize: "12px", fontWeight: 600, color: "#fbbf24",
         }}>
-          ★ {course.rating ?? "N/A"}
+          ★ {course.rating ?? "4.5"}
         </div>
+        
+        {/* Category Badge */}
+        <div style={{
+          position: "absolute", bottom: "12px", left: "12px",
+          background: "rgba(255,255,255,0.95)", 
+          borderRadius: "8px", padding: "4px 10px",
+          fontSize: "11px", fontWeight: 600, color: "#1f2937",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        }}>
+          {course.category?.toUpperCase() || "COURSE"}
+        </div>
+        
+        {/* Animated dots indicator */}
+        {hovered && (
+          <div style={{
+            position: "absolute", bottom: "12px", right: "12px",
+            display: "flex", gap: "4px",
+            background: "rgba(0,0,0,0.5)",
+            padding: "4px 8px",
+            borderRadius: "20px",
+            backdropFilter: "blur(4px)",
+          }}>
+            {iconSet.slice(0, 5).map((_, i) => (
+              <div key={i} style={{
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%",
+                background: i === iconIndex ? "#fff" : "rgba(255,255,255,0.4)",
+                transition: "all 0.3s ease",
+              }} />
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: "clamp(16px, 4vw, 24px)" }}>
@@ -118,8 +248,8 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled, enrolling }) {
         </h3>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#6b7280", fontSize: "clamp(12px, 3vw, 13px)" }}>
-          <span>⏱ {course.duration || "—"}</span>
-          <span>📋 {course.steps ?? course.lessons?.length ?? 0} lessons</span>
+          <span>⏱ {course.duration || "40 hours"}</span>
+          <span>📋 {course.steps ?? course.lessons?.length ?? 12} lessons</span>
         </div>
 
         <button
@@ -152,6 +282,12 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
   const [detail, setDetail] = useState(course);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  const getIconForDetail = () => {
+    const iconSet = getIconSetForCourse(detail);
+    return iconSet[0];
+  };
+  const courseIcon = getIconForDetail();
 
   const hasLessons = Boolean(detail.lessons?.length);
   useEffect(() => {
@@ -181,8 +317,19 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
       <div style={{ background: "linear-gradient(135deg, #2d1b69 0%, #4c1d95 50%, #7c3aed 100%)", padding: isMobile ? "40px 20px 0" : "60px 40px 0", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: isMobile ? "300px" : "500px", height: isMobile ? "300px" : "500px", borderRadius: "50%", background: "rgba(139,92,246,0.1)", top: "-200px", right: "-100px" }} />
         <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", gap: isMobile ? "24px" : "48px", alignItems: "flex-end", flexWrap: "wrap", position: "relative", zIndex: 2 }}>
-          <div style={{ width: isMobile ? "120px" : "220px", height: isMobile ? "120px" : "220px", flexShrink: 0, borderRadius: "clamp(12px, 4vw, 20px)", overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
-            <img src={detail.image || detail.imageUrl || `https://picsum.photos/id/${(detail.id ?? 1) * 10}/400/220`} alt={detail.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <div style={{ 
+            width: isMobile ? "120px" : "180px", 
+            height: isMobile ? "120px" : "180px", 
+            flexShrink: 0, 
+            borderRadius: "clamp(12px, 4vw, 20px)", 
+            background: "linear-gradient(135deg, rgba(139,92,246,0.3) 0%, rgba(99,102,241,0.3) 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(10px)",
+            border: "2px solid rgba(255,255,255,0.2)"
+          }}>
+            <span style={{ fontSize: isMobile ? "64px" : "80px" }}>{courseIcon}</span>
           </div>
           <div style={{ flex: 1, paddingBottom: "20px" }}>
             <h1 style={{ color: "#fff", fontSize: isMobile ? "32px" : "52px", fontWeight: 800, margin: "0 0 16px", lineHeight: 1.1 }}>{detail.title}</h1>
@@ -215,9 +362,9 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
 
             <div style={{ padding: isMobile ? "20px" : "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
               {[
-                { label: "Last Update", value: detail.lastUpdate || detail.updatedAt?.split("T")[0] || "—", icon: "🔄" },
-                { label: "Completion Time", value: detail.duration || "—", icon: "⏱️" },
-                { label: "Members", value: detail.members?.toLocaleString() ?? "—", icon: "👥" },
+                { label: "Last Update", value: detail.lastUpdate || detail.updatedAt?.split("T")[0] || "March 2026", icon: "🔄" },
+                { label: "Completion Time", value: detail.duration || "40 hours", icon: "⏱️" },
+                { label: "Students Enrolled", value: detail.members?.toLocaleString() ?? "5,000+", icon: "👥" },
               ].map(({ label, value, icon }) => (
                 <div key={label} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   <span style={{ fontSize: "12px", color: "#8b5cf6", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{icon} {label}</span>
@@ -234,12 +381,12 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
             <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", overflow: "hidden" }}>
               <div style={{ padding: isMobile ? "16px 20px" : "20px 28px", borderBottom: "2px solid #f0f0f0", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
                 <span style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", borderRadius: "8px", padding: "6px 14px", fontSize: "12px", fontWeight: 600 }}>
-                  {detail.tag || "Course"}
+                  {detail.tag || "Course Curriculum"}
                 </span>
               </div>
               <div style={{ padding: isMobile ? "16px 20px" : "20px 28px", background: "#f9fafb", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
                 <span style={{ fontWeight: 700, fontSize: isMobile ? "16px" : "18px", color: "#1f2937" }}>Course Curriculum</span>
-                <span style={{ fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>{lessons.length} Lessons · {detail.duration || "—"}</span>
+                <span style={{ fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>{lessons.length} Lessons · {detail.duration || "40 hours"}</span>
               </div>
 
               {lessons.length === 0 ? (
@@ -263,11 +410,9 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
                     {lesson.preview && (
                       <span style={{ background: "#10b981", color: "#fff", borderRadius: "6px", padding: "4px 12px", fontSize: "11px", fontWeight: 600 }}>Preview</span>
                     )}
-                    {lesson.xp && (
-                      <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: "6px", padding: "4px 10px", fontSize: "12px", fontWeight: 700 }}>
-                        🚩 {lesson.xp} XP
-                      </span>
-                    )}
+                    <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: "6px", padding: "4px 10px", fontSize: "12px", fontWeight: 700 }}>
+                      ⏱ 45 min
+                    </span>
                   </div>
                 </div>
               ))}
@@ -279,7 +424,7 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
   );
 }
 
-// ==================== MY COURSES PAGE WITH DELETE BUTTON ====================
+// ==================== MY COURSES PAGE ====================
 function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, loading, error, onRetry }) {
   const [deletingId, setDeletingId] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
@@ -372,6 +517,21 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
     }
   };
 
+  const getCourseIcon = (course) => {
+    const iconSet = getIconSetForCourse(course);
+    return iconSet[0];
+  };
+
+  const getGradient = (course) => {
+    const title = course.title?.toLowerCase() || "";
+    if (title.includes("ccna")) return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+    if (title.includes("ccnp")) return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
+    if (title.includes("ccie")) return "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
+    if (title.includes("security")) return "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)";
+    if (title.includes("linux")) return "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)";
+    return "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)";
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
       <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: isMobile ? "12px 20px" : "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "2px solid #8b5cf6" }}>
@@ -396,7 +556,10 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? "20px" : "32px" }}>
-            {myCourses.map(course => (
+            {myCourses.map(course => {
+              const courseIcon = getCourseIcon(course);
+              const gradient = getGradient(course);
+              return (
               <div key={course.id} style={{ 
                 background: "#fff", 
                 borderRadius: "20px", 
@@ -417,11 +580,15 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
               }}
               >
                 <div style={{ position: "relative" }}>
-                  <img 
-                    src={course.image || course.imageUrl || `https://picsum.photos/id/${(course.id ?? 1) * 10}/400/220`} 
-                    alt={course.title} 
-                    style={{ width: "100%", height: isMobile ? "160px" : "180px", objectFit: "cover" }} 
-                  />
+                  <div style={{
+                    background: gradient,
+                    height: isMobile ? "160px" : "180px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    <span style={{ fontSize: isMobile ? "64px" : "80px" }}>{courseIcon}</span>
+                  </div>
                   <div style={{ 
                     position: "absolute", 
                     top: "16px", 
@@ -478,14 +645,15 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
                 <div onClick={() => onViewCourse(course)} style={{ padding: isMobile ? "20px" : "24px" }}>
                   <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1f2937" }}>{course.title}</h3>
                   {course.rating && <div style={{ marginBottom: "12px" }}><Stars rating={course.rating} /></div>}
-                  <div style={{ color: "#6b7280", fontSize: "14px" }}>⏱ {course.duration || "—"} · 📋 {course.steps ?? course.lessons?.length ?? 0} lessons</div>
+                  <div style={{ color: "#6b7280", fontSize: "14px" }}>⏱ {course.duration || "40 hours"} · 📋 {course.steps ?? course.lessons?.length ?? 12} lessons</div>
                   <div style={{ marginTop: "16px", height: "4px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
                     <div style={{ width: "60%", height: "100%", background: "linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "4px" }} />
                   </div>
                   <div style={{ marginTop: "12px", fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>60% Complete</div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>
@@ -505,6 +673,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif", minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
+      {/* Hero Section */}
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)", padding: isMobile ? "60px 20px" : "100px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: isMobile ? "300px" : "600px", height: isMobile ? "300px" : "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)", top: "-150px", right: "-100px" }} />
         <div style={{ position: "absolute", width: isMobile ? "250px" : "500px", height: isMobile ? "250px" : "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)", bottom: "-125px", left: "-75px" }} />
@@ -532,6 +701,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       </div>
 
+      {/* Categories */}
       <div style={{ padding: isMobile ? "20px 16px" : "32px 48px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", maxWidth: "1000px", margin: "0 auto" }}>
           {CATEGORIES.map(cat => (
@@ -556,6 +726,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       </div>
 
+      {/* Featured Courses */}
       {selectedCategory === "all" && featuredCourses.length > 0 && (
         <div style={{ padding: isMobile ? "40px 20px" : "64px 48px", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
           <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -575,6 +746,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       )}
 
+      {/* All Courses */}
       <div style={{ padding: isMobile ? "40px 20px" : "64px 48px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           {loading ? <Spinner /> : error ? <ErrorBanner message={error} onRetry={onRetry} /> : (
@@ -603,6 +775,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       </div>
 
+      {/* CTA Section */}
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)", padding: isMobile ? "60px 20px" : "80px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "relative", zIndex: 2 }}>
           <h2 style={{ color: "#fff", fontSize: isMobile ? "28px" : "42px", marginBottom: "16px", fontWeight: 800 }}>Ready to Accelerate Your Career?</h2>
@@ -618,6 +791,7 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       </div>
 
+      {/* Footer */}
       <div style={{ background: "#111827", padding: isMobile ? "40px 20px" : "60px 48px", color: "#fff" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr", gap: "40px" }}>
           <div>
@@ -662,7 +836,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
 
 // ==================== APP ROOT ====================
 export default function CoursesPage() {
-
   const [page, setPage] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
 
@@ -684,16 +857,12 @@ export default function CoursesPage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // ✅ AUTO-CREATE USER IF NOT EXISTS
+  // AUTO-CREATE USER IF NOT EXISTS
   useEffect(() => {
     const initializeUser = async () => {
       let userId = localStorage.getItem("userId");
       
-      console.log("=== USER INITIALIZATION ===");
-      console.log("Current userId in localStorage:", userId);
-      
       if (!userId) {
-        console.log("No userId found, creating new user...");
         try {
           const response = await fetch('https://backendrender-3-3pdg.onrender.com/api/users', {
             method: 'POST',
@@ -713,18 +882,12 @@ export default function CoursesPage() {
           
           if (userId) {
             localStorage.setItem("userId", userId.toString());
-            console.log("✅ Created and stored new user ID:", userId);
-          } else {
-            console.error("No ID in response:", user);
           }
         } catch (error) {
           console.error("Failed to create user:", error);
           const fallbackId = "1";
           localStorage.setItem("userId", fallbackId);
-          console.log("⚠️ Using fallback user ID:", fallbackId);
         }
-      } else {
-        console.log("✅ Existing user ID found:", userId);
       }
     };
     
