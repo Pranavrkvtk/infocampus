@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   getCourses,
   getCourseById,
@@ -15,25 +15,26 @@ const ICON_SETS = {
   ccie: ["🏆", "👑", "⭐", "🚀", "💎", "🎯", "⚡", "🌟", "🔥", "💪"],
   security: ["🔒", "🛡️", "🔐", "🗝️", "👮", "🚨", "🛑", "⚠️", "🔑", "🛡️"],
   linux: ["🐧", "💻", "⚙️", "🔧", "🚀", "🎯", "🐚", "📟", "🐧", "💪"],
-  default: ["📚", "🎓", "📖", "✏️", "📝", "🧠", "💪", "🏆", "⭐", "🎯", "🚀", "💡", "🌟", "🔥"]
+  default: ["📚", "🎓", "📖", "✏️", "📝", "🧠", "💪", "🏆", "⭐", "🎯", "🚀", "💡", "🌟", "🔥"],
 };
 
 // Function to get icon set based on course
 const getIconSetForCourse = (course) => {
   const title = course.title?.toLowerCase() || "";
   const category = course.category?.toLowerCase() || "";
-  
+
   if (title.includes("ccna") || category === "ccna") return ICON_SETS.ccna;
   if (title.includes("ccnp") || category === "ccnp") return ICON_SETS.ccnp;
   if (title.includes("ccie") || category === "ccie") return ICON_SETS.ccie;
-  if (title.includes("security") || title.includes("firewall") || title.includes("cyber") || category === "security") return ICON_SETS.security;
+  if (
+    title.includes("security") ||
+    title.includes("firewall") ||
+    title.includes("cyber") ||
+    category === "security"
+  )
+    return ICON_SETS.security;
   if (title.includes("linux") || category === "linux") return ICON_SETS.linux;
   return ICON_SETS.default;
-};
-
-// Function to get random icon from set
-const getRandomIcon = (iconSet) => {
-  return iconSet[Math.floor(Math.random() * iconSet.length)];
 };
 
 // ==================== CATEGORIES ====================
@@ -50,8 +51,16 @@ const CATEGORIES = [
 function Stars({ rating }) {
   return (
     <span style={{ color: "#fbbf24", fontSize: "18px", letterSpacing: "2px" }}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <span key={i} style={{ opacity: i <= Math.floor(rating) ? 1 : i - rating < 1 ? 0.5 : 0.2 }}>★</span>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          style={{
+            opacity:
+              i <= Math.floor(rating) ? 1 : i - rating < 1 ? 0.5 : 0.2,
+          }}
+        >
+          ★
+        </span>
       ))}
     </span>
   );
@@ -60,14 +69,24 @@ function Stars({ rating }) {
 // ==================== LOADING SPINNER ====================
 function Spinner({ size = 40 }) {
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "60px 0" }}>
-      <div style={{
-        width: size, height: size,
-        border: `3px solid #e5e7eb`,
-        borderTop: `3px solid #8b5cf6`,
-        borderRadius: "50%",
-        animation: "spin 0.8s linear infinite",
-      }} />
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "60px 0",
+      }}
+    >
+      <div
+        style={{
+          width: size,
+          height: size,
+          border: `3px solid #e5e7eb`,
+          borderTop: `3px solid #8b5cf6`,
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }}
+      />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -76,17 +95,39 @@ function Spinner({ size = 40 }) {
 // ==================== ERROR BANNER ====================
 function ErrorBanner({ message, onRetry }) {
   return (
-    <div style={{
-      background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "12px",
-      padding: "16px 24px", margin: "24px 0",
-      display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap",
-    }}>
-      <span style={{ color: "#dc2626", fontWeight: 500 }}>⚠️ {message}</span>
+    <div
+      style={{
+        background: "#fef2f2",
+        border: "1px solid #fecaca",
+        borderRadius: "12px",
+        padding: "16px 24px",
+        margin: "24px 0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "16px",
+        flexWrap: "wrap",
+      }}
+    >
+      <span style={{ color: "#dc2626", fontWeight: 500 }}>
+        ⚠️ {message}
+      </span>
       {onRetry && (
-        <button onClick={onRetry} style={{
-          background: "#dc2626", color: "#fff", border: "none", borderRadius: "8px",
-          padding: "8px 16px", cursor: "pointer", fontWeight: 600, fontSize: "13px",
-        }}>Retry</button>
+        <button
+          onClick={onRetry}
+          style={{
+            background: "#dc2626",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontWeight: 600,
+            fontSize: "13px",
+          }}
+        >
+          Retry
+        </button>
       )}
     </div>
   );
@@ -98,16 +139,17 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled, enrolling }) {
   const [currentIcon, setCurrentIcon] = useState("");
   const [iconIndex, setIconIndex] = useState(0);
   const intervalRef = useRef(null);
-  
-  const iconSet = getIconSetForCourse(course);
-  
-  // Initialize with random icon from set
+
+  // FIX: memoize iconSet so it's a stable reference for useEffect deps
+  const iconSet = useMemo(() => getIconSetForCourse(course), [course]);
+
+  // FIX: added `iconSet` to dependency array (was missing, causing lint warning)
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * iconSet.length);
     setCurrentIcon(iconSet[randomIndex]);
     setIconIndex(randomIndex);
-  }, []);
-  
+  }, [iconSet]);
+
   // Rotate icons on hover
   useEffect(() => {
     if (hovered) {
@@ -123,30 +165,30 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled, enrolling }) {
         clearInterval(intervalRef.current);
       }
     }
-    
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
   }, [hovered, iconSet]);
-  
+
   // Get gradient color based on category
   const getGradient = () => {
     const category = course.category?.toLowerCase() || "";
     const title = course.title?.toLowerCase() || "";
-    
-    if (category === "ccna" || title.includes("ccna")) 
+
+    if (category === "ccna" || title.includes("ccna"))
       return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
-    if (category === "ccnp" || title.includes("ccnp")) 
+    if (category === "ccnp" || title.includes("ccnp"))
       return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
-    if (category === "ccie" || title.includes("ccie")) 
+    if (category === "ccie" || title.includes("ccie"))
       return "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
-    if (category === "security" || title.includes("security")) 
+    if (category === "security" || title.includes("security"))
       return "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)";
-    if (category === "linux" || title.includes("linux")) 
+    if (category === "linux" || title.includes("linux"))
       return "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)";
-    
+
     return "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)";
   };
 
@@ -169,105 +211,171 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled, enrolling }) {
       }}
     >
       {/* Icon Section with Animation */}
-      <div style={{
-        background: getGradient(),
-        height: "clamp(160px, 30vw, 200px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        transition: "all 0.5s ease",
-        transform: hovered ? "scale(1.02)" : "scale(1)",
-      }}>
-        <span style={{
-          fontSize: "clamp(64px, 15vw, 100px)",
-          filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.2))",
-          transition: "transform 0.3s ease",
-          transform: hovered ? "scale(1.15)" : "scale(1)",
-          display: "inline-block",
-        }}>
+      <div
+        style={{
+          background: getGradient(),
+          height: "clamp(160px, 30vw, 200px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          transition: "all 0.5s ease",
+          transform: hovered ? "scale(1.02)" : "scale(1)",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "clamp(64px, 15vw, 100px)",
+            filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.2))",
+            transition: "transform 0.3s ease",
+            transform: hovered ? "scale(1.15)" : "scale(1)",
+            display: "inline-block",
+          }}
+        >
           {currentIcon}
         </span>
-        
+
         {/* Rating Badge */}
-        <div style={{
-          position: "absolute", top: "12px", right: "12px",
-          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(10px)",
-          borderRadius: "12px", padding: "4px 12px",
-          fontSize: "12px", fontWeight: 600, color: "#fbbf24",
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            top: "12px",
+            right: "12px",
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(10px)",
+            borderRadius: "12px",
+            padding: "4px 12px",
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "#fbbf24",
+          }}
+        >
           ★ {course.rating ?? "4.5"}
         </div>
-        
+
         {/* Category Badge */}
-        <div style={{
-          position: "absolute", bottom: "12px", left: "12px",
-          background: "rgba(255,255,255,0.95)", 
-          borderRadius: "8px", padding: "4px 10px",
-          fontSize: "11px", fontWeight: 600, color: "#1f2937",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: "12px",
+            left: "12px",
+            background: "rgba(255,255,255,0.95)",
+            borderRadius: "8px",
+            padding: "4px 10px",
+            fontSize: "11px",
+            fontWeight: 600,
+            color: "#1f2937",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
+        >
           {course.category?.toUpperCase() || "COURSE"}
         </div>
-        
+
         {/* Animated dots indicator */}
         {hovered && (
-          <div style={{
-            position: "absolute", bottom: "12px", right: "12px",
-            display: "flex", gap: "4px",
-            background: "rgba(0,0,0,0.5)",
-            padding: "4px 8px",
-            borderRadius: "20px",
-            backdropFilter: "blur(4px)",
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              bottom: "12px",
+              right: "12px",
+              display: "flex",
+              gap: "4px",
+              background: "rgba(0,0,0,0.5)",
+              padding: "4px 8px",
+              borderRadius: "20px",
+              backdropFilter: "blur(4px)",
+            }}
+          >
             {iconSet.slice(0, 5).map((_, i) => (
-              <div key={i} style={{
-                width: "6px",
-                height: "6px",
-                borderRadius: "50%",
-                background: i === iconIndex ? "#fff" : "rgba(255,255,255,0.4)",
-                transition: "all 0.3s ease",
-              }} />
+              <div
+                key={i}
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background:
+                    i === iconIndex ? "#fff" : "rgba(255,255,255,0.4)",
+                  transition: "all 0.3s ease",
+                }}
+              />
             ))}
           </div>
         )}
       </div>
 
       <div style={{ padding: "clamp(16px, 4vw, 24px)" }}>
-        <div style={{
-          display: "inline-block",
-          background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-          color: "#fff", borderRadius: "8px", padding: "4px 12px",
-          fontSize: "11px", fontWeight: 600, marginBottom: "12px", letterSpacing: "0.5px",
-        }}>
+        <div
+          style={{
+            display: "inline-block",
+            background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            color: "#fff",
+            borderRadius: "8px",
+            padding: "4px 12px",
+            fontSize: "11px",
+            fontWeight: 600,
+            marginBottom: "12px",
+            letterSpacing: "0.5px",
+          }}
+        >
           {course.tag || "Course"}
         </div>
 
-        <h3 style={{ margin: "0 0 12px", fontSize: "clamp(16px, 4vw, 18px)", fontWeight: 700, color: "#1f2937", lineHeight: 1.3 }}>
+        <h3
+          style={{
+            margin: "0 0 12px",
+            fontSize: "clamp(16px, 4vw, 18px)",
+            fontWeight: 700,
+            color: "#1f2937",
+            lineHeight: 1.3,
+          }}
+        >
           {course.title}
         </h3>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: "#6b7280", fontSize: "clamp(12px, 3vw, 13px)" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            color: "#6b7280",
+            fontSize: "clamp(12px, 3vw, 13px)",
+          }}
+        >
           <span>⏱ {course.duration || "40 hours"}</span>
           <span>📋 {course.steps ?? course.lessons?.length ?? 12} lessons</span>
         </div>
 
         <button
-          onClick={e => { e.stopPropagation(); onEnroll(course); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEnroll(course);
+          }}
           disabled={enrolling || enrolled}
           style={{
-            marginTop: "20px", width: "100%", padding: "clamp(10px, 3vw, 12px)",
+            marginTop: "20px",
+            width: "100%",
+            padding: "clamp(10px, 3vw, 12px)",
             background: enrolled
               ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
               : enrolling
-                ? "#d1d5db"
-                : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-            color: enrolled || enrolling ? (enrolled ? "#fff" : "#6b7280") : "#fff",
-            border: "none", borderRadius: "12px",
-            fontSize: "clamp(13px, 3.5vw, 14px)", fontWeight: 600,
+              ? "#d1d5db"
+              : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            color:
+              enrolled || enrolling
+                ? enrolled
+                  ? "#fff"
+                  : "#6b7280"
+                : "#fff",
+            border: "none",
+            borderRadius: "12px",
+            fontSize: "clamp(13px, 3.5vw, 14px)",
+            fontWeight: 600,
             cursor: enrolled || enrolling ? "default" : "pointer",
             transition: "all 0.3s ease",
-            boxShadow: hovered && !enrolled ? "0 10px 15px -3px rgba(139,92,246,0.3)" : "none",
+            boxShadow:
+              hovered && !enrolled
+                ? "0 10px 15px -3px rgba(139,92,246,0.3)"
+                : "none",
           }}
         >
           {enrolling ? "Enrolling…" : enrolled ? "✅ Enrolled" : "Enroll Now →"}
@@ -278,24 +386,31 @@ function CourseCard({ course, onViewCourse, onEnroll, enrolled, enrolling }) {
 }
 
 // ==================== COURSE DETAIL PAGE ====================
-function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMobile }) {
+function CourseDetailPage({
+  course,
+  onBack,
+  onEnroll,
+  enrolled,
+  enrolling,
+  isMobile,
+}) {
   const [detail, setDetail] = useState(course);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  const getIconForDetail = () => {
+
+  const courseIcon = useMemo(() => {
     const iconSet = getIconSetForCourse(detail);
     return iconSet[0];
-  };
-  const courseIcon = getIconForDetail();
+  }, [detail]);
 
   const hasLessons = Boolean(detail.lessons?.length);
+
   useEffect(() => {
     if (hasLessons || !course.id) return;
 
     setLoading(true);
     getCourseById(course.id)
-      .then(res => setDetail(res.data))
+      .then((res) => setDetail(res.data))
       .catch(() => setError("Failed to load course details."))
       .finally(() => setLoading(false));
   }, [course.id, hasLessons]);
@@ -303,73 +418,210 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
   const lessons = detail.lessons ?? [];
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)", fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
-      <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: isMobile ? "12px 20px" : "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "2px solid #8b5cf6" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)",
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
+          padding: isMobile ? "12px 20px" : "14px 40px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "12px",
+          borderBottom: "2px solid #8b5cf6",
+        }}
+      >
         <span style={{ color: "#fff", fontSize: isMobile ? "12px" : "14px" }}>
-          <span style={{ cursor: "pointer", opacity: 0.8 }} onClick={onBack}>Courses</span>
+          <span
+            style={{ cursor: "pointer", opacity: 0.8 }}
+            onClick={onBack}
+          >
+            Courses
+          </span>
           {" / "}
           <span style={{ fontWeight: 700, color: "#8b5cf6" }}>
-            {isMobile ? detail.title?.substring(0, 20) + "…" : detail.title}
+            {isMobile
+              ? detail.title?.substring(0, 20) + "…"
+              : detail.title}
           </span>
         </span>
       </div>
 
-      <div style={{ background: "linear-gradient(135deg, #2d1b69 0%, #4c1d95 50%, #7c3aed 100%)", padding: isMobile ? "40px 20px 0" : "60px 40px 0", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: isMobile ? "300px" : "500px", height: isMobile ? "300px" : "500px", borderRadius: "50%", background: "rgba(139,92,246,0.1)", top: "-200px", right: "-100px" }} />
-        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", gap: isMobile ? "24px" : "48px", alignItems: "flex-end", flexWrap: "wrap", position: "relative", zIndex: 2 }}>
-          <div style={{ 
-            width: isMobile ? "120px" : "180px", 
-            height: isMobile ? "120px" : "180px", 
-            flexShrink: 0, 
-            borderRadius: "clamp(12px, 4vw, 20px)", 
-            background: "linear-gradient(135deg, rgba(139,92,246,0.3) 0%, rgba(99,102,241,0.3) 100%)",
+      <div
+        style={{
+          background:
+            "linear-gradient(135deg, #2d1b69 0%, #4c1d95 50%, #7c3aed 100%)",
+          padding: isMobile ? "40px 20px 0" : "60px 40px 0",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            width: isMobile ? "300px" : "500px",
+            height: isMobile ? "300px" : "500px",
+            borderRadius: "50%",
+            background: "rgba(139,92,246,0.1)",
+            top: "-200px",
+            right: "-100px",
+          }}
+        />
+        <div
+          style={{
+            maxWidth: "1100px",
+            margin: "0 auto",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backdropFilter: "blur(10px)",
-            border: "2px solid rgba(255,255,255,0.2)"
-          }}>
-            <span style={{ fontSize: isMobile ? "64px" : "80px" }}>{courseIcon}</span>
+            gap: isMobile ? "24px" : "48px",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          <div
+            style={{
+              width: isMobile ? "120px" : "180px",
+              height: isMobile ? "120px" : "180px",
+              flexShrink: 0,
+              borderRadius: "clamp(12px, 4vw, 20px)",
+              background:
+                "linear-gradient(135deg, rgba(139,92,246,0.3) 0%, rgba(99,102,241,0.3) 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backdropFilter: "blur(10px)",
+              border: "2px solid rgba(255,255,255,0.2)",
+            }}
+          >
+            <span style={{ fontSize: isMobile ? "64px" : "80px" }}>
+              {courseIcon}
+            </span>
           </div>
           <div style={{ flex: 1, paddingBottom: "20px" }}>
-            <h1 style={{ color: "#fff", fontSize: isMobile ? "32px" : "52px", fontWeight: 800, margin: "0 0 16px", lineHeight: 1.1 }}>{detail.title}</h1>
+            <h1
+              style={{
+                color: "#fff",
+                fontSize: isMobile ? "32px" : "52px",
+                fontWeight: 800,
+                margin: "0 0 16px",
+                lineHeight: 1.1,
+              }}
+            >
+              {detail.title}
+            </h1>
             {detail.rating && <Stars rating={detail.rating} />}
           </div>
         </div>
       </div>
 
-      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: isMobile ? "20px" : "40px", display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "24px" : "40px" }}>
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          padding: isMobile ? "20px" : "40px",
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? "24px" : "40px",
+        }}
+      >
         <div style={{ width: isMobile ? "100%" : "280px" }}>
-          <div style={{ background: "#fff", borderRadius: "20px", overflow: "hidden", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" }}>
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "20px",
+              overflow: "hidden",
+              boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+            }}
+          >
             <button
               onClick={() => onEnroll(detail)}
               disabled={enrolled || enrolling}
               style={{
-                width: "100%", padding: isMobile ? "14px" : "18px",
+                width: "100%",
+                padding: isMobile ? "14px" : "18px",
                 background: enrolled
                   ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
-                  : enrolling ? "#d1d5db"
-                    : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                  : enrolling
+                  ? "#d1d5db"
+                  : "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
                 color: enrolling ? "#6b7280" : "#fff",
-                border: "none", fontWeight: 700,
+                border: "none",
+                fontWeight: 700,
                 fontSize: isMobile ? "14px" : "16px",
                 cursor: enrolled || enrolling ? "default" : "pointer",
                 letterSpacing: "0.5px",
               }}
             >
-              {enrolling ? "Enrolling…" : enrolled ? "✅ Enrolled" : "Join this Course"}
+              {enrolling
+                ? "Enrolling…"
+                : enrolled
+                ? "✅ Enrolled"
+                : "Join this Course"}
             </button>
 
-            <div style={{ padding: isMobile ? "20px" : "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div
+              style={{
+                padding: isMobile ? "20px" : "24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+              }}
+            >
               {[
-                { label: "Last Update", value: detail.lastUpdate || detail.updatedAt?.split("T")[0] || "March 2026", icon: "🔄" },
-                { label: "Completion Time", value: detail.duration || "40 hours", icon: "⏱️" },
-                { label: "Students Enrolled", value: detail.members?.toLocaleString() ?? "5,000+", icon: "👥" },
+                {
+                  label: "Last Update",
+                  value:
+                    detail.lastUpdate ||
+                    detail.updatedAt?.split("T")[0] ||
+                    "March 2026",
+                  icon: "🔄",
+                },
+                {
+                  label: "Completion Time",
+                  value: detail.duration || "40 hours",
+                  icon: "⏱️",
+                },
+                {
+                  label: "Students Enrolled",
+                  value: detail.members?.toLocaleString() ?? "5,000+",
+                  icon: "👥",
+                },
               ].map(({ label, value, icon }) => (
                 <div key={label} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <span style={{ fontSize: "12px", color: "#8b5cf6", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{icon} {label}</span>
-                  <span style={{ fontSize: isMobile ? "14px" : "16px", fontWeight: 700, color: "#1f2937" }}>{value}</span>
-                  <div style={{ height: "1px", background: "#e5e7eb", marginTop: "8px" }} />
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#8b5cf6",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    {icon} {label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: isMobile ? "14px" : "16px",
+                      fontWeight: 700,
+                      color: "#1f2937",
+                    }}
+                  >
+                    {value}
+                  </span>
+                  <div
+                    style={{
+                      height: "1px",
+                      background: "#e5e7eb",
+                      marginTop: "8px",
+                    }}
+                  />
                 </div>
               ))}
             </div>
@@ -377,45 +629,171 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
         </div>
 
         <div style={{ flex: 1 }}>
-          {loading ? <Spinner /> : error ? <ErrorBanner message={error} /> : (
-            <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", overflow: "hidden" }}>
-              <div style={{ padding: isMobile ? "16px 20px" : "20px 28px", borderBottom: "2px solid #f0f0f0", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
-                <span style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", borderRadius: "8px", padding: "6px 14px", fontSize: "12px", fontWeight: 600 }}>
+          {loading ? (
+            <Spinner />
+          ) : error ? (
+            <ErrorBanner message={error} />
+          ) : (
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: "20px",
+                boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  padding: isMobile ? "16px 20px" : "20px 28px",
+                  borderBottom: "2px solid #f0f0f0",
+                  background:
+                    "linear-gradient(135deg, #faf9ff 0%, #fff 100%)",
+                }}
+              >
+                <span
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    padding: "6px 14px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                  }}
+                >
                   {detail.tag || "Course Curriculum"}
                 </span>
               </div>
-              <div style={{ padding: isMobile ? "16px 20px" : "20px 28px", background: "#f9fafb", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-                <span style={{ fontWeight: 700, fontSize: isMobile ? "16px" : "18px", color: "#1f2937" }}>Course Curriculum</span>
-                <span style={{ fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>{lessons.length} Lessons · {detail.duration || "40 hours"}</span>
+              <div
+                style={{
+                  padding: isMobile ? "16px 20px" : "20px 28px",
+                  background: "#f9fafb",
+                  borderBottom: "1px solid #e5e7eb",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 700,
+                    fontSize: isMobile ? "16px" : "18px",
+                    color: "#1f2937",
+                  }}
+                >
+                  Course Curriculum
+                </span>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    color: "#8b5cf6",
+                    fontWeight: 600,
+                  }}
+                >
+                  {lessons.length} Lessons · {detail.duration || "40 hours"}
+                </span>
               </div>
 
               {lessons.length === 0 ? (
-                <div style={{ padding: "40px", textAlign: "center", color: "#6b7280" }}>No lessons available yet.</div>
-              ) : lessons.map((lesson, i) => (
-                <div key={lesson.id ?? i}
+                <div
                   style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: isMobile ? "14px 20px" : "16px 28px", flexWrap: "wrap", gap: "12px",
-                    borderBottom: i < lessons.length - 1 ? "1px solid #f3f4f6" : "none",
-                    transition: "background 0.3s ease",
+                    padding: "40px",
+                    textAlign: "center",
+                    color: "#6b7280",
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = "#faf9ff"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
-                    <span style={{ color: "#8b5cf6", fontSize: "18px", fontWeight: 600 }}>{String(i + 1).padStart(2, '0')}</span>
-                    <span style={{ fontSize: isMobile ? "13px" : "15px", color: "#374151", fontWeight: 500 }}>{lesson.title}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                    {lesson.preview && (
-                      <span style={{ background: "#10b981", color: "#fff", borderRadius: "6px", padding: "4px 12px", fontSize: "11px", fontWeight: 600 }}>Preview</span>
-                    )}
-                    <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: "6px", padding: "4px 10px", fontSize: "12px", fontWeight: 700 }}>
-                      ⏱ 45 min
-                    </span>
-                  </div>
+                  No lessons available yet.
                 </div>
-              ))}
+              ) : (
+                lessons.map((lesson, i) => (
+                  <div
+                    key={lesson.id ?? i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: isMobile ? "14px 20px" : "16px 28px",
+                      flexWrap: "wrap",
+                      gap: "12px",
+                      borderBottom:
+                        i < lessons.length - 1
+                          ? "1px solid #f3f4f6"
+                          : "none",
+                      transition: "background 0.3s ease",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#faf9ff")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "14px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#8b5cf6",
+                          fontSize: "18px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: isMobile ? "13px" : "15px",
+                          color: "#374151",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {lesson.title}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {lesson.preview && (
+                        <span
+                          style={{
+                            background: "#10b981",
+                            color: "#fff",
+                            borderRadius: "6px",
+                            padding: "4px 12px",
+                            fontSize: "11px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Preview
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          background: "#fef3c7",
+                          color: "#d97706",
+                          borderRadius: "6px",
+                          padding: "4px 10px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        ⏱ 45 min
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
@@ -425,10 +803,19 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
 }
 
 // ==================== MY COURSES PAGE ====================
-function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, loading, error, onRetry }) {
+function MyCoursesPage({
+  enrolledIds,
+  courses,
+  onViewCourse,
+  onBack,
+  isMobile,
+  loading,
+  error,
+  onRetry,
+}) {
   const [deletingId, setDeletingId] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
-  
+
   useEffect(() => {
     const fetchEnrollments = async () => {
       const userId = localStorage.getItem("userId");
@@ -444,72 +831,73 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
     fetchEnrollments();
   }, [enrolledIds]);
 
-  const myCourses = courses.filter(c => enrolledIds.includes(c.id));
+  const myCourses = courses.filter((c) => enrolledIds.includes(c.id));
 
   const handleDeleteCourse = async (course, event) => {
     event.stopPropagation();
-    
+
     const userId = localStorage.getItem("userId");
     if (!userId) {
       Swal.fire({
-        title: 'Not Logged In',
-        text: 'Please refresh the page to auto-login.',
-        icon: 'warning',
-        confirmButtonColor: '#dc3545'
+        title: "Not Logged In",
+        text: "Please refresh the page to auto-login.",
+        icon: "warning",
+        confirmButtonColor: "#dc3545",
       });
       return;
     }
-    
-    const enrollment = enrollments.find(e => e.course?.id === course.id);
-    
+
+    const enrollment = enrollments.find((e) => e.course?.id === course.id);
+
     if (!enrollment) {
       Swal.fire({
-        title: 'Error!',
-        text: 'Enrollment record not found.',
-        icon: 'error',
-        confirmButtonColor: '#dc3545'
+        title: "Error!",
+        text: "Enrollment record not found.",
+        icon: "error",
+        confirmButtonColor: "#dc3545",
       });
       return;
     }
-    
+
     const result = await Swal.fire({
-      title: 'Remove Course?',
+      title: "Remove Course?",
       text: `Are you sure you want to remove "${course.title}" from your enrolled courses?`,
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#dc3545',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Yes, remove it!',
-      cancelButtonText: 'Cancel'
+      confirmButtonColor: "#dc3545",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, remove it!",
+      cancelButtonText: "Cancel",
     });
 
     if (result.isConfirmed) {
       setDeletingId(course.id);
-      
+
       try {
         await deleteEnrollment(enrollment.id);
-        
+
         Swal.fire({
-          title: 'Removed!',
-          text: 'Course has been removed from your enrolled list.',
-          icon: 'success',
+          title: "Removed!",
+          text: "Course has been removed from your enrolled list.",
+          icon: "success",
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: false,
         });
-        
+
         if (onRetry) {
           onRetry();
         } else {
           window.location.reload();
         }
-        
       } catch (err) {
         console.error("Delete error:", err);
         Swal.fire({
-          title: 'Error!',
-          text: err.response?.data?.message || 'Failed to remove course. Please try again.',
-          icon: 'error',
-          confirmButtonColor: '#dc3545'
+          title: "Error!",
+          text:
+            err.response?.data?.message ||
+            "Failed to remove course. Please try again.",
+          icon: "error",
+          confirmButtonColor: "#dc3545",
         });
       } finally {
         setDeletingId(null);
@@ -524,135 +912,301 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
 
   const getGradient = (course) => {
     const title = course.title?.toLowerCase() || "";
-    if (title.includes("ccna")) return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
-    if (title.includes("ccnp")) return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
-    if (title.includes("ccie")) return "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
-    if (title.includes("security")) return "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)";
-    if (title.includes("linux")) return "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)";
+    if (title.includes("ccna"))
+      return "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+    if (title.includes("ccnp"))
+      return "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)";
+    if (title.includes("ccie"))
+      return "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)";
+    if (title.includes("security"))
+      return "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)";
+    if (title.includes("linux"))
+      return "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)";
     return "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)";
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
-      <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: isMobile ? "12px 20px" : "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "2px solid #8b5cf6" }}>
-        <span style={{ color: "#fff", fontWeight: 700, fontSize: isMobile ? "16px" : "18px" }}>📖 My Learning Journey</span>
-        <button onClick={onBack} style={{ background: "rgba(139,92,246,0.2)", border: "1px solid #8b5cf6", borderRadius: "10px", padding: "8px 16px", color: "#8b5cf6", cursor: "pointer", fontWeight: 600, fontSize: isMobile ? "12px" : "14px" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)",
+      }}
+    >
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
+          padding: isMobile ? "12px 20px" : "14px 40px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "12px",
+          borderBottom: "2px solid #8b5cf6",
+        }}
+      >
+        <span
+          style={{
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: isMobile ? "16px" : "18px",
+          }}
+        >
+          📖 My Learning Journey
+        </span>
+        <button
+          onClick={onBack}
+          style={{
+            background: "rgba(139,92,246,0.2)",
+            border: "1px solid #8b5cf6",
+            borderRadius: "10px",
+            padding: "8px 16px",
+            color: "#8b5cf6",
+            cursor: "pointer",
+            fontWeight: 600,
+            fontSize: isMobile ? "12px" : "14px",
+          }}
+        >
           ← Explore More Courses
         </button>
       </div>
 
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: isMobile ? "24px 20px" : "48px 40px" }}>
-        <h1 style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontSize: isMobile ? "28px" : "36px", marginTop: 0, marginBottom: isMobile ? "24px" : "40px", fontWeight: 800 }}>
+      <div
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          padding: isMobile ? "24px 20px" : "48px 40px",
+        }}
+      >
+        <h1
+          style={{
+            background:
+              "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            fontSize: isMobile ? "28px" : "36px",
+            marginTop: 0,
+            marginBottom: isMobile ? "24px" : "40px",
+            fontWeight: 800,
+          }}
+        >
           My Enrolled Courses
         </h1>
 
-        {loading ? <Spinner /> : error ? <ErrorBanner message={error} onRetry={onRetry} /> : myCourses.length === 0 ? (
-          <div style={{ textAlign: "center", padding: isMobile ? "60px 20px" : "80px 0", background: "#fff", borderRadius: "24px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" }}>
-            <div style={{ fontSize: isMobile ? "60px" : "80px", marginBottom: "20px" }}>🎓</div>
-            <p style={{ fontSize: isMobile ? "18px" : "20px", color: "#6b7280", marginBottom: "24px" }}>Start your learning journey today!</p>
-            <button onClick={onBack} style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", borderRadius: "12px", padding: isMobile ? "12px 24px" : "14px 32px", fontWeight: 600, cursor: "pointer", fontSize: isMobile ? "14px" : "16px" }}>
+        {loading ? (
+          <Spinner />
+        ) : error ? (
+          <ErrorBanner message={error} onRetry={onRetry} />
+        ) : myCourses.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: isMobile ? "60px 20px" : "80px 0",
+              background: "#fff",
+              borderRadius: "24px",
+              boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: isMobile ? "60px" : "80px",
+                marginBottom: "20px",
+              }}
+            >
+              🎓
+            </div>
+            <p
+              style={{
+                fontSize: isMobile ? "18px" : "20px",
+                color: "#6b7280",
+                marginBottom: "24px",
+              }}
+            >
+              Start your learning journey today!
+            </p>
+            <button
+              onClick={onBack}
+              style={{
+                background:
+                  "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "12px",
+                padding: isMobile ? "12px 24px" : "14px 32px",
+                fontWeight: 600,
+                cursor: "pointer",
+                fontSize: isMobile ? "14px" : "16px",
+              }}
+            >
               Browse Courses
             </button>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? "20px" : "32px" }}>
-            {myCourses.map(course => {
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: isMobile ? "20px" : "32px",
+            }}
+          >
+            {myCourses.map((course) => {
               const courseIcon = getCourseIcon(course);
               const gradient = getGradient(course);
               return (
-              <div key={course.id} style={{ 
-                background: "#fff", 
-                borderRadius: "20px", 
-                overflow: "hidden", 
-                cursor: "pointer", 
-                boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", 
-                transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                border: "1px solid rgba(139,92,246,0.1)",
-                position: "relative"
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = "translateY(-5px)";
-                e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
-              }}
-              >
-                <div style={{ position: "relative" }}>
-                  <div style={{
-                    background: gradient,
-                    height: isMobile ? "160px" : "180px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
-                    <span style={{ fontSize: isMobile ? "64px" : "80px" }}>{courseIcon}</span>
+                <div
+                  key={course.id}
+                  style={{
+                    background: "#fff",
+                    borderRadius: "20px",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                    transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                    border: "1px solid rgba(139,92,246,0.1)",
+                    position: "relative",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-5px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 20px 25px -5px rgba(0,0,0,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 10px 15px -3px rgba(0,0,0,0.1)";
+                  }}
+                >
+                  <div style={{ position: "relative" }}>
+                    <div
+                      style={{
+                        background: gradient,
+                        height: isMobile ? "160px" : "180px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <span
+                        style={{ fontSize: isMobile ? "64px" : "80px" }}
+                      >
+                        {courseIcon}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "16px",
+                        right: "16px",
+                        background: "#10b981",
+                        color: "#fff",
+                        borderRadius: "12px",
+                        padding: "6px 14px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✓ Enrolled
+                    </div>
+
+                    <button
+                      onClick={(e) => handleDeleteCourse(course, e)}
+                      disabled={deletingId === course.id}
+                      style={{
+                        position: "absolute",
+                        bottom: "16px",
+                        right: "16px",
+                        background: "#dc3545",
+                        border: "none",
+                        borderRadius: "10px",
+                        padding: "8px 16px",
+                        color: "#fff",
+                        cursor:
+                          deletingId === course.id
+                            ? "not-allowed"
+                            : "pointer",
+                        fontWeight: "bold",
+                        fontSize: "13px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                        zIndex: 10,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (deletingId !== course.id) {
+                          e.currentTarget.style.background = "#c82333";
+                          e.currentTarget.style.transform = "scale(1.05)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (deletingId !== course.id) {
+                          e.currentTarget.style.background = "#dc3545";
+                          e.currentTarget.style.transform = "scale(1)";
+                        }
+                      }}
+                    >
+                      {deletingId === course.id
+                        ? "⏳ Removing..."
+                        : "🗑️ Remove"}
+                    </button>
                   </div>
-                  <div style={{ 
-                    position: "absolute", 
-                    top: "16px", 
-                    right: "16px", 
-                    background: "#10b981", 
-                    color: "#fff", 
-                    borderRadius: "12px", 
-                    padding: "6px 14px", 
-                    fontSize: "12px", 
-                    fontWeight: 700 
-                  }}>
-                    ✓ Enrolled
-                  </div>
-                  
-                  <button
-                    onClick={(e) => handleDeleteCourse(course, e)}
-                    disabled={deletingId === course.id}
-                    style={{
-                      position: "absolute",
-                      bottom: "16px",
-                      right: "16px",
-                      background: "#dc3545",
-                      border: "none",
-                      borderRadius: "10px",
-                      padding: "8px 16px",
-                      color: "#fff",
-                      cursor: deletingId === course.id ? "not-allowed" : "pointer",
-                      fontWeight: "bold",
-                      fontSize: "13px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      transition: "all 0.2s ease",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                      zIndex: 10
-                    }}
-                    onMouseEnter={e => {
-                      if (deletingId !== course.id) {
-                        e.currentTarget.style.background = "#c82333";
-                        e.currentTarget.style.transform = "scale(1.05)";
-                      }
-                    }}
-                    onMouseLeave={e => {
-                      if (deletingId !== course.id) {
-                        e.currentTarget.style.background = "#dc3545";
-                        e.currentTarget.style.transform = "scale(1)";
-                      }
-                    }}
+
+                  <div
+                    onClick={() => onViewCourse(course)}
+                    style={{ padding: isMobile ? "20px" : "24px" }}
                   >
-                    {deletingId === course.id ? "⏳ Removing..." : "🗑️ Remove"}
-                  </button>
-                </div>
-                
-                <div onClick={() => onViewCourse(course)} style={{ padding: isMobile ? "20px" : "24px" }}>
-                  <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1f2937" }}>{course.title}</h3>
-                  {course.rating && <div style={{ marginBottom: "12px" }}><Stars rating={course.rating} /></div>}
-                  <div style={{ color: "#6b7280", fontSize: "14px" }}>⏱ {course.duration || "40 hours"} · 📋 {course.steps ?? course.lessons?.length ?? 12} lessons</div>
-                  <div style={{ marginTop: "16px", height: "4px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
-                    <div style={{ width: "60%", height: "100%", background: "linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "4px" }} />
+                    <h3
+                      style={{
+                        margin: "0 0 12px",
+                        fontSize: isMobile ? "18px" : "20px",
+                        color: "#1f2937",
+                      }}
+                    >
+                      {course.title}
+                    </h3>
+                    {course.rating && (
+                      <div style={{ marginBottom: "12px" }}>
+                        <Stars rating={course.rating} />
+                      </div>
+                    )}
+                    <div style={{ color: "#6b7280", fontSize: "14px" }}>
+                      ⏱ {course.duration || "40 hours"} · 📋{" "}
+                      {course.steps ?? course.lessons?.length ?? 12} lessons
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "16px",
+                        height: "4px",
+                        background: "#e5e7eb",
+                        borderRadius: "4px",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "60%",
+                          height: "100%",
+                          background:
+                            "linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)",
+                          borderRadius: "4px",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        fontSize: "13px",
+                        color: "#8b5cf6",
+                        fontWeight: 600,
+                      }}
+                    >
+                      60% Complete
+                    </div>
                   </div>
-                  <div style={{ marginTop: "12px", fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>60% Complete</div>
                 </div>
-              </div>
-            );
+              );
             })}
           </div>
         )}
@@ -662,38 +1216,142 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
 }
 
 // ==================== COURSES LIST PAGE ====================
-function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrollingIds, onMyCoursesNav, isMobile, loading, error, onRetry }) {
+function CoursesListPage({
+  courses,
+  onViewCourse,
+  onEnroll,
+  enrolledIds,
+  enrollingIds,
+  onMyCoursesNav,
+  isMobile,
+  loading,
+  error,
+  onRetry,
+}) {
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const filtered = courses.filter(c =>
-    selectedCategory === "all" || c.category === selectedCategory
+  const filtered = courses.filter(
+    (c) =>
+      selectedCategory === "all" || c.category === selectedCategory
   );
 
   const featuredCourses = courses.slice(0, 3);
 
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif", minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
+    <div
+      style={{
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)",
+      }}
+    >
       {/* Hero Section */}
-      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)", padding: isMobile ? "60px 20px" : "100px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: isMobile ? "300px" : "600px", height: isMobile ? "300px" : "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)", top: "-150px", right: "-100px" }} />
-        <div style={{ position: "absolute", width: isMobile ? "250px" : "500px", height: isMobile ? "250px" : "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)", bottom: "-125px", left: "-75px" }} />
-        <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 2 }}>
-          <h1 style={{ color: "#fff", fontSize: isMobile ? "36px" : "64px", fontWeight: 800, lineHeight: "1.2", marginBottom: "20px", letterSpacing: "-0.5px" }}>
-            Master Cisco Networking<br />Build Your Dream Career
+      <div
+        style={{
+          background:
+            "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)",
+          padding: isMobile ? "60px 20px" : "100px 48px",
+          textAlign: "center",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            width: isMobile ? "300px" : "600px",
+            height: isMobile ? "300px" : "600px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)",
+            top: "-150px",
+            right: "-100px",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            width: isMobile ? "250px" : "500px",
+            height: isMobile ? "250px" : "500px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)",
+            bottom: "-125px",
+            left: "-75px",
+          }}
+        />
+        <div
+          style={{
+            maxWidth: "900px",
+            margin: "0 auto",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          <h1
+            style={{
+              color: "#fff",
+              fontSize: isMobile ? "36px" : "64px",
+              fontWeight: 800,
+              lineHeight: "1.2",
+              marginBottom: "20px",
+              letterSpacing: "-0.5px",
+            }}
+          >
+            Master Cisco Networking
+            <br />
+            Build Your Dream Career
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: isMobile ? "14px" : "18px", lineHeight: "1.6", maxWidth: "700px", margin: "0 auto 30px" }}>
-            Learn CCNA, CCNP, CCIE, Security, Linux and Network Automation through hands-on labs, video lessons, quizzes and real-world projects.
+          <p
+            style={{
+              color: "rgba(255,255,255,0.8)",
+              fontSize: isMobile ? "14px" : "18px",
+              lineHeight: "1.6",
+              maxWidth: "700px",
+              margin: "0 auto 30px",
+            }}
+          >
+            Learn CCNA, CCNP, CCIE, Security, Linux and Network Automation
+            through hands-on labs, video lessons, quizzes and real-world
+            projects.
           </p>
-          <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "16px",
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
+          >
             <button
               onClick={() => courses.length > 0 && onEnroll(courses[0])}
-              style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", borderRadius: "60px", padding: isMobile ? "12px 24px" : "16px 40px", fontWeight: 700, fontSize: isMobile ? "14px" : "16px", cursor: "pointer", boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)" }}
+              style={{
+                background:
+                  "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "60px",
+                padding: isMobile ? "12px 24px" : "16px 40px",
+                fontWeight: 700,
+                fontSize: isMobile ? "14px" : "16px",
+                cursor: "pointer",
+                boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
+              }}
             >
               🎓 Start Learning Free
             </button>
             <button
               onClick={onMyCoursesNav}
-              style={{ background: "transparent", border: "2px solid #8b5cf6", borderRadius: "60px", padding: isMobile ? "12px 24px" : "16px 40px", fontWeight: 700, fontSize: isMobile ? "14px" : "16px", cursor: "pointer", color: "#fff" }}
+              style={{
+                background: "transparent",
+                border: "2px solid #8b5cf6",
+                borderRadius: "60px",
+                padding: isMobile ? "12px 24px" : "16px 40px",
+                fontWeight: 700,
+                fontSize: isMobile ? "14px" : "16px",
+                cursor: "pointer",
+                color: "#fff",
+              }}
             >
               📖 View My Courses
             </button>
@@ -702,25 +1360,53 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
       </div>
 
       {/* Categories */}
-      <div style={{ padding: isMobile ? "20px 16px" : "32px 48px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", maxWidth: "1000px", margin: "0 auto" }}>
-          {CATEGORIES.map(cat => (
+      <div
+        style={{
+          padding: isMobile ? "20px 16px" : "32px 48px",
+          background: "#fff",
+          borderBottom: "1px solid #e5e7eb",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "10px",
+            maxWidth: "1000px",
+            margin: "0 auto",
+          }}
+        >
+          {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
               style={{
-                background: selectedCategory === cat.id ? `linear-gradient(135deg, ${cat.color} 0%, ${cat.color}cc 100%)` : "#f3f4f6",
+                background:
+                  selectedCategory === cat.id
+                    ? `linear-gradient(135deg, ${cat.color} 0%, ${cat.color}cc 100%)`
+                    : "#f3f4f6",
                 color: selectedCategory === cat.id ? "#fff" : "#374151",
-                border: "none", borderRadius: "40px",
+                border: "none",
+                borderRadius: "40px",
                 padding: isMobile ? "8px 16px" : "12px 28px",
-                fontWeight: 600, fontSize: isMobile ? "12px" : "14px",
-                cursor: "pointer", display: "flex", alignItems: "center", gap: "6px",
+                fontWeight: 600,
+                fontSize: isMobile ? "12px" : "14px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
                 transition: "all 0.3s ease",
-                boxShadow: selectedCategory === cat.id ? `0 10px 15px -3px ${cat.color}40` : "none",
+                boxShadow:
+                  selectedCategory === cat.id
+                    ? `0 10px 15px -3px ${cat.color}40`
+                    : "none",
               }}
             >
               <span>{cat.icon}</span>
-              <span>{isMobile && cat.label === "All Courses" ? "All" : cat.label}</span>
+              <span>
+                {isMobile && cat.label === "All Courses" ? "All" : cat.label}
+              </span>
             </button>
           ))}
         </div>
@@ -728,18 +1414,60 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
 
       {/* Featured Courses */}
       {selectedCategory === "all" && featuredCourses.length > 0 && (
-        <div style={{ padding: isMobile ? "40px 20px" : "64px 48px", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
+        <div
+          style={{
+            padding: isMobile ? "40px 20px" : "64px 48px",
+            background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)",
+          }}
+        >
           <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-            <div style={{ textAlign: "center", marginBottom: isMobile ? "32px" : "48px" }}>
-              <h2 style={{ margin: 0, fontSize: isMobile ? "28px" : "36px", fontWeight: 800, background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            <div
+              style={{
+                textAlign: "center",
+                marginBottom: isMobile ? "32px" : "48px",
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: isMobile ? "28px" : "36px",
+                  fontWeight: 800,
+                  background:
+                    "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
                 Featured Courses
               </h2>
-              <p style={{ color: "#6b7280", marginTop: "12px", fontSize: isMobile ? "14px" : "16px" }}>Most popular courses chosen by our community</p>
+              <p
+                style={{
+                  color: "#6b7280",
+                  marginTop: "12px",
+                  fontSize: isMobile ? "14px" : "16px",
+                }}
+              >
+                Most popular courses chosen by our community
+              </p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? "20px" : "32px" }}>
-              {featuredCourses.map(course => (
-                <CourseCard key={course.id} course={course} onViewCourse={onViewCourse} onEnroll={onEnroll}
-                  enrolled={enrolledIds.includes(course.id)} enrolling={enrollingIds.has(course.id)} />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "repeat(3, 1fr)",
+                gap: isMobile ? "20px" : "32px",
+              }}
+            >
+              {featuredCourses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  onViewCourse={onViewCourse}
+                  onEnroll={onEnroll}
+                  enrolled={enrolledIds.includes(course.id)}
+                  enrolling={enrollingIds.has(course.id)}
+                />
               ))}
             </div>
           </div>
@@ -749,25 +1477,75 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
       {/* All Courses */}
       <div style={{ padding: isMobile ? "40px 20px" : "64px 48px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          {loading ? <Spinner /> : error ? <ErrorBanner message={error} onRetry={onRetry} /> : (
+          {loading ? (
+            <Spinner />
+          ) : error ? (
+            <ErrorBanner message={error} onRetry={onRetry} />
+          ) : (
             <>
               {selectedCategory !== "all" && (
-                <div style={{ marginBottom: "32px", textAlign: "center" }}>
-                  <h2 style={{ fontSize: isMobile ? "24px" : "32px", fontWeight: 800, color: "#1f2937", marginBottom: "8px" }}>
-                    {CATEGORIES.find(c => c.id === selectedCategory)?.label} Courses
+                <div
+                  style={{
+                    marginBottom: "32px",
+                    textAlign: "center",
+                  }}
+                >
+                  <h2
+                    style={{
+                      fontSize: isMobile ? "24px" : "32px",
+                      fontWeight: 800,
+                      color: "#1f2937",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {
+                      CATEGORIES.find((c) => c.id === selectedCategory)
+                        ?.label
+                    }{" "}
+                    Courses
                   </h2>
-                  <p style={{ color: "#6b7280", fontSize: isMobile ? "14px" : "16px" }}>{filtered.length} premium courses available</p>
+                  <p
+                    style={{
+                      color: "#6b7280",
+                      fontSize: isMobile ? "14px" : "16px",
+                    }}
+                  >
+                    {filtered.length} premium courses available
+                  </p>
                 </div>
               )}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(350px, 1fr))", gap: isMobile ? "20px" : "32px" }}>
-                {filtered.map(course => (
-                  <CourseCard key={course.id} course={course} onViewCourse={onViewCourse} onEnroll={onEnroll}
-                    enrolled={enrolledIds.includes(course.id)} enrolling={enrollingIds.has(course.id)} />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile
+                    ? "1fr"
+                    : "repeat(auto-fill, minmax(350px, 1fr))",
+                  gap: isMobile ? "20px" : "32px",
+                }}
+              >
+                {filtered.map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    onViewCourse={onViewCourse}
+                    onEnroll={onEnroll}
+                    enrolled={enrolledIds.includes(course.id)}
+                    enrolling={enrollingIds.has(course.id)}
+                  />
                 ))}
               </div>
               {filtered.length === 0 && (
-                <div style={{ textAlign: "center", padding: "60px 20px", background: "#fff", borderRadius: "24px" }}>
-                  <p style={{ fontSize: "18px", color: "#6b7280" }}>No courses found in this category.</p>
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "60px 20px",
+                    background: "#fff",
+                    borderRadius: "24px",
+                  }}
+                >
+                  <p style={{ fontSize: "18px", color: "#6b7280" }}>
+                    No courses found in this category.
+                  </p>
                 </div>
               )}
             </>
@@ -776,15 +1554,52 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
       </div>
 
       {/* CTA Section */}
-      <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)", padding: isMobile ? "60px 20px" : "80px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+      <div
+        style={{
+          background:
+            "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+          padding: isMobile ? "60px 20px" : "80px 48px",
+          textAlign: "center",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
         <div style={{ position: "relative", zIndex: 2 }}>
-          <h2 style={{ color: "#fff", fontSize: isMobile ? "28px" : "42px", marginBottom: "16px", fontWeight: 800 }}>Ready to Accelerate Your Career?</h2>
-          <p style={{ color: "#c4b5fd", fontSize: isMobile ? "14px" : "18px", marginBottom: "32px", maxWidth: "600px", margin: "0 auto 32px" }}>
-            Join thousands of successful network engineers who transformed their careers with our courses
+          <h2
+            style={{
+              color: "#fff",
+              fontSize: isMobile ? "28px" : "42px",
+              marginBottom: "16px",
+              fontWeight: 800,
+            }}
+          >
+            Ready to Accelerate Your Career?
+          </h2>
+          <p
+            style={{
+              color: "#c4b5fd",
+              fontSize: isMobile ? "14px" : "18px",
+              marginBottom: "32px",
+              maxWidth: "600px",
+              margin: "0 auto 32px",
+            }}
+          >
+            Join thousands of successful network engineers who transformed
+            their careers with our courses
           </p>
           <button
             onClick={() => courses.length > 0 && onEnroll(courses[0])}
-            style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", borderRadius: "60px", padding: isMobile ? "14px 32px" : "18px 48px", fontSize: isMobile ? "16px" : "18px", fontWeight: 700, cursor: "pointer" }}
+            style={{
+              background:
+                "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "60px",
+              padding: isMobile ? "14px 32px" : "18px 48px",
+              fontSize: isMobile ? "16px" : "18px",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
           >
             🎓 Start Your Journey Today
           </button>
@@ -792,41 +1607,138 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
       </div>
 
       {/* Footer */}
-      <div style={{ background: "#111827", padding: isMobile ? "40px 20px" : "60px 48px", color: "#fff" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr", gap: "40px" }}>
+      <div
+        style={{
+          background: "#111827",
+          padding: isMobile ? "40px 20px" : "60px 48px",
+          color: "#fff",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1200px",
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr",
+            gap: "40px",
+          }}
+        >
           <div>
-            <h2 style={{ fontSize: isMobile ? "24px" : "32px", marginBottom: "16px" }}>Test Your Skills</h2>
-            <p style={{ color: "#d1d5db", lineHeight: "1.8", marginBottom: "24px" }}>
-              Solve the challenge and earn up to a <strong style={{ color: "#8b5cf6" }}>10% scholarship</strong> for our programs!
+            <h2
+              style={{
+                fontSize: isMobile ? "24px" : "32px",
+                marginBottom: "16px",
+              }}
+            >
+              Test Your Skills
+            </h2>
+            <p
+              style={{
+                color: "#d1d5db",
+                lineHeight: "1.8",
+                marginBottom: "24px",
+              }}
+            >
+              Solve the challenge and earn up to a{" "}
+              <strong style={{ color: "#8b5cf6" }}>10% scholarship</strong>{" "}
+              for our programs!
             </p>
-            <button style={{ background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)", color: "#fff", border: "none", borderRadius: "10px", padding: "14px 28px", fontWeight: 700, cursor: "pointer" }}>
+            <button
+              style={{
+                background:
+                  "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "10px",
+                padding: "14px 28px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
               Test Your Skills Now →
             </button>
           </div>
           <div>
-            <h3 style={{ marginBottom: "20px", fontSize: "20px" }}>Contact</h3>
-            <p style={{ color: "#d1d5db", marginBottom: "10px" }}>📞 +91-9037555777</p>
-            <p style={{ color: "#d1d5db", marginBottom: "10px" }}>📞 +91-8792633595</p>
-            <p style={{ color: "#d1d5db", marginBottom: "20px" }}>✉️ info@infocampus.in</p>
-            <h4 style={{ color: "#8b5cf6", marginBottom: "10px" }}>Follow Us</h4>
-            <div style={{ display: "flex", gap: "12px", fontSize: "24px" }}>
-              <span>📘</span><span>📷</span><span>💼</span><span>▶️</span>
+            <h3 style={{ marginBottom: "20px", fontSize: "20px" }}>
+              Contact
+            </h3>
+            <p style={{ color: "#d1d5db", marginBottom: "10px" }}>
+              📞 +91-9037555777
+            </p>
+            <p style={{ color: "#d1d5db", marginBottom: "10px" }}>
+              📞 +91-8792633595
+            </p>
+            <p style={{ color: "#d1d5db", marginBottom: "20px" }}>
+              ✉️ info@infocampus.in
+            </p>
+            <h4 style={{ color: "#8b5cf6", marginBottom: "10px" }}>
+              Follow Us
+            </h4>
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                fontSize: "24px",
+              }}
+            >
+              <span>📘</span>
+              <span>📷</span>
+              <span>💼</span>
+              <span>▶️</span>
             </div>
           </div>
           <div>
-            <h3 style={{ marginBottom: "20px", fontSize: "20px" }}>Locations</h3>
+            <h3 style={{ marginBottom: "20px", fontSize: "20px" }}>
+              Locations
+            </h3>
             <div style={{ marginBottom: "24px" }}>
-              <h4 style={{ color: "#8b5cf6", marginBottom: "8px" }}>📍 Calicut</h4>
-              <p style={{ color: "#d1d5db", lineHeight: "1.7", fontSize: "14px" }}>6th Floor, Markaz Complex Mavoor Road, Opposite Private Bus Stand, Calicut - 04</p>
+              <h4 style={{ color: "#8b5cf6", marginBottom: "8px" }}>
+                📍 Calicut
+              </h4>
+              <p
+                style={{
+                  color: "#d1d5db",
+                  lineHeight: "1.7",
+                  fontSize: "14px",
+                }}
+              >
+                6th Floor, Markaz Complex Mavoor Road, Opposite Private Bus
+                Stand, Calicut - 04
+              </p>
             </div>
             <div>
-              <h4 style={{ color: "#8b5cf6", marginBottom: "8px" }}>📍 Bengaluru</h4>
-              <p style={{ color: "#d1d5db", lineHeight: "1.7", fontSize: "14px" }}>No.50, 1st Floor, JKN Arcade, 1st Cross Road, 27th Main, Old Madiwala, BTM 1st Stage, Bengaluru - 560068</p>
+              <h4 style={{ color: "#8b5cf6", marginBottom: "8px" }}>
+                📍 Bengaluru
+              </h4>
+              <p
+                style={{
+                  color: "#d1d5db",
+                  lineHeight: "1.7",
+                  fontSize: "14px",
+                }}
+              >
+                No.50, 1st Floor, JKN Arcade, 1st Cross Road, 27th Main, Old
+                Madiwala, BTM 1st Stage, Bengaluru - 560068
+              </p>
             </div>
           </div>
         </div>
-        <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, #374151, transparent)", margin: "40px 0 20px" }} />
-        <p style={{ textAlign: "center", color: "#9ca3af", margin: 0, fontSize: "14px" }}>
+        <div
+          style={{
+            height: "1px",
+            background:
+              "linear-gradient(90deg, transparent, #374151, transparent)",
+            margin: "40px 0 20px",
+          }}
+        />
+        <p
+          style={{
+            textAlign: "center",
+            color: "#9ca3af",
+            margin: 0,
+            fontSize: "14px",
+          }}
+        >
           © 2026 INFO CAMPUS Learning Platform. All Rights Reserved.
         </p>
       </div>
@@ -850,7 +1762,7 @@ export default function CoursesPage() {
   const [enrollingIds, setEnrollingIds] = useState(new Set());
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  
+
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener("resize", onResize);
@@ -861,25 +1773,28 @@ export default function CoursesPage() {
   useEffect(() => {
     const initializeUser = async () => {
       let userId = localStorage.getItem("userId");
-      
+
       if (!userId) {
         try {
-          const response = await fetch('https://backendrender-3-3pdg.onrender.com/api/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: 'Auto User',
-              email: `user${Date.now()}@example.com`
-            })
-          });
-          
+          const response = await fetch(
+            "https://backendrender-3-3pdg.onrender.com/api/users",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: "Auto User",
+                email: `user${Date.now()}@example.com`,
+              }),
+            }
+          );
+
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
-          
+
           const user = await response.json();
           userId = user.id || user.userId;
-          
+
           if (userId) {
             localStorage.setItem("userId", userId.toString());
           }
@@ -890,7 +1805,7 @@ export default function CoursesPage() {
         }
       }
     };
-    
+
     initializeUser();
   }, []);
 
@@ -899,7 +1814,9 @@ export default function CoursesPage() {
     setCoursesError(null);
     try {
       const res = await getCourses();
-      const list = Array.isArray(res.data) ? res.data : res.data?.content ?? res.data?.courses ?? [];
+      const list = Array.isArray(res.data)
+        ? res.data
+        : res.data?.content ?? res.data?.courses ?? [];
       setCourses(list);
     } catch (err) {
       console.error("Failed to load courses:", err);
@@ -918,7 +1835,7 @@ export default function CoursesPage() {
     try {
       const res = await getUserEnrollments(userId);
       const data = Array.isArray(res.data) ? res.data : [];
-      const ids = data.map(e => e.course?.id).filter(Boolean);
+      const ids = data.map((e) => e.course?.id).filter(Boolean);
       setEnrolledIds(ids);
     } catch (err) {
       console.error("Failed to load enrollments:", err);
@@ -933,60 +1850,64 @@ export default function CoursesPage() {
     fetchEnrollments();
   }, [fetchCourses, fetchEnrollments]);
 
-  const handleEnroll = useCallback(async (course) => {
-    const userId = localStorage.getItem("userId");
+  const handleEnroll = useCallback(
+    async (course) => {
+      const userId = localStorage.getItem("userId");
 
-    if (!userId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Login Required",
-        text: "Please log in first to enroll in a course.",
-        confirmButtonColor: "#2563eb",
-      });
-      return;
-    }
+      if (!userId) {
+        Swal.fire({
+          icon: "warning",
+          title: "Login Required",
+          text: "Please log in first to enroll in a course.",
+          confirmButtonColor: "#2563eb",
+        });
+        return;
+      }
 
-    if (enrolledIds.includes(course.id)) return;
-    if (enrollingIds.has(course.id)) return;
+      if (enrolledIds.includes(course.id)) return;
+      if (enrollingIds.has(course.id)) return;
 
-    setEnrollingIds((prev) => new Set(prev).add(course.id));
+      setEnrollingIds((prev) => new Set(prev).add(course.id));
 
-    try {
-      await enrollInCourse(course.id);
-      setEnrolledIds((prev) => [...prev, course.id]);
+      try {
+        await enrollInCourse(course.id);
+        setEnrolledIds((prev) => [...prev, course.id]);
 
-      Swal.fire({
-        icon: "success",
-        title: "🎉 Enrollment Successful!",
-        html: `<p>You have successfully enrolled in:</p><strong>${course.title}</strong>`,
-        confirmButtonText: "Continue Learning",
-        confirmButtonColor: "#10b981",
-        timer: 3000,
-        timerProgressBar: true,
-      });
+        Swal.fire({
+          icon: "success",
+          title: "🎉 Enrollment Successful!",
+          html: `<p>You have successfully enrolled in:</p><strong>${course.title}</strong>`,
+          confirmButtonText: "Continue Learning",
+          confirmButtonColor: "#10b981",
+          timer: 3000,
+          timerProgressBar: true,
+        });
+      } catch (err) {
+        console.error("Enrollment error:", err);
 
-    } catch (err) {
-      console.error("Enrollment error:", err);
+        const msg =
+          typeof err?.response?.data === "string"
+            ? err.response.data
+            : err?.response?.data?.message ||
+              err.message ||
+              "Enrollment failed.";
 
-      const msg = typeof err?.response?.data === "string"
-        ? err.response.data
-        : err?.response?.data?.message || err.message || "Enrollment failed.";
-
-      Swal.fire({
-        icon: "error",
-        title: "Enrollment Failed",
-        text: msg,
-        confirmButtonColor: "#ef4444",
-      });
-
-    } finally {
-      setEnrollingIds((prev) => {
-        const s = new Set(prev);
-        s.delete(course.id);
-        return s;
-      });
-    }
-  }, [enrolledIds, enrollingIds]);
+        Swal.fire({
+          icon: "error",
+          title: "Enrollment Failed",
+          text: msg,
+          confirmButtonColor: "#ef4444",
+        });
+      } finally {
+        setEnrollingIds((prev) => {
+          const s = new Set(prev);
+          s.delete(course.id);
+          return s;
+        });
+      }
+    },
+    [enrolledIds, enrollingIds]
+  );
 
   const handleViewCourse = useCallback((course) => {
     setSelectedCourse(course);
