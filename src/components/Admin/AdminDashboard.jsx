@@ -302,7 +302,7 @@ export default function AdminDashboard() {
     { label: "Total Students", value: dashboardStats.totalStudents?.toLocaleString() || "0", iconBg: colors.primarySoft, icon: "👨‍🎓" },
     { label: "Total Courses", value: dashboardStats.totalCourses?.toString() || "0", iconBg: colors.tealSoft, icon: "🌐" },
     { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0", iconBg: colors.amberSoft, icon: "📚" },
-    { label: "Total Instructors", value: instructors.length.toString() || "0", iconBg: colors.purpleSoft, icon: "👨‍🏫" },
+    { label: "Total Instructors",value: dashboardStats.totalInstructors?.toString() || "0", iconBg: colors.purpleSoft, icon: "👨‍🏫" },
   ] : [];
 
   const renderContent = () => {
