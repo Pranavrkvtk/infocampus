@@ -399,7 +399,7 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? "20px" : "32px" }}>
             {myCourses.map(course => {
-              const enrollment = enrollments.find(e => e.course?.id === course.id);
+              // const enrollment = enrollments.find(e => e.course?.id === course.id);
               return (
                 <div key={course.id} style={{ 
                   background: "#fff", 
