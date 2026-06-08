@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { enrollInCourse } from "../api/courseApi";
+import { enrollInCourse, getUserEnrollments, deleteEnrollment } from "../api/courseApi";
 
 // ==================== ENROLL PAGE ====================
 export default function EnrollPage({ isMobile, onBack }) {
@@ -12,11 +12,44 @@ export default function EnrollPage({ isMobile, onBack }) {
   const [selectedPlan, setSelectedPlan] = useState("monthly");
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(true);
+  const [enrollmentId, setEnrollmentId] = useState(null);
 
   const plans = {
     monthly:  { name: "Monthly",  price: 49,  period: "month",    savings: null,         note: "✓ Full access · Cancel anytime · No commitment" },
     yearly:   { name: "Yearly",   price: 39,  period: "month",    savings: "Save 20%",   note: "✓ Save $120/year · Best for long-term learners" },
     lifetime: { name: "Lifetime", price: 299, period: "one-time", savings: "Best Value", note: "✓ Unlimited access forever · All future updates" },
+  };
+
+  // Check if user is already enrolled when component mounts
+  useEffect(() => {
+    checkExistingEnrollment();
+  }, []);
+
+  const checkExistingEnrollment = async () => {
+    const userId = localStorage.getItem("userId");
+    if (!userId || !course) {
+      setCheckingEnrollment(false);
+      return;
+    }
+
+    try {
+      const response = await getUserEnrollments(userId);
+      const enrollments = response.data || response.data.enrollments || [];
+      
+      // Find if already enrolled and get enrollment ID
+      const existingEnrollment = enrollments.find(e => e.course?.id === course.id);
+      
+      if (existingEnrollment) {
+        setIsEnrolled(true);
+        setEnrollmentId(existingEnrollment.id);
+        console.log("Already enrolled! Enrollment ID:", existingEnrollment.id);
+      }
+    } catch (error) {
+      console.error("Error checking enrollment:", error);
+    } finally {
+      setCheckingEnrollment(false);
+    }
   };
 
   // Guard: if someone lands here without a course in state, redirect
@@ -36,27 +69,105 @@ export default function EnrollPage({ isMobile, onBack }) {
     );
   }
 
-const handleEnroll = async () => {
-  // Check for userId first
-  const userId = localStorage.getItem("userId");
-  
-  if (!userId) {
-    alert("Please create a user first using the 'Create Test User' button above.");
-    return;
-  }
+  const handleEnroll = async () => {
+    // Check for userId first
+    const userId = localStorage.getItem("userId");
+    
+    if (!userId) {
+      alert("⚠️ Please create a user first using the 'Create Test User' button above.");
+      return;
+    }
 
-  try {
-    setIsLoading(true);
-    await enrollInCourse(course.id);  // ✅ Removed 'const response ='
-    alert("Successfully enrolled!");
-    setIsEnrolled(true);
-  } catch (error) {
-    console.error("Enrollment error:", error);
-    alert(error.message || "Enrollment failed");
-  } finally {
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      const response = await enrollInCourse(course.id);
+      console.log("Enrollment response:", response);
+      
+      // Get the enrollment ID from response
+      const newEnrollmentId = response.data?.id || response.data?.enrollmentId;
+      if (newEnrollmentId) {
+        setEnrollmentId(newEnrollmentId);
+      }
+      
+      alert("✅ Successfully enrolled in the course!");
+      setIsEnrolled(true);
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      
+      // Better error messages
+      if (error.message?.includes("already enrolled")) {
+        alert("⚠️ You are already enrolled in this course!");
+        setIsEnrolled(true);
+      } else if (error.response?.status === 404) {
+        alert("❌ Course not found. Please try again.");
+      } else if (error.response?.status === 409) {
+        alert("⚠️ You are already enrolled in this course!");
+        setIsEnrolled(true);
+      } else {
+        alert(error.message || "❌ Enrollment failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelEnrollment = async () => {
+    const userId = localStorage.getItem("userId");
+    
+    if (!userId) {
+      alert("⚠️ Please log in to cancel enrollment.");
+      return;
+    }
+
+    // Confirm cancellation
+    const confirmed = window.confirm("Are you sure you want to cancel this enrollment?");
+    if (!confirmed) return;
+
+    try {
+      setIsLoading(true);
+      
+      // Use enrollmentId if available, otherwise use courseId + userId
+      if (enrollmentId) {
+        console.log("Canceling enrollment with ID:", enrollmentId);
+        await deleteEnrollment(enrollmentId);
+      } else {
+        console.log("Canceling enrollment with courseId:", course.id, "userId:", userId);
+        await deleteEnrollment(course.id, userId);
+      }
+      
+      alert("✅ Successfully canceled enrollment!");
+      setIsEnrolled(false);
+      setEnrollmentId(null);
+      
+      // Optionally navigate back to courses page
+      navigate("/courses");
+    } catch (error) {
+      console.error("Cancellation error:", error);
+      alert("❌ Failed to cancel enrollment: " + (error.response?.data || error.message));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Show loading state while checking enrollment
+  if (checkingEnrollment) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8f8f6" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            width: "50px",
+            height: "50px",
+            border: "4px solid #f0f0f0",
+            borderTop: "4px solid #3abf94",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+            margin: "0 auto 20px"
+          }} />
+          <p style={{ color: "#666" }}>Checking enrollment status...</p>
+        </div>
+      </div>
+    );
   }
-};
 
   // ── Success screen ──────────────────────────────────────────────
   if (isEnrolled) {
@@ -68,13 +179,24 @@ const handleEnroll = async () => {
           <p style={{ color: "#666", marginBottom: "8px", fontSize: "15px" }}>
             You now have full access to <strong>{course.title}</strong>.
           </p>
-          <p style={{ color: "#888", marginBottom: "32px", fontSize: "14px" }}>Check your email for login details.</p>
-          <button
-            onClick={() => navigate("/courses")}
-            style={{ background: "#3abf94", color: "#fff", border: "none", borderRadius: "40px", padding: "14px 36px", fontSize: "16px", fontWeight: 700, cursor: "pointer", width: "100%" }}
-          >
-            Continue Learning →
-          </button>
+          <p style={{ color: "#888", marginBottom: "32px", fontSize: "14px" }}>Start learning today!</p>
+          
+          <div style={{ display: "flex", gap: "12px", flexDirection: "column" }}>
+            <button
+              onClick={() => navigate("/my-learning")}
+              style={{ background: "#3abf94", color: "#fff", border: "none", borderRadius: "40px", padding: "14px 36px", fontSize: "16px", fontWeight: 700, cursor: "pointer", width: "100%" }}
+            >
+              Go to My Learning →
+            </button>
+            
+            <button
+              onClick={handleCancelEnrollment}
+              disabled={isLoading}
+              style={{ background: "#fff", color: "#e8644a", border: "2px solid #e8644a", borderRadius: "40px", padding: "12px 36px", fontSize: "14px", fontWeight: 600, cursor: "pointer", width: "100%" }}
+            >
+              {isLoading ? "Processing..." : "Cancel Enrollment"}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -117,11 +239,11 @@ const handleEnroll = async () => {
           ← Back to Courses
         </button>
 
-        {/* ✅ TEST BUTTON - Click this to create a user */}
+        {/* ✅ TEST BUTTON - Create a test user */}
         <button
           onClick={async () => {
             try {
-      const response = await fetch('https://backendrender-3-3pdg.onrender.com/api/users', {
+              const response = await fetch('https://backendrender-3-3pdg.onrender.com/api/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -131,10 +253,12 @@ const handleEnroll = async () => {
               });
               const user = await response.json();
               localStorage.setItem('userId', user.id);
-              alert(`✅ User created successfully!\n\nYour User ID: ${user.id}\n\nNow click "Enroll Now" button to enroll in this course.`);
+              alert(`✅ User created successfully!\n\nUser ID: ${user.id}\nEmail: ${user.email}\n\nNow click "Enroll Now" to enroll in this course.`);
               console.log('User created:', user);
+              // Check enrollment status again
+              await checkExistingEnrollment();
             } catch (error) {
-              alert('❌ Error creating user. Make sure backend is running on http://localhost:8080\n\nError: ' + error.message);
+              alert('❌ Error creating user.\n\nError: ' + error.message);
               console.error('Error:', error);
             }
           }}
@@ -168,17 +292,43 @@ const handleEnroll = async () => {
       </div>
 
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: isMobile ? "32px 20px" : "48px 40px" }}>
+        {/* Show user info if logged in */}
+        {localStorage.getItem("userId") && (
+          <div style={{ 
+            background: "#e8f5e9", 
+            padding: "10px 16px", 
+            borderRadius: "10px", 
+            marginBottom: "20px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            <span style={{ fontSize: "13px", color: "#2e7d32" }}>
+              ✅ Logged in as User ID: {localStorage.getItem("userId")}
+            </span>
+            <button
+              onClick={() => {
+                localStorage.removeItem("userId");
+                window.location.reload();
+              }}
+              style={{ background: "none", border: "none", color: "#e8644a", cursor: "pointer", fontSize: "12px" }}
+            >
+              Logout
+            </button>
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "40px" }}>
 
           {/* ── Left: Course Info ── */}
           <div>
-            <div style={{ background: course.color + "12", borderRadius: "20px", padding: "24px", marginBottom: "24px", border: `1px solid ${course.color}30` }}>
+            <div style={{ background: (course.color || "#3abf94") + "12", borderRadius: "20px", padding: "24px", marginBottom: "24px", border: `1px solid ${course.color || "#3abf94"}30` }}>
               <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
-                <div style={{ fontSize: "52px" }}>{course.icon}</div>
+                <div style={{ fontSize: "52px" }}>{course.icon || "📚"}</div>
                 <div>
                   <h2 style={{ margin: 0, color: "#1a1a2e", fontSize: "20px", fontFamily: "'Trebuchet MS', sans-serif" }}>{course.title}</h2>
                   <p style={{ color: "#666", marginTop: "6px", fontSize: "13px" }}>
-                    {course.level} · {course.duration} · {course.lessons} lessons
+                    {course.level || "All Levels"} · {course.duration || "Self-paced"} · {course.lessons || "Multiple"} lessons
                   </p>
                 </div>
               </div>

@@ -54,13 +54,31 @@ export const watchCourse = (courseId) => {
   return api.get(`/enrollments/${courseId}/watch`);
 };
 
-// Fixed deleteEnrollment function - using api instance instead of axios
+// ✅ FIXED: Delete enrollment using courseId and userId (matching backend)
+// In courseApi.js - REPLACE your deleteEnrollment function with this:
+
+// ✅ FIXED: Delete by enrollment ID (not courseId + userId)
 export const deleteEnrollment = async (enrollmentId) => {
   try {
+    console.log("=== DEBUG DELETE ENROLLMENT ===");
+    console.log("Enrollment ID:", enrollmentId);
+    console.log("Full URL:", `/enrollments/${enrollmentId}`);
+    console.log("========================");
+    
+    if (!enrollmentId) {
+      throw new Error("No enrollment ID provided");
+    }
+    
     const response = await api.delete(`/enrollments/${enrollmentId}`);
+    console.log("Delete successful:", response);
     return response;
   } catch (error) {
     console.error("Error deleting enrollment:", error);
     throw error;
   }
+};
+// ✅ OPTIONAL: Keep this if you want to also support deletion by enrollment ID
+// Alternative name - make sure it's consistent
+export const deleteEnrollmentById = async (enrollmentId) => {
+  return deleteEnrollment(enrollmentId);
 };

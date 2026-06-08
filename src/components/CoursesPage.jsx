@@ -5,7 +5,7 @@ import {
   enrollInCourse,
   getUserEnrollments,
   deleteEnrollment,
-} from "../api/courseApi"; // adjust path if needed
+} from "../api/courseApi";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
@@ -154,7 +154,6 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch full course detail if lessons not already loaded
   const hasLessons = Boolean(detail.lessons?.length);
   useEffect(() => {
     if (hasLessons || !course.id) return;
@@ -170,7 +169,6 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)", fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
-      {/* Top bar */}
       <div style={{ background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)", padding: isMobile ? "12px 20px" : "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", borderBottom: "2px solid #8b5cf6" }}>
         <span style={{ color: "#fff", fontSize: isMobile ? "12px" : "14px" }}>
           <span style={{ cursor: "pointer", opacity: 0.8 }} onClick={onBack}>Courses</span>
@@ -181,7 +179,6 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
         </span>
       </div>
 
-      {/* Hero */}
       <div style={{ background: "linear-gradient(135deg, #2d1b69 0%, #4c1d95 50%, #7c3aed 100%)", padding: isMobile ? "40px 20px 0" : "60px 40px 0", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: isMobile ? "300px" : "500px", height: isMobile ? "300px" : "500px", borderRadius: "50%", background: "rgba(139,92,246,0.1)", top: "-200px", right: "-100px" }} />
         <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", gap: isMobile ? "24px" : "48px", alignItems: "flex-end", flexWrap: "wrap", position: "relative", zIndex: 2 }}>
@@ -195,9 +192,7 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
         </div>
       </div>
 
-      {/* Body */}
       <div style={{ maxWidth: "1100px", margin: "0 auto", padding: isMobile ? "20px" : "40px", display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "24px" : "40px" }}>
-        {/* Sidebar */}
         <div style={{ width: isMobile ? "100%" : "280px" }}>
           <div style={{ background: "#fff", borderRadius: "20px", overflow: "hidden", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" }}>
             <button
@@ -235,7 +230,6 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
           </div>
         </div>
 
-        {/* Curriculum */}
         <div style={{ flex: 1 }}>
           {loading ? <Spinner /> : error ? <ErrorBanner message={error} /> : (
             <div style={{ background: "#fff", borderRadius: "20px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", overflow: "hidden" }}>
@@ -289,8 +283,6 @@ function CourseDetailPage({ course, onBack, onEnroll, enrolled, enrolling, isMob
 // ==================== MY COURSES PAGE WITH DELETE BUTTON ====================
 function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, loading, error, onRetry }) {
   const [deletingId, setDeletingId] = useState(null);
-  
-  // Get enrollment data from localStorage or state
   const [enrollments, setEnrollments] = useState([]);
   
   useEffect(() => {
@@ -308,13 +300,22 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
     fetchEnrollments();
   }, [enrolledIds]);
 
-  // Filter courses that are enrolled
   const myCourses = courses.filter(c => enrolledIds.includes(c.id));
 
   const handleDeleteCourse = async (course, event) => {
-    event.stopPropagation(); // Prevent opening course detail
+    event.stopPropagation();
     
-    // Find the enrollment record for this course
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      Swal.fire({
+        title: 'Not Logged In',
+        text: 'Please refresh the page to auto-login.',
+        icon: 'warning',
+        confirmButtonColor: '#dc3545'
+      });
+      return;
+    }
+    
     const enrollment = enrollments.find(e => e.course?.id === course.id);
     
     if (!enrollment) {
@@ -342,7 +343,6 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
       setDeletingId(course.id);
       
       try {
-        // Delete using enrollment ID
         await deleteEnrollment(enrollment.id);
         
         Swal.fire({
@@ -353,7 +353,6 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
           showConfirmButton: false
         });
         
-        // Refresh enrollments
         if (onRetry) {
           onRetry();
         } else {
@@ -398,100 +397,96 @@ function MyCoursesPage({ enrolledIds, courses, onViewCourse, onBack, isMobile, l
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? "20px" : "32px" }}>
-            {myCourses.map(course => {
-              // const enrollment = enrollments.find(e => e.course?.id === course.id);
-              return (
-                <div key={course.id} style={{ 
-                  background: "#fff", 
-                  borderRadius: "20px", 
-                  overflow: "hidden", 
-                  cursor: "pointer", 
-                  boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", 
-                  transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                  border: "1px solid rgba(139,92,246,0.1)",
-                  position: "relative"
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = "translateY(-5px)";
-                  e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0,0,0,0.15)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
-                }}
-                >
-                  <div style={{ position: "relative" }}>
-                    <img 
-                      src={course.image || course.imageUrl || `https://picsum.photos/id/${(course.id ?? 1) * 10}/400/220`} 
-                      alt={course.title} 
-                      style={{ width: "100%", height: isMobile ? "160px" : "180px", objectFit: "cover" }} 
-                    />
-                    <div style={{ 
-                      position: "absolute", 
-                      top: "16px", 
-                      right: "16px", 
-                      background: "#10b981", 
-                      color: "#fff", 
-                      borderRadius: "12px", 
-                      padding: "6px 14px", 
-                      fontSize: "12px", 
-                      fontWeight: 700 
-                    }}>
-                      ✓ Enrolled
-                    </div>
-                    
-                    {/* DELETE BUTTON */}
-                    <button
-                      onClick={(e) => handleDeleteCourse(course, e)}
-                      disabled={deletingId === course.id}
-                      style={{
-                        position: "absolute",
-                        bottom: "16px",
-                        right: "16px",
-                        background: "#dc3545",
-                        border: "none",
-                        borderRadius: "10px",
-                        padding: "8px 16px",
-                        color: "#fff",
-                        cursor: deletingId === course.id ? "not-allowed" : "pointer",
-                        fontWeight: "bold",
-                        fontSize: "13px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        transition: "all 0.2s ease",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                        zIndex: 10
-                      }}
-                      onMouseEnter={e => {
-                        if (deletingId !== course.id) {
-                          e.currentTarget.style.background = "#c82333";
-                          e.currentTarget.style.transform = "scale(1.05)";
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        if (deletingId !== course.id) {
-                          e.currentTarget.style.background = "#dc3545";
-                          e.currentTarget.style.transform = "scale(1)";
-                        }
-                      }}
-                    >
-                      {deletingId === course.id ? "⏳ Removing..." : "🗑️ Remove"}
-                    </button>
+            {myCourses.map(course => (
+              <div key={course.id} style={{ 
+                background: "#fff", 
+                borderRadius: "20px", 
+                overflow: "hidden", 
+                cursor: "pointer", 
+                boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", 
+                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                border: "1px solid rgba(139,92,246,0.1)",
+                position: "relative"
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-5px)";
+                e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0,0,0,0.15)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 10px 15px -3px rgba(0,0,0,0.1)";
+              }}
+              >
+                <div style={{ position: "relative" }}>
+                  <img 
+                    src={course.image || course.imageUrl || `https://picsum.photos/id/${(course.id ?? 1) * 10}/400/220`} 
+                    alt={course.title} 
+                    style={{ width: "100%", height: isMobile ? "160px" : "180px", objectFit: "cover" }} 
+                  />
+                  <div style={{ 
+                    position: "absolute", 
+                    top: "16px", 
+                    right: "16px", 
+                    background: "#10b981", 
+                    color: "#fff", 
+                    borderRadius: "12px", 
+                    padding: "6px 14px", 
+                    fontSize: "12px", 
+                    fontWeight: 700 
+                  }}>
+                    ✓ Enrolled
                   </div>
                   
-                  <div onClick={() => onViewCourse(course)} style={{ padding: isMobile ? "20px" : "24px" }}>
-                    <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1f2937" }}>{course.title}</h3>
-                    {course.rating && <div style={{ marginBottom: "12px" }}><Stars rating={course.rating} /></div>}
-                    <div style={{ color: "#6b7280", fontSize: "14px" }}>⏱ {course.duration || "—"} · 📋 {course.steps ?? course.lessons?.length ?? 0} lessons</div>
-                    <div style={{ marginTop: "16px", height: "4px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
-                      <div style={{ width: "60%", height: "100%", background: "linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "4px" }} />
-                    </div>
-                    <div style={{ marginTop: "12px", fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>60% Complete</div>
-                  </div>
+                  <button
+                    onClick={(e) => handleDeleteCourse(course, e)}
+                    disabled={deletingId === course.id}
+                    style={{
+                      position: "absolute",
+                      bottom: "16px",
+                      right: "16px",
+                      background: "#dc3545",
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "8px 16px",
+                      color: "#fff",
+                      cursor: deletingId === course.id ? "not-allowed" : "pointer",
+                      fontWeight: "bold",
+                      fontSize: "13px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                      zIndex: 10
+                    }}
+                    onMouseEnter={e => {
+                      if (deletingId !== course.id) {
+                        e.currentTarget.style.background = "#c82333";
+                        e.currentTarget.style.transform = "scale(1.05)";
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (deletingId !== course.id) {
+                        e.currentTarget.style.background = "#dc3545";
+                        e.currentTarget.style.transform = "scale(1)";
+                      }
+                    }}
+                  >
+                    {deletingId === course.id ? "⏳ Removing..." : "🗑️ Remove"}
+                  </button>
                 </div>
-              );
-            })}
+                
+                <div onClick={() => onViewCourse(course)} style={{ padding: isMobile ? "20px" : "24px" }}>
+                  <h3 style={{ margin: "0 0 12px", fontSize: isMobile ? "18px" : "20px", color: "#1f2937" }}>{course.title}</h3>
+                  {course.rating && <div style={{ marginBottom: "12px" }}><Stars rating={course.rating} /></div>}
+                  <div style={{ color: "#6b7280", fontSize: "14px" }}>⏱ {course.duration || "—"} · 📋 {course.steps ?? course.lessons?.length ?? 0} lessons</div>
+                  <div style={{ marginTop: "16px", height: "4px", background: "#e5e7eb", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ width: "60%", height: "100%", background: "linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)", borderRadius: "4px" }} />
+                  </div>
+                  <div style={{ marginTop: "12px", fontSize: "13px", color: "#8b5cf6", fontWeight: 600 }}>60% Complete</div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -511,7 +506,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif", minHeight: "100vh", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)" }}>
-      {/* Hero */}
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%)", padding: isMobile ? "60px 20px" : "100px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: isMobile ? "300px" : "600px", height: isMobile ? "300px" : "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)", top: "-150px", right: "-100px" }} />
         <div style={{ position: "absolute", width: isMobile ? "250px" : "500px", height: isMobile ? "250px" : "500px", borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)", bottom: "-125px", left: "-75px" }} />
@@ -539,7 +533,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       </div>
 
-      {/* Category Filter */}
       <div style={{ padding: isMobile ? "20px 16px" : "32px 48px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", maxWidth: "1000px", margin: "0 auto" }}>
           {CATEGORIES.map(cat => (
@@ -564,7 +557,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       </div>
 
-      {/* Featured */}
       {selectedCategory === "all" && featuredCourses.length > 0 && (
         <div style={{ padding: isMobile ? "40px 20px" : "64px 48px", background: "linear-gradient(135deg, #faf9ff 0%, #fff 100%)" }}>
           <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -584,7 +576,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       )}
 
-      {/* All Courses */}
       <div style={{ padding: isMobile ? "40px 20px" : "64px 48px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           {loading ? <Spinner /> : error ? <ErrorBanner message={error} onRetry={onRetry} /> : (
@@ -613,7 +604,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       </div>
 
-      {/* CTA Banner */}
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)", padding: isMobile ? "60px 20px" : "80px 48px", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "relative", zIndex: 2 }}>
           <h2 style={{ color: "#fff", fontSize: isMobile ? "28px" : "42px", marginBottom: "16px", fontWeight: 800 }}>Ready to Accelerate Your Career?</h2>
@@ -629,7 +619,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
         </div>
       </div>
 
-      {/* Footer */}
       <div style={{ background: "#111827", padding: isMobile ? "40px 20px" : "60px 48px", color: "#fff" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr", gap: "40px" }}>
           <div>
@@ -679,28 +668,71 @@ export default function CoursesPage() {
   const [page, setPage] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
 
-  // Courses data
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [coursesError, setCoursesError] = useState(null);
 
-  // Enrolled course IDs (numbers)
   const [enrolledIds, setEnrolledIds] = useState([]);
   const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
   const [enrollmentsError, setEnrollmentsError] = useState(null);
 
-  // Track which courseIds are mid-enrollment (for loading state on buttons)
   const [enrollingIds, setEnrollingIds] = useState(new Set());
 
-  // Responsive
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // ---- Fetch all courses ----
+  // ✅ AUTO-CREATE USER IF NOT EXISTS
+  useEffect(() => {
+    const initializeUser = async () => {
+      let userId = localStorage.getItem("userId");
+      
+      console.log("=== USER INITIALIZATION ===");
+      console.log("Current userId in localStorage:", userId);
+      
+      if (!userId) {
+        console.log("No userId found, creating new user...");
+        try {
+          const response = await fetch('https://backendrender-3-3pdg.onrender.com/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'Auto User',
+              email: `user${Date.now()}@example.com`
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          const user = await response.json();
+          userId = user.id || user.userId;
+          
+          if (userId) {
+            localStorage.setItem("userId", userId.toString());
+            console.log("✅ Created and stored new user ID:", userId);
+          } else {
+            console.error("No ID in response:", user);
+          }
+        } catch (error) {
+          console.error("Failed to create user:", error);
+          const fallbackId = "1";
+          localStorage.setItem("userId", fallbackId);
+          console.log("⚠️ Using fallback user ID:", fallbackId);
+        }
+      } else {
+        console.log("✅ Existing user ID found:", userId);
+      }
+    };
+    
+    initializeUser();
+  }, []);
+
   const fetchCourses = useCallback(async () => {
     setCoursesLoading(true);
     setCoursesError(null);
@@ -716,7 +748,6 @@ export default function CoursesPage() {
     }
   }, []);
 
-  // ---- Fetch enrolled courses for current user ----
   const fetchEnrollments = useCallback(async () => {
     const userId = localStorage.getItem("userId");
     if (!userId) return;
@@ -766,10 +797,7 @@ export default function CoursesPage() {
       Swal.fire({
         icon: "success",
         title: "🎉 Enrollment Successful!",
-        html: `
-          <p>You have successfully enrolled in:</p>
-          <strong>${course.title}</strong>
-        `,
+        html: `<p>You have successfully enrolled in:</p><strong>${course.title}</strong>`,
         confirmButtonText: "Continue Learning",
         confirmButtonColor: "#10b981",
         timer: 3000,
@@ -779,38 +807,9 @@ export default function CoursesPage() {
     } catch (err) {
       console.error("Enrollment error:", err);
 
-      const msg =
-        typeof err?.response?.data === "string"
-          ? err.response.data
-          : err?.response?.data?.message ||
-            err.message ||
-            "Enrollment failed.";
-
-      const needsFreeAccount = 
-        msg.toLowerCase().includes("premium") ||
-        msg.toLowerCase().includes("upgrade") ||
-        msg.toLowerCase().includes("subscription") ||
-        msg.toLowerCase().includes("free account") ||
-        err?.response?.status === 402 ||
-        err?.response?.status === 403;
-
-      if (needsFreeAccount) {
-        await Swal.fire({
-          icon: "info",
-          title: "Free Account Required",
-          html: `
-            <p>You need a <strong>free account</strong> to enroll in this course.</p>
-            <p>Please create a free account to continue.</p>
-          `,
-          confirmButtonText: "Create Free Account",
-          confirmButtonColor: "#10b981",
-          showCancelButton: false,
-          allowOutsideClick: false,
-        });
-
-        navigate("/free-account");
-        return;
-      }
+      const msg = typeof err?.response?.data === "string"
+        ? err.response.data
+        : err?.response?.data?.message || err.message || "Enrollment failed.";
 
       Swal.fire({
         icon: "error",
@@ -826,14 +825,13 @@ export default function CoursesPage() {
         return s;
       });
     }
-  }, [enrolledIds, enrollingIds, navigate]);
+  }, [enrolledIds, enrollingIds]);
 
   const handleViewCourse = useCallback((course) => {
     setSelectedCourse(course);
     setPage("detail");
   }, []);
 
-  // ---- Routing ----
   if (page === "detail" && selectedCourse) {
     return (
       <CourseDetailPage
