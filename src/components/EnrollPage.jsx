@@ -22,9 +22,6 @@ export default function EnrollPage({ isMobile, onBack }) {
   };
 
   // Check if user is already enrolled when component mounts
-  useEffect(() => {
-    checkExistingEnrollment();
-  }, []);
 
   const checkExistingEnrollment = async () => {
     const userId = localStorage.getItem("userId");
@@ -239,48 +236,7 @@ export default function EnrollPage({ isMobile, onBack }) {
           ← Back to Courses
         </button>
 
-        {/* ✅ TEST BUTTON - Create a test user */}
-        <button
-          onClick={async () => {
-            try {
-              const response = await fetch('https://backendrender-3-3pdg.onrender.com/api/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  name: 'Test Student',
-                  email: `student${Date.now()}@example.com`
-                })
-              });
-              const user = await response.json();
-              localStorage.setItem('userId', user.id);
-              alert(`✅ User created successfully!\n\nUser ID: ${user.id}\nEmail: ${user.email}\n\nNow click "Enroll Now" to enroll in this course.`);
-              console.log('User created:', user);
-              // Check enrollment status again
-              await checkExistingEnrollment();
-            } catch (error) {
-              alert('❌ Error creating user.\n\nError: ' + error.message);
-              console.error('Error:', error);
-            }
-          }}
-          style={{
-            background: "#4caf50",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            padding: "10px 20px",
-            fontSize: "14px",
-            fontWeight: 600,
-            cursor: "pointer",
-            fontFamily: "'Trebuchet MS', sans-serif",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = "#45a049"}
-          onMouseLeave={e => e.currentTarget.style.background = "#4caf50"}
-        >
-          👤 Create Test User
-        </button>
+   
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span style={{ fontSize: "28px" }}>💳</span>

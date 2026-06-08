@@ -7,7 +7,6 @@ import {
   deleteEnrollment,
 } from "../api/courseApi";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
 
 // ==================== CATEGORIES ====================
 const CATEGORIES = [
@@ -663,7 +662,6 @@ function CoursesListPage({ courses, onViewCourse, onEnroll, enrolledIds, enrolli
 
 // ==================== APP ROOT ====================
 export default function CoursesPage() {
-  const navigate = useNavigate();
 
   const [page, setPage] = useState("list");
   const [selectedCourse, setSelectedCourse] = useState(null);
