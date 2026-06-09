@@ -4,8 +4,7 @@ import {
   getAllPdfs, 
   deletePdf,
   formatFileSize,
-  formatDate,
-  getProcessingStatusText
+  formatDate
 } from "../../api/pdfApi";
 import Swal from "sweetalert2";
 
@@ -281,33 +280,33 @@ export default function PdfUploadTab() {
     fetchPdfs();
   }, []);
 
- const fetchPdfs = async () => {
-  setLoading(true);
-  try {
-    const response = await getAllPdfs();
-    console.log("PDFs response:", response.data);
-    const pdfs = response.data.map(pdf => ({
-      id: pdf.id,
-      name: pdf.fileName,
-      type: "Course",
-      pages: pdf.pageCount || 0,
-      images: pdf.imageCount || 0,
-      status: pdf.isProcessed ? "Completed" : "Processing",
-      date: pdf.uploadedAt,
-      fileSize: pdf.fileSize,
-    }));
-    setUploads(pdfs);
-  } catch (error) {
-    console.error("Error fetching PDFs:", error);
-    if (error.code === 'ERR_NETWORK') {
-      Swal.fire("Connection Error", "Backend may be down. Please check if server is running.", "error");
-    } else {
-      Swal.fire("Error", "Failed to load PDFs", "error");
+  const fetchPdfs = async () => {
+    setLoading(true);
+    try {
+      const response = await getAllPdfs();
+      console.log("PDFs response:", response.data);
+      const pdfs = response.data.map(pdf => ({
+        id: pdf.id,
+        name: pdf.fileName,
+        type: "Course",
+        pages: pdf.pageCount || 0,
+        images: pdf.imageCount || 0,
+        status: pdf.isProcessed ? "Completed" : "Processing",
+        date: pdf.uploadedAt,
+        fileSize: pdf.fileSize,
+      }));
+      setUploads(pdfs);
+    } catch (error) {
+      console.error("Error fetching PDFs:", error);
+      if (error.code === 'ERR_NETWORK') {
+        Swal.fire("Connection Error", "Backend may be down. Please check if server is running.", "error");
+      } else {
+        Swal.fire("Error", "Failed to load PDFs", "error");
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleFile = (f) => {
     if (f && f.type === "application/pdf") {
@@ -342,7 +341,7 @@ export default function PdfUploadTab() {
     }, 500);
 
     try {
-      const response = await uploadPdf(file, title, contentType, extractImages, extractText);
+      await uploadPdf(file, title, contentType, extractImages, extractText);
       
       clearInterval(progressInterval);
       setProgress(100);
@@ -427,16 +426,6 @@ export default function PdfUploadTab() {
     if (bytes < 1024) return bytes + " B";
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-  };
-
-  const formatDateHelper = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   return (

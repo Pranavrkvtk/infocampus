@@ -7,7 +7,7 @@ export const registerUser = (userData) => {
 
 export const loginUser = (loginData) => {
   return api.post("/auth/login", loginData).then((response) => {
-    const { token, userId, role, name } = response.data;
+    const { token, userId, role, name } = response.data; // eslint-disable-line no-unused-vars
     
     if (token) {
       localStorage.setItem("token", token);
@@ -30,10 +30,7 @@ export const logoutUser = () => {
 export const isLoggedIn = () => {
   return !!localStorage.getItem("token");
 };
-// Get all PDF documents (lightweight version)
-export const getAllPdfs = () => {
-  return api.get("/admin/pdfs/summary");
-};
+
 export const getCurrentUser = () => {
   return {
     userId: localStorage.getItem("userId"),

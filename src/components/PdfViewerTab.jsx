@@ -395,7 +395,7 @@ const PdfViewerTab = ({ onViewCourse }) => {
                     <div key={image.id} style={styles.imageCard}>
                       <img 
                         src={getImageUrl(selectedPdf.id, image.id)} 
-                        alt={`Page ${image.pageNumber}, Image ${index + 1}`}
+                        alt="" // Fixed: Removed redundant alt text, using empty string for decorative images
                         style={styles.image}
                         onError={(e) => {
                           e.target.src = 'https://via.placeholder.com/150x120?text=Image+Not+Found';
