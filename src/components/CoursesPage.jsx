@@ -1229,6 +1229,7 @@ function CoursesListPage({
   onRetry,
 }) {
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const isLoggedIn = !!localStorage.getItem("token");
 
   const filtered = courses.filter(
     (c) =>
@@ -1315,47 +1316,54 @@ function CoursesListPage({
             through hands-on labs, video lessons, quizzes and real-world
             projects.
           </p>
-          <div
-            style={{
-              display: "flex",
-              gap: "16px",
-              justifyContent: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <button
-              onClick={() => courses.length > 0 && onEnroll(courses[0])}
-              style={{
-                background:
-                  "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "60px",
-                padding: isMobile ? "12px 24px" : "16px 40px",
-                fontWeight: 700,
-                fontSize: isMobile ? "14px" : "16px",
-                cursor: "pointer",
-                boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
-              }}
-            >
-              🎓 Start Learning Free
-            </button>
-            <button
-              onClick={onMyCoursesNav}
-              style={{
-                background: "transparent",
-                border: "2px solid #8b5cf6",
-                borderRadius: "60px",
-                padding: isMobile ? "12px 24px" : "16px 40px",
-                fontWeight: 700,
-                fontSize: isMobile ? "14px" : "16px",
-                cursor: "pointer",
-                color: "#fff",
-              }}
-            >
-              📖 View My Courses
-            </button>
-          </div>
+       <div
+  style={{
+    display: "flex",
+    gap: "16px",
+    justifyContent: "center",
+    flexWrap: "wrap",
+  }}
+>
+  {!isLoggedIn && (
+    <button
+      onClick={() => courses.length > 0 && onEnroll(courses[0])}
+      style={{
+        background:
+          "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+        color: "#fff",
+        border: "none",
+        borderRadius: "60px",
+        padding: isMobile ? "12px 24px" : "16px 40px",
+        fontWeight: 700,
+        fontSize: isMobile ? "14px" : "16px",
+        cursor: "pointer",
+        boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
+      }}
+    >
+      🎓 Start Learning Free
+    </button>
+  )}
+
+  {isLoggedIn && (
+    <button
+      onClick={onMyCoursesNav}
+      style={{
+        background:
+          "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+        color: "#fff",
+        border: "none",
+        borderRadius: "60px",
+        padding: isMobile ? "12px 24px" : "16px 40px",
+        fontWeight: 700,
+        fontSize: isMobile ? "14px" : "16px",
+        cursor: "pointer",
+        boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
+      }}
+    >
+      📖 View My Courses
+    </button>
+  )}
+</div>
         </div>
       </div>
 
