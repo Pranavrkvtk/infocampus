@@ -21,6 +21,9 @@ import DashboardTab from "./DashboardTab";
 import CoursesTab from "./CoursesTab";
 import StudentsTab from "./StudentsTab";
 import InstructorsTab from "./InstructorsTab";
+import PdfUploadTab from "./PdfUploadTab";
+import PdfViewerTab from "../PdfViewerTab";
+import CourseViewTab from "../CourseViewTab";
 
 // ================= MAIN COMPONENT =================
 export default function AdminDashboard() {
@@ -35,6 +38,7 @@ export default function AdminDashboard() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
 
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -152,6 +156,11 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewCourse = (pdf) => {
+    setSelectedCoursePdf(pdf);
+    setActiveTab("course-view");
   };
 
   // Delete Course with API
@@ -355,10 +364,27 @@ export default function AdminDashboard() {
             fetchAllInstructors={fetchAllInstructors}
           />
         );
+      case "pdfs":
+        return <PdfUploadTab />;
+      case "pdf-viewer":
+        return <PdfViewerTab onViewCourse={handleViewCourse} />;
+      case "course-view":
+        return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       default:
         return null;
     }
   };
+
+  // Navigation items - includes PDF Uploads, PDF Viewer, and Course View tabs
+  const navItems = [
+    { icon: "📊", label: "Dashboard", id: "dashboard" }, 
+    { icon: "🌐", label: "Courses", id: "courses" }, 
+    { icon: "👨‍🎓", label: "Students", id: "students" },
+    { icon: "👨‍🏫", label: "Instructors", id: "instructors" },
+    { icon: "📤", label: "Upload PDF", id: "pdfs" },
+    { icon: "👁️", label: "View PDFs", id: "pdf-viewer" },
+    { icon: "📖", label: "Course View", id: "course-view" }
+  ];
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: colors.bgBase, paddingBottom: isMobile ? 70 : 0 }}>
@@ -373,21 +399,23 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {[
-            { icon: "📊", label: "Dashboard", id: "dashboard" }, 
-            { icon: "🌐", label: "Courses", id: "courses" }, 
-            { icon: "👨‍🎓", label: "Students", id: "students" },
-            { icon: "👨‍🏫", label: "Instructors", id: "instructors" }
-          ].map((item) => (
-            <NavItem
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              badge={item.id === "courses" ? courses.length : item.id === "students" ? students.length : item.id === "instructors" ? instructors.length : 0}
-              active={activeTab === item.id}
-              onClick={() => setActiveTab(item.id)}
-            />
-          ))}
+          {navItems.map((item) => {
+            let badge = 0;
+            if (item.id === "courses") badge = courses.length;
+            else if (item.id === "students") badge = students.length;
+            else if (item.id === "instructors") badge = instructors.length;
+            
+            return (
+              <NavItem
+                key={item.id}
+                icon={item.icon}
+                label={item.label}
+                badge={badge}
+                active={activeTab === item.id}
+                onClick={() => setActiveTab(item.id)}
+              />
+            );
+          })}
 
           <div style={{ flex: 1 }} />
           <div style={{ padding: "0 8px 20px 8px" }}>
@@ -425,12 +453,18 @@ export default function AdminDashboard() {
               {activeTab === "courses" && "Course Catalog"}
               {activeTab === "students" && "Student Management"}
               {activeTab === "instructors" && "Instructor Management"}
+              {activeTab === "pdfs" && "Upload PDF"}
+              {activeTab === "pdf-viewer" && "PDF Library"}
+              {activeTab === "course-view" && "Course View"}
             </h1>
             <p style={{ color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }}>
               {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
               {activeTab === "courses" && "Manage all your courses from one place"}
               {activeTab === "students" && "View and manage all enrolled students"}
               {activeTab === "instructors" && "Manage instructors, their status and permissions"}
+              {activeTab === "pdfs" && "Upload PDF files and extract text & images automatically"}
+              {activeTab === "pdf-viewer" && "View all uploaded PDFs, extracted text, and images"}
+              {activeTab === "course-view" && "View PDF content as an interactive course with progress tracking"}
             </p>
           </div>
           <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
