@@ -10,7 +10,6 @@ export default function EnrollPage({ isMobile, onBack }) {
   const [selectedPlan, setSelectedPlan] = useState("monthly");
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [checkingEnrollment, setCheckingEnrollment] = useState(false); // ← changed to false, removed the unused checkExistingEnrollment function
   const [enrollmentId, setEnrollmentId] = useState(null);
 
   const plans = {
@@ -125,24 +124,6 @@ export default function EnrollPage({ isMobile, onBack }) {
   };
 
   // Show loading state while checking enrollment
-  if (checkingEnrollment) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8f8f6" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{
-            width: "50px",
-            height: "50px",
-            border: "4px solid #f0f0f0",
-            borderTop: "4px solid #3abf94",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-            margin: "0 auto 20px"
-          }} />
-          <p style={{ color: "#666" }}>Checking enrollment status...</p>
-        </div>
-      </div>
-    );
-  }
 
   // ── Success screen ──────────────────────────────────────────────
   if (isEnrolled) {
