@@ -1,5 +1,5 @@
 // src/components/CourseViewTab.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getPdfText, getPdfImages, formatFileSize } from '../api/pdfApi';
 import Swal from 'sweetalert2';
 
@@ -287,7 +287,6 @@ const styles = {
 
 const CourseViewTab = ({ pdf, onBack }) => {
   const [loading, setLoading] = useState(true);
-  const [extractedText, setExtractedText] = useState('');
   const [images, setImages] = useState([]);
   const [activeView, setActiveView] = useState('split');
   const [progress, setProgress] = useState(0);
@@ -297,18 +296,12 @@ const CourseViewTab = ({ pdf, onBack }) => {
   const [completedSections, setCompletedSections] = useState([]);
   const contentRef = useRef(null);
 
-  useEffect(() => {
-    if (pdf) {
-      loadCourseContent();
-    }
-  }, [pdf]);
-
-  const loadCourseContent = async () => {
+  // Define loadCourseContent with useCallback to fix dependency warning
+  const loadCourseContent = useCallback(async () => {
     setLoading(true);
     try {
       const textResponse = await getPdfText(pdf.id);
       const fullText = textResponse.data.text || '';
-      setExtractedText(fullText);
 
       const imagesResponse = await getPdfImages(pdf.id);
       const imageList = imagesResponse.data.images || [];
@@ -341,11 +334,17 @@ const CourseViewTab = ({ pdf, onBack }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pdf]); // Added pdf as dependency
+
+  useEffect(() => {
+    if (pdf) {
+      loadCourseContent();
+    }
+  }, [pdf, loadCourseContent]); // Added loadCourseContent to dependencies
 
   const extractSections = (text) => {
     const lines = text.split('\n');
-    const sections = [];
+    const sectionsArray = [];
     let currentSection = { title: 'Introduction', content: [] };
     
     for (const line of lines) {
@@ -353,16 +352,16 @@ const CourseViewTab = ({ pdf, onBack }) => {
       if ((trimmed.toUpperCase() === trimmed && trimmed.length > 5 && trimmed.length < 100 && !trimmed.includes('.')) ||
           (trimmed.length < 60 && (trimmed.endsWith(':') || /^\d+\./.test(trimmed)))) {
         if (currentSection.content.length > 0) {
-          sections.push(currentSection);
+          sectionsArray.push(currentSection);
         }
         currentSection = { title: trimmed, content: [] };
       } else if (trimmed && trimmed.length > 20) {
         currentSection.content.push(trimmed);
       }
     }
-    if (currentSection.content.length > 0) sections.push(currentSection);
+    if (currentSection.content.length > 0) sectionsArray.push(currentSection);
     
-    return sections.slice(0, 50);
+    return sectionsArray.slice(0, 50);
   };
 
   const markSectionComplete = (index) => {
@@ -410,7 +409,6 @@ const CourseViewTab = ({ pdf, onBack }) => {
 
   const handleSectionClick = (index) => {
     setActiveSection(index);
-    // Scroll to top of content panel
     if (contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
@@ -418,7 +416,6 @@ const CourseViewTab = ({ pdf, onBack }) => {
 
   // Get images that belong to a specific section (based on page number)
   const getImagesForSection = (sectionIndex) => {
-    // Estimate which page this section belongs to
     const estimatedPage = Math.floor(sectionIndex / 3) + 1;
     return imagesByPage[estimatedPage] || [];
   };
