@@ -1281,90 +1281,93 @@ function CoursesListPage({
             left: "-75px",
           }}
         />
-        <div
-          style={{
-            maxWidth: "900px",
-            margin: "0 auto",
-            position: "relative",
-            zIndex: 2,
-          }}
-        >
-          <h1
-            style={{
-              color: "#fff",
-              fontSize: isMobile ? "36px" : "64px",
-              fontWeight: 800,
-              lineHeight: "1.2",
-              marginBottom: "20px",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            Master Cisco Networking
-            <br />
-            Build Your Dream Career
-          </h1>
-          <p
-            style={{
-              color: "rgba(255,255,255,0.8)",
-              fontSize: isMobile ? "14px" : "18px",
-              lineHeight: "1.6",
-              maxWidth: "700px",
-              margin: "0 auto 30px",
-            }}
-          >
-            Learn CCNA, CCNP, CCIE, Security, Linux and Network Automation
-            through hands-on labs, video lessons, quizzes and real-world
-            projects.
-          </p>
-       <div
+<div
   style={{
-    display: "flex",
-    gap: "16px",
-    justifyContent: "center",
-    flexWrap: "wrap",
+    maxWidth: "900px",
+    margin: "0 auto",
+    position: "relative",
+    zIndex: 2,
   }}
 >
-  {!isLoggedIn && (
-    <button
-      onClick={() => courses.length > 0 && onEnroll(courses[0])}
-      style={{
-        background:
-          "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-        color: "#fff",
-        border: "none",
-        borderRadius: "60px",
-        padding: isMobile ? "12px 24px" : "16px 40px",
-        fontWeight: 700,
-        fontSize: isMobile ? "14px" : "16px",
-        cursor: "pointer",
-        boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
-      }}
-    >
-      🎓 Start Learning Free
-    </button>
-  )}
+  <h1
+    style={{
+      color: "#fff",
+      fontSize: isMobile ? "36px" : "64px",
+      fontWeight: 800,
+      lineHeight: "1.2",
+      marginBottom: "20px",
+      letterSpacing: "-0.5px",
+    }}
+  >
+    Master Cisco Networking
+    <br />
+    Build Your Dream Career
+  </h1>
+  <p
+    style={{
+      color: "rgba(255,255,255,0.8)",
+      fontSize: isMobile ? "14px" : "18px",
+      lineHeight: "1.6",
+      maxWidth: "700px",
+      margin: "0 auto 30px",
+    }}
+  >
+    Learn CCNA, CCNP, CCIE, Security, Linux and Network Automation
+    through hands-on labs, video lessons, quizzes and real-world
+    projects.
+  </p>
+  <div
+    style={{
+      display: "flex",
+      gap: "16px",
+      justifyContent: "center",
+      flexWrap: "wrap",
+    }}
+  >
+    {!isLoggedIn && (
+      <button
+        onClick={() => {
+          // Navigate to /free-account page
+          window.location.href = "/free-account";
+        }}
+        style={{
+          background:
+            "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+          color: "#fff",
+          border: "none",
+          borderRadius: "60px",
+          padding: isMobile ? "12px 24px" : "16px 40px",
+          fontWeight: 700,
+          fontSize: isMobile ? "14px" : "16px",
+          cursor: "pointer",
+          boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
+        }}
+      >
+        🎓 Start Learning Free
+      </button>
+    )}
 
-  {isLoggedIn && (
-    <button
-      onClick={onMyCoursesNav}
-      style={{
-        background:
-          "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-        color: "#fff",
-        border: "none",
-        borderRadius: "60px",
-        padding: isMobile ? "12px 24px" : "16px 40px",
-        fontWeight: 700,
-        fontSize: isMobile ? "14px" : "16px",
-        cursor: "pointer",
-        boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
-      }}
-    >
-      📖 View My Courses
-    </button>
-  )}
+    {isLoggedIn && (
+      <button
+        onClick={onMyCoursesNav}
+        style={{
+          background:
+            "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+          color: "#fff",
+          border: "none",
+          borderRadius: "60px",
+          padding: isMobile ? "12px 24px" : "16px 40px",
+          fontWeight: 700,
+          fontSize: isMobile ? "14px" : "16px",
+          cursor: "pointer",
+          boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
+        }}
+      >
+        📖 View My Courses
+      </button>
+    )}
+  </div>
 </div>
-        </div>
       </div>
 
       {/* Categories */}
@@ -1572,46 +1575,71 @@ function CoursesListPage({
           overflow: "hidden",
         }}
       >
-        <div style={{ position: "relative", zIndex: 2 }}>
-          <h2
-            style={{
-              color: "#fff",
-              fontSize: isMobile ? "28px" : "42px",
-              marginBottom: "16px",
-              fontWeight: 800,
-            }}
-          >
-            Ready to Accelerate Your Career?
-          </h2>
-          <p
-            style={{
-              color: "#c4b5fd",
-              fontSize: isMobile ? "14px" : "18px",
-              marginBottom: "32px",
-              maxWidth: "600px",
-              margin: "0 auto 32px",
-            }}
-          >
-            Join thousands of successful network engineers who transformed
-            their careers with our courses
-          </p>
-          <button
-            onClick={() => courses.length > 0 && onEnroll(courses[0])}
-            style={{
-              background:
-                "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "60px",
-              padding: isMobile ? "14px 32px" : "18px 48px",
-              fontSize: isMobile ? "16px" : "18px",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            🎓 Start Your Journey Today
-          </button>
-        </div>
+     <div style={{ position: "relative", zIndex: 2 }}>
+  <h2
+    style={{
+      color: "#fff",
+      fontSize: isMobile ? "28px" : "42px",
+      marginBottom: "16px",
+      fontWeight: 800,
+    }}
+  >
+    Ready to Accelerate Your Career?
+  </h2>
+
+  <p
+    style={{
+      color: "#c4b5fd",
+      fontSize: isMobile ? "14px" : "18px",
+      marginBottom: "32px",
+      maxWidth: "600px",
+      margin: "0 auto 32px",
+    }}
+  >
+    Join thousands of successful network engineers who transformed
+    their careers with our courses
+  </p>
+
+  {!isLoggedIn ? (
+    <button
+      onClick={() => {
+        window.location.href = "/free-account";
+      }}
+      style={{
+        background:
+          "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+        color: "#fff",
+        border: "none",
+        borderRadius: "60px",
+        padding: isMobile ? "14px 32px" : "18px 48px",
+        fontSize: isMobile ? "16px" : "18px",
+        fontWeight: 700,
+        cursor: "pointer",
+        boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
+      }}
+    >
+      🎓 Start Your Journey Today
+    </button>
+  ) : (
+    <button
+      onClick={onMyCoursesNav}
+      style={{
+        background:
+          "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+        color: "#fff",
+        border: "none",
+        borderRadius: "60px",
+        padding: isMobile ? "14px 32px" : "18px 48px",
+        fontSize: isMobile ? "16px" : "18px",
+        fontWeight: 700,
+        cursor: "pointer",
+        boxShadow: "0 20px 25px -5px rgba(139,92,246,0.4)",
+      }}
+    >
+      📖 View My Courses
+    </button>
+  )}
+</div>
       </div>
 
       {/* Footer */}
