@@ -230,7 +230,7 @@ function InstructorSection({ isMobile }) {
         <div style={{ flex: "0 0 auto", maxWidth: isMobile ? "100%" : "480px", zIndex: 1 }}>
           <h2 style={{ color: "#fff", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 400, fontSize: isMobile ? "26px" : "36px", margin: "0 0 24px", lineHeight: 1.2, letterSpacing: "-0.2px" }}>Stop Struggling &amp; Start Learning</h2>
           <p style={{ color: "rgba(255,255,255,0.92)", fontFamily: "Georgia, serif", fontSize: isMobile ? "14px" : "15.5px", lineHeight: "1.8", margin: "0 0 22px" }}>
-            "My name is Rene Molenaar, and I am here to help you to achieve your goals. Do you want to upgrade your skills? Want to start a career in networking? Become a CCIE in Enterprise Infrastructure? Let me help you! After teaching Cisco classroom courses for several years I decided to share my knowledge online on Infocampus.com."
+            "My name is Rene , and I am here to help you to achieve your goals. Do you want to upgrade your skills? Want to start a career in networking? Become a CCIE in Enterprise Infrastructure? Let me help you! After teaching Cisco classroom courses for several years I decided to share my knowledge online on Infocampus.com."
           </p>
           <p style={{ color: "rgba(255,255,255,0.9)", fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "13px" : "14.5px", margin: 0 }}>
             <strong style={{ color: "#fff" }}>Rene Molenaar</strong> CCIE #41726, founder of Infocampus.com (and primary course author)
