@@ -1,10 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";  // ← removed useEffect
 import { useLocation, useNavigate } from "react-router-dom";
-import { enrollInCourse, getUserEnrollments, deleteEnrollment } from "../api/courseApi";
+import { enrollInCourse, deleteEnrollment } from "../api/courseApi";
 
-// ==================== ENROLL PAGE ====================
 export default function EnrollPage({ isMobile, onBack }) {
-  // ✅ Course comes from navigate("/enroll", { state: { course } })
   const { state } = useLocation();
   const navigate = useNavigate();
   const course = state?.course;
@@ -12,41 +10,13 @@ export default function EnrollPage({ isMobile, onBack }) {
   const [selectedPlan, setSelectedPlan] = useState("monthly");
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [checkingEnrollment, setCheckingEnrollment] = useState(true);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(false); // ← changed to false, removed the unused checkExistingEnrollment function
   const [enrollmentId, setEnrollmentId] = useState(null);
 
   const plans = {
     monthly:  { name: "Monthly",  price: 49,  period: "month",    savings: null,         note: "✓ Full access · Cancel anytime · No commitment" },
     yearly:   { name: "Yearly",   price: 39,  period: "month",    savings: "Save 20%",   note: "✓ Save $120/year · Best for long-term learners" },
     lifetime: { name: "Lifetime", price: 299, period: "one-time", savings: "Best Value", note: "✓ Unlimited access forever · All future updates" },
-  };
-
-  // Check if user is already enrolled when component mounts
-
-  const checkExistingEnrollment = async () => {
-    const userId = localStorage.getItem("userId");
-    if (!userId || !course) {
-      setCheckingEnrollment(false);
-      return;
-    }
-
-    try {
-      const response = await getUserEnrollments(userId);
-      const enrollments = response.data || response.data.enrollments || [];
-      
-      // Find if already enrolled and get enrollment ID
-      const existingEnrollment = enrollments.find(e => e.course?.id === course.id);
-      
-      if (existingEnrollment) {
-        setIsEnrolled(true);
-        setEnrollmentId(existingEnrollment.id);
-        console.log("Already enrolled! Enrollment ID:", existingEnrollment.id);
-      }
-    } catch (error) {
-      console.error("Error checking enrollment:", error);
-    } finally {
-      setCheckingEnrollment(false);
-    }
   };
 
   // Guard: if someone lands here without a course in state, redirect
@@ -123,27 +93,35 @@ export default function EnrollPage({ isMobile, onBack }) {
     try {
       setIsLoading(true);
       
-      // Use enrollmentId if available, otherwise use courseId + userId
       if (enrollmentId) {
         console.log("Canceling enrollment with ID:", enrollmentId);
         await deleteEnrollment(enrollmentId);
+        alert("✅ Successfully canceled enrollment!");
+        setIsEnrolled(false);
+        setEnrollmentId(null);
+        navigate("/courses");
       } else {
-        console.log("Canceling enrollment with courseId:", course.id, "userId:", userId);
-        await deleteEnrollment(course.id, userId);
+        alert("❌ Cannot cancel: No enrollment ID found. Please contact support.");
       }
-      
-      alert("✅ Successfully canceled enrollment!");
-      setIsEnrolled(false);
-      setEnrollmentId(null);
-      
-      // Optionally navigate back to courses page
-      navigate("/courses");
     } catch (error) {
       console.error("Cancellation error:", error);
       alert("❌ Failed to cancel enrollment: " + (error.response?.data || error.message));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCreateTestUser = () => {
+    // Create a test user - adjust this based on your API
+    const testUserId = Math.floor(Math.random() * 10000) + 1;
+    localStorage.setItem("userId", testUserId.toString());
+    alert(`✅ Test user created! User ID: ${testUserId}`);
+    window.location.reload();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("userId");
+    window.location.reload();
   };
 
   // Show loading state while checking enrollment
@@ -236,7 +214,28 @@ export default function EnrollPage({ isMobile, onBack }) {
           ← Back to Courses
         </button>
 
-   
+        {/* Create Test User Button */}
+        <button
+          onClick={handleCreateTestUser}
+          style={{
+            background: "#4caf50",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "10px 20px",
+            fontSize: "14px",
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "'Trebuchet MS', sans-serif",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "#45a049"}
+          onMouseLeave={e => e.currentTarget.style.background = "#4caf50"}
+        >
+          👤 Create Test User
+        </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span style={{ fontSize: "28px" }}>💳</span>
@@ -263,10 +262,7 @@ export default function EnrollPage({ isMobile, onBack }) {
               ✅ Logged in as User ID: {localStorage.getItem("userId")}
             </span>
             <button
-              onClick={() => {
-                localStorage.removeItem("userId");
-                window.location.reload();
-              }}
+              onClick={handleLogout}
               style={{ background: "none", border: "none", color: "#e8644a", cursor: "pointer", fontSize: "12px" }}
             >
               Logout
