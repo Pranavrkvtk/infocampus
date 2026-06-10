@@ -81,22 +81,30 @@ export default function Home() {
   Your browser does not support HTML5 video.
 </video>
 </div>
+{/* CTA buttons */}
+<div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
 
-        {/* CTA — now navigates to /courses route */}
-        <button
-          onClick={() => navigate("/courses")}
-          style={{
-            marginTop: isMobile ? "24px" : "36px",
-            background: "#3abf94", color: "#fff", border: "none",
-            borderRadius: "7px",
-            padding: isMobile ? "13px 28px" : "16px 48px",
-            fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 700,
-            fontSize: isMobile ? "15px" : "18px", cursor: "pointer",
-            boxShadow: "0 4px 18px rgba(58,191,148,0.3)",
-            width: isMobile ? "100%" : "auto",
-          }}>
-          Browse all Cisco Courses
-        </button>
+
+  {/* Upgrade Button - NEW */}
+  <button
+    onClick={() => navigate("/my-courses")}
+    style={{
+      marginTop: isMobile ? "24px" : "36px",
+      background: "#e5a800", 
+      color: "#fff", 
+      border: "none",
+      borderRadius: "7px",
+      padding: isMobile ? "13px 28px" : "16px 48px",
+      fontFamily: "'Trebuchet MS', sans-serif", 
+      fontWeight: 700,
+      fontSize: isMobile ? "15px" : "18px", 
+      cursor: "pointer",
+      boxShadow: "0 4px 18px rgba(229,168,0,0.3)",
+      width: isMobile ? "100%" : "auto",
+    }}>
+    Upgrade Plan →
+  </button>
+</div>
 
         {/* Tagline */}
         <div style={{ marginTop: "24px", textAlign: "center", lineHeight: "1.7", padding: "0 8px" }}>
@@ -166,7 +174,7 @@ function TrainingSection({ isMobile }) {
           {topics.map((col, ci) => (
             <div key={ci} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {col.map((topic, ti) => (
-                <a key={ti} href="/courses" style={{ color: "#3a7fc1", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 700, fontSize: isMobile ? "13px" : "14.5px", textDecoration: "none", padding: "3px 0", display: "block", transition: "color 0.15s" }}
+                <a key={ti} href="/course" style={{ color: "#3a7fc1", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 700, fontSize: isMobile ? "13px" : "14.5px", textDecoration: "none", padding: "3px 0", display: "block", transition: "color 0.15s" }}
                   onMouseEnter={e => e.target.style.color = "#e5a800"}
                   onMouseLeave={e => e.target.style.color = "#3a7fc1"}
                 >{topic}</a>

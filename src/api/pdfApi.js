@@ -1,39 +1,48 @@
 // src/api/pdfApi.js
 import api from "./axios";
 
-// Get all PDF documents (lightweight version - use summary)
+// ==================== USER PDF APIS (for regular users) ====================
+
+// Get all PDFs accessible to current user
 export const getAllPdfs = () => {
-  return api.get("/admin/pdfs/summary");
+  return api.get("/user/pdfs");
 };
 
-// Get PDF details by ID (full details including text)
+// Get PDF summary (lightweight version)
+export const getPdfSummaries = () => {
+  return api.get("/user/pdfs/summary");
+};
+
+// Get PDF details by ID
 export const getPdfDetails = (pdfId) => {
-  return api.get(`/admin/pdfs/${pdfId}`);
+  return api.get(`/user/pdfs/${pdfId}/view`);
 };
 
 // Get extracted text from PDF
 export const getPdfText = (pdfId) => {
-  return api.get(`/admin/pdfs/${pdfId}/text`);
+  return api.get(`/user/pdfs/${pdfId}/text`);
 };
 
 // Get all images from PDF
 export const getPdfImages = (pdfId) => {
-  return api.get(`/admin/pdfs/${pdfId}/images`);
+  return api.get(`/user/pdfs/${pdfId}/images`);
 };
 
 // Get images by page number
 export const getPdfImagesByPage = (pdfId, pageNumber) => {
-  return api.get(`/admin/pdfs/${pdfId}/images/page/${pageNumber}`);
+  return api.get(`/user/pdfs/${pdfId}/images/page/${pageNumber}`);
 };
 
-// Get image file as blob/arraybuffer
+// Get image file as blob
 export const getPdfImageFile = (pdfId, imageId) => {
-  return api.get(`/admin/pdfs/${pdfId}/images/${imageId}`, {
+  return api.get(`/user/pdfs/${pdfId}/images/${imageId}`, {
     responseType: 'blob'
   });
 };
 
-// Upload PDF file with metadata
+// ==================== ADMIN PDF APIS (for admin users) ====================
+
+// Upload PDF file (admin only) - FIXED to match frontend call
 export const uploadPdf = (file, title, contentType, extractImages, extractText) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -42,11 +51,19 @@ export const uploadPdf = (file, title, contentType, extractImages, extractText) 
   formData.append("extractImages", extractImages !== false);
   formData.append("extractText", extractText !== false);
   
+  console.log("Uploading PDF:", {
+    fileName: file.name,
+    title: title,
+    contentType: contentType,
+    extractImages: extractImages,
+    extractText: extractText
+  });
+  
   return api.post("/admin/pdfs/upload", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
-    timeout: 300000, // 5 minutes for large uploads
+    timeout: 300000,
     onUploadProgress: (progressEvent) => {
       const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
       console.log(`Upload progress: ${percentCompleted}%`);
@@ -54,19 +71,36 @@ export const uploadPdf = (file, title, contentType, extractImages, extractText) 
   });
 };
 
-// Delete PDF document
+// Delete PDF document (admin only)
 export const deletePdf = (pdfId) => {
   return api.delete(`/admin/pdfs/${pdfId}`);
 };
 
-// Get PDF statistics
+// Get all PDFs (admin only)
+export const getAllPdfsAdmin = () => {
+  return api.get("/admin/pdfs");
+};
+
+// Get PDF statistics (admin only)
 export const getPdfStatistics = () => {
   return api.get("/admin/pdfs/statistics");
 };
 
-// Search PDFs by keyword
+// Search PDFs by keyword (admin only)
 export const searchPdfs = (keyword) => {
   return api.get(`/admin/pdfs/search?keyword=${keyword}`);
+};
+
+// Batch delete PDFs (admin only)
+export const batchDeletePdfs = (pdfIds) => {
+  return api.post("/admin/pdfs/batch-delete", { ids: pdfIds });
+};
+
+// Download PDF file
+export const downloadPdf = (pdfId) => {
+  return api.get(`/admin/pdfs/${pdfId}/download`, {
+    responseType: 'blob'
+  });
 };
 
 // Get PDF processing status
@@ -79,18 +113,6 @@ export const retryPdfProcessing = (pdfId) => {
   return api.post(`/admin/pdfs/${pdfId}/retry`);
 };
 
-// Download PDF file
-export const downloadPdf = (pdfId) => {
-  return api.get(`/admin/pdfs/${pdfId}/download`, {
-    responseType: 'blob'
-  });
-};
-
-// Batch delete PDFs
-export const batchDeletePdfs = (pdfIds) => {
-  return api.post("/admin/pdfs/batch-delete", { ids: pdfIds });
-};
-
 // Export all PDFs data
 export const exportPdfsData = () => {
   return api.get("/admin/pdfs/export", {
@@ -98,9 +120,11 @@ export const exportPdfsData = () => {
   });
 };
 
-// Helper function to get image URL (for img src)
+// ==================== HELPER FUNCTIONS ====================
+
+// Helper function to get image URL
 export const getImageUrl = (pdfId, imageId) => {
-  return `http://localhost:8080/api/admin/pdfs/${pdfId}/images/${imageId}`;
+  return `http://localhost:8080/api/user/pdfs/${pdfId}/images/${imageId}`;
 };
 
 // Helper function to format file size
@@ -121,6 +145,17 @@ export const formatDate = (dateString) => {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+  });
+};
+
+// Helper function to format date only (no time)
+export const formatDateOnly = (dateString) => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 };
 

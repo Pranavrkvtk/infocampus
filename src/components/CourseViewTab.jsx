@@ -403,10 +403,9 @@ const CourseViewTab = ({ pdf, onBack }) => {
     });
   };
 
-  const getImageUrl = (imageId) => {
-    return `http://localhost:8080/api/admin/pdfs/${pdf.id}/images/${imageId}`;
-  };
-
+const getImageUrl = (imageId) => {
+  return `http://localhost:8080/api/user/pdfs/${pdf.id}/images/${imageId}`;
+};
   const handleSectionClick = (index) => {
     setActiveSection(index);
     if (contentRef.current) {

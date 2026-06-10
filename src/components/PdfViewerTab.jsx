@@ -157,6 +157,8 @@ const styles = {
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
     overflow: 'hidden',
+    cursor: 'pointer',
+    transition: 'transform 0.2s',
   },
   image: {
     width: '100%',
@@ -196,39 +198,17 @@ const PdfViewerTab = ({ onViewCourse }) => {
   const fetchPdfs = async () => {
     setLoading(true);
     console.log("=== FETCHING PDFS ===");
-    console.log("Token exists:", !!localStorage.getItem('token'));
-    console.log("Token:", localStorage.getItem('token')?.substring(0, 50) + "...");
     
     try {
       const response = await getAllPdfs();
-      console.log("Response status:", response.status);
       console.log("PDFs found:", response.data?.length || 0);
       setPdfs(response.data || []);
     } catch (error) {
-      console.error("=== ERROR FETCHING PDFS ===");
-      console.error("Error message:", error.message);
-      console.error("Error status:", error.response?.status);
-      console.error("Error data:", error.response?.data);
-      console.error("Full error:", error);
+      console.error("Error fetching PDFs:", error);
       
-      if (error.message === "Network Error") {
-        Swal.fire({
-          title: "Connection Error",
-          text: "Cannot connect to backend server. Make sure it's running on port 8080",
-          icon: "error"
-        });
-      } else if (error.response?.status === 403) {
+      if (error.response?.status === 403 || error.response?.status === 401) {
         Swal.fire({
           title: "Access Denied",
-          text: "Please login again",
-          icon: "error"
-        }).then(() => {
-          localStorage.clear();
-          window.location.href = "/login";
-        });
-      } else if (error.response?.status === 401) {
-        Swal.fire({
-          title: "Session Expired",
           text: "Please login again",
           icon: "error"
         }).then(() => {
@@ -260,6 +240,7 @@ const PdfViewerTab = ({ onViewCourse }) => {
       setImages(imagesResponse.data.images || []);
     } catch (error) {
       console.error("Error fetching PDF details:", error);
+      Swal.fire("Error", "Failed to load PDF details", "error");
     } finally {
       setLoading(false);
     }
@@ -269,7 +250,6 @@ const PdfViewerTab = ({ onViewCourse }) => {
     if (onViewCourse) {
       onViewCourse(pdf);
     } else {
-      // Fallback: show alert if callback not provided
       Swal.fire({
         title: "Course View",
         text: `Opening "${pdf.fileName}" as a course...`,
@@ -286,8 +266,9 @@ const PdfViewerTab = ({ onViewCourse }) => {
     setImages([]);
   };
 
+  // ✅ FIXED: Use user endpoint instead of admin endpoint
   const getImageUrl = (pdfId, imageId) => {
-    return `http://localhost:8080/api/admin/pdfs/${pdfId}/images/${imageId}`;
+    return `http://localhost:8080/api/user/pdfs/${pdfId}/images/${imageId}`;
   };
 
   if (loading && pdfs.length === 0) {
@@ -392,12 +373,18 @@ const PdfViewerTab = ({ onViewCourse }) => {
                   <div style={styles.emptyState}>No images extracted from this PDF</div>
                 ) : (
                   images.map((image, index) => (
-                    <div key={image.id} style={styles.imageCard}>
+                    <div 
+                      key={image.id} 
+                      style={styles.imageCard}
+                      onClick={() => window.open(getImageUrl(selectedPdf.id, image.id), '_blank')}
+                    >
                       <img 
                         src={getImageUrl(selectedPdf.id, image.id)} 
-                        alt="" // Fixed: Removed redundant alt text, using empty string for decorative images
+                        alt={`Page ${image.pageNumber} - Image ${index + 1}`}
                         style={styles.image}
                         onError={(e) => {
+                          console.error('Failed to load image:', e.target.src);
+                          e.target.onerror = null;
                           e.target.src = 'https://via.placeholder.com/150x120?text=Image+Not+Found';
                         }}
                       />
