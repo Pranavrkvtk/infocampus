@@ -1,4 +1,4 @@
-// src/api/authApi.js
+// ✅ Correct import - both files are in the same 'api' folder
 import api from "./axios";
 
 export const registerUser = (userData) => {
@@ -7,15 +7,15 @@ export const registerUser = (userData) => {
 
 export const loginUser = (loginData) => {
   return api.post("/auth/login", loginData).then((response) => {
-    const { token, userId, role, name } = response.data; // eslint-disable-line no-unused-vars
+    const { token, userId, role, name } = response.data;
     
     if (token) {
       localStorage.setItem("token", token);
       localStorage.setItem("userId", userId);
-      localStorage.setItem("role", "ADMIN"); // Force uppercase
+      localStorage.setItem("role", role);
       localStorage.setItem("name", name);
       
-      console.log("Login successful:", { userId, role: "ADMIN", name });
+      console.log("Login successful:", { userId, role, name });
     }
     
     return response;
@@ -38,4 +38,12 @@ export const getCurrentUser = () => {
     name: localStorage.getItem("name"),
     isAuthenticated: !!localStorage.getItem("token")
   };
+};
+
+export default {
+  registerUser,
+  loginUser,
+  logoutUser,
+  isLoggedIn,
+  getCurrentUser
 };
