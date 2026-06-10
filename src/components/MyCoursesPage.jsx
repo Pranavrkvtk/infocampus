@@ -16,8 +16,6 @@ function MyCoursesPage() {
   const [sections, setSections] = useState([]);
   const [images, setImages] = useState([]);
   const [contentLoading, setContentLoading] = useState(false);
-  const [extractedText, setExtractedText] = useState('');
-  const [imageErrors, setImageErrors] = useState({});
 
   const isMobile = window.innerWidth < 768;
 
@@ -28,7 +26,7 @@ function MyCoursesPage() {
   const fetchUserPdfs = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         setLoading(false);
         return;
@@ -40,7 +38,7 @@ function MyCoursesPage() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
       console.log('PDFs found:', data);
       setPdfs(data);
@@ -53,11 +51,11 @@ function MyCoursesPage() {
 
   const extractSectionsFromText = (text) => {
     if (!text) return [];
-    
+
     const lines = text.split('\n').filter(line => line.trim().length > 0);
     const sectionsArray = [];
     let currentSection = { title: 'Introduction', content: [] };
-    
+
     for (const line of lines) {
       const trimmed = line.trim();
       if ((trimmed.toUpperCase() === trimmed && trimmed.length > 5 && trimmed.length < 100) ||
@@ -71,9 +69,9 @@ function MyCoursesPage() {
         currentSection.content.push(trimmed);
       }
     }
-    
+
     if (currentSection.content.length > 0) sectionsArray.push(currentSection);
-    
+
     return sectionsArray.length > 0 ? sectionsArray : generateDefaultSections();
   };
 
@@ -94,47 +92,43 @@ function MyCoursesPage() {
   const handlePdfClick = async (pdf) => {
     setSelectedPdf(pdf);
     setContentLoading(true);
-    setImageErrors({});
-    
+
     try {
       const token = localStorage.getItem('token');
-      
+
       const textResponse = await fetch(`http://localhost:8080/api/user/pdfs/${pdf.id}/text`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (textResponse.ok) {
         const textData = await textResponse.json();
-        setExtractedText(textData.text || '');
         const extractedSections = extractSectionsFromText(textData.text || '');
         setSections(extractedSections);
         console.log('Extracted sections:', extractedSections.length);
       } else {
         setSections(generateDefaultSections());
       }
-      
+
       const imagesResponse = await fetch(`http://localhost:8080/api/user/pdfs/${pdf.id}/images`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (imagesResponse.ok) {
         const imagesData = await imagesResponse.json();
         const imageList = imagesData.images || [];
         setImages(imageList);
         console.log('Images found:', imageList.length);
-        
-        // Test first image URL
+
         if (imageList.length > 0) {
           const testUrl = `http://localhost:8080/api/user/pdfs/${pdf.id}/images/${imageList[0].id}`;
           console.log('Test image URL:', testUrl);
-          
-          // Pre-check if image loads
+
           const imgTest = new Image();
           imgTest.onload = () => console.log('✅ Image loads successfully');
           imgTest.onerror = () => console.log('❌ Image failed to load');
@@ -143,10 +137,10 @@ function MyCoursesPage() {
       } else {
         setImages([]);
       }
-      
+
       const savedCompleted = localStorage.getItem(`pdf_completed_${pdf.id}`);
       const totalSections = sections.length || 4;
-      
+
       if (savedCompleted) {
         const completed = JSON.parse(savedCompleted);
         setCompletedSections(completed);
@@ -169,8 +163,6 @@ function MyCoursesPage() {
     setSelectedPdf(null);
     setSections([]);
     setImages([]);
-    setExtractedText('');
-    setImageErrors({});
   };
 
   const markSectionComplete = (index) => {
@@ -181,7 +173,7 @@ function MyCoursesPage() {
       localStorage.setItem(`pdf_completed_${selectedPdf.id}`, JSON.stringify(newCompleted));
       const newProgress = (newCompleted.length / sections.length) * 100;
       setProgress(newProgress);
-      
+
       Swal.fire({
         title: 'Section Completed! 🎉',
         text: `${Math.round(newProgress)}% of the course complete`,
@@ -208,11 +200,6 @@ function MyCoursesPage() {
         Swal.fire('Reset!', 'Your progress has been reset.', 'success');
       }
     });
-  };
-
-  const handleImageError = (imageId, url) => {
-    console.error(`Image failed to load: ${url}`);
-    setImageErrors(prev => ({ ...prev, [imageId]: true }));
   };
 
   const getPdfIcon = (fileName) => {
@@ -286,7 +273,17 @@ function MyCoursesPage() {
     tocPanel: { background: 'white', borderRadius: '16px', padding: '20px', position: isMobile ? 'relative' : 'sticky', top: '20px', height: isMobile ? 'auto' : 'calc(100vh - 100px)', overflowY: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
     tocTitle: { fontSize: '18px', fontWeight: '700', marginBottom: '20px', color: '#1a1a2e', borderBottom: '2px solid #5E5BFF', paddingBottom: '10px' },
     tocList: { listStyle: 'none', padding: 0, margin: 0 },
-    tocItem: (isActive, isCompleted) => ({ padding: '12px 15px', cursor: 'pointer', borderRadius: '10px', fontSize: '14px', color: '#374151', marginBottom: '6px', border: '1px solid transparent', background: isActive ? '#5E5BFF' : isCompleted ? '#f0fdf4' : 'transparent', color: isActive ? 'white' : isCompleted ? '#16a34a' : '#374151' }),
+    // FIX 4: Removed duplicate 'color' key — now only one color property defined
+    tocItem: (isActive, isCompleted) => ({
+      padding: '12px 15px',
+      cursor: 'pointer',
+      borderRadius: '10px',
+      fontSize: '14px',
+      marginBottom: '6px',
+      border: '1px solid transparent',
+      background: isActive ? '#5E5BFF' : isCompleted ? '#f0fdf4' : 'transparent',
+      color: isActive ? 'white' : isCompleted ? '#16a34a' : '#374151',
+    }),
     sectionBadge: { fontSize: '11px', marginLeft: '8px', opacity: 0.7 },
     contentPanel: { background: 'white', borderRadius: '16px', padding: isMobile ? '20px' : '30px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxHeight: isMobile ? 'auto' : 'calc(100vh - 100px)', overflowY: 'auto' },
     currentSectionHeader: { marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #5E5BFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' },
@@ -321,14 +318,15 @@ function MyCoursesPage() {
         <div style={styles.loadingContainer}>
           <div style={styles.spinner}></div>
           <p>Loading course content...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       );
     }
-    
+
     const section = sections[activeSection];
     const isCompleted = completedSections.includes(activeSection);
     const sectionImages = getImagesForSection(activeSection);
-    
+
     return (
       <div style={styles.container}>
         <div style={styles.courseDetailContainer}>
@@ -362,9 +360,9 @@ function MyCoursesPage() {
                     const isActive = activeSection === idx;
                     const isSecCompleted = completedSections.includes(idx);
                     return (
-                      <li 
-                        key={idx} 
-                        style={styles.tocItem(isActive, isSecCompleted)} 
+                      <li
+                        key={idx}
+                        style={styles.tocItem(isActive, isSecCompleted)}
                         onClick={() => setActiveSection(idx)}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -379,7 +377,7 @@ function MyCoursesPage() {
                   })}
                 </ul>
               </div>
-              
+
               <div style={styles.contentPanel}>
                 {section ? (
                   <>
@@ -387,13 +385,14 @@ function MyCoursesPage() {
                       <h2 style={styles.currentSectionTitle}>{section.title}</h2>
                       {isCompleted && <span style={styles.sectionProgress}>✅ Completed</span>}
                     </div>
-                    
+
                     {/* Display images for this section */}
                     {sectionImages.map((img, imgIdx) => (
                       <div key={img.id} style={{ margin: '20px 0', textAlign: 'center' }}>
-                        <img 
+                        <img
                           src={`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`}
-                          alt={`Illustration ${imgIdx + 1}`}
+                          // FIX 5: Descriptive alt text that doesn't redundantly say "image of"
+                          alt={`Course diagram on page ${img.pageNumber}, figure ${imgIdx + 1}`}
                           style={{
                             maxWidth: '100%',
                             height: 'auto',
@@ -413,17 +412,17 @@ function MyCoursesPage() {
                         </div>
                       </div>
                     ))}
-                    
+
                     {/* Display section content */}
                     <div>
                       {section.content?.map((para, idx) => (
                         <p key={idx} style={styles.paragraphText}>{para}</p>
                       ))}
                     </div>
-                    
-                    <button 
-                      style={styles.completeBtn} 
-                      onClick={() => markSectionComplete(activeSection)} 
+
+                    <button
+                      style={styles.completeBtn}
+                      onClick={() => markSectionComplete(activeSection)}
                       disabled={isCompleted}
                     >
                       {isCompleted ? '✓ Section Completed' : '✓ Mark Section Complete'}
@@ -444,14 +443,15 @@ function MyCoursesPage() {
               ) : (
                 <div style={styles.imageGrid}>
                   {images.map((img, idx) => (
-                    <div 
-                      key={img.id} 
+                    <div
+                      key={img.id}
                       style={styles.imageCard}
                       onClick={() => window.open(`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`, '_blank')}
                     >
-                      <img 
+                      <img
                         src={`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`}
-                        alt={`Page ${img.pageNumber} - Image ${idx + 1}`}
+                        // FIX 5: Descriptive alt text that doesn't redundantly say "image of"
+                        alt={`Course diagram on page ${img.pageNumber}, figure ${idx + 1}`}
                         style={styles.image}
                         onError={(e) => {
                           console.error(`Failed to load image: http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`);
@@ -484,6 +484,7 @@ function MyCoursesPage() {
 
   return (
     <div style={styles.container}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={styles.header}>
         <button style={styles.backButton} onClick={() => navigate('/')}>← Back to Home</button>
         <h1 style={styles.title}>My Courses</h1>
@@ -502,12 +503,12 @@ function MyCoursesPage() {
 
       <div style={styles.searchBar}>
         <span style={styles.searchIcon}>🔍</span>
-        <input 
-          type="text" 
-          placeholder="Search courses..." 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-          style={styles.searchInput} 
+        <input
+          type="text"
+          placeholder="Search courses..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={styles.searchInput}
         />
       </div>
 
@@ -531,8 +532,8 @@ function MyCoursesPage() {
                   <span>🖼️ {pdf.imageCount || 0} images</span>
                   <span>💾 {formatFileSize(pdf.fileSize)}</span>
                 </div>
-                <button 
-                  style={styles.viewBtn} 
+                <button
+                  style={styles.viewBtn}
                   onClick={(e) => { e.stopPropagation(); handlePdfClick(pdf); }}
                 >
                   📖 View Course

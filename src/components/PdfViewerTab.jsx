@@ -380,7 +380,8 @@ const PdfViewerTab = ({ onViewCourse }) => {
                     >
                       <img 
                         src={getImageUrl(selectedPdf.id, image.id)} 
-                        alt={`Page ${image.pageNumber} - Image ${index + 1}`}
+                        // FIX: Removed redundant words "Image" — screen-readers already announce <img> as an image
+                        alt={`Page ${image.pageNumber}, figure ${index + 1}`}
                         style={styles.image}
                         onError={(e) => {
                           console.error('Failed to load image:', e.target.src);
