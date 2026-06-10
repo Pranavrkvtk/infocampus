@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
+// Local SVG fallback image (no external dependency)
+const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
+
 function MyCoursesPage() {
   const navigate = useNavigate();
   const [pdfs, setPdfs] = useState([]);
@@ -16,8 +19,32 @@ function MyCoursesPage() {
   const [sections, setSections] = useState([]);
   const [images, setImages] = useState([]);
   const [contentLoading, setContentLoading] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
 
   const isMobile = window.innerWidth < 768;
+
+  // Get the base URL from environment or window location
+  const getBaseUrl = () => {
+    return process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+  };
+
+  // Fixed getImageUrl function with full URL
+  const getImageUrl = (pdfId, imageId) => {
+    const baseUrl = getBaseUrl();
+    return `${baseUrl}/user/pdfs/${pdfId}/images/${imageId}`;
+  };
+
+  // Handle image load error with local fallback
+  const handleImageError = (imageId) => {
+    if (!imageErrors[imageId]) {
+      setImageErrors(prev => ({ ...prev, [imageId]: true }));
+    }
+  };
+
+  // Get the image source (with fallback if error)
+  const getImageSrc = (pdfId, imageId) => {
+    return imageErrors[imageId] ? FALLBACK_IMAGE : getImageUrl(pdfId, imageId);
+  };
 
   useEffect(() => {
     fetchUserPdfs();
@@ -32,7 +59,8 @@ function MyCoursesPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:8080/api/user/pdfs', {
+      const baseUrl = getBaseUrl();
+      const response = await fetch(`${baseUrl}/user/pdfs`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -92,11 +120,13 @@ function MyCoursesPage() {
   const handlePdfClick = async (pdf) => {
     setSelectedPdf(pdf);
     setContentLoading(true);
+    setImageErrors({}); // Reset image errors for new PDF
 
     try {
       const token = localStorage.getItem('token');
+      const baseUrl = getBaseUrl();
 
-      const textResponse = await fetch(`http://localhost:8080/api/user/pdfs/${pdf.id}/text`, {
+      const textResponse = await fetch(`${baseUrl}/user/pdfs/${pdf.id}/text`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -112,7 +142,7 @@ function MyCoursesPage() {
         setSections(generateDefaultSections());
       }
 
-      const imagesResponse = await fetch(`http://localhost:8080/api/user/pdfs/${pdf.id}/images`, {
+      const imagesResponse = await fetch(`${baseUrl}/user/pdfs/${pdf.id}/images`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -124,16 +154,6 @@ function MyCoursesPage() {
         const imageList = imagesData.images || [];
         setImages(imageList);
         console.log('Images found:', imageList.length);
-
-        if (imageList.length > 0) {
-          const testUrl = `http://localhost:8080/api/user/pdfs/${pdf.id}/images/${imageList[0].id}`;
-          console.log('Test image URL:', testUrl);
-
-          const imgTest = new Image();
-          imgTest.onload = () => console.log('✅ Image loads successfully');
-          imgTest.onerror = () => console.log('❌ Image failed to load');
-          imgTest.src = testUrl;
-        }
       } else {
         setImages([]);
       }
@@ -163,6 +183,7 @@ function MyCoursesPage() {
     setSelectedPdf(null);
     setSections([]);
     setImages([]);
+    setImageErrors({});
   };
 
   const markSectionComplete = (index) => {
@@ -273,7 +294,6 @@ function MyCoursesPage() {
     tocPanel: { background: 'white', borderRadius: '16px', padding: '20px', position: isMobile ? 'relative' : 'sticky', top: '20px', height: isMobile ? 'auto' : 'calc(100vh - 100px)', overflowY: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
     tocTitle: { fontSize: '18px', fontWeight: '700', marginBottom: '20px', color: '#1a1a2e', borderBottom: '2px solid #5E5BFF', paddingBottom: '10px' },
     tocList: { listStyle: 'none', padding: 0, margin: 0 },
-    // FIX 4: Removed duplicate 'color' key — now only one color property defined
     tocItem: (isActive, isCompleted) => ({
       padding: '12px 15px',
       cursor: 'pointer',
@@ -386,12 +406,11 @@ function MyCoursesPage() {
                       {isCompleted && <span style={styles.sectionProgress}>✅ Completed</span>}
                     </div>
 
-                    {/* Display images for this section */}
+                    {/* Display images for this section - FIXED with local fallback */}
                     {sectionImages.map((img, imgIdx) => (
                       <div key={img.id} style={{ margin: '20px 0', textAlign: 'center' }}>
                         <img
-                          src={`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`}
-                          // FIX 5: Descriptive alt text that doesn't redundantly say "image of"
+                          src={getImageSrc(selectedPdf.id, img.id)}
                           alt={`Course diagram on page ${img.pageNumber}, figure ${imgIdx + 1}`}
                           style={{
                             maxWidth: '100%',
@@ -400,12 +419,8 @@ function MyCoursesPage() {
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                             cursor: 'pointer'
                           }}
-                          onError={(e) => {
-                            console.error(`Failed to load image: http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`);
-                            e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
-                          }}
-                          onClick={() => window.open(`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`, '_blank')}
+                          onError={() => handleImageError(img.id)}
+                          onClick={() => window.open(getImageUrl(selectedPdf.id, img.id), '_blank')}
                         />
                         <div style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
                           Page {img.pageNumber} • {img.width}x{img.height}
@@ -446,18 +461,13 @@ function MyCoursesPage() {
                     <div
                       key={img.id}
                       style={styles.imageCard}
-                      onClick={() => window.open(`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`, '_blank')}
+                      onClick={() => window.open(getImageUrl(selectedPdf.id, img.id), '_blank')}
                     >
                       <img
-                        src={`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`}
-                        // FIX 5: Descriptive alt text that doesn't redundantly say "image of"
+                        src={getImageSrc(selectedPdf.id, img.id)}
                         alt={`Course diagram on page ${img.pageNumber}, figure ${idx + 1}`}
                         style={styles.image}
-                        onError={(e) => {
-                          console.error(`Failed to load image: http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`);
-                          e.target.onerror = null;
-                          e.target.src = 'https://via.placeholder.com/200x150?text=Image+Not+Found';
-                        }}
+                        onError={() => handleImageError(img.id)}
                       />
                       <div style={styles.imageInfo}>
                         Page {img.pageNumber} • {img.width}x{img.height}

@@ -3,6 +3,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { getPdfText, getPdfImages, formatFileSize } from '../api/pdfApi';
 import Swal from 'sweetalert2';
 
+// Local SVG fallback image (no external dependency)
+const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
+
 const styles = {
   container: {
     padding: '24px',
@@ -294,9 +297,32 @@ const CourseViewTab = ({ pdf, onBack }) => {
   const [imagesByPage, setImagesByPage] = useState({});
   const [activeSection, setActiveSection] = useState(0);
   const [completedSections, setCompletedSections] = useState([]);
+  const [imageErrors, setImageErrors] = useState({});
   const contentRef = useRef(null);
 
-  // Define loadCourseContent with useCallback to fix dependency warning
+  // Get the base URL from environment or window location
+  const getBaseUrl = () => {
+    return process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+  };
+
+  // Fixed getImageUrl function with full URL
+  const getImageUrl = (imageId) => {
+    const baseUrl = getBaseUrl();
+    return `${baseUrl}/user/pdfs/${pdf.id}/images/${imageId}`;
+  };
+
+  // Handle image load error with local fallback
+  const handleImageError = (imageId) => {
+    if (!imageErrors[imageId]) {
+      setImageErrors(prev => ({ ...prev, [imageId]: true }));
+    }
+  };
+
+  // Get the image source (with fallback if error)
+  const getImageSrc = (imageId) => {
+    return imageErrors[imageId] ? FALLBACK_IMAGE : getImageUrl(imageId);
+  };
+
   const loadCourseContent = useCallback(async () => {
     setLoading(true);
     try {
@@ -319,7 +345,6 @@ const CourseViewTab = ({ pdf, onBack }) => {
       const extractedSections = extractSections(fullText);
       setSections(extractedSections);
 
-      // Load saved progress
       const savedCompleted = localStorage.getItem(`course_completed_${pdf.id}`);
       if (savedCompleted) {
         const completed = JSON.parse(savedCompleted);
@@ -334,13 +359,13 @@ const CourseViewTab = ({ pdf, onBack }) => {
     } finally {
       setLoading(false);
     }
-  }, [pdf]); // Added pdf as dependency
+  }, [pdf]);
 
   useEffect(() => {
     if (pdf) {
       loadCourseContent();
     }
-  }, [pdf, loadCourseContent]); // Added loadCourseContent to dependencies
+  }, [pdf, loadCourseContent]);
 
   const extractSections = (text) => {
     const lines = text.split('\n');
@@ -372,7 +397,6 @@ const CourseViewTab = ({ pdf, onBack }) => {
       localStorage.setItem(`course_completed_${pdf.id}`, JSON.stringify(newCompleted));
       const newProgress = (newCompleted.length / sections.length) * 100;
       setProgress(newProgress);
-      localStorage.setItem(`course_progress_${pdf.id}`, newProgress);
       
       Swal.fire({
         title: 'Section Completed! 🎉',
@@ -395,7 +419,6 @@ const CourseViewTab = ({ pdf, onBack }) => {
     }).then((result) => {
       if (result.isConfirmed) {
         localStorage.removeItem(`course_completed_${pdf.id}`);
-        localStorage.removeItem(`course_progress_${pdf.id}`);
         setCompletedSections([]);
         setProgress(0);
         Swal.fire('Reset!', 'Your progress has been reset.', 'success');
@@ -403,9 +426,6 @@ const CourseViewTab = ({ pdf, onBack }) => {
     });
   };
 
-const getImageUrl = (imageId) => {
-  return `http://localhost:8080/api/user/pdfs/${pdf.id}/images/${imageId}`;
-};
   const handleSectionClick = (index) => {
     setActiveSection(index);
     if (contentRef.current) {
@@ -413,13 +433,11 @@ const getImageUrl = (imageId) => {
     }
   };
 
-  // Get images that belong to a specific section (based on page number)
   const getImagesForSection = (sectionIndex) => {
     const estimatedPage = Math.floor(sectionIndex / 3) + 1;
     return imagesByPage[estimatedPage] || [];
   };
 
-  // Render the selected section content
   const renderSelectedSection = () => {
     const section = sections[activeSection];
     if (!section) {
@@ -443,14 +461,14 @@ const getImageUrl = (imageId) => {
         </div>
         
         <div style={styles.sectionContent}>
-          {/* Images at exact positions related to this section */}
           {sectionImages.map((img, imgIdx) => (
             <div key={img.id} style={styles.imageWrapper}>
               <img 
-                src={getImageUrl(img.id)} 
+                src={getImageSrc(img.id)} 
                 alt={`Illustration ${imgIdx + 1}`}
                 style={styles.inlineImage}
                 onClick={() => window.open(getImageUrl(img.id), '_blank')}
+                onError={() => handleImageError(img.id)}
                 onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               />
@@ -460,7 +478,6 @@ const getImageUrl = (imageId) => {
             </div>
           ))}
           
-          {/* Section content paragraphs */}
           {section.content.map((para, pIdx) => (
             <p key={pIdx} style={styles.paragraph}>{para}</p>
           ))}
@@ -525,7 +542,6 @@ const getImageUrl = (imageId) => {
 
       {activeView === 'split' && (
         <div style={styles.splitView}>
-          {/* Left Panel - Table of Contents (Click to navigate) */}
           <div style={styles.tocPanel}>
             <h3 style={styles.tocTitle}>📑 Course Content</h3>
             <ul style={styles.tocList}>
@@ -541,18 +557,6 @@ const getImageUrl = (imageId) => {
                       ...(isCompleted && !isActive ? styles.tocItemCompleted : {})
                     }}
                     onClick={() => handleSectionClick(idx)}
-                    onMouseEnter={(e) => {
-                      if (!isActive && !isCompleted) {
-                        e.currentTarget.style.background = '#f0f0ff';
-                        e.currentTarget.style.borderColor = '#5E5BFF';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive && !isCompleted) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.borderColor = 'transparent';
-                      }
-                    }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>{section.title}</span>
@@ -567,7 +571,6 @@ const getImageUrl = (imageId) => {
             </ul>
           </div>
 
-          {/* Right Panel - Selected Section Content */}
           <div style={styles.contentPanel} ref={contentRef}>
             {renderSelectedSection()}
           </div>
@@ -586,22 +589,12 @@ const getImageUrl = (imageId) => {
                   key={img.id} 
                   style={styles.imageCard}
                   onClick={() => window.open(getImageUrl(img.id), '_blank')}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
                 >
                   <img 
-                    src={getImageUrl(img.id)} 
+                    src={getImageSrc(img.id)} 
                     alt={`Course illustration ${idx + 1}`}
                     style={styles.image}
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/200x150?text=Image+Not+Found';
-                    }}
+                    onError={() => handleImageError(img.id)}
                   />
                   <div style={styles.imageInfo}>
                     <strong>Page {img.pageNumber}</strong> • {img.width}x{img.height}

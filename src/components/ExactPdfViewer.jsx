@@ -2,12 +2,39 @@
 import React, { useState, useEffect } from 'react';
 import { getPdfText, getPdfImages, formatFileSize } from '../api/pdfApi';
 
+// Local SVG fallback image (no external dependency)
+const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
+
 const ExactPdfViewer = ({ pdf }) => {
   const [loading, setLoading] = useState(true);
   const [textContent, setTextContent] = useState('');
   const [imagesByPage, setImagesByPage] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(pdf.pageCount || 0);
+  const [imageErrors, setImageErrors] = useState({});
+
+  // Get the base URL from environment or window location
+  const getBaseUrl = () => {
+    return process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+  };
+
+  // Fixed getImageUrl function with full URL
+  const getImageUrl = (imageId) => {
+    const baseUrl = getBaseUrl();
+    return `${baseUrl}/admin/pdfs/${pdf.id}/images/${imageId}`;
+  };
+
+  // Handle image load error with local fallback
+  const handleImageError = (imageId) => {
+    if (!imageErrors[imageId]) {
+      setImageErrors(prev => ({ ...prev, [imageId]: true }));
+    }
+  };
+
+  // Get the image source (with fallback if error)
+  const getImageSrc = (imageId) => {
+    return imageErrors[imageId] ? FALLBACK_IMAGE : getImageUrl(imageId);
+  };
 
   useEffect(() => {
     loadContent();
@@ -15,6 +42,7 @@ const ExactPdfViewer = ({ pdf }) => {
 
   const loadContent = async () => {
     setLoading(true);
+    setImageErrors({}); // Reset image errors for new PDF
     try {
       const textResponse = await getPdfText(pdf.id);
       setTextContent(textResponse.data.text || '');
@@ -36,10 +64,6 @@ const ExactPdfViewer = ({ pdf }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getImageUrl = (imageId) => {
-    return `http://localhost:8080/api/admin/pdfs/${pdf.id}/images/${imageId}`;
   };
 
   // Parse text into lines with approximate page breaks
@@ -106,7 +130,7 @@ const ExactPdfViewer = ({ pdf }) => {
               }}
             >
               <img 
-                src={getImageUrl(img.id)} 
+                src={getImageSrc(img.id)} 
                 alt={`Image on page ${pageNum}`}
                 style={{
                   width: '100%',
@@ -115,6 +139,7 @@ const ExactPdfViewer = ({ pdf }) => {
                   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   border: '1px solid #e5e7eb'
                 }}
+                onError={() => handleImageError(img.id)}
                 onClick={() => window.open(getImageUrl(img.id), '_blank')}
               />
               <div style={{

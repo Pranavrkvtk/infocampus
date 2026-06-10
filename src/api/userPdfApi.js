@@ -837,7 +837,7 @@ function MyCoursesPage() {
           <div 
             key={img.id} 
             style={styles.imageCard}
-            onClick={() => window.open(`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`, '_blank')}
+            onClick={() => window.open(`/user/pdfs/${selectedPdf.id}/images/${img.id}`, '_blank')}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
@@ -848,7 +848,7 @@ function MyCoursesPage() {
             }}
           >
             <img 
-              src={`http://localhost:8080/api/user/pdfs/${selectedPdf.id}/images/${img.id}`}
+              src={`/user/pdfs/${selectedPdf.id}/images/${img.id}`}
               alt={`Course illustration ${idx + 1}`}
               style={styles.image}
               onError={(e) => {
