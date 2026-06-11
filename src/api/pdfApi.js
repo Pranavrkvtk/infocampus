@@ -1,250 +1,249 @@
-// src/api/pdfApi.js
-import api from "./axios";
+// src/api/pdfApi.js - UPDATED VERSION WITH COURSE SUPPORT AND STRUCTURE GENERATION
 
-// Get the base URL from environment or window location
-const getBaseUrl = () => {
-  return process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+import axios from 'axios';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ==================== COURSE ENDPOINTS ====================
+// Get all courses (for dropdown selection)
+export const getAllCourses = () => {
+  return api.get('/admin/courses');
 };
 
-// ==================== USER PDF APIS (for regular users) ====================
+// Get course structure (topics and subtopics)
+export const getCourseStructure = (courseId) => {
+  return api.get(`/courses/${courseId}/structure`);
+};
 
-// Get all PDFs accessible to current user
+// Get course topics only
+export const getCourseTopics = (courseId) => {
+  return api.get(`/courses/${courseId}/topics`);
+};
+
+// Get subtopics for a specific topic
+export const getSubtopicsByTopic = (topicId) => {
+  return api.get(`/courses/topics/${topicId}/subtopics`);
+};
+
+// Update subtopic content
+export const updateSubtopicContent = (subtopicId, content) => {
+  return api.put(`/courses/subtopics/${subtopicId}`, { content });
+};
+
+// Delete entire course structure
+export const deleteCourseStructure = (courseId) => {
+  return api.delete(`/courses/${courseId}/structure`);
+};
+
+// ==================== STRUCTURE GENERATION ENDPOINTS ====================
+/**
+ * Generate course structure from PDF extracted text
+ * This will parse the PDF content and create topics/subtopics automatically
+ */
+export const generateCourseStructure = (pdfId) => {
+  return api.post(`/admin/pdfs/${pdfId}/generate-structure`);
+};
+
+/**
+ * Reprocess PDF with course association (for old PDFs that were uploaded without course)
+ */
+export const reprocessPdfWithCourse = (pdfId, courseId) => {
+  return api.post(`/admin/pdfs/${pdfId}/reprocess-with-course?courseId=${courseId}`);
+};
+
+// ==================== ENRICHED PDF ENDPOINTS ====================
+/**
+ * Get all PDFs with enriched course information (courseId, courseTitle, course object)
+ * This is the recommended endpoint for getting PDFs with course data
+ */
+export const getAllPdfsEnriched = () => {
+  return api.get('/user/pdfs/enriched');
+};
+
+// ==================== ORDERED CONTENT ENDPOINTS ====================
+export const getOrderedPdfContent = (pdfId, page = 0, size = 50) => {
+  return api.get(`/user/pdfs/${pdfId}/ordered-content?page=${page}&size=${size}`);
+};
+
+// Get all content with automatic pagination
+export const getAllOrderedPdfContent = async (pdfId, onProgress) => {
+  const allItems = [];
+  let currentPage = 0;
+  const pageSize = 100;
+  let hasMore = true;
+  
+  while (hasMore) {
+    try {
+      const response = await getOrderedPdfContent(pdfId, currentPage, pageSize);
+      const data = response.data;
+      
+      if (data.content && data.content.length > 0) {
+        allItems.push(...data.content);
+        if (onProgress) {
+          onProgress({
+            loaded: allItems.length,
+            total: data.totalItems,
+            page: currentPage,
+            totalPages: data.totalPages
+          });
+        }
+      }
+      
+      hasMore = data.hasNext;
+      currentPage++;
+      
+      if (hasMore) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    } catch (error) {
+      console.error('Error loading page:', currentPage, error);
+      throw error;
+    }
+  }
+  
+  return { data: { orderedContent: allItems } };
+};
+
+// ==================== USER/STUDENT ENDPOINTS ====================
 export const getAllPdfs = () => {
-  return api.get("/user/pdfs");
+  return api.get('/user/pdfs');
 };
 
-// Get PDF summary (lightweight version)
-export const getPdfSummaries = () => {
-  return api.get("/user/pdfs/summary");
-};
-
-// Get PDF details by ID
 export const getPdfDetails = (pdfId) => {
   return api.get(`/user/pdfs/${pdfId}/view`);
 };
 
-// Get extracted text from PDF
 export const getPdfText = (pdfId) => {
   return api.get(`/user/pdfs/${pdfId}/text`);
 };
 
-// Get all images from PDF
 export const getPdfImages = (pdfId) => {
   return api.get(`/user/pdfs/${pdfId}/images`);
 };
 
-// Get images by page number
 export const getPdfImagesByPage = (pdfId, pageNumber) => {
   return api.get(`/user/pdfs/${pdfId}/images/page/${pageNumber}`);
 };
 
-// Get image file as blob
-export const getPdfImageFile = (pdfId, imageId) => {
-  return api.get(`/user/pdfs/${pdfId}/images/${imageId}`, {
-    responseType: 'blob'
-  });
-};
-
-// ==================== ADMIN PDF APIS (for admin users) ====================
-
-// Upload PDF file (admin only)
-export const uploadPdf = (file, title, contentType, extractImages, extractText) => {
+// ==================== ADMIN ONLY ENDPOINTS ====================
+// UPDATED: Now requires courseId
+export const uploadPdf = (file, title, contentType, extractImages, extractText, courseId, userId = null) => {
   const formData = new FormData();
-  formData.append("file", file);
-  formData.append("title", title || "");
-  formData.append("contentType", contentType || "course");
-  formData.append("extractImages", extractImages !== false);
-  formData.append("extractText", extractText !== false);
+  formData.append('file', file);
+  formData.append('title', title);
+  formData.append('contentType', contentType);
+  formData.append('extractImages', extractImages);
+  formData.append('extractText', extractText);
+  formData.append('courseId', courseId);  // ← REQUIRED for course association
   
-  console.log("Uploading PDF:", {
-    fileName: file.name,
-    title: title,
-    contentType: contentType,
-    extractImages: extractImages,
-    extractText: extractText
-  });
+  if (userId) {
+    formData.append('userId', userId);
+  }
   
-  return api.post("/admin/pdfs/upload", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-    timeout: 300000,
-    onUploadProgress: (progressEvent) => {
-      const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-      console.log(`Upload progress: ${percentCompleted}%`);
-    },
+  return api.post('/admin/pdfs/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
-// Delete PDF document (admin only)
 export const deletePdf = (pdfId) => {
   return api.delete(`/admin/pdfs/${pdfId}`);
 };
 
-// Get all PDFs (admin only)
-export const getAllPdfsAdmin = () => {
-  return api.get("/admin/pdfs");
+// Force reprocess a PDF
+export const reprocessPdf = (pdfId) => {
+  return api.post(`/admin/pdfs/${pdfId}/force-reprocess`);
 };
 
-// Get PDF statistics (admin only)
+// Get PDF statistics
 export const getPdfStatistics = () => {
-  return api.get("/admin/pdfs/statistics");
+  return api.get('/admin/pdfs/statistics');
 };
 
-// Search PDFs by keyword (admin only)
+// Search PDFs by filename
 export const searchPdfs = (keyword) => {
   return api.get(`/admin/pdfs/search?keyword=${keyword}`);
 };
 
-// Batch delete PDFs (admin only)
-export const batchDeletePdfs = (pdfIds) => {
-  return api.post("/admin/pdfs/batch-delete", { ids: pdfIds });
+// ==================== ENROLLMENT ENDPOINTS ====================
+/**
+ * Enroll user in a course
+ */
+export const enrollInCourse = (courseId, userId) => {
+  return api.post(`/enrollments/enroll/${courseId}/${userId}`);
 };
 
-// Download PDF file
-export const downloadPdf = (pdfId) => {
-  return api.get(`/admin/pdfs/${pdfId}/download`, {
-    responseType: 'blob'
-  });
+/**
+ * Get user's enrolled courses
+ */
+export const getUserEnrolledCourses = (userId) => {
+  return api.get(`/enrollments/user/${userId}/courses`);
 };
 
-// Get PDF processing status
-export const getPdfStatus = (pdfId) => {
-  return api.get(`/admin/pdfs/${pdfId}/status`);
+/**
+ * Update course progress
+ */
+export const updateCourseProgress = (enrollmentId, progress, completedLessons) => {
+  return api.put(`/enrollments/progress/${enrollmentId}`, { progress, completedLessons });
 };
 
-// Retry processing a failed PDF
-export const retryPdfProcessing = (pdfId) => {
-  return api.post(`/admin/pdfs/${pdfId}/retry`);
+/**
+ * Cancel enrollment
+ */
+export const cancelEnrollment = (courseId, userId) => {
+  return api.delete(`/enrollments/enroll/${courseId}/${userId}`);
 };
 
-// Export all PDFs data
-export const exportPdfsData = () => {
-  return api.get("/admin/pdfs/export", {
-    responseType: 'blob'
-  });
-};
-
-// ==================== HELPER FUNCTIONS ====================
-
-// Local SVG fallback image (no external dependency)
-export const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
-
-// Helper function to get full image URL
-export const getImageUrl = (pdfId, imageId) => {
-  const baseUrl = getBaseUrl();
-  return `${baseUrl}/user/pdfs/${pdfId}/images/${imageId}`;
-};
-
-// Helper function to get admin image URL
-export const getAdminImageUrl = (pdfId, imageId) => {
-  const baseUrl = getBaseUrl();
-  return `${baseUrl}/admin/pdfs/${pdfId}/images/${imageId}`;
-};
-
-// Helper function to get image source with fallback
-export const getImageSrc = (pdfId, imageId, imageErrors, setImageErrors) => {
-  if (imageErrors && imageErrors[imageId]) {
-    return FALLBACK_IMAGE;
-  }
-  return getImageUrl(pdfId, imageId);
-};
-
-// Helper function to handle image load errors
-export const handleImageError = (imageId, imageErrors, setImageErrors) => {
-  if (!imageErrors[imageId]) {
-    setImageErrors(prev => ({ ...prev, [imageId]: true }));
-  }
-};
-
-// Helper function to format file size
+// ==================== UTILITIES ====================
 export const formatFileSize = (bytes) => {
-  if (!bytes) return "0 B";
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  if (!bytes) return '0 B';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-// Helper function to format date
 export const formatDate = (dateString) => {
-  if (!dateString) return "N/A";
+  if (!dateString) return 'N/A';
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return date.toLocaleDateString();
 };
 
-// Helper function to format date only (no time)
-export const formatDateOnly = (dateString) => {
-  if (!dateString) return "N/A";
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
-
-// Check if PDF is processed
-export const isPdfProcessed = (pdf) => {
-  return pdf && pdf.isProcessed === true;
-};
-
-// Get processing status text
-export const getProcessingStatusText = (pdf) => {
-  if (!pdf) return "Unknown";
-  if (pdf.isProcessed) return "Completed";
-  if (pdf.pageCount === 0) return "Pending";
-  return "Processing";
-};
-
-// Get processing status color
-export const getProcessingStatusColor = (pdf) => {
-  if (!pdf) return "#6b7280";
-  if (pdf.isProcessed) return "#16a34a";
-  if (pdf.pageCount === 0) return "#d97706";
-  return "#3b82f6";
-};
-
-// Extract sections from text
-export const extractSectionsFromText = (text, courseTitle) => {
-  if (!text) return generateDefaultSections(courseTitle);
+// Get user ID from localStorage or token
+export const getCurrentUserId = () => {
+  // Try to get from localStorage
+  let userId = localStorage.getItem('userId');
+  if (userId) return userId;
   
-  const lines = text.split('\n').filter(line => line.trim().length > 0);
-  const sectionsArray = [];
-  let currentSection = { title: 'Introduction', content: [] };
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if ((trimmed.toUpperCase() === trimmed && trimmed.length > 5 && trimmed.length < 100 && !trimmed.includes('.')) ||
-        (trimmed.endsWith(':') && trimmed.length < 60) ||
-        (/^\d+\./.test(trimmed))) {
-      if (currentSection.content.length > 0) {
-        sectionsArray.push(currentSection);
+  // Try to decode from token
+  const token = localStorage.getItem('token');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      userId = payload.userId || payload.id || payload.sub;
+      if (userId) {
+        localStorage.setItem('userId', userId);
+        return userId;
       }
-      currentSection = { title: trimmed.replace(/:/g, ''), content: [] };
-    } else if (trimmed.length > 20) {
-      currentSection.content.push(trimmed);
+    } catch (e) {
+      console.error('Error decoding token:', e);
     }
   }
-
-  if (currentSection.content.length > 0) sectionsArray.push(currentSection);
-
-  return sectionsArray.length > 0 ? sectionsArray : generateDefaultSections(courseTitle);
-};
-
-// Generate default sections for a course
-export const generateDefaultSections = (courseTitle) => {
-  return [
-    { title: "Introduction to " + (courseTitle || "Course"), content: ["Welcome to this course. This section introduces the key concepts and prerequisites you'll need to understand."] },
-    { title: "Core Concepts", content: ["This section covers the fundamental principles and core concepts that form the foundation of the subject."] },
-    { title: "Advanced Topics", content: ["Building on the basics, this section explores more advanced topics and complex scenarios."] },
-    { title: "Practical Applications", content: ["Learn how to apply the knowledge in real-world situations with practical examples and case studies."] },
-    { title: "Best Practices", content: ["Discover industry best practices, tips, and techniques to optimize your work."] },
-    { title: "Summary & Review", content: ["Review key takeaways from the course and test your understanding."] }
-  ];
+  
+  // Default to 1 (admin user) for testing
+  return '1';
 };

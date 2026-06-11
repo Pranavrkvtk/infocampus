@@ -1,12 +1,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import { 
   uploadPdf, 
-  getAllPdfs, 
+  getAllPdfsEnriched,
+  getAllPdfs,
   deletePdf,
+  getAllCourses,
+  getCurrentUserId,
   formatFileSize,
-  formatDate
+  formatDate,
+  generateCourseStructure
 } from "../../api/pdfApi";
 import Swal from "sweetalert2";
+import axios from "axios";
 
 const styles = {
   container: {
@@ -112,6 +117,17 @@ const styles = {
     outline: "none",
     transition: "border-color 0.2s",
   },
+  textarea: {
+    padding: "10px 14px",
+    borderRadius: 8,
+    border: "1px solid #e5e7eb",
+    fontSize: 14,
+    color: "#1a1a2e",
+    outline: "none",
+    fontFamily: "inherit",
+    minHeight: "80px",
+    resize: "vertical",
+  },
   select: {
     padding: "10px 14px",
     borderRadius: 8,
@@ -120,6 +136,7 @@ const styles = {
     color: "#1a1a2e",
     background: "#fff",
     outline: "none",
+    cursor: "pointer",
   },
   optionsRow: {
     display: "flex",
@@ -188,9 +205,21 @@ const styles = {
     color: "#16a34a",
     fontWeight: 500,
   },
+  infoBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "14px 18px",
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    borderRadius: 10,
+    marginTop: 16,
+    fontSize: 13,
+    color: "#1e40af",
+  },
   tableHeader: {
     display: "grid",
-    gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 0.8fr",
+    gridTemplateColumns: "2fr 1fr 1fr 1fr 1.5fr 1fr 1fr",
     gap: 12,
     padding: "10px 16px",
     background: "#f9fafb",
@@ -203,7 +232,7 @@ const styles = {
   },
   tableRow: {
     display: "grid",
-    gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 0.8fr",
+    gridTemplateColumns: "2fr 1fr 1fr 1fr 1.5fr 1fr 1fr",
     gap: 12,
     padding: "14px 16px",
     borderBottom: "1px solid #f3f4f6",
@@ -238,6 +267,16 @@ const styles = {
     color: "#fff",
     marginRight: 6,
   },
+  generateBtn: {
+    background: "#8b5cf6",
+    border: "none",
+    borderRadius: 6,
+    padding: "4px 10px",
+    fontSize: 11,
+    cursor: "pointer",
+    color: "#fff",
+    marginRight: 6,
+  },
   deleteBtn: {
     background: "#ef4444",
     border: "none",
@@ -246,6 +285,17 @@ const styles = {
     fontSize: 11,
     cursor: "pointer",
     color: "#fff",
+  },
+  createCourseBtn: {
+    marginTop: 8,
+    padding: "8px 16px",
+    background: "#10b981",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 500,
   },
   emptyState: {
     textAlign: "center",
@@ -259,12 +309,65 @@ const styles = {
     color: "#5E5BFF",
     fontSize: 14,
   },
+  modalOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: "rgba(0,0,0,0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  modalContent: {
+    background: "white",
+    borderRadius: 16,
+    padding: 24,
+    width: "90%",
+    maxWidth: 500,
+    maxHeight: "80vh",
+    overflow: "auto",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 700,
+    marginBottom: 20,
+    color: "#1a1a2e",
+  },
+  modalButtons: {
+    display: "flex",
+    gap: 12,
+    justifyContent: "flex-end",
+    marginTop: 20,
+  },
+  cancelBtn: {
+    padding: "10px 20px",
+    background: "#e5e7eb",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 14,
+  },
+  saveBtn: {
+    padding: "10px 20px",
+    background: "#5E5BFF",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 14,
+  },
 };
 
 export default function PdfUploadTab() {
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState("");
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const [contentType, setContentType] = useState("course");
   const [extractImages, setExtractImages] = useState(true);
   const [extractText, setExtractText] = useState(true);
@@ -273,18 +376,30 @@ export default function PdfUploadTab() {
   const [success, setSuccess] = useState(false);
   const [uploads, setUploads] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState({});
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
+  const [newCourse, setNewCourse] = useState({ 
+    title: "", 
+    description: "", 
+    instructor: "", 
+    price: 0,
+    level: "Beginner",
+    duration: ""
+  });
   const inputRef = useRef();
 
-  // Load PDFs on component mount
   useEffect(() => {
     fetchPdfs();
+    fetchCourses();
   }, []);
 
   const fetchPdfs = async () => {
     setLoading(true);
     try {
-      const response = await getAllPdfs();
-      console.log("PDFs response:", response.data);
+      // Try enriched endpoint first
+      const response = await getAllPdfsEnriched();
+      console.log("Enriched PDFs response:", response.data);
+      
       const pdfs = response.data.map(pdf => ({
         id: pdf.id,
         name: pdf.fileName,
@@ -294,17 +409,80 @@ export default function PdfUploadTab() {
         status: pdf.isProcessed ? "Completed" : "Processing",
         date: pdf.uploadedAt,
         fileSize: pdf.fileSize,
+        courseId: pdf.courseId || pdf.course?.id || null,
+        courseTitle: pdf.courseTitle || pdf.course?.title || "Not assigned",
       }));
+      
+      console.log("Processed PDFs with courses:", pdfs);
       setUploads(pdfs);
     } catch (error) {
-      console.error("Error fetching PDFs:", error);
-      if (error.code === 'ERR_NETWORK') {
-        Swal.fire("Connection Error", "Backend may be down. Please check if server is running.", "error");
-      } else {
+      console.error("Error fetching enriched PDFs:", error);
+      // Fallback to regular endpoint
+      try {
+        const fallbackResponse = await getAllPdfs();
+        console.log("Fallback PDFs response:", fallbackResponse.data);
+        
+        const pdfs = fallbackResponse.data.map(pdf => ({
+          id: pdf.id,
+          name: pdf.fileName,
+          type: "Course",
+          pages: pdf.pageCount || 0,
+          images: pdf.imageCount || 0,
+          status: pdf.isProcessed ? "Completed" : "Processing",
+          date: pdf.uploadedAt,
+          fileSize: pdf.fileSize,
+          courseId: pdf.course?.id || null,
+          courseTitle: pdf.course?.title || "Not assigned",
+        }));
+        setUploads(pdfs);
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
         Swal.fire("Error", "Failed to load PDFs", "error");
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCourses = async () => {
+    setLoadingCourses(true);
+    try {
+      const response = await getAllCourses();
+      console.log("Courses response:", response.data);
+      setCourses(response.data);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
+  const handleCreateCourse = async () => {
+    if (!newCourse.title.trim()) {
+      Swal.fire("Error", "Course title is required", "error");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('http://localhost:8082/api/admin/courses', newCourse, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      Swal.fire("Success", "Course created successfully!", "success");
+      setShowCreateCourse(false);
+      setNewCourse({ title: "", description: "", instructor: "", price: 0, level: "Beginner", duration: "" });
+      await fetchCourses();
+      
+      if (response.data && response.data.id) {
+        setSelectedCourseId(response.data.id);
+      }
+    } catch (error) {
+      console.error("Error creating course:", error);
+      Swal.fire("Error", error.response?.data?.error || "Failed to create course", "error");
     }
   };
 
@@ -332,16 +510,30 @@ export default function PdfUploadTab() {
       return;
     }
 
+    if (!selectedCourseId && contentType === "course") {
+      Swal.fire("Missing Course", "Please select a course for this PDF. The course structure will be generated automatically from the PDF content.", "warning");
+      return;
+    }
+
     setUploading(true);
     setProgress(0);
 
-    // Simulate progress for better UX
     const progressInterval = setInterval(() => {
       setProgress(prev => Math.min(prev + 10, 90));
     }, 500);
 
     try {
-      await uploadPdf(file, title, contentType, extractImages, extractText);
+      const userId = getCurrentUserId();
+      
+      await uploadPdf(
+        file, 
+        title, 
+        contentType, 
+        extractImages, 
+        extractText, 
+        selectedCourseId,
+        userId
+      );
       
       clearInterval(progressInterval);
       setProgress(100);
@@ -349,21 +541,18 @@ export default function PdfUploadTab() {
       
       Swal.fire({
         title: "Success!",
-        text: "PDF uploaded and processed successfully!",
+        html: `PDF uploaded successfully!<br/><br/>✅ Text extracted<br/>✅ Images extracted<br/>✅ Course structure generated automatically!`,
         icon: "success",
-        timer: 2000,
+        timer: 3000,
         showConfirmButton: false
       });
       
-      // Reset form
       setFile(null);
       setTitle("");
+      setSelectedCourseId("");
       setProgress(0);
-      
-      // Refresh the list
       await fetchPdfs();
       
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000);
       
     } catch (error) {
@@ -377,6 +566,44 @@ export default function PdfUploadTab() {
       setProgress(0);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleGenerateStructure = async (pdfId, pdfName) => {
+    setGenerating(prev => ({ ...prev, [pdfId]: true }));
+    
+    Swal.fire({
+      title: 'Generating Structure...',
+      text: `Parsing "${pdfName}" to create topics and subtopics`,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const response = await generateCourseStructure(pdfId);
+      console.log("Generation response:", response.data);
+      
+      Swal.fire({
+        title: 'Success!',
+        text: `Generated ${response.data.topicsCount} topics and ${response.data.subtopicsCount} subtopics`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      
+      await fetchPdfs();
+      
+    } catch (error) {
+      console.error("Generation error:", error);
+      Swal.fire({
+        title: 'Generation Failed',
+        text: error.response?.data?.error || 'Failed to generate structure. Make sure PDF has extractable text.',
+        icon: 'error'
+      });
+    } finally {
+      setGenerating(prev => ({ ...prev, [pdfId]: false }));
     }
   };
 
@@ -403,11 +630,12 @@ export default function PdfUploadTab() {
   };
 
   const handleView = (pdf) => {
-    // Show PDF details in a modal
     Swal.fire({
       title: pdf.name,
       html: `
         <div style="text-align: left;">
+          <p><strong>Course:</strong> ${pdf.courseTitle}</p>
+          <p><strong>Course ID:</strong> ${pdf.courseId || 'None'}</p>
           <p><strong>Pages:</strong> ${pdf.pages}</p>
           <p><strong>Images:</strong> ${pdf.images}</p>
           <p><strong>Status:</strong> ${pdf.status}</p>
@@ -421,23 +649,20 @@ export default function PdfUploadTab() {
     });
   };
 
-  const formatFileSizeHelper = (bytes) => {
-    if (!bytes) return "0 B";
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-  };
-
   return (
     <div style={styles.container}>
       {/* Upload Card */}
       <div style={styles.card}>
-        <div style={styles.cardTitle}>Upload PDF</div>
+        <div style={styles.cardTitle}>Upload PDF to Generate Course Structure</div>
         <div style={styles.cardSubtitle}>
-          Upload a PDF to automatically extract text and images for your LMS content.
+          Upload a PDF with UPPERCASE headings to automatically create topics and subtopics.
         </div>
 
-        {/* Drop Zone */}
+        <div style={styles.infoBanner}>
+          <span>💡</span>
+          <span>PDFs with UPPERCASE lines become TOPICS. Regular lines become SUBTOPICS automatically!</span>
+        </div>
+
         <div
           style={styles.dropZone(dragging, !!file)}
           onClick={() => inputRef.current.click()}
@@ -461,19 +686,17 @@ export default function PdfUploadTab() {
           />
         </div>
 
-        {/* File Info */}
         {file && (
           <div style={styles.fileInfo}>
             <span style={styles.fileIcon}>📋</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={styles.fileName}>{file.name}</div>
-              <div style={styles.fileSize}>{formatFileSizeHelper(file.size)}</div>
+              <div style={styles.fileSize}>{formatFileSize(file.size)}</div>
             </div>
             <button style={styles.removeBtn} onClick={() => setFile(null)}>✕</button>
           </div>
         )}
 
-        {/* Title Input */}
         <div style={styles.formRow}>
           <label style={styles.label}>Content Title</label>
           <input
@@ -486,7 +709,37 @@ export default function PdfUploadTab() {
           />
         </div>
 
-        {/* Content Type */}
+        <div style={styles.formRow}>
+          <label style={styles.label}>Select Course *</label>
+          <select
+            style={styles.select}
+            value={selectedCourseId}
+            onChange={(e) => setSelectedCourseId(e.target.value)}
+            required
+          >
+            <option value="">-- Select a Course --</option>
+            {courses.map(course => (
+              <option key={course.id} value={course.id}>
+                {course.title} - {course.instructor} ({course.level})
+              </option>
+            ))}
+          </select>
+          
+          <button
+            style={styles.createCourseBtn}
+            onClick={() => setShowCreateCourse(true)}
+          >
+            + Create New Course
+          </button>
+          
+          {loadingCourses && <div style={{ fontSize: 12, color: "#6b7280" }}>Loading courses...</div>}
+          {courses.length === 0 && !loadingCourses && (
+            <div style={{ fontSize: 12, color: "#ef4444" }}>
+              No courses found. Please create a course first.
+            </div>
+          )}
+        </div>
+
         <div style={styles.formRow}>
           <label style={styles.label}>Convert PDF to</label>
           <select
@@ -499,7 +752,6 @@ export default function PdfUploadTab() {
           </select>
         </div>
 
-        {/* Extract Options */}
         <div style={{ marginTop: 16 }}>
           <label style={styles.label}>Extract Options</label>
           <div style={styles.optionsRow}>
@@ -518,31 +770,29 @@ export default function PdfUploadTab() {
           </div>
         </div>
 
-        {/* Upload Button */}
         <button
-          style={styles.uploadBtn(!file || !title.trim() || uploading)}
-          disabled={!file || !title.trim() || uploading}
+          style={styles.uploadBtn(!file || !title.trim() || !selectedCourseId || uploading)}
+          disabled={!file || !title.trim() || !selectedCourseId || uploading}
           onClick={handleUpload}
         >
-          {uploading ? `Processing... ${Math.round(progress)}%` : "Upload & Extract"}
+          {uploading ? `Processing... ${Math.round(progress)}%` : "Upload & Generate Course Structure"}
         </button>
 
-        {/* Progress */}
         {(uploading || progress > 0) && !success && (
           <>
             <div style={styles.progressBar}>
               <div style={styles.progressFill(progress)} />
             </div>
             <div style={styles.progressText}>
-              {progress < 40 ? "Uploading PDF…" : progress < 75 ? "Extracting content…" : "Saving to database…"} {Math.round(progress)}%
+              {progress < 40 ? "Uploading PDF…" : progress < 75 ? "Extracting content & generating structure…" : "Saving to database…"} {Math.round(progress)}%
             </div>
           </>
         )}
 
-        {/* Success */}
         {success && (
           <div style={styles.successBanner}>
-            <span>✅</span> PDF processed successfully! Content has been saved and is ready to publish.
+            <span>✅</span> 
+            PDF processed successfully! Topics and subtopics have been generated automatically from your PDF content.
           </div>
         )}
       </div>
@@ -555,6 +805,7 @@ export default function PdfUploadTab() {
         <div style={styles.tableHeader}>
           <span>File Name</span>
           <span>Type</span>
+          <span>Course</span>
           <span>Pages</span>
           <span>Images</span>
           <span>Status</span>
@@ -569,7 +820,7 @@ export default function PdfUploadTab() {
           <div style={styles.emptyState}>
             <span>📭</span>
             <p>No PDFs uploaded yet.</p>
-            <p style={{ fontSize: 12, marginTop: 8 }}>Upload your first PDF to get started.</p>
+            <p style={{ fontSize: 12, marginTop: 8 }}>Upload your first PDF to automatically generate course structure.</p>
           </div>
         ) : (
           uploads.map((u) => (
@@ -581,6 +832,9 @@ export default function PdfUploadTab() {
                 </span>
               </span>
               <span><span style={styles.badge(u.type)}>{u.type}</span></span>
+              <span style={{ fontSize: 12, color: u.courseId ? "#16a34a" : "#9ca3af" }}>
+                {u.courseTitle}
+              </span>
               <span>{u.pages}</span>
               <span>{u.images}</span>
               <span>
@@ -590,12 +844,94 @@ export default function PdfUploadTab() {
               </span>
               <span>
                 <button style={styles.viewBtn} onClick={() => handleView(u)}>View</button>
-                <button style={styles.deleteBtn} onClick={() => handleDelete(u.id, u.name)}>Delete</button>
+                {u.courseId && (
+                  <button 
+                    style={styles.generateBtn} 
+                    onClick={() => handleGenerateStructure(u.id, u.name)}
+                    disabled={generating[u.id]}
+                  >
+                    {generating[u.id] ? "⏳" : "🔧"} Gen
+                  </button>
+                )}
+                <button style={styles.deleteBtn} onClick={() => handleDelete(u.id, u.name)}>Del</button>
               </span>
             </div>
           ))
         )}
       </div>
+
+      {/* Create Course Modal */}
+      {showCreateCourse && (
+        <div style={styles.modalOverlay} onClick={() => setShowCreateCourse(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h3 style={styles.modalTitle}>Create New Course</h3>
+            
+            <input
+              type="text"
+              placeholder="Course Title *"
+              value={newCourse.title}
+              onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
+              style={styles.input}
+            />
+            
+            <textarea
+              placeholder="Description"
+              value={newCourse.description}
+              onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
+              style={{ ...styles.textarea, marginTop: 12 }}
+            />
+            
+            <input
+              type="text"
+              placeholder="Instructor"
+              value={newCourse.instructor}
+              onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
+              style={{ ...styles.input, marginTop: 12 }}
+            />
+            
+            <input
+              type="text"
+              placeholder="Duration (e.g., 10 hours)"
+              value={newCourse.duration}
+              onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
+              style={{ ...styles.input, marginTop: 12 }}
+            />
+            
+            <select
+              value={newCourse.level}
+              onChange={(e) => setNewCourse({ ...newCourse, level: e.target.value })}
+              style={{ ...styles.select, marginTop: 12 }}
+            >
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+            </select>
+            
+            <input
+              type="number"
+              placeholder="Price"
+              value={newCourse.price}
+              onChange={(e) => setNewCourse({ ...newCourse, price: parseFloat(e.target.value) })}
+              style={{ ...styles.input, marginTop: 12 }}
+            />
+            
+            <div style={styles.modalButtons}>
+              <button
+                style={styles.cancelBtn}
+                onClick={() => setShowCreateCourse(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={styles.saveBtn}
+                onClick={handleCreateCourse}
+              >
+                Create Course
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

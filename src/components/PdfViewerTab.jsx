@@ -1,6 +1,6 @@
-// src/components/PdfViewerTab.jsx
+// src/components/PdfViewerTab.jsx - CORRECTED VERSION
 import React, { useState, useEffect } from 'react';
-import { getAllPdfs, getPdfText, getPdfImages, formatFileSize, formatDate } from '../api/pdfApi';
+import { getAllPdfs, getPdfText, getPdfImages, getOrderedPdfContent, formatFileSize, formatDate } from '../api/pdfApi';
 import Swal from 'sweetalert2';
 
 const styles = {
@@ -171,6 +171,61 @@ const styles = {
     color: '#6b7280',
     textAlign: 'center',
   },
+  orderedContentContainer: {
+    background: '#f9fafb',
+    padding: '20px',
+    borderRadius: '12px',
+    maxHeight: '500px',
+    overflowY: 'auto',
+  },
+  orderedPageNav: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+    padding: '12px',
+    background: '#f0f0ff',
+    borderRadius: '8px',
+    flexWrap: 'wrap',
+    gap: '10px',
+  },
+  navButton: {
+    padding: '6px 12px',
+    borderRadius: '6px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: '500',
+  },
+  heading: {
+    marginTop: '20px',
+    marginBottom: '10px',
+    fontWeight: 'bold',
+    color: '#1a1a2e',
+  },
+  paragraph: {
+    marginBottom: '12px',
+    lineHeight: '1.7',
+    color: '#374151',
+  },
+  imageWrapper: {
+    margin: '24px auto',
+    textAlign: 'center',
+    backgroundColor: '#f9fafb',
+    padding: '16px',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+  },
+  imageDisplay: {
+    maxWidth: '100%',
+    height: 'auto',
+    borderRadius: '8px',
+    cursor: 'pointer',
+  },
+  imageCaption: {
+    fontSize: '12px',
+    color: '#6b7280',
+    marginTop: '8px',
+  },
   loadingSpinner: {
     textAlign: 'center',
     padding: '40px',
@@ -181,15 +236,47 @@ const styles = {
     padding: '60px',
     color: '#9ca3af',
   },
+  badge: {
+    display: 'inline-block',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '600',
+    marginLeft: '8px',
+  },
+  badgeText: {
+    background: '#e0e7ff',
+    color: '#4338ca',
+  },
+  badgeImage: {
+    background: '#fef3c7',
+    color: '#d97706',
+  },
 };
 
 const PdfViewerTab = ({ onViewCourse }) => {
-  const [pdfs, setPdfs] = useState([]);
+  const [pdfs, setPdfs] = useState([]);  // ← Changed from setUploads
   const [loading, setLoading] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState(null);
   const [activeTab, setActiveTab] = useState('details');
   const [extractedText, setExtractedText] = useState('');
   const [images, setImages] = useState([]);
+  const [orderedContent, setOrderedContent] = useState([]);
+  const [pages, setPages] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [imageErrors, setImageErrors] = useState({});
+
+  const getBaseUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
+  const getImageUrl = (pdfId, imageId) => {
+    return `${getBaseUrl()}/user/pdfs/${pdfId}/images/${imageId}`;
+  };
+
+  const handleImageError = (imageId) => {
+    if (!imageErrors[imageId]) {
+      setImageErrors(prev => ({ ...prev, [imageId]: true }));
+    }
+  };
 
   useEffect(() => {
     fetchPdfs();
@@ -197,38 +284,51 @@ const PdfViewerTab = ({ onViewCourse }) => {
 
   const fetchPdfs = async () => {
     setLoading(true);
-    console.log("=== FETCHING PDFS ===");
-    
     try {
       const response = await getAllPdfs();
-      console.log("PDFs found:", response.data?.length || 0);
-      setPdfs(response.data || []);
+      console.log("Full API response:", response.data);
+      
+      const pdfList = response.data.map(pdf => ({
+        id: pdf.id,
+        name: pdf.fileName,
+        fileName: pdf.fileName,
+        type: "Course",
+        pages: pdf.pageCount || 0,
+        images: pdf.imageCount || 0,
+        status: pdf.isProcessed ? "Completed" : "Processing",
+        date: pdf.uploadedAt,
+        fileSize: pdf.fileSize,
+        pageCount: pdf.pageCount,
+        imageCount: pdf.imageCount,
+        isProcessed: pdf.isProcessed,
+        uploadedAt: pdf.uploadedAt,
+        // IMPORTANT: Include course data
+        courseId: pdf.course?.id || null,
+        courseTitle: pdf.course?.title || "Not assigned",
+        course: pdf.course || null,
+      }));
+      
+      console.log("Processed PDFs:", pdfList);
+      setPdfs(pdfList);  // ← Changed from setUploads
     } catch (error) {
       console.error("Error fetching PDFs:", error);
-      
-      if (error.response?.status === 403 || error.response?.status === 401) {
-        Swal.fire({
-          title: "Access Denied",
-          text: "Please login again",
-          icon: "error"
-        }).then(() => {
-          localStorage.clear();
-          window.location.href = "/login";
-        });
-      } else {
-        Swal.fire({
-          title: "Error",
-          text: error.response?.data?.message || "Failed to load PDFs",
-          icon: "error"
-        });
-      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleViewPdf = async (pdf) => {
-    setSelectedPdf(pdf);
+    console.log("PDF object received:", pdf);
+    
+    // Make sure we preserve the course info
+    const pdfWithCourse = {
+      ...pdf,
+      courseId: pdf.courseId || pdf.course?.id || null,
+      courseTitle: pdf.courseTitle || pdf.course?.title || null,
+      course: pdf.course || null
+    };
+    
+    setSelectedPdf(pdfWithCourse);
     setActiveTab('details');
     setLoading(true);
     
@@ -238,6 +338,24 @@ const PdfViewerTab = ({ onViewCourse }) => {
       
       const imagesResponse = await getPdfImages(pdf.id);
       setImages(imagesResponse.data.images || []);
+      
+      // Fetch ordered content
+      const orderedResponse = await getOrderedPdfContent(pdf.id);
+      const orderedContentData = orderedResponse.data.content || orderedResponse.data.orderedContent || [];
+      setOrderedContent(orderedContentData);
+      
+      // Group by page
+      const groupedByPage = {};
+      orderedContentData.forEach(item => {
+        const pageNum = item.pageNumber || 1;
+        if (!groupedByPage[pageNum]) {
+          groupedByPage[pageNum] = [];
+        }
+        groupedByPage[pageNum].push(item);
+      });
+      setPages(groupedByPage);
+      setCurrentPage(1);
+      
     } catch (error) {
       console.error("Error fetching PDF details:", error);
       Swal.fire("Error", "Failed to load PDF details", "error");
@@ -264,12 +382,64 @@ const PdfViewerTab = ({ onViewCourse }) => {
     setSelectedPdf(null);
     setExtractedText('');
     setImages([]);
+    setOrderedContent([]);
+    setPages({});
+    setCurrentPage(1);
+    setImageErrors({});
   };
 
-  // ✅ FIXED: Use user endpoint instead of admin endpoint
-  const getImageUrl = (pdfId, imageId) => {
-    return `http://localhost:8080/api/user/pdfs/${pdfId}/images/${imageId}`;
+  const renderOrderedContentItem = (item, index) => {
+    if (item.type === 'TEXT') {
+      const isHeading = item.fontSize > 16 || (item.content && item.content.length < 50 && !item.content.endsWith('.'));
+      
+      if (isHeading) {
+        return (
+          <h3 key={index} style={{ ...styles.heading, fontSize: `${Math.min(item.fontSize || 18, 28)}px` }}>
+            {item.content}
+          </h3>
+        );
+      } else {
+        return (
+          <p key={index} style={{ ...styles.paragraph, fontSize: `${item.fontSize || 14}px` }}>
+            {item.content}
+          </p>
+        );
+      }
+    } else if (item.type === 'IMAGE') {
+      return (
+        <div key={index} style={styles.imageWrapper}>
+          <img 
+            src={getImageUrl(selectedPdf.id, item.imageId)} 
+            alt={`Content illustration`}
+            style={styles.imageDisplay}
+            onClick={() => window.open(getImageUrl(selectedPdf.id, item.imageId), '_blank')}
+            onError={() => handleImageError(item.imageId)}
+          />
+          {item.width && item.height && (
+            <div style={styles.imageCaption}>
+              {item.width} x {item.height} pixels
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
   };
+
+  const renderOrderedPage = () => {
+    const pageContent = pages[currentPage];
+    if (!pageContent) {
+      return <div style={styles.emptyState}>No content on this page</div>;
+    }
+    
+    return (
+      <div style={styles.orderedContentContainer}>
+        {pageContent.map((item, idx) => renderOrderedContentItem(item, idx))}
+      </div>
+    );
+  };
+
+  const totalPages = Object.keys(pages).length;
 
   if (loading && pdfs.length === 0) {
     return <div style={styles.loadingSpinner}>Loading PDFs...</div>;
@@ -301,6 +471,11 @@ const PdfViewerTab = ({ onViewCourse }) => {
                 <span>{pdf.imageCount || 0} images</span>
                 <span>{formatFileSize(pdf.fileSize)}</span>
               </div>
+              {pdf.courseTitle && pdf.courseTitle !== "Not assigned" && (
+                <div style={{ fontSize: '11px', color: '#16a34a', marginBottom: '8px' }}>
+                  🎓 Course: {pdf.courseTitle}
+                </div>
+              )}
               <div style={styles.buttonGroup}>
                 <button 
                   style={{...styles.button, ...styles.buttonPrimary}}
@@ -339,6 +514,9 @@ const PdfViewerTab = ({ onViewCourse }) => {
               <button style={styles.tabButton(activeTab === 'images')} onClick={() => setActiveTab('images')}>
                 Images ({images.length})
               </button>
+              <button style={styles.tabButton(activeTab === 'ordered')} onClick={() => setActiveTab('ordered')}>
+                📖 Read in Order ({orderedContent.length} items)
+              </button>
               <button 
                 style={{...styles.tabButton(false), background: '#f59e0b', color: '#fff'}}
                 onClick={() => {
@@ -355,9 +533,18 @@ const PdfViewerTab = ({ onViewCourse }) => {
                 <p><strong>File Name:</strong> {selectedPdf.fileName}</p>
                 <p><strong>Pages:</strong> {selectedPdf.pageCount || 0}</p>
                 <p><strong>Images Extracted:</strong> {selectedPdf.imageCount || 0}</p>
+                <p><strong>Ordered Items:</strong> {orderedContent.length} (text + images in correct order)</p>
+                <p><strong>Text Blocks:</strong> {orderedContent.filter(i => i.type === 'TEXT').length}</p>
+                <p><strong>Images in Order:</strong> {orderedContent.filter(i => i.type === 'IMAGE').length}</p>
                 <p><strong>File Size:</strong> {formatFileSize(selectedPdf.fileSize)}</p>
                 <p><strong>Uploaded:</strong> {formatDate(selectedPdf.uploadedAt)}</p>
                 <p><strong>Status:</strong> {selectedPdf.isProcessed ? '✅ Processed' : '⏳ Processing'}</p>
+                {selectedPdf.courseTitle && selectedPdf.courseTitle !== "Not assigned" && (
+                  <p><strong>Course:</strong> 🎓 {selectedPdf.courseTitle}</p>
+                )}
+                <div style={{ marginTop: '16px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', fontSize: '13px' }}>
+                  ✓ Content is displayed in correct reading order (top to bottom of each page)
+                </div>
               </div>
             )}
 
@@ -380,7 +567,6 @@ const PdfViewerTab = ({ onViewCourse }) => {
                     >
                       <img 
                         src={getImageUrl(selectedPdf.id, image.id)} 
-                        // FIX: Removed redundant words "Image" — screen-readers already announce <img> as an image
                         alt={`Page ${image.pageNumber}, figure ${index + 1}`}
                         style={styles.image}
                         onError={(e) => {
@@ -395,6 +581,36 @@ const PdfViewerTab = ({ onViewCourse }) => {
                     </div>
                   ))
                 )}
+              </div>
+            )}
+
+            {activeTab === 'ordered' && (
+              <div>
+                {totalPages > 1 && (
+                  <div style={styles.orderedPageNav}>
+                    <button
+                      style={{...styles.navButton, background: currentPage === 1 ? '#e5e7eb' : '#5E5BFF', color: currentPage === 1 ? '#9ca3af' : 'white'}}
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      ← Previous Page
+                    </button>
+                    <span style={{ fontWeight: '500' }}>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      style={{...styles.navButton, background: currentPage === totalPages ? '#e5e7eb' : '#5E5BFF', color: currentPage === totalPages ? '#9ca3af' : 'white'}}
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next Page →
+                    </button>
+                  </div>
+                )}
+                {renderOrderedPage()}
+                <div style={{ marginTop: '16px', fontSize: '12px', color: '#6b7280', textAlign: 'center', padding: '12px', background: '#f0fdf4', borderRadius: '8px' }}>
+                  ✓ Content displayed in correct reading order (top to bottom of each page)
+                </div>
               </div>
             )}
           </div>
