@@ -1,6 +1,6 @@
 // src/components/PdfViewerTab.jsx - CORRECTED VERSION
 import React, { useState, useEffect } from 'react';
-import { getAllPdfs, getPdfText, getPdfImages, getOrderedPdfContent, formatFileSize, formatDate } from '../api/pdfApi';
+import { getAllPdfs, getPdfText, getPdfImages, getOrderedPdfContent, formatFileSize, formatDate, getAllPdfsEnriched } from '../api/pdfApi';
 import Swal from 'sweetalert2';
 
 const styles = {
@@ -255,7 +255,7 @@ const styles = {
 };
 
 const PdfViewerTab = ({ onViewCourse }) => {
-  const [pdfs, setPdfs] = useState([]);  // ← Changed from setUploads
+  const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState(null);
   const [activeTab, setActiveTab] = useState('details');
@@ -285,10 +285,22 @@ const PdfViewerTab = ({ onViewCourse }) => {
   const fetchPdfs = async () => {
     setLoading(true);
     try {
-      const response = await getAllPdfs();
-      console.log("Full API response:", response.data);
+      // Try enriched endpoint first (if available)
+      let response;
+      try {
+        const enrichedModule = await import('../api/pdfApi');
+        if (enrichedModule.getAllPdfsEnriched) {
+          response = await enrichedModule.getAllPdfsEnriched();
+          console.log("Enriched PDFs response:", response.data);
+        } else {
+          throw new Error('getAllPdfsEnriched not available');
+        }
+      } catch (err) {
+        console.log("Enriched endpoint not available, using regular endpoint");
+        response = await getAllPdfs();
+      }
       
-      const pdfList = response.data.map(pdf => ({
+      const pdfList = (response.data || []).map(pdf => ({
         id: pdf.id,
         name: pdf.fileName,
         fileName: pdf.fileName,
@@ -302,16 +314,16 @@ const PdfViewerTab = ({ onViewCourse }) => {
         imageCount: pdf.imageCount,
         isProcessed: pdf.isProcessed,
         uploadedAt: pdf.uploadedAt,
-        // IMPORTANT: Include course data
-        courseId: pdf.course?.id || null,
-        courseTitle: pdf.course?.title || "Not assigned",
-        course: pdf.course || null,
+        courseId: pdf.courseId || pdf.course?.id || null,
+        courseTitle: pdf.courseTitle || pdf.course?.title || "Not assigned",
+        course: pdf.course || (pdf.courseId ? { id: pdf.courseId, title: pdf.courseTitle } : null),
       }));
       
-      console.log("Processed PDFs:", pdfList);
-      setPdfs(pdfList);  // ← Changed from setUploads
+      console.log("Processed PDFs with course mapping:", pdfList);
+      setPdfs(pdfList);
     } catch (error) {
       console.error("Error fetching PDFs:", error);
+      Swal.fire("Error", "Failed to load PDFs", "error");
     } finally {
       setLoading(false);
     }

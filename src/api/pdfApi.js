@@ -67,6 +67,15 @@ export const reprocessPdfWithCourse = (pdfId, courseId) => {
   return api.post(`/admin/pdfs/${pdfId}/reprocess-with-course?courseId=${courseId}`);
 };
 
+// ==================== AUTO-FIX ENDPOINT ====================
+/**
+ * Auto-fix PDF - creates a course from filename and assigns it
+ * Use this for PDFs that were uploaded without a course
+ */
+export const autoFixPdf = (pdfId) => {
+  return api.post(`/admin/pdfs/${pdfId}/auto-fix`);
+};
+
 // ==================== ENRICHED PDF ENDPOINTS ====================
 /**
  * Get all PDFs with enriched course information (courseId, courseTitle, course object)

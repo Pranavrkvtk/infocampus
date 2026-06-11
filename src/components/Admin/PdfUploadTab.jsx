@@ -8,7 +8,8 @@ import {
   getCurrentUserId,
   formatFileSize,
   formatDate,
-  generateCourseStructure
+  generateCourseStructure,
+  autoFixPdf
 } from "../../api/pdfApi";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -277,6 +278,16 @@ const styles = {
     color: "#fff",
     marginRight: 6,
   },
+  fixBtn: {
+    background: "#10b981",
+    border: "none",
+    borderRadius: 6,
+    padding: "4px 10px",
+    fontSize: 11,
+    cursor: "pointer",
+    color: "#fff",
+    marginRight: 6,
+  },
   deleteBtn: {
     background: "#ef4444",
     border: "none",
@@ -396,7 +407,6 @@ export default function PdfUploadTab() {
   const fetchPdfs = async () => {
     setLoading(true);
     try {
-      // Try enriched endpoint first
       const response = await getAllPdfsEnriched();
       console.log("Enriched PDFs response:", response.data);
       
@@ -417,11 +427,8 @@ export default function PdfUploadTab() {
       setUploads(pdfs);
     } catch (error) {
       console.error("Error fetching enriched PDFs:", error);
-      // Fallback to regular endpoint
       try {
         const fallbackResponse = await getAllPdfs();
-        console.log("Fallback PDFs response:", fallbackResponse.data);
-        
         const pdfs = fallbackResponse.data.map(pdf => ({
           id: pdf.id,
           name: pdf.fileName,
@@ -510,10 +517,8 @@ export default function PdfUploadTab() {
       return;
     }
 
-    if (!selectedCourseId && contentType === "course") {
-      Swal.fire("Missing Course", "Please select a course for this PDF. The course structure will be generated automatically from the PDF content.", "warning");
-      return;
-    }
+    // ✅ Course selection is now OPTIONAL - backend will auto-create if needed
+    // No validation for selectedCourseId required
 
     setUploading(true);
     setProgress(0);
@@ -525,13 +530,16 @@ export default function PdfUploadTab() {
     try {
       const userId = getCurrentUserId();
       
+      // Send null if no course selected - backend will auto-create
+      const courseIdToSend = selectedCourseId || null;
+      
       await uploadPdf(
         file, 
         title, 
         contentType, 
         extractImages, 
         extractText, 
-        selectedCourseId,
+        courseIdToSend,
         userId
       );
       
@@ -541,7 +549,7 @@ export default function PdfUploadTab() {
       
       Swal.fire({
         title: "Success!",
-        html: `PDF uploaded successfully!<br/><br/>✅ Text extracted<br/>✅ Images extracted<br/>✅ Course structure generated automatically!`,
+        html: `✅ PDF uploaded successfully!<br/><br/>📝 Text extracted<br/>🖼️ Images extracted<br/>📚 Course auto-created from filename!`,
         icon: "success",
         timer: 3000,
         showConfirmButton: false
@@ -607,6 +615,44 @@ export default function PdfUploadTab() {
     }
   };
 
+  const handleAutoFix = async (pdfId, pdfName) => {
+    setGenerating(prev => ({ ...prev, [pdfId]: true }));
+    
+    Swal.fire({
+      title: 'Auto-Fixing PDF...',
+      text: `Creating course from "${pdfName}" and generating structure`,
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const response = await autoFixPdf(pdfId);
+      console.log("Auto-fix response:", response.data);
+      
+      Swal.fire({
+        title: 'Success!',
+        text: `Course "${response.data.courseTitle}" created and structure generated!`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      
+      await fetchPdfs();
+      
+    } catch (error) {
+      console.error("Auto-fix error:", error);
+      Swal.fire({
+        title: 'Fix Failed',
+        text: error.response?.data?.error || 'Failed to auto-fix PDF',
+        icon: 'error'
+      });
+    } finally {
+      setGenerating(prev => ({ ...prev, [pdfId]: false }));
+    }
+  };
+
   const handleDelete = async (id, name) => {
     const result = await Swal.fire({
       title: "Delete PDF?",
@@ -651,7 +697,6 @@ export default function PdfUploadTab() {
 
   return (
     <div style={styles.container}>
-      {/* Upload Card */}
       <div style={styles.card}>
         <div style={styles.cardTitle}>Upload PDF to Generate Course Structure</div>
         <div style={styles.cardSubtitle}>
@@ -710,14 +755,13 @@ export default function PdfUploadTab() {
         </div>
 
         <div style={styles.formRow}>
-          <label style={styles.label}>Select Course *</label>
+          <label style={styles.label}>Select Course (Optional)</label>
           <select
             style={styles.select}
             value={selectedCourseId}
             onChange={(e) => setSelectedCourseId(e.target.value)}
-            required
           >
-            <option value="">-- Select a Course --</option>
+            <option value="">-- Auto-create from filename --</option>
             {courses.map(course => (
               <option key={course.id} value={course.id}>
                 {course.title} - {course.instructor} ({course.level})
@@ -733,11 +777,6 @@ export default function PdfUploadTab() {
           </button>
           
           {loadingCourses && <div style={{ fontSize: 12, color: "#6b7280" }}>Loading courses...</div>}
-          {courses.length === 0 && !loadingCourses && (
-            <div style={{ fontSize: 12, color: "#ef4444" }}>
-              No courses found. Please create a course first.
-            </div>
-          )}
         </div>
 
         <div style={styles.formRow}>
@@ -771,8 +810,8 @@ export default function PdfUploadTab() {
         </div>
 
         <button
-          style={styles.uploadBtn(!file || !title.trim() || !selectedCourseId || uploading)}
-          disabled={!file || !title.trim() || !selectedCourseId || uploading}
+          style={styles.uploadBtn(!file || !title.trim() || uploading)}
+          disabled={!file || !title.trim() || uploading}
           onClick={handleUpload}
         >
           {uploading ? `Processing... ${Math.round(progress)}%` : "Upload & Generate Course Structure"}
@@ -797,7 +836,6 @@ export default function PdfUploadTab() {
         )}
       </div>
 
-      {/* Uploads History */}
       <div style={styles.card}>
         <div style={styles.cardTitle}>PDF Upload History</div>
         <div style={styles.cardSubtitle}>All previously uploaded PDFs and their processing status.</div>
@@ -844,6 +882,7 @@ export default function PdfUploadTab() {
               </span>
               <span>
                 <button style={styles.viewBtn} onClick={() => handleView(u)}>View</button>
+                
                 {u.courseId && (
                   <button 
                     style={styles.generateBtn} 
@@ -853,6 +892,17 @@ export default function PdfUploadTab() {
                     {generating[u.id] ? "⏳" : "🔧"} Gen
                   </button>
                 )}
+                
+                {!u.courseId && (
+                  <button 
+                    style={styles.fixBtn} 
+                    onClick={() => handleAutoFix(u.id, u.name)}
+                    disabled={generating[u.id]}
+                  >
+                    {generating[u.id] ? "⏳" : "🔧"} Fix
+                  </button>
+                )}
+                
                 <button style={styles.deleteBtn} onClick={() => handleDelete(u.id, u.name)}>Del</button>
               </span>
             </div>
@@ -860,7 +910,6 @@ export default function PdfUploadTab() {
         )}
       </div>
 
-      {/* Create Course Modal */}
       {showCreateCourse && (
         <div style={styles.modalOverlay} onClick={() => setShowCreateCourse(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
