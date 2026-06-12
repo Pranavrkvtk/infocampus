@@ -1,986 +1,811 @@
-import React, { useState, useRef, useEffect } from "react";
-import { 
-  uploadPdf, 
-  getAllPdfsEnriched,
-  getAllPdfs,
-  deletePdf,
-  getAllCourses,
-  getCurrentUserId,
-  formatFileSize,
-  formatDate,
-  generateCourseStructure,
-  autoFixPdf
-} from "../../api/pdfApi";
-import Swal from "sweetalert2";
-import axios from "axios";
+import React, { useState, useRef } from 'react';
+import Swal from 'sweetalert2';
 
-const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 24,
-  },
-  card: {
-    background: "#fff",
-    borderRadius: 16,
-    padding: 28,
-    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: 700,
-    color: "#1a1a2e",
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: "#8e8ea0",
-    marginBottom: 20,
-  },
-  dropZone: (dragging, hasFile) => ({
-    border: `2px dashed ${dragging ? "#5E5BFF" : hasFile ? "#22c55e" : "#d1d5db"}`,
-    borderRadius: 12,
-    padding: "36px 24px",
-    textAlign: "center",
-    background: dragging ? "#f0f0ff" : hasFile ? "#f0fdf4" : "#fafafa",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  }),
-  dropIcon: {
-    fontSize: 40,
-    marginBottom: 10,
-  },
-  dropText: {
-    fontSize: 15,
-    color: "#374151",
-    fontWeight: 500,
-    marginBottom: 4,
-  },
-  dropHint: {
-    fontSize: 12,
-    color: "#9ca3af",
-  },
-  hiddenInput: {
-    display: "none",
-  },
-  fileInfo: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 16,
-    padding: "12px 16px",
-    background: "#f8f8ff",
-    borderRadius: 10,
-    border: "1px solid #e5e7eb",
-  },
-  fileIcon: {
-    fontSize: 26,
-  },
-  fileName: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: "#1a1a2e",
-    flex: 1,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  fileSize: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  removeBtn: {
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    color: "#ef4444",
-    fontSize: 18,
-    lineHeight: 1,
-    padding: "0 4px",
-  },
-  formRow: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    marginTop: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#374151",
-  },
-  input: {
-    padding: "10px 14px",
-    borderRadius: 8,
-    border: "1px solid #e5e7eb",
-    fontSize: 14,
-    color: "#1a1a2e",
-    outline: "none",
-    transition: "border-color 0.2s",
-  },
-  textarea: {
-    padding: "10px 14px",
-    borderRadius: 8,
-    border: "1px solid #e5e7eb",
-    fontSize: 14,
-    color: "#1a1a2e",
-    outline: "none",
-    fontFamily: "inherit",
-    minHeight: "80px",
-    resize: "vertical",
-  },
-  select: {
-    padding: "10px 14px",
-    borderRadius: 8,
-    border: "1px solid #e5e7eb",
-    fontSize: 14,
-    color: "#1a1a2e",
-    background: "#fff",
-    outline: "none",
-    cursor: "pointer",
-  },
-  optionsRow: {
-    display: "flex",
-    gap: 12,
-    marginTop: 16,
-    flexWrap: "wrap",
-  },
-  optionChip: (active) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "8px 16px",
-    borderRadius: 999,
-    border: `1.5px solid ${active ? "#5E5BFF" : "#e5e7eb"}`,
-    background: active ? "#f0f0ff" : "#fff",
-    color: active ? "#5E5BFF" : "#6b7280",
-    fontSize: 13,
-    fontWeight: 500,
-    cursor: "pointer",
-    transition: "all 0.15s",
-  }),
-  uploadBtn: (disabled) => ({
-    marginTop: 24,
-    width: "100%",
-    padding: "13px 0",
-    borderRadius: 10,
-    border: "none",
-    background: disabled ? "#c7c7f5" : "linear-gradient(135deg, #5E5BFF, #7c6fff)",
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: 700,
-    cursor: disabled ? "not-allowed" : "pointer",
-    letterSpacing: 0.3,
-    transition: "opacity 0.2s",
-  }),
-  progressBar: {
-    marginTop: 16,
-    height: 6,
-    borderRadius: 999,
-    background: "#e5e7eb",
-    overflow: "hidden",
-  },
-  progressFill: (pct) => ({
-    height: "100%",
-    width: `${pct}%`,
-    background: "linear-gradient(90deg, #5E5BFF, #7c6fff)",
-    borderRadius: 999,
-    transition: "width 0.3s ease",
-  }),
-  progressText: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 6,
-    textAlign: "right",
-  },
-  successBanner: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "14px 18px",
-    background: "#f0fdf4",
-    border: "1px solid #bbf7d0",
-    borderRadius: 10,
-    marginTop: 16,
-    fontSize: 14,
-    color: "#16a34a",
-    fontWeight: 500,
-  },
-  infoBanner: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "14px 18px",
-    background: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    borderRadius: 10,
-    marginTop: 16,
-    fontSize: 13,
-    color: "#1e40af",
-  },
-  tableHeader: {
-    display: "grid",
-    gridTemplateColumns: "2fr 1fr 1fr 1fr 1.5fr 1fr 1fr",
-    gap: 12,
-    padding: "10px 16px",
-    background: "#f9fafb",
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: 700,
-    color: "#6b7280",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  tableRow: {
-    display: "grid",
-    gridTemplateColumns: "2fr 1fr 1fr 1fr 1.5fr 1fr 1fr",
-    gap: 12,
-    padding: "14px 16px",
-    borderBottom: "1px solid #f3f4f6",
-    alignItems: "center",
-    fontSize: 13,
-    color: "#374151",
-  },
-  badge: (type) => ({
-    display: "inline-block",
-    padding: "3px 10px",
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: 600,
-    background: type === "Course" ? "#ede9fe" : "#dbeafe",
-    color: type === "Course" ? "#7c3aed" : "#1d4ed8",
-  }),
-  statusDot: (status) => ({
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    fontSize: 12,
-    color: status === "Completed" ? "#16a34a" : status === "Processing" ? "#d97706" : "#6b7280",
-    fontWeight: 500,
-  }),
-  viewBtn: {
-    background: "#5E5BFF",
-    border: "none",
-    borderRadius: 6,
-    padding: "4px 10px",
-    fontSize: 11,
-    cursor: "pointer",
-    color: "#fff",
-    marginRight: 6,
-  },
-  generateBtn: {
-    background: "#8b5cf6",
-    border: "none",
-    borderRadius: 6,
-    padding: "4px 10px",
-    fontSize: 11,
-    cursor: "pointer",
-    color: "#fff",
-    marginRight: 6,
-  },
-  fixBtn: {
-    background: "#10b981",
-    border: "none",
-    borderRadius: 6,
-    padding: "4px 10px",
-    fontSize: 11,
-    cursor: "pointer",
-    color: "#fff",
-    marginRight: 6,
-  },
-  deleteBtn: {
-    background: "#ef4444",
-    border: "none",
-    borderRadius: 6,
-    padding: "4px 10px",
-    fontSize: 11,
-    cursor: "pointer",
-    color: "#fff",
-  },
-  createCourseBtn: {
-    marginTop: 8,
-    padding: "8px 16px",
-    background: "#10b981",
-    color: "white",
-    border: "none",
-    borderRadius: 8,
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 500,
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "40px 0",
-    color: "#9ca3af",
-    fontSize: 14,
-  },
-  loadingState: {
-    textAlign: "center",
-    padding: "40px 0",
-    color: "#5E5BFF",
-    fontSize: 14,
-  },
-  modalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: "rgba(0,0,0,0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-  },
-  modalContent: {
-    background: "white",
-    borderRadius: 16,
-    padding: 24,
-    width: "90%",
-    maxWidth: 500,
-    maxHeight: "80vh",
-    overflow: "auto",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 700,
-    marginBottom: 20,
-    color: "#1a1a2e",
-  },
-  modalButtons: {
-    display: "flex",
-    gap: 12,
-    justifyContent: "flex-end",
-    marginTop: 20,
-  },
-  cancelBtn: {
-    padding: "10px 20px",
-    background: "#e5e7eb",
-    border: "none",
-    borderRadius: 8,
-    cursor: "pointer",
-    fontSize: 14,
-  },
-  saveBtn: {
-    padding: "10px 20px",
-    background: "#5E5BFF",
-    color: "white",
-    border: "none",
-    borderRadius: 8,
-    cursor: "pointer",
-    fontSize: 14,
-  },
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
+// ─── tiny helpers ────────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+const EMPTY_SUB = () => ({
+  id: uid(),
+  title: '',
+  notes: '',
+  videoUrl: '',
+  interviewQuestions: [{ id: uid(), q: '', a: '' }],
+  examQuestions: [{ id: uid(), text: '', options: ['', '', '', ''], answer: 0 }],
+  labSteps: [{ id: uid(), text: '' }],
+});
+
+const EMPTY_TOPIC = () => ({
+  id: uid(),
+  title: '',
+  subtopics: [EMPTY_SUB()],
+});
+
+const EMPTY_COURSE = () => ({
+  title: '',
+  code: '',
+  level: 'Beginner',
+  topics: [EMPTY_TOPIC()],
+});
+
+// ─── palette ─────────────────────────────────────────────────────────────────
+const c = {
+  accent: '#5E5BFF',
+  accentBg: '#f0f0ff',
+  accentText: '#3a38cc',
+  success: '#16a34a',
+  successBg: '#f0fdf4',
+  danger: '#dc2626',
+  dangerBg: '#fef2f2',
+  warn: '#d97706',
+  warnBg: '#fffbeb',
+  border: '#e5e7eb',
+  borderFocus: '#5E5BFF',
+  text: '#111827',
+  muted: '#6b7280',
+  surface: '#f9fafb',
+  white: '#ffffff',
 };
 
-export default function PdfUploadTab() {
-  const [dragging, setDragging] = useState(false);
-  const [file, setFile] = useState(null);
-  const [title, setTitle] = useState("");
-  const [selectedCourseId, setSelectedCourseId] = useState("");
-  const [courses, setCourses] = useState([]);
-  const [loadingCourses, setLoadingCourses] = useState(false);
-  const [contentType, setContentType] = useState("course");
-  const [extractImages, setExtractImages] = useState(true);
-  const [extractText, setExtractText] = useState(true);
-  const [progress, setProgress] = useState(0);
+// ─── base styles ─────────────────────────────────────────────────────────────
+const S = {
+  page: {
+    fontFamily: "'Inter', system-ui, sans-serif",
+    color: c.text,
+    background: c.white,
+    minHeight: '100vh',
+    padding: '0',
+  },
+  topbar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '14px 28px',
+    borderBottom: `1px solid ${c.border}`,
+    background: c.white,
+    position: 'sticky',
+    top: 0,
+    zIndex: 50,
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  topbarTitle: { fontSize: 17, fontWeight: 700, color: c.text, display: 'flex', alignItems: 'center', gap: 8 },
+  layout: { display: 'flex', minHeight: 'calc(100vh - 57px)' },
+  left: {
+    width: 380,
+    borderRight: `1px solid ${c.border}`,
+    background: c.surface,
+    overflowY: 'auto',
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  right: { flex: 1, overflowY: 'auto', background: c.white },
+  panelHead: {
+    padding: '14px 18px 10px',
+    borderBottom: `1px solid ${c.border}`,
+    background: c.white,
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+  },
+  panelHeadTitle: { fontSize: 13, fontWeight: 600, color: c.text },
+  panelHeadSub: { fontSize: 11, color: c.muted, marginTop: 2 },
+  input: {
+    width: '100%',
+    padding: '8px 11px',
+    fontSize: 13,
+    border: `1px solid ${c.border}`,
+    borderRadius: 8,
+    outline: 'none',
+    background: c.white,
+    color: c.text,
+    boxSizing: 'border-box',
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: 13,
+    border: `1px solid ${c.border}`,
+    borderRadius: 8,
+    outline: 'none',
+    resize: 'vertical',
+    background: c.white,
+    color: c.text,
+    fontFamily: 'inherit',
+    lineHeight: 1.6,
+    boxSizing: 'border-box',
+  },
+  label: { fontSize: 12, fontWeight: 600, color: c.muted, display: 'block', marginBottom: 5, letterSpacing: '0.03em' },
+  btnPrimary: {
+    padding: '9px 20px', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none',
+    background: c.accent, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
+  },
+  btnSecondary: {
+    padding: '7px 14px', fontSize: 12, fontWeight: 500, borderRadius: 7, border: `1px solid ${c.border}`,
+    background: c.white, color: c.muted, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
+  },
+  btnDanger: {
+    padding: '5px 10px', fontSize: 12, fontWeight: 500, borderRadius: 7, border: 'none',
+    background: c.dangerBg, color: c.danger, cursor: 'pointer',
+  },
+  btnAdd: {
+    padding: '6px 12px', fontSize: 12, fontWeight: 500, borderRadius: 7, border: `1px dashed ${c.accent}`,
+    background: c.accentBg, color: c.accentText, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+  },
+  btnSuccess: {
+    padding: '9px 20px', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none',
+    background: c.success, color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
+  },
+  dropZone: (dragging, hasFile) => ({
+    border: `2px dashed ${dragging ? c.accent : hasFile ? c.success : c.border}`,
+    borderRadius: 12,
+    padding: '16px 12px',
+    textAlign: 'center',
+    background: dragging ? c.accentBg : hasFile ? c.successBg : c.surface,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    marginBottom: 12,
+  }),
+  fileInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+    padding: '8px 12px',
+    background: c.surface,
+    borderRadius: 8,
+    border: `1px solid ${c.border}`,
+  },
+  progressBar: {
+    marginTop: 10,
+    height: 4,
+    borderRadius: 999,
+    background: c.border,
+    overflow: 'hidden',
+  },
+  progressFill: (pct) => ({
+    height: '100%',
+    width: `${pct}%`,
+    background: `linear-gradient(90deg, ${c.accent}, #7c6fff)`,
+    borderRadius: 999,
+    transition: 'width 0.3s ease',
+  }),
+};
+
+const Label = ({ children }) => <label style={S.label}>{children}</label>;
+
+const Input = ({ value, onChange, placeholder, style }) => (
+  <input
+    value={value || ''}
+    onChange={e => onChange(e.target.value)}
+    placeholder={placeholder}
+    style={{ ...S.input, ...style }}
+    onFocus={e => (e.target.style.borderColor = c.borderFocus)}
+    onBlur={e => (e.target.style.borderColor = c.border)}
+  />
+);
+
+const Textarea = ({ value, onChange, placeholder, rows = 4 }) => (
+  <textarea
+    value={value || ''}
+    onChange={e => onChange(e.target.value)}
+    placeholder={placeholder}
+    rows={rows}
+    style={S.textarea}
+    onFocus={e => (e.target.style.borderColor = c.borderFocus)}
+    onBlur={e => (e.target.style.borderColor = c.border)}
+  />
+);
+
+// ─── Tab bar ─────────────────────────────────────────────────────────────────
+const TABS = [
+  { id: 'notes', icon: '📝', label: 'Notes' },
+  { id: 'video', icon: '🎬', label: 'Video' },
+  { id: 'interview', icon: '🎤', label: 'Interview Qs' },
+  { id: 'exam', icon: '📋', label: 'Exam Qs' },
+  { id: 'lab', icon: '🧪', label: 'Lab' },
+];
+
+function TabBar({ active, setActive }) {
+  return (
+    <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${c.border}`, padding: '0 24px', background: c.white }}>
+      {TABS.map(t => (
+        <button
+          key={t.id}
+          onClick={() => setActive(t.id)}
+          style={{
+            padding: '11px 16px',
+            fontSize: 13,
+            fontWeight: active === t.id ? 600 : 400,
+            color: active === t.id ? c.accent : c.muted,
+            background: 'none',
+            border: 'none',
+            borderBottom: active === t.id ? `2px solid ${c.accent}` : '2px solid transparent',
+            cursor: 'pointer',
+            marginBottom: -1,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          {t.icon} {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Notes panel ─────────────────────────────────────────────────────────────
+function NotesPanel({ sub, update }) {
+  return (
+    <div style={{ padding: '22px 28px' }}>
+      <Label>Lesson notes</Label>
+      <Textarea
+        value={sub.notes}
+        onChange={v => update('notes', v)}
+        placeholder="Write detailed notes for this subtopic — key concepts, definitions, examples…"
+        rows={10}
+      />
+    </div>
+  );
+}
+
+// ─── Video panel ─────────────────────────────────────────────────────────────
+function VideoPanel({ sub, update }) {
+  return (
+    <div style={{ padding: '22px 28px' }}>
+      <Label>Video URL</Label>
+      <Input value={sub.videoUrl} onChange={v => update('videoUrl', v)} placeholder="https://youtube.com/watch?v=..." />
+      {sub.videoUrl && sub.videoUrl.includes('youtube') && (
+        <div style={{ marginTop: 16, borderRadius: 10, overflow: 'hidden', border: `1px solid ${c.border}` }}>
+          <iframe
+            width="100%"
+            height="300"
+            src={sub.videoUrl.replace('watch?v=', 'embed/')}
+            title="Lesson video"
+            frameBorder="0"
+            allowFullScreen
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Interview Questions panel ────────────────────────────────────────────────
+function InterviewPanel({ sub, update }) {
+  const qs = sub.interviewQuestions || [{ id: uid(), q: '', a: '' }];
+  const setQs = qs => update('interviewQuestions', qs);
+
+  const addQ = () => setQs([...qs, { id: uid(), q: '', a: '' }]);
+  const removeQ = id => setQs(qs.filter(q => q.id !== id));
+  const updateQ = (id, field, val) => setQs(qs.map(q => q.id === id ? { ...q, [field]: val } : q));
+
+  return (
+    <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {qs.map((q, i) => (
+        <div key={q.id} style={{ background: c.surface, borderRadius: 10, border: `1px solid ${c.border}`, padding: '14px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: c.muted }}>Question {i + 1}</span>
+            {qs.length > 1 && <button style={S.btnDanger} onClick={() => removeQ(q.id)}>✕ Remove</button>}
+          </div>
+          <Label>Question</Label>
+          <Input value={q.q} onChange={v => updateQ(q.id, 'q', v)} placeholder="e.g. What is the purpose of the OSI model?" />
+          <div style={{ marginTop: 10 }}>
+            <Label>Model answer</Label>
+            <Textarea value={q.a} onChange={v => updateQ(q.id, 'a', v)} placeholder="Write the expected answer…" rows={3} />
+          </div>
+        </div>
+      ))}
+      <button style={S.btnAdd} onClick={addQ}>＋ Add question</button>
+    </div>
+  );
+}
+
+// ─── Exam Questions panel ─────────────────────────────────────────────────────
+function ExamPanel({ sub, update }) {
+  const qs = sub.examQuestions || [{ id: uid(), text: '', options: ['', '', '', ''], answer: 0 }];
+  const setQs = qs => update('examQuestions', qs);
+
+  const addQ = () => setQs([...qs, { id: uid(), text: '', options: ['', '', '', ''], answer: 0 }]);
+  const removeQ = id => setQs(qs.filter(q => q.id !== id));
+  const updateQ = (id, field, val) => setQs(qs.map(q => q.id === id ? { ...q, [field]: val } : q));
+  const updateOption = (qid, idx, val) =>
+    setQs(qs.map(q => q.id === qid ? { ...q, options: q.options.map((o, i) => i === idx ? val : o) } : q));
+
+  return (
+    <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {qs.map((q, i) => (
+        <div key={q.id} style={{ background: c.surface, borderRadius: 10, border: `1px solid ${c.border}`, padding: '14px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: c.muted }}>MCQ {i + 1}</span>
+            {qs.length > 1 && <button style={S.btnDanger} onClick={() => removeQ(q.id)}>✕ Remove</button>}
+          </div>
+          <Label>Question text</Label>
+          <Input value={q.text} onChange={v => updateQ(q.id, 'text', v)} placeholder="Which layer of the OSI model is responsible for routing?" />
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <Label>Options (click radio to mark correct answer)</Label>
+            {q.options.map((opt, idx) => (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="radio"
+                  name={`correct-${q.id}`}
+                  checked={q.answer === idx}
+                  onChange={() => updateQ(q.id, 'answer', idx)}
+                  style={{ accentColor: c.success, width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
+                />
+                <Input
+                  value={opt}
+                  onChange={v => updateOption(q.id, idx, v)}
+                  placeholder={`Option ${String.fromCharCode(65 + idx)}`}
+                  style={{ border: q.answer === idx ? `1px solid ${c.success}` : `1px solid ${c.border}` }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button style={S.btnAdd} onClick={addQ}>＋ Add MCQ</button>
+    </div>
+  );
+}
+
+// ─── Lab panel ───────────────────────────────────────────────────────────────
+function LabPanel({ sub, update }) {
+  const steps = sub.labSteps || [{ id: uid(), text: '' }];
+  const setSteps = s => update('labSteps', s);
+
+  const addStep = () => setSteps([...steps, { id: uid(), text: '' }]);
+  const removeStep = id => setSteps(steps.filter(s => s.id !== id));
+  const updateStep = (id, val) => setSteps(steps.map(s => s.id === id ? { ...s, text: val } : s));
+
+  return (
+    <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <Label>Lab steps</Label>
+      {steps.map((step, i) => (
+        <div key={step.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%', background: c.accentBg,
+            color: c.accentText, fontSize: 12, fontWeight: 700, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2,
+          }}>{i + 1}</div>
+          <Textarea value={step.text} onChange={v => updateStep(step.id, v)} placeholder={`Step ${i + 1} instruction…`} rows={2} />
+          {steps.length > 1 && (
+            <button style={{ ...S.btnDanger, marginTop: 4, flexShrink: 0 }} onClick={() => removeStep(step.id)}>✕</button>
+          )}
+        </div>
+      ))}
+      <button style={S.btnAdd} onClick={addStep}>＋ Add step</button>
+    </div>
+  );
+}
+
+// ─── Subtopic editor (right panel) ───────────────────────────────────────────
+function SubtopicEditor({ topicTitle, sub, onUpdateSub }) {
+  const [activeTab, setActiveTab] = useState('notes');
+
+  const update = (field, val) => onUpdateSub({ ...sub, [field]: val });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ padding: '18px 28px 14px', borderBottom: `1px solid ${c.border}` }}>
+        <div style={{ fontSize: 12, color: c.muted, marginBottom: 4 }}>{topicTitle}</div>
+        <Input
+          value={sub.title}
+          onChange={v => update('title', v)}
+          placeholder="Subtopic title, e.g. OSI model"
+          style={{ fontSize: 17, fontWeight: 600, border: 'none', padding: '4px 0', borderBottom: `2px solid ${c.border}` }}
+        />
+      </div>
+      <TabBar active={activeTab} setActive={setActiveTab} />
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {activeTab === 'notes' && <NotesPanel sub={sub} update={update} />}
+        {activeTab === 'video' && <VideoPanel sub={sub} update={update} />}
+        {activeTab === 'interview' && <InterviewPanel sub={sub} update={update} />}
+        {activeTab === 'exam' && <ExamPanel sub={sub} update={update} />}
+        {activeTab === 'lab' && <LabPanel sub={sub} update={update} />}
+      </div>
+    </div>
+  );
+}
+
+// ─── Left panel: course structure tree ───────────────────────────────────────
+function StructureTree({ course, setCourse, activeSubId, setActiveSubId, onPdfUpload }) {
   const [uploading, setUploading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [uploads, setUploads] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState({});
-  const [showCreateCourse, setShowCreateCourse] = useState(false);
-  const [newCourse, setNewCourse] = useState({ 
-    title: "", 
-    description: "", 
-    instructor: "", 
-    price: 0,
-    level: "Beginner",
-    duration: ""
-  });
+  const [progress, setProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [dragging, setDragging] = useState(false);
   const inputRef = useRef();
 
-  useEffect(() => {
-    fetchPdfs();
-    fetchCourses();
-  }, []);
+  // Safe access with fallbacks
+  const topics = course?.topics || [];
+  const totalTopics = topics.length;
+  const totalSubtopics = topics.reduce((a, t) => a + (t.subtopics?.length || 0), 0);
 
-  const fetchPdfs = async () => {
-    setLoading(true);
-    try {
-      const response = await getAllPdfsEnriched();
-      console.log("Enriched PDFs response:", response.data);
-      
-      const pdfs = response.data.map(pdf => ({
-        id: pdf.id,
-        name: pdf.fileName,
-        type: "Course",
-        pages: pdf.pageCount || 0,
-        images: pdf.imageCount || 0,
-        status: pdf.isProcessed ? "Completed" : "Processing",
-        date: pdf.uploadedAt,
-        fileSize: pdf.fileSize,
-        courseId: pdf.courseId || pdf.course?.id || null,
-        courseTitle: pdf.courseTitle || pdf.course?.title || "Not assigned",
-      }));
-      
-      console.log("Processed PDFs with courses:", pdfs);
-      setUploads(pdfs);
-    } catch (error) {
-      console.error("Error fetching enriched PDFs:", error);
-      try {
-        const fallbackResponse = await getAllPdfs();
-        const pdfs = fallbackResponse.data.map(pdf => ({
-          id: pdf.id,
-          name: pdf.fileName,
-          type: "Course",
-          pages: pdf.pageCount || 0,
-          images: pdf.imageCount || 0,
-          status: pdf.isProcessed ? "Completed" : "Processing",
-          date: pdf.uploadedAt,
-          fileSize: pdf.fileSize,
-          courseId: pdf.course?.id || null,
-          courseTitle: pdf.course?.title || "Not assigned",
-        }));
-        setUploads(pdfs);
-      } catch (fallbackError) {
-        console.error("Fallback also failed:", fallbackError);
-        Swal.fire("Error", "Failed to load PDFs", "error");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateCourseField = (field, val) => setCourse(c => ({ ...c, [field]: val }));
 
-  const fetchCourses = async () => {
-    setLoadingCourses(true);
-    try {
-      const response = await getAllCourses();
-      console.log("Courses response:", response.data);
-      setCourses(response.data);
-    } catch (error) {
-      console.error("Error fetching courses:", error);
-    } finally {
-      setLoadingCourses(false);
-    }
-  };
+  const addTopic = () => setCourse(c => ({ ...c, topics: [...(c.topics || []), EMPTY_TOPIC()] }));
+  const removeTopic = tid => setCourse(c => ({ ...c, topics: (c.topics || []).filter(t => t.id !== tid) }));
+  const updateTopicTitle = (tid, val) => setCourse(c => ({ ...c, topics: (c.topics || []).map(t => t.id === tid ? { ...t, title: val } : t) }));
+  const addSubtopic = tid => setCourse(c => ({ ...c, topics: (c.topics || []).map(t => t.id === tid ? { ...t, subtopics: [...(t.subtopics || []), EMPTY_SUB()] } : t) }));
+  const removeSubtopic = (tid, sid) => setCourse(c => ({ ...c, topics: (c.topics || []).map(t => t.id === tid ? { ...t, subtopics: (t.subtopics || []).filter(s => s.id !== sid) } : t) }));
 
-  const handleCreateCourse = async () => {
-    if (!newCourse.title.trim()) {
-      Swal.fire("Error", "Course title is required", "error");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:8082/api/admin/courses', newCourse, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      Swal.fire("Success", "Course created successfully!", "success");
-      setShowCreateCourse(false);
-      setNewCourse({ title: "", description: "", instructor: "", price: 0, level: "Beginner", duration: "" });
-      await fetchCourses();
-      
-      if (response.data && response.data.id) {
-        setSelectedCourseId(response.data.id);
-      }
-    } catch (error) {
-      console.error("Error creating course:", error);
-      Swal.fire("Error", error.response?.data?.error || "Failed to create course", "error");
-    }
-  };
-
-  const handleFile = (f) => {
-    if (f && f.type === "application/pdf") {
-      setFile(f);
-      setSuccess(false);
-      setProgress(0);
-      if (!title) setTitle(f.name.replace(".pdf", ""));
+  const handleFileSelect = (file) => {
+    if (file && file.type === 'application/pdf') {
+      setSelectedFile(file);
     } else {
-      Swal.fire("Invalid File", "Please select a valid PDF file.", "warning");
+      Swal.fire('Invalid File', 'Please select a valid PDF file.', 'warning');
     }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragging(false);
-    const f = e.dataTransfer.files[0];
-    handleFile(f);
   };
 
   const handleUpload = async () => {
-    if (!file || !title.trim()) {
-      Swal.fire("Missing Info", "Please select a file and enter a title", "warning");
+    if (!selectedFile) {
+      Swal.fire('No File', 'Please select a PDF file first', 'warning');
       return;
     }
 
-    // ✅ Course selection is now OPTIONAL - backend will auto-create if needed
-    // No validation for selectedCourseId required
-
     setUploading(true);
     setProgress(0);
-
-    const progressInterval = setInterval(() => {
-      setProgress(prev => Math.min(prev + 10, 90));
-    }, 500);
+    const interval = setInterval(() => setProgress(prev => Math.min(prev + 10, 90)), 500);
 
     try {
-      const userId = getCurrentUserId();
-      
-      // Send null if no course selected - backend will auto-create
-      const courseIdToSend = selectedCourseId || null;
-      
-      await uploadPdf(
-        file, 
-        title, 
-        contentType, 
-        extractImages, 
-        extractText, 
-        courseIdToSend,
-        userId
-      );
-      
-      clearInterval(progressInterval);
-      setProgress(100);
-      setSuccess(true);
-      
-      Swal.fire({
-        title: "Success!",
-        html: `✅ PDF uploaded successfully!<br/><br/>📝 Text extracted<br/>🖼️ Images extracted<br/>📚 Course auto-created from filename!`,
-        icon: "success",
-        timer: 3000,
-        showConfirmButton: false
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('courseId', '');
+
+      const response = await fetch(`${API_BASE}/admin/pdfs/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
       });
-      
-      setFile(null);
-      setTitle("");
-      setSelectedCourseId("");
-      setProgress(0);
-      await fetchPdfs();
-      
-      setTimeout(() => setSuccess(false), 3000);
-      
+
+      const data = await response.json();
+      clearInterval(interval);
+      setProgress(100);
+
+      if (response.ok) {
+        Swal.fire({
+          title: 'PDF Uploaded!',
+          html: `📄 ${selectedFile.name}<br/>🖼️ ${data.imageCount || 0} images extracted`,
+          icon: 'success',
+          timer: 2000,
+        });
+        setSelectedFile(null);
+        
+        // Generate structure from PDF
+        const structureResponse = await fetch(`${API_BASE}/admin/pdfs/${data.pdfId}/generate-structure`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const structureData = await structureResponse.json();
+        
+        if (structureResponse.ok) {
+          Swal.fire({
+            title: 'Content Extracted!',
+            html: `✅ ${structureData.topicsCount || 0} topics created<br/>📝 ${structureData.subtopicsCount || 0} subtopics`,
+            icon: 'success',
+            timer: 2000,
+          });
+          onPdfUpload?.(structureData);
+        }
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
     } catch (error) {
-      clearInterval(progressInterval);
-      console.error("Upload error:", error);
-      Swal.fire(
-        "Upload Failed", 
-        error.response?.data?.error || error.message || "Failed to upload PDF", 
-        "error"
-      );
+      clearInterval(interval);
+      Swal.fire('Upload Failed', error.message, 'error');
       setProgress(0);
     } finally {
       setUploading(false);
+      setTimeout(() => setProgress(0), 1000);
     }
-  };
-
-  const handleGenerateStructure = async (pdfId, pdfName) => {
-    setGenerating(prev => ({ ...prev, [pdfId]: true }));
-    
-    Swal.fire({
-      title: 'Generating Structure...',
-      text: `Parsing "${pdfName}" to create topics and subtopics`,
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    try {
-      const response = await generateCourseStructure(pdfId);
-      console.log("Generation response:", response.data);
-      
-      Swal.fire({
-        title: 'Success!',
-        text: `Generated ${response.data.topicsCount} topics and ${response.data.subtopicsCount} subtopics`,
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false
-      });
-      
-      await fetchPdfs();
-      
-    } catch (error) {
-      console.error("Generation error:", error);
-      Swal.fire({
-        title: 'Generation Failed',
-        text: error.response?.data?.error || 'Failed to generate structure. Make sure PDF has extractable text.',
-        icon: 'error'
-      });
-    } finally {
-      setGenerating(prev => ({ ...prev, [pdfId]: false }));
-    }
-  };
-
-  const handleAutoFix = async (pdfId, pdfName) => {
-    setGenerating(prev => ({ ...prev, [pdfId]: true }));
-    
-    Swal.fire({
-      title: 'Auto-Fixing PDF...',
-      text: `Creating course from "${pdfName}" and generating structure`,
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    try {
-      const response = await autoFixPdf(pdfId);
-      console.log("Auto-fix response:", response.data);
-      
-      Swal.fire({
-        title: 'Success!',
-        text: `Course "${response.data.courseTitle}" created and structure generated!`,
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false
-      });
-      
-      await fetchPdfs();
-      
-    } catch (error) {
-      console.error("Auto-fix error:", error);
-      Swal.fire({
-        title: 'Fix Failed',
-        text: error.response?.data?.error || 'Failed to auto-fix PDF',
-        icon: 'error'
-      });
-    } finally {
-      setGenerating(prev => ({ ...prev, [pdfId]: false }));
-    }
-  };
-
-  const handleDelete = async (id, name) => {
-    const result = await Swal.fire({
-      title: "Delete PDF?",
-      text: `Are you sure you want to delete "${name}"?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete",
-      confirmButtonColor: "#ef4444",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await deletePdf(id);
-        Swal.fire("Deleted!", "PDF has been deleted.", "success");
-        await fetchPdfs();
-      } catch (error) {
-        console.error("Delete error:", error);
-        Swal.fire("Error", "Failed to delete PDF", "error");
-      }
-    }
-  };
-
-  const handleView = (pdf) => {
-    Swal.fire({
-      title: pdf.name,
-      html: `
-        <div style="text-align: left;">
-          <p><strong>Course:</strong> ${pdf.courseTitle}</p>
-          <p><strong>Course ID:</strong> ${pdf.courseId || 'None'}</p>
-          <p><strong>Pages:</strong> ${pdf.pages}</p>
-          <p><strong>Images:</strong> ${pdf.images}</p>
-          <p><strong>Status:</strong> ${pdf.status}</p>
-          <p><strong>Uploaded:</strong> ${formatDate(pdf.date)}</p>
-          <p><strong>File Size:</strong> ${formatFileSize(pdf.fileSize)}</p>
-        </div>
-      `,
-      icon: "info",
-      confirmButtonText: "Close",
-      confirmButtonColor: "#5E5BFF",
-    });
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.cardTitle}>Upload PDF to Generate Course Structure</div>
-        <div style={styles.cardSubtitle}>
-          Upload a PDF with UPPERCASE headings to automatically create topics and subtopics.
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      {/* Course meta */}
+      <div style={S.panelHead}>
+        <div style={S.panelHeadTitle}>Course details</div>
+      </div>
+      <div style={{ padding: '14px 16px', borderBottom: `1px solid ${c.border}` }}>
+        <Label>Course title</Label>
+        <Input value={course?.title || ''} onChange={v => updateCourseField('title', v)} placeholder="e.g. CCNA 200-301" />
+        <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <Label>Course code</Label>
+            <Input value={course?.code || ''} onChange={v => updateCourseField('code', v)} placeholder="200-301" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Label>Level</Label>
+            <select value={course?.level || 'Beginner'} onChange={e => updateCourseField('level', e.target.value)} style={{ ...S.input, cursor: 'pointer' }}>
+              {['Beginner', 'Intermediate', 'Advanced'].map(l => <option key={l}>{l}</option>)}
+            </select>
+          </div>
         </div>
+      </div>
 
-        <div style={styles.infoBanner}>
-          <span>💡</span>
-          <span>PDFs with UPPERCASE lines become TOPICS. Regular lines become SUBTOPICS automatically!</span>
-        </div>
-
+      {/* PDF Upload Section */}
+      <div style={{ padding: '14px 16px', borderBottom: `1px solid ${c.border}`, background: c.accentBg }}>
+        <Label>📄 Upload PDF (Auto-populates content)</Label>
         <div
-          style={styles.dropZone(dragging, !!file)}
+          style={S.dropZone(dragging, !!selectedFile)}
           onClick={() => inputRef.current.click()}
           onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
+          onDrop={(e) => { e.preventDefault(); setDragging(false); handleFileSelect(e.dataTransfer.files[0]); }}
         >
-          <div style={styles.dropIcon}>{file ? "✅" : "📄"}</div>
-          <div style={styles.dropText}>
-            {file ? file.name : "Drag & drop a PDF here"}
-          </div>
-          <div style={styles.dropHint}>
-            {file ? "Click to change file" : "or click to browse — PDF files only (Max 50MB)"}
-          </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".pdf"
-            style={styles.hiddenInput}
-            onChange={(e) => handleFile(e.target.files[0])}
-          />
+          <div style={{ fontSize: 28 }}>{selectedFile ? '✅' : '📄'}</div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{selectedFile ? selectedFile.name : 'Drag & drop PDF here'}</div>
+          <div style={{ fontSize: 11, color: c.muted }}>or click to browse</div>
+          <input ref={inputRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={(e) => handleFileSelect(e.target.files[0])} />
         </div>
-
-        {file && (
-          <div style={styles.fileInfo}>
-            <span style={styles.fileIcon}>📋</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={styles.fileName}>{file.name}</div>
-              <div style={styles.fileSize}>{formatFileSize(file.size)}</div>
-            </div>
-            <button style={styles.removeBtn} onClick={() => setFile(null)}>✕</button>
+        {selectedFile && (
+          <div style={S.fileInfo}>
+            <span>📄</span>
+            <div style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedFile.name}</div>
+            <button style={S.btnDanger} onClick={() => setSelectedFile(null)}>✕</button>
           </div>
         )}
-
-        <div style={styles.formRow}>
-          <label style={styles.label}>Content Title</label>
-          <input
-            style={styles.input}
-            placeholder="e.g. Java Basics – Module 1"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onFocus={(e) => (e.target.style.borderColor = "#5E5BFF")}
-            onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
-          />
-        </div>
-
-        <div style={styles.formRow}>
-          <label style={styles.label}>Select Course (Optional)</label>
-          <select
-            style={styles.select}
-            value={selectedCourseId}
-            onChange={(e) => setSelectedCourseId(e.target.value)}
-          >
-            <option value="">-- Auto-create from filename --</option>
-            {courses.map(course => (
-              <option key={course.id} value={course.id}>
-                {course.title} - {course.instructor} ({course.level})
-              </option>
-            ))}
-          </select>
-          
-          <button
-            style={styles.createCourseBtn}
-            onClick={() => setShowCreateCourse(true)}
-          >
-            + Create New Course
-          </button>
-          
-          {loadingCourses && <div style={{ fontSize: 12, color: "#6b7280" }}>Loading courses...</div>}
-        </div>
-
-        <div style={styles.formRow}>
-          <label style={styles.label}>Convert PDF to</label>
-          <select
-            style={styles.select}
-            value={contentType}
-            onChange={(e) => setContentType(e.target.value)}
-          >
-            <option value="course">Course / Lesson</option>
-            <option value="post">Blog Post</option>
-          </select>
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <label style={styles.label}>Extract Options</label>
-          <div style={styles.optionsRow}>
-            <button
-              style={styles.optionChip(extractText)}
-              onClick={() => setExtractText(!extractText)}
-            >
-              {extractText ? "✓" : "○"} Extract Text
-            </button>
-            <button
-              style={styles.optionChip(extractImages)}
-              onClick={() => setExtractImages(!extractImages)}
-            >
-              {extractImages ? "✓" : "○"} Extract Images
-            </button>
-          </div>
-        </div>
-
-        <button
-          style={styles.uploadBtn(!file || !title.trim() || uploading)}
-          disabled={!file || !title.trim() || uploading}
-          onClick={handleUpload}
-        >
-          {uploading ? `Processing... ${Math.round(progress)}%` : "Upload & Generate Course Structure"}
-        </button>
-
-        {(uploading || progress > 0) && !success && (
+        {uploading && (
           <>
-            <div style={styles.progressBar}>
-              <div style={styles.progressFill(progress)} />
-            </div>
-            <div style={styles.progressText}>
-              {progress < 40 ? "Uploading PDF…" : progress < 75 ? "Extracting content & generating structure…" : "Saving to database…"} {Math.round(progress)}%
-            </div>
+            <div style={S.progressBar}><div style={S.progressFill(progress)} /></div>
+            <div style={{ fontSize: 11, textAlign: 'right', marginTop: 4, color: c.muted }}>{progress}%</div>
           </>
         )}
-
-        {success && (
-          <div style={styles.successBanner}>
-            <span>✅</span> 
-            PDF processed successfully! Topics and subtopics have been generated automatically from your PDF content.
-          </div>
-        )}
+        <button
+          style={{ ...S.btnPrimary, width: '100%', marginTop: 12, justifyContent: 'center' }}
+          onClick={handleUpload}
+          disabled={!selectedFile || uploading}
+        >
+          {uploading ? '⏳ Uploading...' : '📤 Upload PDF & Extract Content'}
+        </button>
       </div>
 
-      <div style={styles.card}>
-        <div style={styles.cardTitle}>PDF Upload History</div>
-        <div style={styles.cardSubtitle}>All previously uploaded PDFs and their processing status.</div>
-
-        <div style={styles.tableHeader}>
-          <span>File Name</span>
-          <span>Type</span>
-          <span>Course</span>
-          <span>Pages</span>
-          <span>Images</span>
-          <span>Status</span>
-          <span>Actions</span>
+      {/* Topics */}
+      <div style={S.panelHead}>
+        <div style={S.panelHeadTitle}>Topics & subtopics</div>
+        <div style={S.panelHeadSub}>
+          {totalTopics} topics · {totalSubtopics} subtopics
         </div>
-
-        {loading ? (
-          <div style={styles.loadingState}>
-            <span>⏳</span> Loading PDFs...
-          </div>
-        ) : uploads.length === 0 ? (
-          <div style={styles.emptyState}>
-            <span>📭</span>
-            <p>No PDFs uploaded yet.</p>
-            <p style={{ fontSize: 12, marginTop: 8 }}>Upload your first PDF to automatically generate course structure.</p>
-          </div>
-        ) : (
-          uploads.map((u) => (
-            <div key={u.id} style={styles.tableRow}>
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span>📄</span>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {u.name}
-                </span>
-              </span>
-              <span><span style={styles.badge(u.type)}>{u.type}</span></span>
-              <span style={{ fontSize: 12, color: u.courseId ? "#16a34a" : "#9ca3af" }}>
-                {u.courseTitle}
-              </span>
-              <span>{u.pages}</span>
-              <span>{u.images}</span>
-              <span>
-                <span style={styles.statusDot(u.status)}>
-                  {u.status === "Completed" ? "✓" : u.status === "Processing" ? "⏳" : "–"} {u.status}
-                </span>
-              </span>
-              <span>
-                <button style={styles.viewBtn} onClick={() => handleView(u)}>View</button>
-                
-                {u.courseId && (
-                  <button 
-                    style={styles.generateBtn} 
-                    onClick={() => handleGenerateStructure(u.id, u.name)}
-                    disabled={generating[u.id]}
-                  >
-                    {generating[u.id] ? "⏳" : "🔧"} Gen
-                  </button>
-                )}
-                
-                {!u.courseId && (
-                  <button 
-                    style={styles.fixBtn} 
-                    onClick={() => handleAutoFix(u.id, u.name)}
-                    disabled={generating[u.id]}
-                  >
-                    {generating[u.id] ? "⏳" : "🔧"} Fix
-                  </button>
-                )}
-                
-                <button style={styles.deleteBtn} onClick={() => handleDelete(u.id, u.name)}>Del</button>
-              </span>
-            </div>
-          ))
-        )}
       </div>
 
-      {showCreateCourse && (
-        <div style={styles.modalOverlay} onClick={() => setShowCreateCourse(false)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3 style={styles.modalTitle}>Create New Course</h3>
-            
-            <input
-              type="text"
-              placeholder="Course Title *"
-              value={newCourse.title}
-              onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
-              style={styles.input}
-            />
-            
-            <textarea
-              placeholder="Description"
-              value={newCourse.description}
-              onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
-              style={{ ...styles.textarea, marginTop: 12 }}
-            />
-            
-            <input
-              type="text"
-              placeholder="Instructor"
-              value={newCourse.instructor}
-              onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
-              style={{ ...styles.input, marginTop: 12 }}
-            />
-            
-            <input
-              type="text"
-              placeholder="Duration (e.g., 10 hours)"
-              value={newCourse.duration}
-              onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
-              style={{ ...styles.input, marginTop: 12 }}
-            />
-            
-            <select
-              value={newCourse.level}
-              onChange={(e) => setNewCourse({ ...newCourse, level: e.target.value })}
-              style={{ ...styles.select, marginTop: 12 }}
-            >
-              <option value="Beginner">Beginner</option>
-              <option value="Intermediate">Intermediate</option>
-              <option value="Advanced">Advanced</option>
-            </select>
-            
-            <input
-              type="number"
-              placeholder="Price"
-              value={newCourse.price}
-              onChange={(e) => setNewCourse({ ...newCourse, price: parseFloat(e.target.value) })}
-              style={{ ...styles.input, marginTop: 12 }}
-            />
-            
-            <div style={styles.modalButtons}>
-              <button
-                style={styles.cancelBtn}
-                onClick={() => setShowCreateCourse(false)}
-              >
-                Cancel
-              </button>
-              <button
-                style={styles.saveBtn}
-                onClick={handleCreateCourse}
-              >
-                Create Course
-              </button>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0 16px' }}>
+        {topics.map((topic, ti) => (
+          <TopicBlock
+            key={topic.id}
+            topic={topic}
+            index={ti}
+            activeSubId={activeSubId}
+            setActiveSubId={setActiveSubId}
+            onTitleChange={v => updateTopicTitle(topic.id, v)}
+            onAddSub={() => addSubtopic(topic.id)}
+            onRemoveTopic={() => removeTopic(topic.id)}
+            onRemoveSub={sid => removeSubtopic(topic.id, sid)}
+            canRemoveTopic={topics.length > 1}
+          />
+        ))}
+        <div style={{ padding: '6px 16px' }}>
+          <button style={S.btnAdd} onClick={addTopic}>＋ Add topic</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TopicBlock({ topic, index, activeSubId, setActiveSubId, onTitleChange, onAddSub, onRemoveTopic, onRemoveSub, canRemoveTopic }) {
+  const [open, setOpen] = useState(true);
+  const subtopics = topic?.subtopics || [];
+
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+        background: c.surface, borderBottom: `1px solid ${c.border}`,
+      }}>
+        <button onClick={() => setOpen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: c.muted, fontSize: 14, padding: 2 }}>
+          {open ? '▾' : '▸'}
+        </button>
+        <div style={{
+          width: 22, height: 22, borderRadius: 6, background: c.accentBg,
+          color: c.accentText, fontSize: 11, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>{index + 1}</div>
+        <input value={topic?.title || ''} onChange={e => onTitleChange(e.target.value)} placeholder={`Topic ${index + 1} title`}
+          style={{ flex: 1, fontSize: 13, fontWeight: 600, border: 'none', background: 'transparent', outline: 'none', color: c.text, minWidth: 0 }} />
+        {canRemoveTopic && <button onClick={onRemoveTopic} style={{ ...S.btnDanger, padding: '3px 7px', fontSize: 11 }}>✕</button>}
+      </div>
+      {open && (
+        <div style={{ paddingLeft: 0 }}>
+          {subtopics.map((sub, si) => (
+            <div key={sub.id} onClick={() => setActiveSubId(sub.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px 8px 38px', cursor: 'pointer',
+              background: activeSubId === sub.id ? c.accentBg : 'transparent',
+              borderLeft: activeSubId === sub.id ? `3px solid ${c.accent}` : '3px solid transparent',
+              borderBottom: `1px solid ${c.border}`,
+            }}>
+              <span style={{ fontSize: 11, color: c.muted, flexShrink: 0 }}>{index + 1}.{si + 1}</span>
+              <span style={{
+                flex: 1, fontSize: 13, color: activeSubId === sub.id ? c.accentText : (sub.title ? c.text : c.muted),
+                fontWeight: activeSubId === sub.id ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{sub.title || 'Untitled subtopic'}</span>
+              {subtopics.length > 1 && (
+                <button onClick={e => { e.stopPropagation(); onRemoveSub(sub.id); }} style={{ ...S.btnDanger, padding: '2px 6px', fontSize: 11, flexShrink: 0 }}>✕</button>
+              )}
             </div>
+          ))}
+          <div style={{ padding: '7px 14px 7px 38px', borderBottom: `1px solid ${c.border}` }}>
+            <button style={S.btnAdd} onClick={onAddSub}>＋ Add subtopic</button>
           </div>
         </div>
       )}
     </div>
   );
 }
+
+// ─── Format file size helper ─────────────────────────────────────────────────
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
+// ─── Main component ───────────────────────────────────────────────────────────
+function PdfUploadTab() {
+  const [course, setCourse] = useState(EMPTY_COURSE());
+  const [activeSubId, setActiveSubId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  // Safe access with fallbacks
+  const allSubs = (course?.topics || []).flatMap(t => t.subtopics || []);
+  const activeSub = allSubs.find(s => s?.id === activeSubId) || allSubs[0];
+  const activeTopic = (course?.topics || []).find(t => (t.subtopics || []).some(s => s?.id === activeSub?.id));
+
+  // Set initial active sub after component mounts
+  React.useEffect(() => {
+    if (!activeSubId && allSubs.length > 0) {
+      setActiveSubId(allSubs[0].id);
+    }
+  }, [activeSubId, allSubs]);
+
+  const updateActiveSub = updated => setCourse(c => ({
+    ...c,
+    topics: (c.topics || []).map(t => ({
+      ...t,
+      subtopics: (t.subtopics || []).map(s => s.id === updated.id ? updated : s)
+    }))
+  }));
+
+  const handlePdfUpload = async (pdfData) => {
+    // PDF upload handled in StructureTree
+    console.log('PDF uploaded:', pdfData);
+  };
+
+  const handleSave = async () => {
+    if (!course?.title?.trim()) { setError('Please enter a course title.'); return; }
+    setError('');
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      // Create course
+      const courseRes = await fetch(`${API_BASE}/admin/courses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ 
+          title: course.title, 
+          description: `${course.code || ''} · ${course.level || 'Beginner'}`, 
+          level: course.level 
+        }),
+      });
+      if (!courseRes.ok) throw new Error('Failed to create course');
+      const createdCourse = await courseRes.json();
+
+      // Create topics and subtopics
+      for (let ti = 0; ti < (course.topics || []).length; ti++) {
+        const topic = course.topics[ti];
+        const topicRes = await fetch(`${API_BASE}/admin/courses/${createdCourse.id}/topics`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ title: topic.title, displayOrder: ti + 1 }),
+        });
+        if (!topicRes.ok) throw new Error(`Failed to create topic: ${topic.title}`);
+        const createdTopic = await topicRes.json();
+
+        for (let si = 0; si < (topic.subtopics || []).length; si++) {
+          const sub = topic.subtopics[si];
+          await fetch(`${API_BASE}/admin/topics/${createdTopic.id}/subtopics`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              title: sub.title,
+              displayOrder: si + 1,
+              notes: sub.notes,
+              videoUrl: sub.videoUrl,
+              interviewQuestions: sub.interviewQuestions,
+              examQuestions: sub.examQuestions,
+              labSteps: sub.labSteps,
+            }),
+          });
+        }
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      Swal.fire('Success!', 'Course saved successfully!', 'success');
+    } catch (e) {
+      setError(e.message || 'Save failed.');
+      Swal.fire('Error', e.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    if (window.confirm('Reset everything and start a new course?')) {
+      const fresh = EMPTY_COURSE();
+      setCourse(fresh);
+      setActiveSubId(fresh.topics[0]?.subtopics[0]?.id || null);
+      setSaved(false);
+      setError('');
+    }
+  };
+
+  const totalTopics = (course?.topics || []).length;
+  const totalSubs = (course?.topics || []).reduce((a, t) => a + (t.subtopics || []).length, 0);
+  const filledSubs = allSubs.filter(s => s?.title?.trim()).length;
+
+  return (
+    <div style={S.page}>
+      <div style={S.topbar}>
+        <div style={S.topbarTitle}>
+          <span style={{ fontSize: 20 }}>📚</span>
+          Course Builder
+          <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 10px', borderRadius: 20, background: c.accentBg, color: c.accentText, marginLeft: 8 }}>
+            {filledSubs}/{totalSubs} subtopics filled
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {error && <span style={{ fontSize: 12, color: c.danger, background: c.dangerBg, padding: '6px 12px', borderRadius: 7 }}>⚠ {error}</span>}
+          {saved && <span style={{ fontSize: 12, color: c.success, background: c.successBg, padding: '6px 12px', borderRadius: 7 }}>✓ Saved to server</span>}
+          <button style={S.btnSecondary} onClick={handleReset}>↺ New course</button>
+          <button style={saving ? { ...S.btnSuccess, opacity: 0.7 } : S.btnSuccess} onClick={handleSave} disabled={saving}>
+            {saving ? '⏳ Saving…' : '💾 Save course'}
+          </button>
+        </div>
+      </div>
+
+      <div style={S.layout}>
+        <div style={S.left}>
+          <StructureTree
+            course={course}
+            setCourse={setCourse}
+            activeSubId={activeSub?.id}
+            setActiveSubId={setActiveSubId}
+            onPdfUpload={handlePdfUpload}
+          />
+        </div>
+
+        <div style={S.right}>
+          {activeSub ? (
+            <SubtopicEditor 
+              key={activeSub.id} 
+              topicTitle={activeTopic?.title || 'Topic'} 
+              sub={activeSub} 
+              onUpdateSub={updateActiveSub} 
+            />
+          ) : (
+            <div style={{ padding: 48, textAlign: 'center', color: c.muted }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>👈</div>
+              <div>Select a subtopic from the left panel to start editing</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default PdfUploadTab;
