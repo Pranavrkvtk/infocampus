@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Swal from 'sweetalert2';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
@@ -239,12 +239,12 @@ function TabBar({ active, setActive }) {
 function NotesPanel({ sub, update }) {
   return (
     <div style={{ padding: '22px 28px' }}>
-      <Label>Lesson notes</Label>
+      <Label>Lesson notes (auto-generated from PDF content)</Label>
       <Textarea
         value={sub.notes}
         onChange={v => update('notes', v)}
-        placeholder="Write detailed notes for this subtopic — key concepts, definitions, examples…"
-        rows={10}
+        placeholder="Notes will be auto-generated from the PDF content..."
+        rows={12}
       />
     </div>
   );
@@ -254,7 +254,7 @@ function NotesPanel({ sub, update }) {
 function VideoPanel({ sub, update }) {
   return (
     <div style={{ padding: '22px 28px' }}>
-      <Label>Video URL</Label>
+      <Label>Video URL (Optional - Add manually)</Label>
       <Input value={sub.videoUrl} onChange={v => update('videoUrl', v)} placeholder="https://youtube.com/watch?v=..." />
       {sub.videoUrl && sub.videoUrl.includes('youtube') && (
         <div style={{ marginTop: 16, borderRadius: 10, overflow: 'hidden', border: `1px solid ${c.border}` }}>
@@ -283,6 +283,7 @@ function InterviewPanel({ sub, update }) {
 
   return (
     <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Label>Interview Questions & Answers (auto-generated from PDF)</Label>
       {qs.map((q, i) => (
         <div key={q.id} style={{ background: c.surface, borderRadius: 10, border: `1px solid ${c.border}`, padding: '14px 16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -315,6 +316,7 @@ function ExamPanel({ sub, update }) {
 
   return (
     <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Label>Multiple Choice Exam Questions (auto-generated from PDF)</Label>
       {qs.map((q, i) => (
         <div key={q.id} style={{ background: c.surface, borderRadius: 10, border: `1px solid ${c.border}`, padding: '14px 16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -361,7 +363,7 @@ function LabPanel({ sub, update }) {
 
   return (
     <div style={{ padding: '22px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Label>Lab steps</Label>
+      <Label>Lab Steps (auto-generated from PDF)</Label>
       {steps.map((step, i) => (
         <div key={step.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <div style={{
@@ -417,7 +419,6 @@ function StructureTree({ course, setCourse, activeSubId, setActiveSubId, onPdfUp
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef();
 
-  // Safe access with fallbacks
   const topics = course?.topics || [];
   const totalTopics = topics.length;
   const totalSubtopics = topics.reduce((a, t) => a + (t.subtopics?.length || 0), 0);
@@ -472,22 +473,36 @@ function StructureTree({ course, setCourse, activeSubId, setActiveSubId, onPdfUp
           timer: 2000,
         });
         setSelectedFile(null);
-        
-        // Generate structure from PDF
+
+        Swal.fire({
+          title: 'Generating Course Structure...',
+          html: 'Extracting topics and subtopics from PDF...',
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
         const structureResponse = await fetch(`${API_BASE}/admin/pdfs/${data.pdfId}/generate-structure`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
         });
         const structureData = await structureResponse.json();
-        
+
         if (structureResponse.ok) {
           Swal.fire({
             title: 'Content Extracted!',
-            html: `✅ ${structureData.topicsCount || 0} topics created<br/>📝 ${structureData.subtopicsCount || 0} subtopics`,
+            html: `✅ ${structureData.topicsCount || 0} topics created<br/>📝 ${structureData.subtopicsCount || 0} subtopics<br/>📚 Notes, Interview Qs, Exam Qs & Labs auto-generated!`,
             icon: 'success',
-            timer: 2000,
+            timer: 3000,
           });
-          onPdfUpload?.(structureData);
+
+          onPdfUpload?.({
+            courseId: structureData.courseId,
+            courseTitle: structureData.courseTitle,
+            topicsCount: structureData.topicsCount,
+            subtopicsCount: structureData.subtopicsCount
+          });
+        } else {
+          throw new Error(structureData.error || 'Structure generation failed');
         }
       } else {
         throw new Error(data.error || 'Upload failed');
@@ -504,7 +519,6 @@ function StructureTree({ course, setCourse, activeSubId, setActiveSubId, onPdfUp
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      {/* Course meta */}
       <div style={S.panelHead}>
         <div style={S.panelHeadTitle}>Course details</div>
       </div>
@@ -527,7 +541,7 @@ function StructureTree({ course, setCourse, activeSubId, setActiveSubId, onPdfUp
 
       {/* PDF Upload Section */}
       <div style={{ padding: '14px 16px', borderBottom: `1px solid ${c.border}`, background: c.accentBg }}>
-        <Label>📄 Upload PDF (Auto-populates content)</Label>
+        <Label>📄 Upload PDF (Auto-generates all content)</Label>
         <div
           style={S.dropZone(dragging, !!selectedFile)}
           onClick={() => inputRef.current.click()}
@@ -558,7 +572,7 @@ function StructureTree({ course, setCourse, activeSubId, setActiveSubId, onPdfUp
           onClick={handleUpload}
           disabled={!selectedFile || uploading}
         >
-          {uploading ? '⏳ Uploading...' : '📤 Upload PDF & Extract Content'}
+          {uploading ? '⏳ Uploading...' : '📤 Upload PDF & Auto-Generate Everything'}
         </button>
       </div>
 
@@ -643,14 +657,6 @@ function TopicBlock({ topic, index, activeSubId, setActiveSubId, onTitleChange, 
   );
 }
 
-// ─── Format file size helper ─────────────────────────────────────────────────
-const formatFileSize = (bytes) => {
-  if (!bytes) return '0 B';
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-};
-
 // ─── Main component ───────────────────────────────────────────────────────────
 function PdfUploadTab() {
   const [course, setCourse] = useState(EMPTY_COURSE());
@@ -659,13 +665,11 @@ function PdfUploadTab() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
 
-  // Safe access with fallbacks
   const allSubs = (course?.topics || []).flatMap(t => t.subtopics || []);
   const activeSub = allSubs.find(s => s?.id === activeSubId) || allSubs[0];
   const activeTopic = (course?.topics || []).find(t => (t.subtopics || []).some(s => s?.id === activeSub?.id));
 
-  // Set initial active sub after component mounts
-  React.useEffect(() => {
+  useEffect(() => {
     if (!activeSubId && allSubs.length > 0) {
       setActiveSubId(allSubs[0].id);
     }
@@ -679,9 +683,47 @@ function PdfUploadTab() {
     }))
   }));
 
-  const handlePdfUpload = async (pdfData) => {
-    // PDF upload handled in StructureTree
-    console.log('PDF uploaded:', pdfData);
+  const handlePdfUpload = async (data) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/courses/${data.courseId}/topics`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      const topicsData = await response.json();
+
+      const formattedTopics = topicsData.map(topic => ({
+        id: topic.id,
+        title: topic.title,
+        subtopics: (topic.subtopics || topic.subTopics || []).map(sub => ({
+          id: sub.id,
+          title: sub.title,
+          notes: sub.notes || sub.content || '',
+          videoUrl: sub.videoUrl || '',
+          interviewQuestions: sub.interviewQuestions || [{ id: uid(), q: '', a: '' }],
+          examQuestions: sub.examQuestions || [{ id: uid(), text: '', options: ['', '', '', ''], answer: 0 }],
+          labSteps: sub.labSteps || [{ id: uid(), text: '' }],
+        }))
+      }));
+
+      setCourse({
+        title: data.courseTitle || course.title,
+        code: course.code || '200-301',
+        level: course.level || 'Beginner',
+        topics: formattedTopics.length > 0 ? formattedTopics : course.topics
+      });
+
+      if (formattedTopics.length > 0 && formattedTopics[0].subtopics.length > 0) {
+        setActiveSubId(formattedTopics[0].subtopics[0].id);
+      }
+
+      Swal.fire({
+        title: 'Course Loaded!',
+        html: `✅ ${formattedTopics.length} topics loaded<br/>📝 ${formattedTopics.reduce((a, t) => a + t.subtopics.length, 0)} subtopics<br/>📚 Notes, Interview Qs, Exam Qs & Labs auto-generated from PDF!`,
+        icon: 'success',
+      });
+    } catch (error) {
+      Swal.fire('Error', 'Failed to load course structure from backend', 'error');
+    }
   };
 
   const handleSave = async () => {
@@ -690,20 +732,14 @@ function PdfUploadTab() {
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
-      // Create course
       const courseRes = await fetch(`${API_BASE}/admin/courses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ 
-          title: course.title, 
-          description: `${course.code || ''} · ${course.level || 'Beginner'}`, 
-          level: course.level 
-        }),
+        body: JSON.stringify({ title: course.title, description: `${course.code || ''} · ${course.level || 'Beginner'}`, level: course.level }),
       });
       if (!courseRes.ok) throw new Error('Failed to create course');
       const createdCourse = await courseRes.json();
 
-      // Create topics and subtopics
       for (let ti = 0; ti < (course.topics || []).length; ti++) {
         const topic = course.topics[ti];
         const topicRes = await fetch(`${API_BASE}/admin/courses/${createdCourse.id}/topics`, {
@@ -787,14 +823,13 @@ function PdfUploadTab() {
             onPdfUpload={handlePdfUpload}
           />
         </div>
-
         <div style={S.right}>
           {activeSub ? (
-            <SubtopicEditor 
-              key={activeSub.id} 
-              topicTitle={activeTopic?.title || 'Topic'} 
-              sub={activeSub} 
-              onUpdateSub={updateActiveSub} 
+            <SubtopicEditor
+              key={activeSub.id}
+              topicTitle={activeTopic?.title || 'Topic'}
+              sub={activeSub}
+              onUpdateSub={updateActiveSub}
             />
           ) : (
             <div style={{ padding: 48, textAlign: 'center', color: c.muted }}>
