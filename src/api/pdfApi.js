@@ -1,5 +1,4 @@
-// src/api/pdfApi.js - UPDATED VERSION WITH COURSE SUPPORT AND STRUCTURE GENERATION
-
+// src/api/pdfApi.js - COMPLETE VERSION
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
@@ -48,7 +47,7 @@ export const updateSubtopicContent = (subtopicId, content) => {
 
 // Delete entire course structure
 export const deleteCourseStructure = (courseId) => {
-  return api.delete(`/courses/${courseId}/structure`);
+  return api.delete(`/admin/courses/${courseId}/structure`);
 };
 
 // ==================== STRUCTURE GENERATION ENDPOINTS ====================
@@ -82,7 +81,7 @@ export const autoFixPdf = (pdfId) => {
  * This is the recommended endpoint for getting PDFs with course data
  */
 export const getAllPdfsEnriched = () => {
-  return api.get('/user/pdfs/enriched');
+  return api.get('/admin/user/pdfs/enriched');  // ✅ Use admin path
 };
 
 // ==================== ORDERED CONTENT ENDPOINTS ====================
@@ -256,3 +255,5 @@ export const getCurrentUserId = () => {
   // Default to 1 (admin user) for testing
   return '1';
 };
+
+export default api;

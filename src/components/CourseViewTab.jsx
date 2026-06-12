@@ -1,16 +1,25 @@
-// src/components/CourseViewTab.jsx - UPDATED WITH TOPICS/SUBTOPICS DISPLAY
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getPdfText, getPdfImages, formatFileSize, getCourseStructure, generateCourseStructure, autoFixPdf, updateSubtopicContent } from '../api/pdfApi';
+// src/components/CourseViewTab.jsx - UPDATED VERSION
+import React, { useState, useEffect, useRef } from 'react';
+// At the top of CourseViewTab.jsx
+import { 
+  getPdfImages, 
+  getCourseStructure, 
+  generateCourseStructure, 
+  autoFixPdf, 
+  updateSubtopicContent, 
+  deleteCourseStructure 
+} from '../api/pdfApi';
 import Swal from 'sweetalert2';
 
-// Local SVG fallback image
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
 const styles = {
   container: {
-    padding: '24px',
-    maxWidth: '1600px',
+    padding: '0',
+    maxWidth: '1400px',
     margin: '0 auto',
+    background: '#fff',
+    minHeight: '100vh',
   },
   backButton: {
     display: 'flex',
@@ -21,36 +30,32 @@ const styles = {
     color: '#5E5BFF',
     cursor: 'pointer',
     fontSize: '14px',
-    marginBottom: '20px',
+    margin: '16px 24px',
     padding: '8px 16px',
     borderRadius: '8px',
   },
   courseHero: {
-    background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
     color: 'white',
-    padding: '40px',
-    borderRadius: '20px',
-    marginBottom: '30px',
-    textAlign: 'center',
+    padding: '48px',
+    marginBottom: '0',
   },
   title: {
-    fontSize: '28px',
+    fontSize: '32px',
     fontWeight: '700',
-    marginBottom: '15px',
+    marginBottom: '16px',
   },
   stats: {
     display: 'flex',
-    justifyContent: 'center',
     gap: '30px',
-    margin: '20px 0',
+    marginTop: '24px',
     fontSize: '14px',
     opacity: 0.9,
     flexWrap: 'wrap',
   },
   progressSection: {
-    marginTop: '20px',
+    marginTop: '24px',
     maxWidth: '400px',
-    margin: '20px auto 0',
   },
   progressBar: {
     background: 'rgba(255,255,255,0.2)',
@@ -59,7 +64,7 @@ const styles = {
     overflow: 'hidden',
   },
   progressFill: {
-    background: '#5E5BFF',
+    background: '#22c55e',
     height: '100%',
     borderRadius: '10px',
     transition: 'width 0.3s',
@@ -72,25 +77,30 @@ const styles = {
   },
   controls: {
     display: 'flex',
-    gap: '15px',
-    justifyContent: 'center',
-    marginBottom: '30px',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    padding: '16px 24px',
+    background: 'white',
+    borderBottom: '1px solid #e5e7eb',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
     flexWrap: 'wrap',
   },
   controlBtn: (active) => ({
-    padding: '10px 24px',
+    padding: '8px 20px',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    background: active ? '#5E5BFF' : '#e5e7eb',
+    background: active ? '#5E5BFF' : '#f3f4f6',
     color: active ? 'white' : '#374151',
   }),
   resetBtn: {
-    padding: '10px 24px',
+    padding: '8px 20px',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
@@ -98,9 +108,9 @@ const styles = {
     color: 'white',
   },
   generateBtn: {
-    padding: '10px 24px',
+    padding: '8px 20px',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
@@ -108,156 +118,172 @@ const styles = {
     color: 'white',
   },
   fixBtn: {
-    padding: '10px 24px',
+    padding: '8px 20px',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
     background: '#10b981',
     color: 'white',
   },
-  splitView: {
-    display: 'grid',
-    gridTemplateColumns: '320px 1fr',
-    gap: '30px',
+  layout: {
+    display: 'flex',
+    gap: '0',
+    minHeight: 'calc(100vh - 280px)',
   },
-  tocPanel: {
-    background: 'white',
-    borderRadius: '16px',
-    padding: '20px',
-    position: 'sticky',
-    top: '20px',
-    height: 'calc(100vh - 100px)',
+  sidebar: {
+    width: '320px',
+    background: '#fafbfc',
+    borderRight: '1px solid #e5e7eb',
     overflowY: 'auto',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    height: 'calc(100vh - 200px)',
+    position: 'sticky',
+    top: '60px',
   },
-  tocTitle: {
+  contentArea: {
+    flex: 1,
+    padding: '32px 48px',
+    overflowY: 'auto',
+    maxHeight: 'calc(100vh - 200px)',
+    background: '#fff',
+  },
+  sidebarHeader: {
+    padding: '20px',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#fff',
+  },
+  sidebarTitle: {
     fontSize: '18px',
     fontWeight: '700',
-    marginBottom: '20px',
     color: '#1a1a2e',
-    borderBottom: '2px solid #5E5BFF',
-    paddingBottom: '10px',
   },
-  tocList: {
+  sidebarSubtitle: {
+    fontSize: '12px',
+    color: '#6b7280',
+    marginTop: '4px',
+  },
+  categoryItem: {
+    borderBottom: '1px solid #e5e7eb',
+  },
+  categoryHeader: {
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '14px 20px',
+    background: '#fff',
+    border: 'none',
+    cursor: 'pointer',
+    textAlign: 'left',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  categoryHeaderActive: {
+    background: '#f0f0ff',
+    borderLeft: '3px solid #5E5BFF',
+  },
+  categoryTitle: {
+    flex: 1,
+  },
+  chevron: {
+    fontSize: '16px',
+    color: '#9ca3af',
+    transition: 'transform 0.2s',
+  },
+  lessonList: {
     listStyle: 'none',
     padding: 0,
     margin: 0,
+    background: '#fafbfc',
   },
-  topicItem: {
-    marginBottom: '16px',
-  },
-  topicHeader: {
-    padding: '12px 15px',
-    borderRadius: '10px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-    background: '#f3f4f6',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  subtopicList: {
-    listStyle: 'none',
-    paddingLeft: '20px',
-    marginTop: '8px',
-  },
-  subtopicItem: {
-    padding: '10px 15px',
+  lessonItem: {
+    padding: '10px 20px 10px 40px',
     cursor: 'pointer',
-    borderRadius: '8px',
     fontSize: '13px',
-    transition: 'all 0.2s',
-    color: '#374151',
-    marginBottom: '4px',
+    color: '#4b5563',
+    borderTop: '1px solid #f3f4f6',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  subtopicItemActive: {
-    background: '#e0e7ff',
+  lessonItemActive: {
+    background: '#ede9fe',
     color: '#5E5BFF',
-    fontWeight: '500',
+    borderLeft: '3px solid #5E5BFF',
   },
-  subtopicItemCompleted: {
-    background: '#f0fdf4',
-    color: '#16a34a',
+  lessonItemCompleted: {
+    color: '#10b981',
   },
   checkIcon: {
-    color: '#16a34a',
-    fontSize: '16px',
+    color: '#10b981',
+    fontSize: '14px',
   },
-  contentPanel: {
-    background: 'white',
-    borderRadius: '16px',
-    padding: '30px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    maxHeight: 'calc(100vh - 100px)',
-    overflowY: 'auto',
-  },
-  currentSectionHeader: {
-    marginBottom: '24px',
+  contentHeader: {
+    marginBottom: '32px',
     paddingBottom: '16px',
-    borderBottom: '2px solid #5E5BFF',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: '10px',
+    borderBottom: '1px solid #e5e7eb',
   },
-  currentSectionTitle: {
-    fontSize: '24px',
-    fontWeight: '700',
-    color: '#5E5BFF',
-  },
-  sectionProgress: {
+  breadcrumb: {
     fontSize: '13px',
     color: '#6b7280',
-    background: '#f8f9fa',
-    padding: '6px 12px',
+    marginBottom: '8px',
+  },
+  lessonTitle: {
+    fontSize: '28px',
+    fontWeight: '700',
+    color: '#1a1a2e',
+  },
+  completionBadge: {
+    display: 'inline-block',
+    background: '#f0fdf4',
+    color: '#16a34a',
+    padding: '4px 12px',
     borderRadius: '20px',
-  },
-  sectionContent: {
-    lineHeight: '1.8',
-  },
-  paragraph: {
-    lineHeight: '1.8',
-    marginBottom: '16px',
-    color: '#374151',
-    fontSize: '15px',
-  },
-  imageWrapper: {
-    margin: '20px 0',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    cursor: 'pointer',
-  },
-  inlineImage: {
-    maxWidth: '100%',
-    height: 'auto',
-    borderRadius: '12px',
-    border: '1px solid #e5e7eb',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-  },
-  imageCaption: {
-    textAlign: 'center',
     fontSize: '12px',
+    marginLeft: '12px',
+  },
+  contentBody: {
+    fontSize: '16px',
+    lineHeight: '1.7',
+    color: '#374151',
+  },
+  noteBox: {
+    background: '#fefce8',
+    padding: '20px',
+    borderRadius: '12px',
+    marginBottom: '24px',
+    border: '1px solid #fef08a',
+  },
+  noteTitle: {
+    fontWeight: '600',
+    color: '#854d0e',
+    marginBottom: '8px',
+  },
+  noteText: {
+    color: '#713f12',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    whiteSpace: 'pre-wrap',
+  },
+  emptyNote: {
+    background: '#f8fafc',
+    padding: '20px',
+    borderRadius: '12px',
+    textAlign: 'center',
     color: '#6b7280',
-    marginTop: '8px',
   },
   completeBtn: {
     background: '#22c55e',
     color: 'white',
     border: 'none',
-    padding: '10px 20px',
+    padding: '12px 24px',
     borderRadius: '10px',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-    marginTop: '20px',
+    marginTop: '32px',
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
@@ -266,67 +292,54 @@ const styles = {
     background: '#5E5BFF',
     color: 'white',
     border: 'none',
-    padding: '6px 12px',
-    borderRadius: '6px',
+    padding: '8px 16px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '12px',
-    marginLeft: '10px',
+    marginLeft: '12px',
   },
   galleryContainer: {
-    background: 'white',
-    borderRadius: '16px',
-    padding: '30px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    padding: '32px',
   },
   galleryTitle: {
-    fontSize: '20px',
-    fontWeight: '600',
-    marginBottom: '20px',
-    color: '#1a1a2e',
+    fontSize: '24px',
+    fontWeight: '700',
+    marginBottom: '24px',
   },
   imageGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    gap: '16px',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+    gap: '20px',
   },
   imageCard: {
     border: '1px solid #e5e7eb',
     borderRadius: '12px',
     overflow: 'hidden',
     cursor: 'pointer',
+    background: 'white',
   },
   image: {
     width: '100%',
-    height: '150px',
+    height: '160px',
     objectFit: 'cover',
   },
   imageInfo: {
-    padding: '8px',
+    padding: '12px',
     fontSize: '12px',
     textAlign: 'center',
     background: '#f8f9fa',
-    color: '#6b7280',
-  },
-  footer: {
-    textAlign: 'center',
-    padding: '30px',
-    marginTop: '30px',
-    color: '#9ca3af',
-    fontSize: '12px',
   },
   loadingContainer: {
-    textAlign: 'center',
-    padding: '60px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    fontSize: '16px',
     color: '#5E5BFF',
   },
   emptyState: {
     textAlign: 'center',
     padding: '60px',
-    color: '#9ca3af',
-  },
-  emptySection: {
-    textAlign: 'center',
-    padding: '40px',
     color: '#9ca3af',
   },
   modal: {
@@ -360,6 +373,12 @@ const styles = {
     fontFamily: 'inherit',
     resize: 'vertical',
   },
+  modalButtons: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    marginTop: '20px',
+  },
 };
 
 const CourseViewTab = ({ pdf, onBack }) => {
@@ -369,71 +388,84 @@ const CourseViewTab = ({ pdf, onBack }) => {
   const [activeView, setActiveView] = useState('split');
   const [progress, setProgress] = useState(0);
   const [courseStructure, setCourseStructure] = useState(null);
-  const [activeTopicId, setActiveTopicId] = useState(null);
-  const [activeSubtopicId, setActiveSubtopicId] = useState(null);
-  const [completedSubtopics, setCompletedSubtopics] = useState([]);
-  const [editingSubtopic, setEditingSubtopic] = useState(null);
+  const [openCategoryId, setOpenCategoryId] = useState(null);
+  const [activeLessonId, setActiveLessonId] = useState(null);
+  const [completedLessons, setCompletedLessons] = useState([]);
+  const [editingLesson, setEditingLesson] = useState(null);
   const [editContent, setEditContent] = useState('');
   const [imageErrors, setImageErrors] = useState({});
+  const [pdfData, setPdfData] = useState(pdf);
   const contentRef = useRef(null);
 
   const getBaseUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+  const getImageUrl = (imageId) => `${getBaseUrl()}/user/pdfs/${pdfData?.id}/images/${imageId}`;
+  const getImageSrc = (imageId) => imageErrors[imageId] ? FALLBACK_IMAGE : getImageUrl(imageId);
+  const handleImageError = (imageId) => { if (!imageErrors[imageId]) setImageErrors(prev => ({ ...prev, [imageId]: true })); };
 
-  const getImageUrl = (imageId) => {
-    const baseUrl = getBaseUrl();
-    return `${baseUrl}/user/pdfs/${pdf.id}/images/${imageId}`;
-  };
-
-  const handleImageError = (imageId) => {
-    if (!imageErrors[imageId]) {
-      setImageErrors(prev => ({ ...prev, [imageId]: true }));
-    }
-  };
-
-  const getImageSrc = (imageId) => {
-    return imageErrors[imageId] ? FALLBACK_IMAGE : getImageUrl(imageId);
-  };
-
-  const loadCourseStructure = async () => {
-    if (!pdf.courseId) return;
+  // Normalize course structure data (handles subTopics vs subtopics)
+  const normalizeCourseStructure = (data) => {
+    if (!data) return data;
     
+    return {
+      ...data,
+      topics: (data.topics || []).map(topic => ({
+        ...topic,
+        // Handle both subTopics (Java) and subtopics (JavaScript)
+        subtopics: (topic.subTopics || topic.subtopics || []).map(sub => ({
+          id: sub.id,
+          title: sub.title,
+          content: sub.content || '',
+          displayOrder: sub.displayOrder || 0
+        }))
+      }))
+    };
+  };
+
+  const loadCourseStructure = async (courseId) => {
+    if (!courseId) return;
     try {
-      const response = await getCourseStructure(pdf.courseId);
-      console.log("Course structure:", response.data);
-      setCourseStructure(response.data);
+      console.log("Loading course structure for courseId:", courseId);
+      const response = await getCourseStructure(courseId);
+      console.log("Raw API response:", response.data);
       
-      // Load completed subtopics from localStorage
-      const savedCompleted = localStorage.getItem(`subtopics_completed_${pdf.courseId}`);
+      // ✅ Normalize the data
+      const normalizedData = normalizeCourseStructure(response.data);
+      console.log("Normalized data:", normalizedData);
+      console.log("First topic subtopics:", normalizedData.topics?.[0]?.subtopics);
+      
+      setCourseStructure(normalizedData);
+      
+      const savedCompleted = localStorage.getItem(`lessons_completed_${courseId}`);
       if (savedCompleted) {
-        setCompletedSubtopics(JSON.parse(savedCompleted));
+        setCompletedLessons(JSON.parse(savedCompleted));
       }
       
-      // Calculate progress
-      if (response.data.topics && response.data.topics.length > 0) {
-        const totalSubtopics = response.data.topics.reduce(
-          (sum, topic) => sum + (topic.subtopics?.length || 0), 0
-        );
-        const completed = savedCompleted ? JSON.parse(savedCompleted).length : 0;
-        setProgress(totalSubtopics > 0 ? (completed / totalSubtopics) * 100 : 0);
-      }
-      
-      // Set first subtopic as active
-      if (response.data.topics && response.data.topics.length > 0) {
-        const firstTopic = response.data.topics[0];
-        setActiveTopicId(firstTopic.id);
-        if (firstTopic.subtopics && firstTopic.subtopics.length > 0) {
-          setActiveSubtopicId(firstTopic.subtopics[0].id);
+      // Auto-select first topic and lesson
+      if (normalizedData.topics && normalizedData.topics.length > 0) {
+        const firstTopicId = normalizedData.topics[0].id;
+        setOpenCategoryId(firstTopicId);
+        
+        const firstSubtopic = normalizedData.topics[0].subtopics?.[0];
+        if (firstSubtopic) {
+          setActiveLessonId(firstSubtopic.id);
         }
       }
+      
+      const totalLessons = normalizedData.topics?.reduce((sum, t) => sum + (t.subtopics?.length || 0), 0) || 0;
+      const completed = savedCompleted ? JSON.parse(savedCompleted).length : 0;
+      setProgress(totalLessons > 0 ? (completed / totalLessons) * 100 : 0);
+      
     } catch (error) {
       console.error("Error loading course structure:", error);
+      console.error("Error details:", error.response?.data);
     }
   };
 
-  const loadImages = async () => {
+  const loadImages = async (pdfId) => {
+    if (!pdfId) return;
     try {
-      const imagesResponse = await getPdfImages(pdf.id);
-      setImages(imagesResponse.data.images || []);
+      const response = await getPdfImages(pdfId);
+      setImages(response.data.images || []);
     } catch (error) {
       console.error("Error loading images:", error);
     }
@@ -441,46 +473,70 @@ const CourseViewTab = ({ pdf, onBack }) => {
 
   useEffect(() => {
     if (pdf) {
-      loadImages();
+      console.log("PDF Data received:", pdf);
+      setPdfData(pdf);
+      loadImages(pdf.id);
       if (pdf.courseId) {
-        loadCourseStructure();
+        loadCourseStructure(pdf.courseId);
       }
       setLoading(false);
     }
   }, [pdf]);
 
   const handleGenerateStructure = async () => {
-    setGenerating(true);
-    Swal.fire({
-      title: 'Generating Course Structure...',
-      text: 'Parsing PDF content to create topics and subtopics',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
+    if (!pdfData?.courseId) {
+      Swal.fire({ 
+        title: 'Missing Course', 
+        text: 'This PDF is not yet linked to a course. Click "Auto-Fix" first.', 
+        icon: 'warning' 
+      });
+      return;
+    }
+
+    const hasStructure = courseStructure?.topics?.length > 0;
+    const confirmText = hasStructure
+      ? 'A structure already exists. Regenerating will replace existing categories and lessons.'
+      : 'Generate a course structure from the PDF content?';
+
+    const result = await Swal.fire({
+      title: hasStructure ? 'Regenerate Course Structure?' : 'Generate Course Structure?',
+      text: confirmText,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: hasStructure ? 'Regenerate' : 'Generate',
     });
 
+    if (!result.isConfirmed) return;
+
+    setGenerating(true);
+    Swal.fire({ 
+      title: hasStructure ? 'Regenerating Course...' : 'Generating Course...', 
+      text: 'Parsing PDF content...', 
+      didOpen: () => Swal.showLoading() 
+    });
+    
     try {
-      const response = await generateCourseStructure(pdf.id);
-      console.log("Generation response:", response.data);
-      
-      Swal.fire({
-        title: 'Success!',
-        text: `Generated ${response.data.topicsCount} topics and ${response.data.subtopicsCount} subtopics`,
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false
+      if (hasStructure) {
+        await deleteCourseStructure(pdfData.courseId);
+      }
+
+      const response = await generateCourseStructure(pdfData.id);
+      Swal.fire({ 
+        title: 'Success!', 
+        text: `Generated ${response.data.topicsCount} categories`, 
+        icon: 'success', 
+        timer: 2000 
       });
       
-      if (pdf.courseId) {
-        await loadCourseStructure();
+      if (pdfData.courseId) {
+        await loadCourseStructure(pdfData.courseId);
       }
     } catch (error) {
-      console.error("Generation error:", error);
-      Swal.fire({
-        title: 'Generation Failed',
-        text: error.response?.data?.error || 'Failed to generate structure. Make sure PDF has extractable text.',
-        icon: 'error'
+      console.error("Generate error:", error);
+      Swal.fire({ 
+        title: 'Failed', 
+        text: error.response?.data?.error || 'Unable to generate course structure', 
+        icon: 'error' 
       });
     } finally {
       setGenerating(false);
@@ -489,263 +545,244 @@ const CourseViewTab = ({ pdf, onBack }) => {
 
   const handleAutoFix = async () => {
     setGenerating(true);
-    Swal.fire({
-      title: 'Auto-Fixing PDF...',
-      text: 'Creating course from filename and generating structure',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
+    Swal.fire({ 
+      title: 'Auto-Fixing...', 
+      text: 'Creating course from filename...', 
+      didOpen: () => Swal.showLoading() 
     });
-
+    
     try {
-      const response = await autoFixPdf(pdf.id);
+      const response = await autoFixPdf(pdfData?.id);
       console.log("Auto-fix response:", response.data);
       
-      Swal.fire({
-        title: 'Success!',
-        text: `Course "${response.data.courseTitle}" created and structure generated!`,
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false
+      Swal.fire({ 
+        title: 'Success!', 
+        text: `Course created!`, 
+        icon: 'success', 
+        timer: 2000 
       });
       
-      pdf.courseId = response.data.courseId;
-      pdf.courseTitle = response.data.courseTitle;
-      await loadCourseStructure();
+      const courseId = response.data.courseId;
+      setPdfData(prev => ({ ...prev, courseId }));
+      await loadCourseStructure(courseId);
       
     } catch (error) {
       console.error("Auto-fix error:", error);
-      Swal.fire({
-        title: 'Fix Failed',
-        text: error.response?.data?.error || 'Failed to auto-fix PDF',
-        icon: 'error'
+      Swal.fire({ 
+        title: 'Failed', 
+        text: error.response?.data?.error || 'Unable to auto-fix PDF', 
+        icon: 'error' 
       });
-    } finally {
-      setGenerating(false);
+    } finally { 
+      setGenerating(false); 
     }
   };
 
-  const markSubtopicComplete = (subtopicId) => {
-    let newCompleted;
-    if (completedSubtopics.includes(subtopicId)) {
-      newCompleted = completedSubtopics.filter(id => id !== subtopicId);
-    } else {
-      newCompleted = [...completedSubtopics, subtopicId];
-    }
-    setCompletedSubtopics(newCompleted);
+  const toggleCategory = (categoryId) => {
+    setOpenCategoryId(prev => (prev === categoryId ? null : categoryId));
+  };
+
+  const markLessonComplete = (lessonId) => {
+    let newCompleted = completedLessons.includes(lessonId) 
+      ? completedLessons.filter(id => id !== lessonId) 
+      : [...completedLessons, lessonId];
     
-    const totalSubtopics = courseStructure.topics.reduce(
-      (sum, topic) => sum + (topic.subtopics?.length || 0), 0
-    );
-    const percentComplete = totalSubtopics > 0 ? (newCompleted.length / totalSubtopics) * 100 : 0;
-    setProgress(percentComplete);
+    setCompletedLessons(newCompleted);
     
-    localStorage.setItem(`subtopics_completed_${pdf.courseId}`, JSON.stringify(newCompleted));
+    const totalLessons = courseStructure?.topics?.reduce((sum, t) => sum + (t.subtopics?.length || 0), 0) || 0;
+    const newProgress = totalLessons > 0 ? (newCompleted.length / totalLessons) * 100 : 0;
+    setProgress(newProgress);
+    
+    localStorage.setItem(`lessons_completed_${pdfData.courseId}`, JSON.stringify(newCompleted));
     
     Swal.fire({
-      title: newCompleted.includes(subtopicId) ? '✅ Great!' : '⏳ Unmarked',
-      text: newCompleted.includes(subtopicId) ? 'Keep up the good work!' : 'You can mark it complete again later.',
+      title: newCompleted.includes(lessonId) ? '✓ Lesson Completed!' : 'Lesson Unmarked',
+      text: newCompleted.includes(lessonId) ? 'Great job! Keep going!' : 'Lesson marked as incomplete.',
       icon: 'success',
-      timer: 1000,
+      timer: 1500,
       showConfirmButton: false
     });
   };
 
-  const resetProgress = () => {
-    Swal.fire({
-      title: 'Reset Progress?',
-      text: 'Clear all completed sections?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, reset',
-      confirmButtonColor: '#ef4444',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setCompletedSubtopics([]);
-        setProgress(0);
-        localStorage.removeItem(`subtopics_completed_${pdf.courseId}`);
-        Swal.fire('Reset!', 'Progress reset successfully.', 'success');
-      }
-    });
-  };
-
-  const handleSubtopicClick = (topicId, subtopicId) => {
-    setActiveTopicId(topicId);
-    setActiveSubtopicId(subtopicId);
+  const handleLessonClick = (categoryId, lessonId) => {
+    setOpenCategoryId(categoryId);
+    setActiveLessonId(lessonId);
     if (contentRef.current) contentRef.current.scrollTop = 0;
   };
 
-  const handleEditSubtopic = (subtopic) => {
-    setEditingSubtopic(subtopic);
-    setEditContent(subtopic.content || '');
+  const handleEditLesson = (lesson) => {
+    setEditingLesson(lesson);
+    setEditContent(lesson.content || '');
   };
 
-  const handleSaveSubtopic = async () => {
-    if (!editingSubtopic) return;
-    
+  const handleSaveLesson = async () => {
+    if (!editingLesson) return;
     try {
-      await updateSubtopicContent(editingSubtopic.id, editContent);
-      setEditingSubtopic(null);
-      setEditContent('');
-      await loadCourseStructure();
-      Swal.fire("Success", "Subtopic notes saved!", "success");
+      await updateSubtopicContent(editingLesson.id, editContent);
+      setEditingLesson(null);
+      await loadCourseStructure(pdfData?.courseId);
+      Swal.fire("Success", "Notes saved!", "success");
     } catch (error) {
-      console.error("Error saving subtopic:", error);
+      console.error("Save error:", error);
       Swal.fire("Error", "Failed to save notes", "error");
     }
   };
 
-  const getSelectedSubtopic = () => {
-    if (!courseStructure || !activeSubtopicId) return null;
-    
-    for (const topic of courseStructure.topics) {
-      const subtopic = topic.subtopics?.find(s => s.id === activeSubtopicId);
-      if (subtopic) {
-        return { topic, subtopic };
-      }
+  const getSelectedLesson = () => {
+    if (!courseStructure || !activeLessonId) return null;
+    for (const category of courseStructure.topics) {
+      const lesson = category.subtopics?.find(l => l.id === activeLessonId);
+      if (lesson) return { category, lesson };
     }
     return null;
   };
 
-  const renderSelectedSubtopic = () => {
-    const selected = getSelectedSubtopic();
-    if (!selected) {
-      return (
-        <div style={styles.emptySection}>
-          <p>Select a topic from the sidebar to begin learning</p>
-        </div>
-      );
-    }
-
-    const { topic, subtopic } = selected;
-    const isCompleted = completedSubtopics.includes(subtopic.id);
-    
-    return (
-      <div>
-        <div style={styles.currentSectionHeader}>
-          <div>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
-              {topic.title}
-            </div>
-            <h2 style={styles.currentSectionTitle}>{subtopic.title}</h2>
-          </div>
-          <div>
-            {isCompleted && <span style={styles.sectionProgress}>✅ Completed</span>}
-            <button 
-              style={styles.editBtn}
-              onClick={() => handleEditSubtopic(subtopic)}
-            >
-              ✏️ Add Notes
-            </button>
-          </div>
-        </div>
-
-        <div style={styles.sectionContent}>
-          {subtopic.content && (
-            <div style={{ 
-              background: '#fefce8', 
-              padding: '16px', 
-              borderRadius: '12px', 
-              marginBottom: '24px',
-              border: '1px solid #fef08a'
-            }}>
-              <strong style={{ color: '#854d0e' }}>📝 Content:</strong>
-              <p style={{ marginTop: '8px', color: '#713f12' }}>{subtopic.content}</p>
-            </div>
-          )}
-          
-          {!subtopic.content && (
-            <div style={{ 
-              background: '#eff6ff', 
-              padding: '16px', 
-              borderRadius: '12px', 
-              marginBottom: '24px',
-              border: '1px solid #bfdbfe'
-            }}>
-              <p>No content available for this subtopic yet.</p>
-              <p style={{ fontSize: '13px', marginTop: '8px' }}>Click "Add Notes" to add your own notes or content.</p>
-            </div>
-          )}
-        </div>
-
-        <button
-          style={styles.completeBtn}
-          onClick={() => markSubtopicComplete(subtopic.id)}
-        >
-          {isCompleted ? '✓ Completed' : '✓ Mark Complete'}
-        </button>
-      </div>
-    );
+  const resetProgress = () => {
+    const courseId = pdfData?.courseId;
+    Swal.fire({ 
+      title: 'Reset Progress?', 
+      text: 'Clear all completed lessons?', 
+      icon: 'warning', 
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      confirmButtonText: 'Yes, reset'
+    }).then(result => { 
+      if (result.isConfirmed) { 
+        setCompletedLessons([]); 
+        setProgress(0); 
+        if (courseId) localStorage.removeItem(`lessons_completed_${courseId}`);
+        Swal.fire('Reset', 'Progress has been reset', 'success');
+      } 
+    });
   };
 
-  const renderTopicTree = () => {
-    if (!courseStructure || !courseStructure.topics || courseStructure.topics.length === 0) {
+  const renderSidebar = () => {
+    if (!courseStructure?.topics?.length) {
       return (
         <div style={styles.emptyState}>
           <p>No course structure found.</p>
-          <p style={{ fontSize: '13px', marginTop: '10px' }}>
-            {pdf.courseId ? 'Click "Generate Structure" button to create topics from this PDF!' : 'Click "Auto-Fix" button to create a course and generate structure!'}
-          </p>
+          {!pdfData?.courseId && <p>Click "Auto-Fix" to create a course.</p>}
+          {pdfData?.courseId && <p>Click "Generate" to create structure.</p>}
         </div>
       );
     }
 
+    const totalLessons = courseStructure.topics.reduce((sum, t) => sum + (t.subtopics?.length || 0), 0);
+    const totalTopics = courseStructure.topics.length;
+
     return (
-      <ul style={styles.tocList}>
-        {courseStructure.topics.map((topic) => (
-          <li key={topic.id} style={styles.topicItem}>
-            <div style={styles.topicHeader}>
-              <span>{topic.title}</span>
-              <span style={{ fontSize: '11px', opacity: 0.7 }}>
-                {topic.subtopics?.filter(s => completedSubtopics.includes(s.id)).length || 0}/{topic.subtopics?.length || 0}
-              </span>
-            </div>
-            <ul style={styles.subtopicList}>
-              {topic.subtopics?.map((subtopic) => {
-                const isActive = activeSubtopicId === subtopic.id;
-                const isCompleted = completedSubtopics.includes(subtopic.id);
-                return (
-                  <li
-                    key={subtopic.id}
-                    style={{
-                      ...styles.subtopicItem,
-                      ...(isActive ? styles.subtopicItemActive : {}),
-                      ...(isCompleted && !isActive ? styles.subtopicItemCompleted : {}),
-                    }}
-                    onClick={() => handleSubtopicClick(topic.id, subtopic.id)}
-                  >
-                    <span>
-                      {subtopic.displayOrder}. {subtopic.title}
+      <>
+        <div style={styles.sidebarHeader}>
+          <div style={styles.sidebarTitle}>📚 Course Contents</div>
+          <div style={styles.sidebarSubtitle}>{totalTopics} categories • {totalLessons} lessons</div>
+        </div>
+        {courseStructure.topics.map((category) => {
+          const isOpen = openCategoryId === category.id;
+          const lessons = category.subtopics ?? [];
+          const completedCount = lessons.filter(l => completedLessons.includes(l.id)).length;
+
+          return (
+            <div key={category.id} style={styles.categoryItem}>
+              <button 
+                style={{ ...styles.categoryHeader, ...(isOpen ? styles.categoryHeaderActive : {}) }}
+                onClick={() => toggleCategory(category.id)}
+              >
+                <span style={styles.categoryTitle}>
+                  {category.title}
+                  {completedCount > 0 && (
+                    <span style={{ fontSize: '11px', marginLeft: '8px', color: '#10b981' }}>
+                      ✓ {completedCount}/{lessons.length}
                     </span>
-                    {isCompleted && <span style={styles.checkIcon}>✓</span>}
-                  </li>
-                );
-              })}
-            </ul>
-          </li>
-        ))}
-      </ul>
+                  )}
+                </span>
+                <span style={{ ...styles.chevron, transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+              </button>
+              
+              {isOpen && (
+                <ul style={styles.lessonList}>
+                  {lessons.map((lesson, idx) => {
+                    const isActive = activeLessonId === lesson.id;
+                    const isCompleted = completedLessons.includes(lesson.id);
+                    return (
+                      <li
+                        key={lesson.id}
+                        style={{
+                          ...styles.lessonItem,
+                          ...(isActive ? styles.lessonItemActive : {}),
+                        }}
+                        onClick={() => handleLessonClick(category.id, lesson.id)}
+                      >
+                        <span style={isCompleted ? styles.lessonItemCompleted : {}}>
+                          {idx + 1}. {lesson.title}
+                        </span>
+                        {isCompleted && <span style={styles.checkIcon}>✓</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </>
     );
   };
-
-  if (loading) {
-    return <div style={styles.loadingContainer}>Loading course content...</div>;
-  }
-
-  if (!pdf) {
+const renderContent = () => {
+  const selected = getSelectedLesson();
+  if (!selected) {
     return (
       <div style={styles.emptyState}>
-        <p>No course selected. Please go back and select a PDF to view.</p>
-        <button onClick={onBack} style={styles.controlBtn(false)}>Back to PDF List</button>
+        <p>Select a lesson from the sidebar to begin learning</p>
       </div>
     );
   }
 
-  const hasCourse = !!pdf.courseId;
-  const totalSubtopics = courseStructure?.topics?.reduce(
-    (sum, topic) => sum + (topic.subtopics?.length || 0), 0
-  ) || 0;
+  const { category, lesson } = selected;
+  const isCompleted = completedLessons.includes(lesson.id);
+  
+  // Use title as fallback content if content is empty
+  const displayContent = lesson.content && lesson.content !== lesson.title 
+    ? lesson.content 
+    : `📖 ${lesson.title}\n\nThis section covers ${lesson.title}. Click "Add Notes" to add your own study notes.`;
+
+  return (
+    <>
+      <div style={styles.contentHeader}>
+        <div>
+          <div style={styles.breadcrumb}>{category.title}</div>
+          <div style={styles.lessonTitle}>
+            {lesson.title}
+            {isCompleted && <span style={styles.completionBadge}>✓ Completed</span>}
+          </div>
+        </div>
+        <button style={styles.editBtn} onClick={() => handleEditLesson(lesson)}>
+          ✏️ Add Notes
+        </button>
+      </div>
+
+      <div style={styles.contentBody}>
+        <div style={styles.noteBox}>
+          <div style={styles.noteTitle}>📝 Lesson Content</div>
+          <div style={styles.noteText} style={{ whiteSpace: 'pre-wrap' }}>
+            {displayContent}
+          </div>
+        </div>
+      </div>
+
+      <button 
+        style={{ ...styles.completeBtn, background: isCompleted ? '#10b981' : '#22c55e' }}
+        onClick={() => markLessonComplete(lesson.id)}
+      >
+        {isCompleted ? '✓ Completed' : '✓ Mark as Complete'}
+      </button>
+    </>
+  );
+};
+
+  if (loading) return <div style={styles.loadingContainer}>Loading course content...</div>;
+
+  const totalLessons = courseStructure?.topics?.reduce((sum, t) => sum + (t.subtopics?.length || 0), 0) || 0;
+  const totalTopics = courseStructure?.topics?.length || 0;
 
   return (
     <div style={styles.container}>
@@ -754,53 +791,57 @@ const CourseViewTab = ({ pdf, onBack }) => {
       </button>
 
       <div style={styles.courseHero}>
-        <h1 style={styles.title}>{pdf.fileName?.replace('.pdf', '') || 'Course Content'}</h1>
+        <h1 style={styles.title}>{pdfData?.fileName?.replace('.pdf', '') || 'Course Content'}</h1>
         <div style={styles.stats}>
-          <span>📄 {pdf.pageCount || 0} pages</span>
+          <span>📄 {pdfData?.pageCount || 0} pages</span>
           <span>🖼️ {images.length} images</span>
-          <span>📚 {courseStructure?.totalTopics || 0} Topics</span>
-          <span>📝 {totalSubtopics} Subtopics</span>
-          <span>💾 {formatFileSize(pdf.fileSize)}</span>
+          <span>📚 {totalTopics} categories</span>
+          <span>📝 {totalLessons} lessons</span>
         </div>
-        {totalSubtopics > 0 && (
+        {totalLessons > 0 && (
           <div style={styles.progressSection}>
             <div style={styles.progressBar}>
               <div style={{ ...styles.progressFill, width: `${progress}%` }} />
             </div>
-            <span style={styles.progressText}>{Math.round(progress)}% Complete ({completedSubtopics.length}/{totalSubtopics} subtopics)</span>
+            <span style={styles.progressText}>
+              {Math.round(progress)}% complete ({completedLessons.length}/{totalLessons} lessons)
+            </span>
           </div>
         )}
       </div>
 
       <div style={styles.controls}>
-        <button style={styles.controlBtn(activeView === 'split')} onClick={() => setActiveView('split')}>
-          📚 Course View
+        <button 
+          style={styles.controlBtn(activeView === 'split')} 
+          onClick={() => setActiveView('split')}
+        >
+          📚 Course Content
         </button>
-        <button style={styles.controlBtn(activeView === 'gallery')} onClick={() => setActiveView('gallery')}>
-          🖼️ Image Gallery ({images.length})
+        <button 
+          style={styles.controlBtn(activeView === 'gallery')} 
+          onClick={() => setActiveView('gallery')}
+        >
+          🖼️ Images ({images.length})
         </button>
-        
-        {hasCourse && (
+        {pdfData?.courseId && (
           <button 
             style={styles.generateBtn} 
-            onClick={handleGenerateStructure}
+            onClick={handleGenerateStructure} 
             disabled={generating}
           >
-            {generating ? '⏳ Generating...' : '🔧 Generate Structure'}
+            {generating ? '⏳...' : '🔧 Generate'}
           </button>
         )}
-        
-        {!hasCourse && (
+        {!pdfData?.courseId && (
           <button 
             style={styles.fixBtn} 
-            onClick={handleAutoFix}
+            onClick={handleAutoFix} 
             disabled={generating}
           >
-            {generating ? '⏳ Fixing...' : '🔧 Auto-Fix (Create Course)'}
+            {generating ? '⏳...' : '🔧 Auto-Fix'}
           </button>
         )}
-        
-        {totalSubtopics > 0 && (
+        {totalLessons > 0 && (
           <button style={styles.resetBtn} onClick={resetProgress}>
             ⟳ Reset Progress
           </button>
@@ -808,91 +849,54 @@ const CourseViewTab = ({ pdf, onBack }) => {
       </div>
 
       {activeView === 'split' && (
-        <div style={styles.splitView}>
-          <div style={styles.tocPanel}>
-            <h3 style={styles.tocTitle}>📑 Course Content</h3>
-            {renderTopicTree()}
-          </div>
-
-          <div style={styles.contentPanel} ref={contentRef}>
-            {renderSelectedSubtopic()}
-          </div>
+        <div style={styles.layout}>
+          <div style={styles.sidebar}>{renderSidebar()}</div>
+          <div style={styles.contentArea} ref={contentRef}>{renderContent()}</div>
         </div>
       )}
 
       {activeView === 'gallery' && (
         <div style={styles.galleryContainer}>
           <h2 style={styles.galleryTitle}>📸 Course Images ({images.length})</h2>
-          {images.length === 0 ? (
-            <p>No images found in this PDF</p>
-          ) : (
-            <div style={styles.imageGrid}>
-              {images.map((img, idx) => (
-                <div key={img.id || idx} style={styles.imageCard}>
-                  <img 
-                    src={getImageSrc(img.id)} 
-                    alt={`Course illustration ${idx + 1}`}
-                    style={styles.image}
-                    onError={() => handleImageError(img.id)}
-                  />
-                  <div style={styles.imageInfo}>
-                    Page {img.pageNumber} • {img.width}x{img.height}
-                  </div>
+          <div style={styles.imageGrid}>
+            {images.map((img, idx) => (
+              <div 
+                key={img.id || idx} 
+                style={styles.imageCard} 
+                onClick={() => window.open(getImageUrl(img.id), '_blank')}
+              >
+                <img 
+                  src={getImageSrc(img.id)} 
+                  alt={`Course image ${idx + 1}`} 
+                  style={styles.image} 
+                  onError={() => handleImageError(img.id)} 
+                />
+                <div style={styles.imageInfo}>
+                  Page {img.pageNumber} • {img.width}×{img.height}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {editingSubtopic && (
-        <div style={styles.modal}>
-          <div style={styles.modalContent}>
-            <h3 style={{ marginBottom: '16px' }}>
-              Edit Notes: {editingSubtopic.title}
-            </h3>
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              style={styles.textarea}
-              placeholder="Add detailed notes, code examples, key takeaways, or additional resources for this subtopic..."
-            />
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setEditingSubtopic(null)}
-                style={{
-                  padding: '10px 20px',
-                  background: '#f3f4f6',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveSubtopic}
-                style={{
-                  padding: '10px 20px',
-                  background: '#5E5BFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: 'white',
-                  cursor: 'pointer'
-                }}
-              >
-                Save Notes
-              </button>
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      <div style={styles.footer}>
-        <p>Generated from PDF: {pdf.fileName}</p>
-        <p>Click on any subtopic to view its content • Mark as complete when done</p>
-      </div>
+      {editingLesson && (
+        <div style={styles.modal} onClick={() => setEditingLesson(null)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <h3>Edit Notes: {editingLesson.title}</h3>
+            <textarea 
+              value={editContent} 
+              onChange={e => setEditContent(e.target.value)} 
+              style={styles.textarea} 
+              placeholder="Add your notes here..." 
+            />
+            <div style={styles.modalButtons}>
+              <button onClick={() => setEditingLesson(null)}>Cancel</button>
+              <button onClick={handleSaveLesson}>Save Notes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
