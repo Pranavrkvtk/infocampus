@@ -685,7 +685,8 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 // CONTENT EDITOR TABS (simplified - keep existing implementation)
 // ═══════════════════════════════════════════════════════════════════════════════
 const TABS = [
-  { id: 'notes', icon: '📝', label: 'Notes & Images' },
+  { id: 'notes', icon: '📝', label: 'Notes' },
+  { id: 'images', icon: '🖼️', label: 'Images' },
   { id: 'video', icon: '🎬', label: 'Video' },
   { id: 'interview', icon: '🎤', label: 'Interview Qs' },
   { id: 'exam', icon: '📋', label: 'Exam Qs' },
@@ -714,6 +715,83 @@ function NotesTab({ sub, subtopicId, toast, onUpdate }) {
           <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">{saving ? 'Saving…' : '💾 Save notes'}</Btn>
         </div>
         <Txta value={notes} onChange={setNotes} placeholder="Write comprehensive lesson notes here. Include key concepts, definitions, examples, and important points to remember…" rows={12} />
+      </div>
+    </div>
+  );
+}
+
+function ImagesTab({ sub, subtopicId, toast, onUpdate }) {
+  const [images, setImages] = useState(sub.images || []);
+  const [loading, setLoading] = useState(false);
+
+  const loadImages = async () => {
+    setLoading(true);
+    try {
+      const data = await api.get(`/admin/subtopic-images/${subtopicId}`);
+      setImages(data.images || []);
+    } catch (e) {
+      toast.show('Failed to load images', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (subtopicId) loadImages();
+  }, [subtopicId]);
+
+  const deleteImage = async (imageId) => {
+    if (!window.confirm('Delete this image?')) return;
+    try {
+      await api.delete(`/admin/subtopic-images/${imageId}`);
+      setImages(images.filter(img => img.id !== imageId));
+      toast.show('Image deleted');
+    } catch (e) {
+      toast.show('Failed to delete image', 'error');
+    }
+  };
+
+  return (
+    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Lbl>Subtopic Images ({images.length})</Lbl>
+          <Btn size="sm" onClick={loadImages} disabled={loading} variant="ghost">{loading ? 'Loading…' : '🔄 Refresh'}</Btn>
+        </div>
+        {images.length === 0 ? (
+          <div style={{ padding: 32, textAlign: 'center', background: clr.faint, borderRadius: 10, color: clr.muted }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
+            <div style={{ fontSize: 13 }}>No images uploaded for this subtopic yet.</div>
+            <div style={{ fontSize: 12, color: clr.muted, marginTop: 4 }}>Upload a PDF with images in the left panel.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+            {images.map((img, idx) => (
+              <div key={img.id || idx} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: `1px solid ${clr.border}`, background: clr.faint }}>
+                <img
+                  src={img.url}
+                  alt={`Image ${idx + 1}`}
+                  style={{ width: '100%', height: 120, objectFit: 'cover', cursor: 'pointer' }}
+                  onClick={() => window.open(img.url, '_blank')}
+                />
+                <button
+                  onClick={() => deleteImage(img.id)}
+                  style={{
+                    position: 'absolute', top: 4, right: 4, background: clr.danger, color: '#fff',
+                    border: 'none', borderRadius: 5, width: 24, height: 24, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12, opacity: 0.8
+                  }}
+                  title="Delete image"
+                >
+                  ×
+                </button>
+                <div style={{ padding: '6px 8px', fontSize: 10, color: clr.muted, background: 'rgba(255,255,255,0.7)' }}>
+                  {img.pageNumber ? `Page ${img.pageNumber}` : `Image ${idx + 1}`}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
