@@ -86,7 +86,7 @@ export const getAllPdfsEnriched = () => {
 
 // ==================== ORDERED CONTENT ENDPOINTS ====================
 export const getOrderedPdfContent = (pdfId, page = 0, size = 50) => {
-  return api.get(`/user/pdfs/${pdfId}/ordered-content?page=${page}&size=${size}`);
+  return api.get(`/admin/pdfs/${pdfId}/ordered-content?page=${page}&size=${size}`);
 };
 
 // Get all content with automatic pagination
