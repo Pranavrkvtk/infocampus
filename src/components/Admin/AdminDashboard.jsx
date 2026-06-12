@@ -21,9 +21,9 @@ import DashboardTab from "./DashboardTab";
 import CoursesTab from "./CoursesTab";
 import StudentsTab from "./StudentsTab";
 import InstructorsTab from "./InstructorsTab";
-import PdfUploadTab from "./PdfUploadTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
+import AdminCourseManager from "./AdminCourseManager"; // ✅ ADD THIS
 
 // ================= MAIN COMPONENT =================
 export default function AdminDashboard() {
@@ -364,26 +364,26 @@ export default function AdminDashboard() {
             fetchAllInstructors={fetchAllInstructors}
           />
         );
-      case "pdfs":
-        return <PdfUploadTab />;
+   
       case "pdf-viewer":
         return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view":
         return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
+      case "course-manager":  // ✅ ADD THIS CASE
+        return <AdminCourseManager />;
       default:
         return null;
     }
   };
 
-  // Navigation items - includes PDF Uploads, PDF Viewer, and Course View tabs
+  // Navigation items - includes PDF Uploads, PDF Viewer, Course View, and Course Manager
   const navItems = [
     { icon: "📊", label: "Dashboard", id: "dashboard" }, 
     { icon: "🌐", label: "Courses", id: "courses" }, 
     { icon: "👨‍🎓", label: "Students", id: "students" },
     { icon: "👨‍🏫", label: "Instructors", id: "instructors" },
-    { icon: "📤", label: "Upload PDF", id: "pdfs" },
     { icon: "👁️", label: "View PDFs", id: "pdf-viewer" },
-    { icon: "📖", label: "Course View", id: "course-view" }
+    { icon: "🏗️", label: "Course Manager", id: "course-manager" }  // ✅ ADD THIS
   ];
 
   return (
@@ -455,7 +455,7 @@ export default function AdminDashboard() {
               {activeTab === "instructors" && "Instructor Management"}
               {activeTab === "pdfs" && "Upload PDF"}
               {activeTab === "pdf-viewer" && "PDF Library"}
-              {activeTab === "course-view" && "Course View"}
+              {activeTab === "course-manager" && "Course Manager"}  {/* ✅ ADD THIS */}
             </h1>
             <p style={{ color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }}>
               {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
@@ -465,6 +465,7 @@ export default function AdminDashboard() {
               {activeTab === "pdfs" && "Upload PDF files and extract text & images automatically"}
               {activeTab === "pdf-viewer" && "View all uploaded PDFs, extracted text, and images"}
               {activeTab === "course-view" && "View PDF content as an interactive course with progress tracking"}
+              {activeTab === "course-manager" && "Create and manage courses, topics, subtopics, notes, videos, and exam questions"}  {/* ✅ ADD THIS */}
             </p>
           </div>
           <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
