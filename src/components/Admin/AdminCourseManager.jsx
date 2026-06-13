@@ -1,9 +1,8 @@
 // src/components/Admin/AdminCourseManager.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+const API_BASE = 'http://localhost:8082/api';
 
-// ─── API helpers ──────────────────────────────────────────────────────────────
 const authHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -16,30 +15,17 @@ const api = {
   delete: (url) => fetch(`${API_BASE}${url}`, { method: 'DELETE', headers: authHeaders() }).then(r => r.json()),
 };
 
-// ─── palette ──────────────────────────────────────────────────────────────────
 const clr = {
-  bg: '#f8f9fb',
-  white: '#ffffff',
-  border: '#e4e7ec',
-  borderActive: '#4f46e5',
-  text: '#0f172a',
-  muted: '#64748b',
-  faint: '#f1f5f9',
-  accent: '#4f46e5',
-  accentLight: '#eef2ff',
-  accentText: '#3730a3',
-  success: '#16a34a',
-  successLight: '#f0fdf4',
-  danger: '#dc2626',
-  dangerLight: '#fef2f2',
-  sidebar: '#1e1b4b',
-  sidebarText: '#c7d2fe',
+  bg: '#f8f9fb', white: '#ffffff', border: '#e4e7ec', borderActive: '#4f46e5',
+  text: '#0f172a', muted: '#64748b', faint: '#f1f5f9', accent: '#4f46e5',
+  accentLight: '#eef2ff', accentText: '#3730a3', success: '#16a34a',
+  successLight: '#f0fdf4', danger: '#dc2626', dangerLight: '#fef2f2',
+  sidebar: '#1e1b4b', sidebarText: '#c7d2fe',
 };
 
-// ─── tiny uid ─────────────────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 8);
 
-// ─── Toast ───────────────────────────────────────────────────────────────────
+// ─── Toast ────────────────────────────────────────────────────────────────────
 function useToast() {
   const [toasts, setToasts] = useState([]);
   const show = (msg, type = 'success') => {
@@ -56,8 +42,8 @@ function ToastContainer({ toasts }) {
       {toasts.map(t => (
         <div key={t.id} style={{
           padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-          background: t.type === 'success' ? clr.successLight : t.type === 'error' ? clr.dangerLight : clr.warnLight,
-          color: t.type === 'success' ? clr.success : t.type === 'error' ? clr.danger : clr.warn,
+          background: t.type === 'success' ? clr.successLight : t.type === 'error' ? clr.dangerLight : '#fffbeb',
+          color: t.type === 'success' ? clr.success : t.type === 'error' ? clr.danger : '#b45309',
           border: `1px solid ${t.type === 'success' ? '#bbf7d0' : t.type === 'error' ? '#fecaca' : '#fde68a'}`,
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         }}>
@@ -91,7 +77,11 @@ function Modal({ title, onClose, children, width = 520 }) {
 }
 
 // ─── Form components ──────────────────────────────────────────────────────────
-const Lbl = ({ children }) => <label style={{ fontSize: 11, fontWeight: 700, color: clr.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase' }}>{children}</label>;
+const Lbl = ({ children }) => (
+  <label style={{ fontSize: 11, fontWeight: 700, color: clr.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase' }}>
+    {children}
+  </label>
+);
 
 const Inp = ({ value, onChange, placeholder, type = 'text' }) => (
   <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
@@ -118,7 +108,9 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', disabled, st
   return <Component onClick={disabled ? undefined : onClick} style={{ ...base, ...sizes[size], ...variants[variant], ...extra }}>{children}</Component>;
 };
 
-const Card = ({ children }) => <div style={{ background: clr.white, borderRadius: 12, border: `1px solid ${clr.border}` }}>{children}</div>;
+const Card = ({ children }) => (
+  <div style={{ background: clr.white, borderRadius: 12, border: `1px solid ${clr.border}` }}>{children}</div>
+);
 
 const SectionHead = ({ icon, title, count, action }) => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: `1px solid ${clr.border}` }}>
@@ -132,6 +124,100 @@ const SectionHead = ({ icon, title, count, action }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// PDF UPLOAD BUTTON — defined at module level to avoid re-creation on each render
+// ✅ FIX: was inside SubtopicContentEditor, causing label/input link to break
+// ═══════════════════════════════════════════════════════════════════════════════
+function PdfUploadButton({ subtopicId, uploadingPdf, onFileSelected }) {
+  const inputId = `pdf-upload-${subtopicId}`;
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <input
+        type="file"
+        accept=".pdf"
+        id={inputId}
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files[0];
+          console.log('🔥 File selected:', file, 'subtopicId:', subtopicId);
+          if (file) onFileSelected(file);
+          e.target.value = ''; // allow re-upload of same file
+        }}
+      />
+      <label htmlFor={inputId} style={{ display: 'inline-block' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          cursor: uploadingPdf ? 'not-allowed' : 'pointer',
+          opacity: uploadingPdf ? 0.5 : 1,
+          padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 8,
+          background: clr.accentLight, color: clr.accentText,
+          border: `1.5px dashed ${clr.accent}`,
+        }}>
+          {uploadingPdf ? '📎 Uploading PDF...' : '📎 Upload PDF to this subtopic'}
+        </span>
+      </label>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// IMAGES TAB — defined at module level (not inside SubtopicContentEditor)
+// ✅ FIX: duplicate inner definition was shadowing this one and losing state
+// ═══════════════════════════════════════════════════════════════════════════════
+function ImagesTab({ subtopicId, refreshTrigger }) {
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadImages = async () => {
+    if (!subtopicId) return;
+    setLoading(true);
+    try {
+      const data = await api.get(`/admin/subtopic-images/subtopic/${subtopicId}`);
+      setImages(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Failed to load images', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadImages(); }, [subtopicId, refreshTrigger]);
+
+  if (loading) return <div style={{ padding: 22, textAlign: 'center', color: clr.muted }}>Loading images...</div>;
+  if (images.length === 0) return (
+    <div style={{ padding: 40, textAlign: 'center', color: clr.muted }}>
+      🖼️ No images extracted yet.<br />Upload a PDF with images to see them here.
+    </div>
+  );
+
+  return (
+    <div style={{ padding: 22 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+        {images.map((img, idx) => {
+          if (!img.fileName) return null;
+          const url = `${API_BASE}/admin/subtopic-images/${subtopicId}/${img.fileName}`;
+          return (
+            <div key={img.id || idx} style={{
+              border: `1px solid ${clr.border}`, borderRadius: 8,
+              overflow: 'hidden', background: clr.white, cursor: 'pointer',
+            }} onClick={() => window.open(url, '_blank')}>
+              <img
+                src={url}
+                alt={img.fileName || `image-${idx}`}
+                style={{ width: '100%', height: 'auto', display: 'block' }}
+                onError={e => { e.target.style.display = 'none'; }}
+              />
+              <div style={{ padding: 8, fontSize: 11, color: clr.muted, textAlign: 'center' }}>
+                {img.fileName || `Page ${img.pageNumber || idx + 1}`}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
@@ -139,14 +225,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newCourse, setNewCourse] = useState({
-    title: '',
-    description: '',
-    instructor: '',
-    level: 'Beginner',
-    duration: '',
-    price: 0,
-  });
+  const [newCourse, setNewCourse] = useState({ title: '', description: '', instructor: '', level: 'Beginner', duration: '', price: 0 });
   const [creating, setCreating] = useState(false);
 
   const loadCourses = async () => {
@@ -190,25 +269,32 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
           <Lbl>Select course to manage</Lbl>
           <Btn size="sm" variant="dashed" onClick={() => setShowCreateModal(true)}>+ Create New Course</Btn>
         </div>
-        <Inp value={search} onChange={setSearch} placeholder="Search courses…" style={{ marginBottom: 12 }} />
-        {loading ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading courses…</div>
-        : filtered.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>No courses yet.</div>
-        : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
-            {filtered.map(c => (
-              <div key={c.id} onClick={() => onSelect(c)} style={{
-                padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
-                background: selectedCourse?.id === c.id ? clr.accentLight : clr.faint,
-                border: `1.5px solid ${selectedCourse?.id === c.id ? clr.accent : 'transparent'}`,
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                <div style={{ width: 36, height: 36, borderRadius: 8, background: clr.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
-                  {c.title?.[0]?.toUpperCase() || '?'}
+        <Inp value={search} onChange={setSearch} placeholder="Search courses…" />
+        <div style={{ marginTop: 12 }}>
+          {loading
+            ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading courses…</div>
+            : filtered.length === 0
+              ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>No courses yet.</div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+                  {filtered.map(c => (
+                    <div key={c.id} onClick={() => onSelect(c)} style={{
+                      padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                      background: selectedCourse?.id === c.id ? clr.accentLight : clr.faint,
+                      border: `1.5px solid ${selectedCourse?.id === c.id ? clr.accent : 'transparent'}`,
+                      display: 'flex', alignItems: 'center', gap: 12,
+                    }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: clr.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                        {c.title?.[0]?.toUpperCase() || '?'}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{c.title}</div>
+                        <div style={{ fontSize: 11, color: clr.muted }}>ID: {c.id}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div><div style={{ fontSize: 13, fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: clr.muted }}>ID: {c.id}</div></div>
-              </div>
-            ))}
-          </div>
-        }
+          }
+        </div>
       </div>
       {showCreateModal && (
         <Modal title="Create New Course" onClose={() => setShowCreateModal(false)} width={600}>
@@ -216,8 +302,10 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
             <div><Lbl>Course Title *</Lbl><Inp value={newCourse.title} onChange={v => setNewCourse({ ...newCourse, title: v })} /></div>
             <div><Lbl>Description</Lbl><Txta value={newCourse.description} onChange={v => setNewCourse({ ...newCourse, description: v })} rows={3} /></div>
             <div><Lbl>Instructor</Lbl><Inp value={newCourse.instructor} onChange={v => setNewCourse({ ...newCourse, instructor: v })} /></div>
-            <div style={{ display: 'flex', gap: 12 }}><div style={{ flex:1 }}><Lbl>Level</Lbl><Inp value={newCourse.level} onChange={v => setNewCourse({ ...newCourse, level: v })} /></div>
-            <div style={{ flex:1 }}><Lbl>Duration</Lbl><Inp value={newCourse.duration} onChange={v => setNewCourse({ ...newCourse, duration: v })} /></div></div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}><Lbl>Level</Lbl><Inp value={newCourse.level} onChange={v => setNewCourse({ ...newCourse, level: v })} /></div>
+              <div style={{ flex: 1 }}><Lbl>Duration</Lbl><Inp value={newCourse.duration} onChange={v => setNewCourse({ ...newCourse, duration: v })} /></div>
+            </div>
             <div><Lbl>Price</Lbl><Inp type="number" value={newCourse.price} onChange={v => setNewCourse({ ...newCourse, price: parseFloat(v) || 0 })} /></div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <Btn variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Btn>
@@ -296,7 +384,9 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
               borderLeft: activeTopicId === t.id ? `3px solid ${clr.accent}` : '3px solid transparent',
               cursor: 'pointer', borderBottom: `1px solid ${clr.border}`,
             }} onClick={() => setActiveTopicId(t.id)}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: clr.accentLight, color: clr.accentText, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1 + (pagination.currentPage * pagination.pageSize)}</div>
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: clr.accentLight, color: clr.accentText, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {i + 1 + (pagination.currentPage * pagination.pageSize)}
+              </div>
               <div style={{ flex: 1, fontSize: 13, fontWeight: activeTopicId === t.id ? 600 : 400 }}>{t.title}</div>
               <div style={{ display: 'flex', gap: 4 }}>
                 <span style={{ fontSize: 11, color: clr.muted, background: clr.faint, padding: '2px 7px', borderRadius: 10 }}>{t.subtopics?.length || 0}</span>
@@ -307,9 +397,15 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
           ))}
           {pagination.totalPages > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '16px', borderTop: `1px solid ${clr.border}` }}>
-              <button onClick={() => onPageChange(pagination.currentPage - 1)} disabled={!pagination.hasPrevious} style={{ padding: '6px 12px', fontSize: 12, borderRadius: 6, border: `1px solid ${clr.border}`, background: clr.white, cursor: pagination.hasPrevious ? 'pointer' : 'not-allowed', opacity: pagination.hasPrevious ? 1 : 0.5 }}>← Previous</button>
+              <button onClick={() => onPageChange(pagination.currentPage - 1)} disabled={!pagination.hasPrevious}
+                style={{ padding: '6px 12px', fontSize: 12, borderRadius: 6, border: `1px solid ${clr.border}`, background: clr.white, cursor: pagination.hasPrevious ? 'pointer' : 'not-allowed', opacity: pagination.hasPrevious ? 1 : 0.5 }}>
+                ← Previous
+              </button>
               <span style={{ fontSize: 12, padding: '6px 12px', color: clr.muted }}>Page {pagination.currentPage + 1} of {pagination.totalPages}</span>
-              <button onClick={() => onPageChange(pagination.currentPage + 1)} disabled={!pagination.hasNext} style={{ padding: '6px 12px', fontSize: 12, borderRadius: 6, border: `1px solid ${clr.border}`, background: clr.white, cursor: pagination.hasNext ? 'pointer' : 'not-allowed', opacity: pagination.hasNext ? 1 : 0.5 }}>Next →</button>
+              <button onClick={() => onPageChange(pagination.currentPage + 1)} disabled={!pagination.hasNext}
+                style={{ padding: '6px 12px', fontSize: 12, borderRadius: 6, border: `1px solid ${clr.border}`, background: clr.white, cursor: pagination.hasNext ? 'pointer' : 'not-allowed', opacity: pagination.hasNext ? 1 : 0.5 }}>
+                Next →
+              </button>
             </div>
           )}
         </div>
@@ -331,7 +427,7 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC MANAGER – simplified to title only
+// SUBTOPIC MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiveSubId, toast }) {
   const [modal, setModal] = useState(null);
@@ -347,13 +443,12 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      const payload = { title: form.title };
       if (editId) {
-        await api.put(`/admin/subtopics/${editId}`, payload);
+        await api.put(`/admin/subtopics/${editId}`, { title: form.title });
         setSubtopics(ss => ss.map(s => s.id === editId ? { ...s, title: form.title } : s));
         toast.show('Subtopic updated');
       } else {
-        const data = await api.post(`/admin/topics/${topic.id}/subtopics`, payload);
+        const data = await api.post(`/admin/topics/${topic.id}/subtopics`, { title: form.title });
         const newSub = { id: data.subtopicId || data.subtopic?.id, title: form.title, content: '', videoUrl: '' };
         setSubtopics(ss => [...ss, newSub]);
         toast.show('Subtopic created');
@@ -383,7 +478,7 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
         } />
         <div style={{ padding: '8px 0' }}>
           {subtopics.length === 0 && (
-            <div style={{ padding: 24, textAlign: 'center', color: clr.muted, fontSize: 13 }}>No subtopics yet. Click "Add Subtopic" to create one.</div>
+            <div style={{ padding: 24, textAlign: 'center', color: clr.muted, fontSize: 13 }}>No subtopics yet.</div>
           )}
           {subtopics.map((s, i) => (
             <div key={s.id} style={{
@@ -395,9 +490,6 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
               <span style={{ fontSize: 11, color: clr.muted, width: 24 }}>{i + 1}</span>
               <div style={{ flex: 1, fontSize: 13 }}>{s.title}</div>
               <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ fontSize: 11, color: clr.muted, background: clr.faint, padding: '2px 7px', borderRadius: 10 }}>
-                  {i + 1}
-                </span>
                 <button onClick={e => { e.stopPropagation(); openEdit(s); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted }}>✏</button>
                 <button onClick={e => { e.stopPropagation(); del(s.id); }} disabled={deletingId === s.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.danger }}>🗑</button>
               </div>
@@ -432,16 +524,11 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
-  const loadQuestions = async () => {
-    try {
-      const data = await api.get(`/admin/subtopics/${subtopicId}/interview-questions`);
-      setQuestions(Array.isArray(data) ? data : []);
-      onUpdate({ interviewQuestions: data });
-    } catch (e) { console.error(e); }
-  };
-
   useEffect(() => {
-    if (subtopicId) loadQuestions();
+    if (!subtopicId) return;
+    api.get(`/admin/subtopics/${subtopicId}/interview-questions`)
+      .then(data => { const arr = Array.isArray(data) ? data : []; setQuestions(arr); onUpdate({ interviewQuestions: arr }); })
+      .catch(console.error);
   }, [subtopicId]);
 
   const addQ = async () => {
@@ -449,12 +536,9 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
     setAdding(true);
     try {
       const data = await api.post(`/admin/subtopics/${subtopicId}/interview-questions`, addForm);
-      const newQ = { id: data.questionId, ...addForm };
-      const updated = [...questions, newQ];
-      setQuestions(updated);
-      onUpdate({ interviewQuestions: updated });
-      setAddForm({ question: '', answer: '' });
-      setShowAdd(false);
+      const updated = [...questions, { id: data.questionId, ...addForm }];
+      setQuestions(updated); onUpdate({ interviewQuestions: updated });
+      setAddForm({ question: '', answer: '' }); setShowAdd(false);
       toast.show('Interview question added');
     } catch (e) { toast.show(e.message, 'error'); }
     finally { setAdding(false); }
@@ -465,8 +549,7 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
     try {
       await api.delete(`/admin/interview-questions/${id}`);
       const updated = questions.filter(q => q.id !== id);
-      setQuestions(updated);
-      onUpdate({ interviewQuestions: updated });
+      setQuestions(updated); onUpdate({ interviewQuestions: updated });
       toast.show('Question deleted');
     } catch (e) { toast.show(e.message, 'error'); }
   };
@@ -479,20 +562,18 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
           <div><Lbl>Question</Lbl><Inp value={addForm.question} onChange={v => setAddForm(f => ({ ...f, question: v }))} placeholder="e.g. Explain OSPF?" /></div>
-          <div style={{ marginTop: 10 }}><Lbl>Answer</Lbl><Txta value={addForm.answer} onChange={v => setAddForm(f => ({ ...f, answer: v }))} placeholder="Expected answer..." rows={3} /></div>
+          <div style={{ marginTop: 10 }}><Lbl>Answer</Lbl><Txta value={addForm.answer} onChange={v => setAddForm(f => ({ ...f, answer: v }))} rows={3} /></div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
             <Btn size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>
             <Btn size="sm" onClick={addQ} disabled={adding || !addForm.question.trim()}>{adding ? '…' : 'Add'}</Btn>
           </div>
         </div>
       )}
-      {questions.length === 0 && !showAdd && (
-        <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No interview questions yet.</div>
-      )}
+      {questions.length === 0 && !showAdd && <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No interview questions yet.</div>}
       {questions.map((q, i) => (
         <div key={q.id} style={{ background: clr.faint, borderRadius: 10, padding: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>Q{i+1}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>Q{i + 1}</span>
             <Btn size="sm" variant="danger" onClick={() => delQ(q.id)}>🗑</Btn>
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{q.question}</div>
@@ -504,7 +585,7 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXAM QUESTIONS (MCQ) TAB
+// EXAM QUESTIONS TAB
 // ═══════════════════════════════════════════════════════════════════════════════
 function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   const [questions, setQuestions] = useState(initialData || []);
@@ -512,16 +593,11 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
-  const loadQuestions = async () => {
-    try {
-      const data = await api.get(`/admin/subtopics/${subtopicId}/exam-questions`);
-      setQuestions(Array.isArray(data) ? data : []);
-      onUpdate({ examQuestions: data });
-    } catch (e) { console.error(e); }
-  };
-
   useEffect(() => {
-    if (subtopicId) loadQuestions();
+    if (!subtopicId) return;
+    api.get(`/admin/subtopics/${subtopicId}/exam-questions`)
+      .then(data => { const arr = Array.isArray(data) ? data : []; setQuestions(arr); onUpdate({ examQuestions: arr }); })
+      .catch(console.error);
   }, [subtopicId]);
 
   const addQ = async () => {
@@ -529,13 +605,10 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
     setAdding(true);
     try {
       const data = await api.post(`/admin/subtopics/${subtopicId}/exam-questions`, addForm);
-      const newQ = { id: data.questionId, ...addForm };
-      const updated = [...questions, newQ];
-      setQuestions(updated);
-      onUpdate({ examQuestions: updated });
+      const updated = [...questions, { id: data.questionId, ...addForm }];
+      setQuestions(updated); onUpdate({ examQuestions: updated });
       setAddForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
-      setShowAdd(false);
-      toast.show('MCQ added');
+      setShowAdd(false); toast.show('MCQ added');
     } catch (e) { toast.show(e.message, 'error'); }
     finally { setAdding(false); }
   };
@@ -545,8 +618,7 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
     try {
       await api.delete(`/admin/exam-questions/${id}`);
       const updated = questions.filter(q => q.id !== id);
-      setQuestions(updated);
-      onUpdate({ examQuestions: updated });
+      setQuestions(updated); onUpdate({ examQuestions: updated });
       toast.show('MCQ deleted');
     } catch (e) { toast.show(e.message, 'error'); }
   };
@@ -559,9 +631,9 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
           <div><Lbl>Question</Lbl><Txta value={addForm.question} onChange={v => setAddForm(f => ({ ...f, question: v }))} rows={2} placeholder="Enter MCQ question" /></div>
-          {['A','B','C','D'].map(opt => (
+          {['A', 'B', 'C', 'D'].map(opt => (
             <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              <input type="radio" name="correct" checked={addForm.correctAnswer === opt} onChange={() => setAddForm(f => ({ ...f, correctAnswer: opt }))} style={{ accentColor: clr.success }} />
+              <input type="radio" name={`correct-${subtopicId}`} checked={addForm.correctAnswer === opt} onChange={() => setAddForm(f => ({ ...f, correctAnswer: opt }))} style={{ accentColor: clr.success }} />
               <Inp value={addForm[`option${opt}`]} onChange={v => setAddForm(f => ({ ...f, [`option${opt}`]: v }))} placeholder={`Option ${opt}`} />
             </div>
           ))}
@@ -571,17 +643,15 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
           </div>
         </div>
       )}
-      {questions.length === 0 && !showAdd && (
-        <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No exam questions yet.</div>
-      )}
+      {questions.length === 0 && !showAdd && <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No exam questions yet.</div>}
       {questions.map((q, i) => (
         <div key={q.id} style={{ background: clr.faint, borderRadius: 10, padding: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>MCQ {i+1}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>MCQ {i + 1}</span>
             <Btn size="sm" variant="danger" onClick={() => delQ(q.id)}>🗑</Btn>
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{q.question}</div>
-          {['A','B','C','D'].map(opt => (
+          {['A', 'B', 'C', 'D'].map(opt => (
             <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, padding: '4px 8px', background: q.correctAnswer === opt ? clr.successLight : 'transparent', borderRadius: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, width: 20 }}>{opt}.</span>
               <span style={{ fontSize: 13 }}>{q[`option${opt}`]}</span>
@@ -603,16 +673,11 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
-  const loadLabs = async () => {
-    try {
-      const data = await api.get(`/admin/subtopics/${subtopicId}/labs`);
-      setLabs(Array.isArray(data) ? data : []);
-      onUpdate({ labExercises: data });
-    } catch (e) { console.error(e); }
-  };
-
   useEffect(() => {
-    if (subtopicId) loadLabs();
+    if (!subtopicId) return;
+    api.get(`/admin/subtopics/${subtopicId}/labs`)
+      .then(data => { const arr = Array.isArray(data) ? data : []; setLabs(arr); onUpdate({ labExercises: arr }); })
+      .catch(console.error);
   }, [subtopicId]);
 
   const addLab = async () => {
@@ -620,12 +685,9 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
     setAdding(true);
     try {
       const data = await api.post(`/admin/subtopics/${subtopicId}/labs`, addForm);
-      const newLab = { id: data.labId, ...addForm };
-      const updated = [...labs, newLab];
-      setLabs(updated);
-      onUpdate({ labExercises: updated });
-      setAddForm({ title: '', instructions: '' });
-      setShowAdd(false);
+      const updated = [...labs, { id: data.labId, ...addForm }];
+      setLabs(updated); onUpdate({ labExercises: updated });
+      setAddForm({ title: '', instructions: '' }); setShowAdd(false);
       toast.show('Lab step added');
     } catch (e) { toast.show(e.message, 'error'); }
     finally { setAdding(false); }
@@ -636,8 +698,7 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
     try {
       await api.delete(`/admin/labs/${id}`);
       const updated = labs.filter(l => l.id !== id);
-      setLabs(updated);
-      onUpdate({ labExercises: updated });
+      setLabs(updated); onUpdate({ labExercises: updated });
       toast.show('Lab step deleted');
     } catch (e) { toast.show(e.message, 'error'); }
   };
@@ -650,19 +711,17 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
           <div><Lbl>Step Title</Lbl><Inp value={addForm.title} onChange={v => setAddForm(f => ({ ...f, title: v }))} placeholder="e.g. Configure VLAN" /></div>
-          <div style={{ marginTop: 10 }}><Lbl>Instructions</Lbl><Txta value={addForm.instructions} onChange={v => setAddForm(f => ({ ...f, instructions: v }))} placeholder="Step-by-step instructions..." rows={4} /></div>
+          <div style={{ marginTop: 10 }}><Lbl>Instructions</Lbl><Txta value={addForm.instructions} onChange={v => setAddForm(f => ({ ...f, instructions: v }))} rows={4} /></div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
             <Btn size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>
             <Btn size="sm" onClick={addLab} disabled={adding || !addForm.title.trim()}>{adding ? '…' : 'Add'}</Btn>
           </div>
         </div>
       )}
-      {labs.length === 0 && !showAdd && (
-        <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No lab exercises yet.</div>
-      )}
+      {labs.length === 0 && !showAdd && <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No lab exercises yet.</div>}
       {labs.map((lab, i) => (
         <div key={lab.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: clr.accentLight, color: clr.accentText, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i+1}</div>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: clr.accentLight, color: clr.accentText, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
           <div style={{ flex: 1, background: clr.faint, borderRadius: 10, padding: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600 }}>{lab.title}</span>
@@ -677,7 +736,9 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR – with PDF upload per subtopic (global PDF panel removed)
+// SUBTOPIC CONTENT EDITOR
+// ✅ FIX: PdfUploadButton and ImagesTab are now proper top-level components
+// ✅ FIX: uploadPdfToSubtopic is passed as prop to PdfUploadButton
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [notes, setNotes] = useState(sub.content || '');
@@ -687,9 +748,8 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [interviewQuestions, setInterviewQuestions] = useState(sub.interviewQuestions || []);
   const [examQuestions, setExamQuestions] = useState(sub.examQuestions || []);
   const [labExercises, setLabExercises] = useState(sub.labExercises || []);
-  
   const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [pdfProgress, setPdfProgress] = useState(0);
+  const [imageRefreshTrigger, setImageRefreshTrigger] = useState(0);
 
   useEffect(() => {
     setNotes(sub.content || '');
@@ -702,7 +762,7 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const saveNotes = async () => {
     setSaving(true);
     try {
-      await api.put(`/admin/subtopics/${subtopicId}/notes`, { notes });
+      await api.put(`/admin/subtopics/${subtopicId}`, { content: notes });
       onUpdate({ content: notes });
       toast.show('Notes saved');
     } catch (e) { toast.show(e.message, 'error'); }
@@ -720,164 +780,134 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   };
 
   const handleTabUpdate = (patch) => {
-    if (patch.interviewQuestions !== undefined) {
-      setInterviewQuestions(patch.interviewQuestions);
-      onUpdate({ interviewQuestions: patch.interviewQuestions });
-    }
-    if (patch.examQuestions !== undefined) {
-      setExamQuestions(patch.examQuestions);
-      onUpdate({ examQuestions: patch.examQuestions });
-    }
-    if (patch.labExercises !== undefined) {
-      setLabExercises(patch.labExercises);
-      onUpdate({ labExercises: patch.labExercises });
-    }
+    if (patch.interviewQuestions !== undefined) setInterviewQuestions(patch.interviewQuestions);
+    if (patch.examQuestions !== undefined) setExamQuestions(patch.examQuestions);
+    if (patch.labExercises !== undefined) setLabExercises(patch.labExercises);
+    onUpdate(patch);
   };
 
-  const embedUrl = videoUrl?.includes('watch?v=') ? videoUrl.replace('watch?v=', 'embed/') : 
-                    videoUrl?.includes('youtu.be/') ? videoUrl.replace('youtu.be/', 'youtube.com/embed/') : null;
-
+  // ✅ PDF upload — called from PdfUploadButton via onFileSelected prop
   const uploadPdfToSubtopic = async (file) => {
     if (!file) return;
     if (file.type !== 'application/pdf') {
       toast.show('Only PDF files allowed', 'error');
       return;
     }
+    console.log('uploadPdfToSubtopic called:', file.name, 'subtopicId:', subtopicId);
     setUploadingPdf(true);
-    setPdfProgress(0);
-    const fd = new FormData();
-    fd.append('file', file);
+    const formData = new FormData();
+    formData.append('file', file);
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          setPdfProgress(Math.round((e.loaded / e.total) * 100));
-        }
+      const response = await fetch(`${API_BASE}/admin/subtopics/${subtopicId}/upload-pdf`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        // ✅ No Content-Type header — browser sets it with boundary for FormData
+        body: formData,
       });
-      xhr.open('POST', `${API_BASE}/admin/subtopics/${subtopicId}/upload-pdf`, true);
-      xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          const extracted = data.extractedText || '';
-          const appendedText = notes + (notes ? '\n\n' : '') + '--- PDF Content ---\n' + extracted + '\n--- End PDF Content ---';
-          setNotes(appendedText);
-          toast.show(`PDF processed: ${data.imageCount || 0} images extracted`, 'success');
-        } else {
-          toast.show('Upload failed', 'error');
-        }
-        setUploadingPdf(false);
-        setPdfProgress(0);
-      };
-      xhr.onerror = () => {
-        toast.show('Upload failed', 'error');
-        setUploadingPdf(false);
-        setPdfProgress(0);
-      };
-      xhr.send(fd);
-    } catch (e) {
-      toast.show(e.message, 'error');
+      console.log('Upload response status:', response.status);
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || `HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Upload success:', data);
+
+      // Refresh subtopic content
+      const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
+      setNotes(refreshedSub.content || '');
+      setVideoUrl(refreshedSub.videoUrl || '');
+      onUpdate(refreshedSub);
+
+      // Trigger image tab reload
+      setImageRefreshTrigger(prev => prev + 1);
+      toast.show(`✅ PDF processed: ${data.imageCount || 0} images extracted.`, 'success');
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.show(err.message || 'Upload failed', 'error');
+    } finally {
       setUploadingPdf(false);
-      setPdfProgress(0);
     }
   };
+
+  const embedUrl = videoUrl?.includes('watch?v=')
+    ? videoUrl.replace('watch?v=', 'embed/')
+    : videoUrl?.includes('youtu.be/')
+      ? videoUrl.replace('youtu.be/', 'youtube.com/embed/')
+      : null;
+
+  const tabs = [
+    { key: 'notes', label: '📝 Notes' },
+    { key: 'video', label: '🎬 Video' },
+    { key: 'interview', label: '🎤 Interview Qs' },
+    { key: 'exam', label: '📋 Exam Qs' },
+    { key: 'lab', label: '🧪 Lab Steps' },
+    { key: 'images', label: '🖼️ Images' },
+  ];
 
   return (
     <Card>
       <div style={{ borderBottom: `1px solid ${clr.border}`, display: 'flex', overflowX: 'auto' }}>
-        <button onClick={() => setActiveTab('notes')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'notes' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'notes' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>📝 Notes</button>
-        <button onClick={() => setActiveTab('video')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'video' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'video' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>🎬 Video</button>
-        <button onClick={() => setActiveTab('interview')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'interview' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'interview' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>🎤 Interview Qs</button>
-        <button onClick={() => setActiveTab('exam')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'exam' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'exam' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>📋 Exam Qs</button>
-        <button onClick={() => setActiveTab('lab')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'lab' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'lab' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>🧪 Lab Steps</button>
+        {tabs.map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+            padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: 13, color: activeTab === tab.key ? clr.accent : clr.muted,
+            borderBottom: activeTab === tab.key ? `2px solid ${clr.accent}` : '2px solid transparent',
+            fontWeight: activeTab === tab.key ? 600 : 400, whiteSpace: 'nowrap',
+          }}>
+            {tab.label}
+          </button>
+        ))}
       </div>
-      
       <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 340px)' }}>
         {activeTab === 'notes' && (
           <div style={{ padding: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <Lbl>PDF Notes / Content</Lbl>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Lbl>Notes / Content</Lbl>
               <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">{saving ? 'Saving…' : '💾 Save Notes'}</Btn>
             </div>
-            
-            {/* PDF upload for this subtopic */}
-            <div style={{ marginBottom: 16 }}>
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => uploadPdfToSubtopic(e.target.files[0])}
-                style={{ display: 'none' }}
-                id="pdf-upload-subtopic"
-              />
-              <label htmlFor="pdf-upload-subtopic">
-                <Btn size="sm" variant="dashed" disabled={uploadingPdf} as="span" style={{ cursor: 'pointer' }}>
-                  {uploadingPdf ? `Uploading PDF... ${pdfProgress}%` : '📎 Upload PDF to this subtopic'}
-                </Btn>
-              </label>
-              {uploadingPdf && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ height: 4, borderRadius: 99, background: clr.border, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pdfProgress}%`, background: clr.accent, transition: 'width 0.3s' }} />
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <Txta value={notes} onChange={setNotes} placeholder="Paste PDF content or write notes here..." rows={15} />
+            {/* ✅ PdfUploadButton is now a proper top-level component with props */}
+            <PdfUploadButton
+              subtopicId={subtopicId}
+              uploadingPdf={uploadingPdf}
+              onFileSelected={uploadPdfToSubtopic}
+            />
+            <Txta value={notes} onChange={setNotes} rows={15} />
           </div>
         )}
-        
         {activeTab === 'video' && (
           <div style={{ padding: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <Lbl>Video URL</Lbl>
               <Btn size="sm" onClick={saveVideo} disabled={saving} variant="success">{saving ? 'Saving…' : '💾 Save Video'}</Btn>
             </div>
             <Inp value={videoUrl} onChange={setVideoUrl} placeholder="https://youtube.com/watch?v=..." />
-            {embedUrl && (
-              <div style={{ marginTop: 16, borderRadius: 10, overflow: 'hidden', border: `1px solid ${clr.border}` }}>
-                <iframe width="100%" height="400" src={embedUrl} title="Video" frameBorder="0" allowFullScreen />
-              </div>
-            )}
+            {embedUrl && <iframe width="100%" height="400" src={embedUrl} frameBorder="0" allowFullScreen style={{ marginTop: 16, borderRadius: 8 }} />}
           </div>
         )}
-
-        {activeTab === 'interview' && (
-          <InterviewTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={interviewQuestions} />
-        )}
-
-        {activeTab === 'exam' && (
-          <ExamTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={examQuestions} />
-        )}
-
-        {activeTab === 'lab' && (
-          <LabTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={labExercises} />
-        )}
+        {activeTab === 'interview' && <InterviewTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={interviewQuestions} />}
+        {activeTab === 'exam' && <ExamTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={examQuestions} />}
+        {activeTab === 'lab' && <LabTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={labExercises} />}
+        {/* ✅ ImagesTab is the top-level component — no duplicate inner definition */}
+        {activeTab === 'images' && <ImagesTab subtopicId={subtopicId} refreshTrigger={imageRefreshTrigger} />}
       </div>
     </Card>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT (global PDF upload panel removed)
+// MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function AdminCourseManager() {
   const toast = useToast();
-
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [topics, setTopics] = useState([]);
   const [activeTopicId, setActiveTopicId] = useState(null);
   const [activeSubId, setActiveSubId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState('course');
-  
   const [pagination, setPagination] = useState({
-    currentPage: 0,
-    totalPages: 0,
-    totalItems: 0,
-    pageSize: 50,
-    hasNext: false,
-    hasPrevious: false
+    currentPage: 0, totalPages: 0, totalItems: 0,
+    pageSize: 50, hasNext: false, hasPrevious: false,
   });
 
   const activeTopic = topics.find(t => t.id === activeTopicId);
@@ -888,20 +918,14 @@ export default function AdminCourseManager() {
     if (!courseId) return;
     setLoading(true);
     try {
-      const url = `/admin/courses/${courseId}/topics?page=${page}&size=${pagination.pageSize}&sortBy=displayOrder`;
-      const data = await api.get(url);
-      
+      const data = await api.get(`/admin/courses/${courseId}/topics?page=${page}&size=50&sortBy=displayOrder`);
       if (data.content && Array.isArray(data.content)) {
         setTopics(data.content);
         setPagination({
-          currentPage: data.currentPage,
-          totalPages: data.totalPages,
-          totalItems: data.totalItems,
-          pageSize: data.pageSize,
-          hasNext: data.hasNext,
-          hasPrevious: data.hasPrevious
+          currentPage: data.currentPage, totalPages: data.totalPages,
+          totalItems: data.totalItems, pageSize: data.pageSize,
+          hasNext: data.hasNext, hasPrevious: data.hasPrevious,
         });
-        
         if (data.content.length > 0 && !activeTopicId) {
           setActiveTopicId(data.content[0].id);
         }
@@ -909,42 +933,41 @@ export default function AdminCourseManager() {
     } catch (error) {
       console.error('Failed to load topics:', error);
       toast.show('Failed to load topics', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.pageSize, toast]);
+    } finally { setLoading(false); }
+  }, [toast]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < pagination.totalPages) {
       loadTopics(selectedCourse?.id, newPage);
-      setActiveTopicId(null);
-      setActiveSubId(null);
+      setActiveTopicId(null); setActiveSubId(null);
     }
   };
 
   const handleCourseSelect = (course) => {
     setSelectedCourse(course);
-    setTopics([]);
-    setActiveTopicId(null);
-    setActiveSubId(null);
+    setTopics([]); setActiveTopicId(null); setActiveSubId(null);
     setView('manage');
     loadTopics(course.id, 0);
   };
 
   const setSubtopics = (topicId, updater) => {
-    setTopics(ts => ts.map(t => t.id === topicId ? { ...t, subtopics: typeof updater === 'function' ? updater(t.subtopics || []) : updater } : t));
+    setTopics(ts => ts.map(t => t.id === topicId
+      ? { ...t, subtopics: typeof updater === 'function' ? updater(t.subtopics || []) : updater }
+      : t));
   };
 
   const updateActiveSub = (patch) => {
     setTopics(ts => ts.map(t => ({
       ...t,
-      subtopics: (t.subtopics || []).map(s => s.id === activeSubId ? { ...s, ...patch } : s)
+      subtopics: (t.subtopics || []).map(s => s.id === activeSubId ? { ...s, ...patch } : s),
     })));
   };
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
-      <style>{`* { box-sizing: border-box; }`}</style>
+      <style>{`* { box-sizing: border-box; } button { font-family: inherit; }`}</style>
+
+      {/* Header */}
       <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
         {selectedCourse && (
@@ -962,28 +985,37 @@ export default function AdminCourseManager() {
         </div>
       </div>
 
+      {/* Course selector view */}
       {view === 'course' && (
         <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 24px' }}>
-          <Card><SectionHead icon="🎓" title="Select a course to manage" /><CourseSelector selectedCourse={selectedCourse} onSelect={handleCourseSelect} toast={toast} /></Card>
+          <Card>
+            <SectionHead icon="🎓" title="Select a course to manage" />
+            <CourseSelector selectedCourse={selectedCourse} onSelect={handleCourseSelect} toast={toast} />
+          </Card>
         </div>
       )}
 
+      {/* Manage content view */}
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
+          {/* Sidebar */}
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {loading ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading...</div> : (
-                <TopicManager
-                  courseId={selectedCourse.id}
-                  topics={topics}
-                  setTopics={setTopics}
-                  activeTopicId={activeTopicId}
-                  setActiveTopicId={(id) => { setActiveTopicId(id); setActiveSubId(null); }}
-                  toast={toast}
-                  pagination={pagination}
-                  onPageChange={handlePageChange}
-                />
-              )}
+              {loading
+                ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading...</div>
+                : (
+                  <TopicManager
+                    courseId={selectedCourse.id}
+                    topics={topics}
+                    setTopics={setTopics}
+                    activeTopicId={activeTopicId}
+                    setActiveTopicId={(id) => { setActiveTopicId(id); setActiveSubId(null); }}
+                    toast={toast}
+                    pagination={pagination}
+                    onPageChange={handlePageChange}
+                  />
+                )
+              }
               {activeTopic && (
                 <SubtopicManager
                   topic={activeTopic}
@@ -996,17 +1028,19 @@ export default function AdminCourseManager() {
               )}
             </div>
           </div>
+
+          {/* Content editor */}
           <div style={{ overflowY: 'auto', padding: 20 }}>
-            {activeSub ? (
-              <SubtopicContentEditor key={activeSub.id} sub={activeSub} subtopicId={activeSub.id} toast={toast} onUpdate={updateActiveSub} />
-            ) : (
-              <div style={{ textAlign: 'center', color: clr.muted, padding: 60 }}>
-                {activeTopic ? 'Select a subtopic to view and edit its PDF notes' : 'Select a topic first, then add subtopics'}
-              </div>
-            )}
+            {activeSub
+              ? <SubtopicContentEditor key={activeSub.id} sub={activeSub} subtopicId={activeSub.id} toast={toast} onUpdate={updateActiveSub} />
+              : <div style={{ textAlign: 'center', color: clr.muted, padding: 60 }}>
+                  {activeTopic ? 'Select a subtopic to edit its content' : 'Select a topic first, then choose a subtopic'}
+                </div>
+            }
           </div>
         </div>
       )}
+
       <ToastContainer toasts={toast.toasts} />
     </div>
   );
