@@ -432,7 +432,7 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TOPIC MANAGER - Manual Topic Creation (NO PDF CODE HERE)
+// TOPIC MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════
 function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTopicId, toast, pagination, onPageChange }) {
   const [modal, setModal] = useState(null);
@@ -534,7 +534,7 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC MANAGER - Manual Subtopic Creation with PDF Notes
+// SUBTOPIC MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiveSubId, toast }) {
   const [modal, setModal] = useState(null);
@@ -625,9 +625,8 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR - View and Edit PDF Notes
+// INTERVIEW QUESTIONS TAB
 // ═══════════════════════════════════════════════════════════════════════════════
-// ─── Interview Questions Tab Component ─────────────────────────────────────
 function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
   const [questions, setQuestions] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ question: '', answer: '' });
@@ -676,7 +675,7 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
   return (
     <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(s => !s)}>＋ Add Question</Btn>
+        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(true)} disabled={!subtopicId}>＋ Add Question</Btn>
       </div>
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
@@ -705,7 +704,9 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
   );
 }
 
-// ─── Exam Questions (MCQ) Tab Component ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXAM QUESTIONS (MCQ) TAB
+// ═══════════════════════════════════════════════════════════════════════════════
 function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   const [questions, setQuestions] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
@@ -754,7 +755,7 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   return (
     <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(s => !s)}>＋ Add MCQ</Btn>
+        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(true)} disabled={!subtopicId}>＋ Add MCQ</Btn>
       </div>
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
@@ -794,7 +795,9 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   );
 }
 
-// ─── Lab Exercises Tab Component ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// LAB EXERCISES TAB
+// ═══════════════════════════════════════════════════════════════════════════════
 function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   const [labs, setLabs] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ title: '', instructions: '' });
@@ -843,7 +846,7 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   return (
     <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(s => !s)}>＋ Add Lab Step</Btn>
+        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(true)} disabled={!subtopicId}>＋ Add Lab Step</Btn>
       </div>
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
@@ -874,11 +877,11 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// UPDATED SUBTOPIC CONTENT EDITOR with all tabs
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUBTOPIC CONTENT EDITOR – uses `content`, syncs with useEffect
+// ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
-  const [notes, setNotes] = useState(sub.notes || '');
+  const [notes, setNotes] = useState(sub.content || '');
   const [videoUrl, setVideoUrl] = useState(sub.videoUrl || '');
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('notes');
@@ -886,18 +889,27 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [examQuestions, setExamQuestions] = useState(sub.examQuestions || []);
   const [labExercises, setLabExercises] = useState(sub.labExercises || []);
 
-  // Save Notes
+  useEffect(() => {
+    setNotes(sub.content || '');
+    setVideoUrl(sub.videoUrl || '');
+    setInterviewQuestions(sub.interviewQuestions || []);
+    setExamQuestions(sub.examQuestions || []);
+    setLabExercises(sub.labExercises || []);
+  }, [sub]);
+
   const saveNotes = async () => {
     setSaving(true);
     try {
       await api.put(`/admin/subtopics/${subtopicId}/notes`, { notes });
-      onUpdate({ notes });
+      onUpdate({ content: notes });
       toast.show('Notes saved');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setSaving(false); }
+    } catch (e) {
+      toast.show(e.message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Save Video URL
   const saveVideo = async () => {
     setSaving(true);
     try {
@@ -908,7 +920,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
     finally { setSaving(false); }
   };
 
-  // Generic update handler for child tabs (used when data changes internally)
   const handleTabUpdate = (patch) => {
     if (patch.interviewQuestions !== undefined) {
       setInterviewQuestions(patch.interviewQuestions);
@@ -978,6 +989,7 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
     </Card>
   );
 }
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1064,6 +1076,8 @@ export default function AdminCourseManager() {
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
+      <style>{`* { box-sizing: border-box; } @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }`}</style>
+
       {/* Top bar */}
       <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
@@ -1096,11 +1110,14 @@ export default function AdminCourseManager() {
           {/* LEFT SIDEBAR */}
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* PDF Upload Panel */}
               <PdfUploadPanel 
                 courseId={selectedCourse.id} 
                 toast={toast} 
-                onStructureGenerated={(cid) => loadTopics(cid || selectedCourse.id, 0)} 
+                onStructureGenerated={(cid) => {
+                  loadTopics(cid || selectedCourse.id, 0);
+                  setActiveSubId(null);
+                  setActiveTopicId(null);
+                }} 
               />
               
               {loading ? (
