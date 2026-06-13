@@ -205,7 +205,8 @@ export default function AdminCourseManager() {
       setTopicsLoading(true);
       try {
         const data = await getCourseTopics(courseId);
-        const ts = Array.isArray(data) ? data : [];
+        const ts = Array.isArray(data) ? data : data?.topics || [];
+        console.log(`[AdminCourseManager] Loaded ${ts.length} topics for course ${courseId}`, ts);
         setTopics(ts);
         if (ts.length > 0) {
           setActiveTopicId(ts[0].id);
@@ -215,6 +216,7 @@ export default function AdminCourseManager() {
           setActiveSubId(null);
         }
       } catch (e) {
+        console.error('[AdminCourseManager] Failed to load topics:', e);
         toast.show('Failed to load topics', 'error');
       } finally {
         setTopicsLoading(false);

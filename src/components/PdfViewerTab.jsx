@@ -1,6 +1,12 @@
-// src/components/PdfViewerTab.jsx - CORRECTED VERSION
+// src/components/PdfViewerTab.jsx - WORKING VERSION
 import React, { useState, useEffect } from 'react';
-import { getAllPdfs, getPdfText, getPdfImages, getOrderedPdfContent, formatFileSize, formatDate, getAllPdfsEnriched } from '../api/pdfApi';
+import { 
+  getAllPdfs, 
+  getPdfImages, 
+  getOrderedPdfContent, 
+  formatFileSize, 
+  formatDate 
+} from '../api/pdfApi';
 import Swal from 'sweetalert2';
 
 const styles = {
@@ -35,6 +41,7 @@ const styles = {
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     border: '1px solid #e5e7eb',
     transition: 'transform 0.2s, box-shadow 0.2s',
+    cursor: 'pointer',
   },
   pdfIcon: {
     fontSize: '40px',
@@ -236,22 +243,6 @@ const styles = {
     padding: '60px',
     color: '#9ca3af',
   },
-  badge: {
-    display: 'inline-block',
-    padding: '2px 8px',
-    borderRadius: '12px',
-    fontSize: '11px',
-    fontWeight: '600',
-    marginLeft: '8px',
-  },
-  badgeText: {
-    background: '#e0e7ff',
-    color: '#4338ca',
-  },
-  badgeImage: {
-    background: '#fef3c7',
-    color: '#d97706',
-  },
 };
 
 const PdfViewerTab = ({ onViewCourse }) => {
@@ -268,8 +259,9 @@ const PdfViewerTab = ({ onViewCourse }) => {
 
   const getBaseUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
+  // ✅ FIXED: Use /admin/pdfs/ instead of /user/pdfs/
   const getImageUrl = (pdfId, imageId) => {
-    return `${getBaseUrl()}/user/pdfs/${pdfId}/images/${imageId}`;
+    return `${getBaseUrl()}/admin/pdfs/${pdfId}/images/${imageId}`;
   };
 
   const handleImageError = (imageId) => {
@@ -285,26 +277,13 @@ const PdfViewerTab = ({ onViewCourse }) => {
   const fetchPdfs = async () => {
     setLoading(true);
     try {
-      // Try enriched endpoint first (if available)
-      let response;
-      try {
-        const enrichedModule = await import('../api/pdfApi');
-        if (enrichedModule.getAllPdfsEnriched) {
-          response = await enrichedModule.getAllPdfsEnriched();
-          console.log("Enriched PDFs response:", response.data);
-        } else {
-          throw new Error('getAllPdfsEnriched not available');
-        }
-      } catch (err) {
-        console.log("Enriched endpoint not available, using regular endpoint");
-        response = await getAllPdfs();
-      }
+      const response = await getAllPdfs();
+      console.log("PDFs response:", response.data);
       
       const pdfList = (response.data || []).map(pdf => ({
         id: pdf.id,
         name: pdf.fileName,
         fileName: pdf.fileName,
-        type: "Course",
         pages: pdf.pageCount || 0,
         images: pdf.imageCount || 0,
         status: pdf.isProcessed ? "Completed" : "Processing",
@@ -314,12 +293,11 @@ const PdfViewerTab = ({ onViewCourse }) => {
         imageCount: pdf.imageCount,
         isProcessed: pdf.isProcessed,
         uploadedAt: pdf.uploadedAt,
-        courseId: pdf.courseId || pdf.course?.id || null,
-        courseTitle: pdf.courseTitle || pdf.course?.title || "Not assigned",
-        course: pdf.course || (pdf.courseId ? { id: pdf.courseId, title: pdf.courseTitle } : null),
+        courseId: pdf.course?.id || null,
+        courseTitle: pdf.course?.title || "Not assigned",
+        course: pdf.course || null,
       }));
       
-      console.log("Processed PDFs with course mapping:", pdfList);
       setPdfs(pdfList);
     } catch (error) {
       console.error("Error fetching PDFs:", error);
@@ -332,7 +310,6 @@ const PdfViewerTab = ({ onViewCourse }) => {
   const handleViewPdf = async (pdf) => {
     console.log("PDF object received:", pdf);
     
-    // Make sure we preserve the course info
     const pdfWithCourse = {
       ...pdf,
       courseId: pdf.courseId || pdf.course?.id || null,
@@ -345,16 +322,19 @@ const PdfViewerTab = ({ onViewCourse }) => {
     setLoading(true);
     
     try {
-      const textResponse = await getPdfText(pdf.id);
-      setExtractedText(textResponse.data.text || 'No text extracted');
-      
-      const imagesResponse = await getPdfImages(pdf.id);
-      setImages(imagesResponse.data.images || []);
-      
-      // Fetch ordered content
+      // Get ordered content (includes text)
       const orderedResponse = await getOrderedPdfContent(pdf.id);
       const orderedContentData = orderedResponse.data.content || orderedResponse.data.orderedContent || [];
       setOrderedContent(orderedContentData);
+      
+      // Extract text from ordered content
+      const textItems = orderedContentData.filter(item => item.type === 'TEXT');
+      const fullText = textItems.map(item => item.content).join('\n\n');
+      setExtractedText(fullText || 'No text extracted');
+      
+      // Get images
+      const imagesResponse = await getPdfImages(pdf.id);
+      setImages(imagesResponse.data.images || []);
       
       // Group by page
       const groupedByPage = {};
@@ -418,13 +398,14 @@ const PdfViewerTab = ({ onViewCourse }) => {
         );
       }
     } else if (item.type === 'IMAGE') {
+      const imageUrl = getImageUrl(selectedPdf.id, item.imageId);
       return (
         <div key={index} style={styles.imageWrapper}>
           <img 
-            src={getImageUrl(selectedPdf.id, item.imageId)} 
+            src={imageErrors[item.imageId] ? 'https://via.placeholder.com/400x300?text=Image+Not+Found' : imageUrl}
             alt={`Content illustration`}
             style={styles.imageDisplay}
-            onClick={() => window.open(getImageUrl(selectedPdf.id, item.imageId), '_blank')}
+            onClick={() => window.open(imageUrl, '_blank')}
             onError={() => handleImageError(item.imageId)}
           />
           {item.width && item.height && (
@@ -473,7 +454,7 @@ const PdfViewerTab = ({ onViewCourse }) => {
       ) : (
         <div style={styles.pdfGrid}>
           {pdfs.map((pdf) => (
-            <div key={pdf.id} style={styles.pdfCard}>
+            <div key={pdf.id} style={styles.pdfCard} onClick={() => handleViewPdf(pdf)}>
               <div style={styles.pdfIcon}>📄</div>
               <div style={styles.pdfName} title={pdf.fileName}>
                 {pdf.fileName}
@@ -491,13 +472,13 @@ const PdfViewerTab = ({ onViewCourse }) => {
               <div style={styles.buttonGroup}>
                 <button 
                   style={{...styles.button, ...styles.buttonPrimary}}
-                  onClick={() => handleViewPdf(pdf)}
+                  onClick={(e) => { e.stopPropagation(); handleViewPdf(pdf); }}
                 >
                   View Details
                 </button>
                 <button 
                   style={{...styles.button, ...styles.buttonCourse}}
-                  onClick={() => handleViewAsCourse(pdf)}
+                  onClick={(e) => { e.stopPropagation(); handleViewAsCourse(pdf); }}
                 >
                   📖 View as Course
                 </button>
@@ -571,27 +552,26 @@ const PdfViewerTab = ({ onViewCourse }) => {
                 {images.length === 0 ? (
                   <div style={styles.emptyState}>No images extracted from this PDF</div>
                 ) : (
-                  images.map((image, index) => (
-                    <div 
-                      key={image.id} 
-                      style={styles.imageCard}
-                      onClick={() => window.open(getImageUrl(selectedPdf.id, image.id), '_blank')}
-                    >
-                      <img 
-                        src={getImageUrl(selectedPdf.id, image.id)} 
-                        alt={`Page ${image.pageNumber}, figure ${index + 1}`}
-                        style={styles.image}
-                        onError={(e) => {
-                          console.error('Failed to load image:', e.target.src);
-                          e.target.onerror = null;
-                          e.target.src = 'https://via.placeholder.com/150x120?text=Image+Not+Found';
-                        }}
-                      />
-                      <div style={styles.imageInfo}>
-                        Page {image.pageNumber} • {image.width}x{image.height}
+                  images.map((image, index) => {
+                    const imageUrl = getImageUrl(selectedPdf.id, image.id);
+                    return (
+                      <div 
+                        key={image.id} 
+                        style={styles.imageCard}
+                        onClick={() => window.open(imageUrl, '_blank')}
+                      >
+                        <img 
+                          src={imageErrors[image.id] ? 'https://via.placeholder.com/150x120?text=Image+Not+Found' : imageUrl}
+                          alt={`Page ${image.pageNumber}, figure ${index + 1}`}
+                          style={styles.image}
+                          onError={() => handleImageError(image.id)}
+                        />
+                        <div style={styles.imageInfo}>
+                          Page {image.pageNumber} • {image.width}x{image.height}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}

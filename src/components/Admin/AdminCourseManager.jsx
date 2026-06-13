@@ -14,11 +14,6 @@ const api = {
   post: (url, body) => fetch(`${API_BASE}${url}`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) }).then(r => r.json()),
   put: (url, body) => fetch(`${API_BASE}${url}`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) }).then(r => r.json()),
   delete: (url) => fetch(`${API_BASE}${url}`, { method: 'DELETE', headers: authHeaders() }).then(r => r.json()),
-  upload: (url, formData) => fetch(`${API_BASE}${url}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-    body: formData,
-  }).then(r => r.json()),
 };
 
 // ─── palette ──────────────────────────────────────────────────────────────────
@@ -68,7 +63,6 @@ function ToastContainer({ toasts }) {
           color: t.type === 'success' ? clr.success : t.type === 'error' ? clr.danger : clr.warn,
           border: `1px solid ${t.type === 'success' ? '#bbf7d0' : t.type === 'error' ? '#fecaca' : '#fde68a'}`,
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          animation: 'slideIn 0.2s ease',
         }}>
           {t.type === 'success' ? '✓ ' : t.type === 'error' ? '✕ ' : '⚠ '}{t.msg}
         </div>
@@ -147,7 +141,7 @@ const SectionHead = ({ icon, title, count, action }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR (with Create New Course option - ALL FIELDS)
+// COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
@@ -161,8 +155,6 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     level: 'Beginner',
     duration: '',
     price: 0,
-    imageUrl: '',
-    videoUrl: ''
   });
   const [creating, setCreating] = useState(false);
 
@@ -192,36 +184,17 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
       const response = await fetch(`${API_BASE}/admin/courses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({
-          title: newCourse.title,
-          description: newCourse.description || '',
-          instructor: newCourse.instructor || 'Admin',
-          level: newCourse.level,
-          duration: newCourse.duration || 'Self-paced',
-          price: parseFloat(newCourse.price) || 0,
-          imageUrl: newCourse.imageUrl || '',
-          videoUrl: newCourse.videoUrl || ''
-        }),
+        body: JSON.stringify(newCourse),
       });
       if (response.ok) {
         const newCourseData = await response.json();
         await loadCourses();
-        setNewCourse({
-          title: '',
-          description: '',
-          instructor: '',
-          level: 'Beginner',
-          duration: '',
-          price: 0,
-          imageUrl: '',
-          videoUrl: ''
-        });
+        setNewCourse({ title: '', description: '', instructor: '', level: 'Beginner', duration: '', price: 0 });
         setShowCreateModal(false);
         onSelect(newCourseData);
         toast.show(`Course "${newCourse.title}" created!`);
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create course');
+        throw new Error('Failed to create course');
       }
     } catch (error) {
       toast.show(error.message, 'error');
@@ -243,9 +216,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
         {loading ? (
           <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading courses…</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>
-            {search ? 'No matching courses found' : 'No courses yet. Click "Create New Course" to get started.'}
-          </div>
+          <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>No courses yet.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
             {filtered.map(c => (
@@ -255,12 +226,12 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
                 border: `1.5px solid ${selectedCourse?.id === c.id ? clr.accent : 'transparent'}`,
                 display: 'flex', alignItems: 'center', gap: 12,
               }}>
-                <div style={{ width: 36, height: 36, borderRadius: 8, background: clr.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: clr.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
                   {c.title?.[0]?.toUpperCase() || '?'}
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: clr.text }}>{c.title}</div>
-                  <div style={{ fontSize: 11, color: clr.muted }}>ID: {c.id} · {c.level || 'Beginner'} · {c.instructor || 'Admin'}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{c.title}</div>
+                  <div style={{ fontSize: 11, color: clr.muted }}>ID: {c.id}</div>
                 </div>
               </div>
             ))}
@@ -268,126 +239,20 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
         )}
       </div>
 
-      {/* Create Course Modal - ALL FIELDS from courses table */}
       {showCreateModal && (
         <Modal title="Create New Course" onClose={() => setShowCreateModal(false)} width={600}>
           <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Course Title - Required */}
-            <div>
-              <Lbl>Course Title <span style={{ color: clr.danger }}>*</span></Lbl>
-              <Inp 
-                value={newCourse.title} 
-                onChange={v => setNewCourse({ ...newCourse, title: v })} 
-                placeholder="e.g., CCNA 200-301" 
-                autoFocus
-              />
+            <div><Lbl>Course Title *</Lbl><Inp value={newCourse.title} onChange={v => setNewCourse({ ...newCourse, title: v })} placeholder="Course title" /></div>
+            <div><Lbl>Description</Lbl><Txta value={newCourse.description} onChange={v => setNewCourse({ ...newCourse, description: v })} placeholder="Description" rows={3} /></div>
+            <div><Lbl>Instructor</Lbl><Inp value={newCourse.instructor} onChange={v => setNewCourse({ ...newCourse, instructor: v })} placeholder="Instructor" /></div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}><Lbl>Level</Lbl><Inp value={newCourse.level} onChange={v => setNewCourse({ ...newCourse, level: v })} placeholder="Level" /></div>
+              <div style={{ flex: 1 }}><Lbl>Duration</Lbl><Inp value={newCourse.duration} onChange={v => setNewCourse({ ...newCourse, duration: v })} placeholder="Duration" /></div>
             </div>
-
-            {/* Description */}
-            <div>
-              <Lbl>Description</Lbl>
-              <Txta 
-                value={newCourse.description} 
-                onChange={v => setNewCourse({ ...newCourse, description: v })} 
-                placeholder="Brief description of the course..." 
-                rows={3}
-              />
-            </div>
-
-            {/* Instructor */}
-            <div>
-              <Lbl>Instructor</Lbl>
-              <Inp 
-                value={newCourse.instructor} 
-                onChange={v => setNewCourse({ ...newCourse, instructor: v })} 
-                placeholder="Instructor name" 
-              />
-            </div>
-
-            {/* Level and Duration - Two columns */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <Lbl>Level</Lbl>
-                <select 
-                  value={newCourse.level} 
-                  onChange={e => setNewCourse({ ...newCourse, level: e.target.value })}
-                  style={{ width: '100%', padding: '8px 11px', fontSize: 13, border: `1px solid ${clr.border}`, borderRadius: 8, outline: 'none', background: clr.white, cursor: 'pointer' }}
-                >
-                  <option value="Beginner">Beginner</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Advanced">Advanced</option>
-                </select>
-              </div>
-              <div>
-                <Lbl>Duration</Lbl>
-                <Inp 
-                  value={newCourse.duration} 
-                  onChange={v => setNewCourse({ ...newCourse, duration: v })} 
-                  placeholder="e.g., 10 hours, 6 weeks" 
-                />
-              </div>
-            </div>
-
-            {/* Price */}
-            <div>
-              <Lbl>Price ($)</Lbl>
-              <Inp 
-                type="number"
-                step="0.01"
-                value={newCourse.price} 
-                onChange={v => setNewCourse({ ...newCourse, price: parseFloat(v) || 0 })} 
-                placeholder="0.00" 
-              />
-            </div>
-
-            {/* Image URL */}
-            <div>
-              <Lbl>Image URL</Lbl>
-              <Inp 
-                value={newCourse.imageUrl} 
-                onChange={v => setNewCourse({ ...newCourse, imageUrl: v })} 
-                placeholder="https://example.com/course-image.jpg" 
-              />
-              {newCourse.imageUrl && (
-                <div style={{ marginTop: 8, fontSize: 11, color: clr.muted }}>
-                  Preview: <span style={{ color: clr.accent, wordBreak: 'break-all' }}>{newCourse.imageUrl}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Video URL */}
-            <div>
-              <Lbl>Video URL (Promo)</Lbl>
-              <Inp 
-                value={newCourse.videoUrl} 
-                onChange={v => setNewCourse({ ...newCourse, videoUrl: v })} 
-                placeholder="https://youtube.com/watch?v=..." 
-              />
-              {newCourse.videoUrl && (
-                <div style={{ marginTop: 8, fontSize: 11, color: clr.muted }}>
-                  Preview: <span style={{ color: clr.accent, wordBreak: 'break-all' }}>{newCourse.videoUrl}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-              <Btn variant="ghost" onClick={() => {
-                setShowCreateModal(false);
-                setNewCourse({
-                  title: '',
-                  description: '',
-                  instructor: '',
-                  level: 'Beginner',
-                  duration: '',
-                  price: 0,
-                  imageUrl: '',
-                  videoUrl: ''
-                });
-              }}>Cancel</Btn>
-              <Btn onClick={handleCreateCourse} disabled={creating || !newCourse.title.trim()}>
-                {creating ? 'Creating...' : 'Create Course'}
-              </Btn>
+            <div><Lbl>Price</Lbl><Inp type="number" value={newCourse.price} onChange={v => setNewCourse({ ...newCourse, price: parseFloat(v) || 0 })} placeholder="0.00" /></div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <Btn variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Btn>
+              <Btn onClick={handleCreateCourse} disabled={creating || !newCourse.title.trim()}>{creating ? 'Creating...' : 'Create Course'}</Btn>
             </div>
           </div>
         </Modal>
@@ -397,7 +262,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PDF UPLOAD PANEL
+// PDF UPLOAD PANEL - WORKING VERSION
 // ═══════════════════════════════════════════════════════════════════════════════
 function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
   const [file, setFile] = useState(null);
@@ -409,8 +274,12 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
   const inputRef = useRef();
 
   const handleFile = f => {
-    if (f?.type === 'application/pdf') setFile(f);
-    else toast.show('Only PDF files allowed', 'error');
+    if (f?.type === 'application/pdf') {
+      setFile(f);
+      setPdfId(null);
+    } else {
+      toast.show('Only PDF files allowed', 'error');
+    }
   };
 
   const handleUpload = async () => {
@@ -421,18 +290,45 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      if (courseId) fd.append('courseId', courseId);
-      const data = await api.upload('/admin/pdfs/upload', fd);
+      fd.append('courseId', courseId);
+      console.log(`[PdfUploadPanel] Uploading PDF for courseId: ${courseId}`);
+      
+      const response = await fetch(`${API_BASE}/admin/pdfs/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: fd,
+      });
+      
+      const data = await response.json();
+      console.log('[PdfUploadPanel] Upload response:', data);
       clearInterval(iv);
       setProgress(100);
-      if (data.pdfId) {
-        setPdfId(data.pdfId);
-        toast.show(`PDF uploaded — ${data.imageCount || 0} images extracted`);
-        setFile(null);
-      } else throw new Error(data.error || 'Upload failed');
+      
+      if (response.ok && data.id) {
+        setPdfId(data.id);
+        console.log('[PdfUploadPanel] PDF ID set to:', data.id);
+        
+        toast.show(`✓ PDF "${file.name}" uploaded successfully!`, 'success');
+        
+        // Check if structure was auto-generated
+        if (data.structureGenerated || data.topicsCount > 0) {
+          toast.show(`✓ Course structure auto-generated!`, 'success');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          onStructureGenerated(courseId);
+          setFile(null);
+          setPdfId(null);
+        } else {
+          setFile(null);
+          toast.show('PDF uploaded. Click "Generate Structure" to create topics.', 'info');
+        }
+      } else {
+        throw new Error(data.error || data.message || 'Upload failed');
+      }
+      
     } catch (e) {
       clearInterval(iv);
       setProgress(0);
+      console.error('[PdfUploadPanel] Upload error:', e);
       toast.show(e.message, 'error');
     } finally {
       setUploading(false);
@@ -441,16 +337,30 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
   };
 
   const handleGenerate = async () => {
-    if (!pdfId) return;
+    if (!pdfId) {
+      toast.show('No PDF ID available. Please upload a PDF first.', 'error');
+      return;
+    }
+    
     setGenerating(true);
     try {
       const data = await api.post(`/admin/pdfs/${pdfId}/generate-structure`, {});
-      if (data.success) {
-        toast.show(`Structure generated — ${data.topicsCount} topics, ${data.subtopicsCount} subtopics`);
-        onStructureGenerated(data.courseId);
-      } else throw new Error(data.error || 'Generation failed');
+      console.log('[PdfUploadPanel] Generate response:', data);
+      
+      if (data.success || data.topicsCount !== undefined) {
+        const topicCount = data.topicsCount || 0;
+        const subtopicCount = data.subtopicsCount || 0;
+        toast.show(`✓ Structure generated — ${topicCount} topics, ${subtopicCount} subtopics`, 'success');
+        
+        await new Promise(resolve => setTimeout(resolve, 800));
+        onStructureGenerated(courseId);
+        setPdfId(null);
+      } else {
+        throw new Error(data.error || 'Generation failed - invalid response');
+      }
     } catch (e) {
-      toast.show(e.message, 'error');
+      console.error('[PdfUploadPanel] Generation error:', e);
+      toast.show(e.message || 'Failed to generate structure', 'error');
     } finally {
       setGenerating(false);
     }
@@ -458,18 +368,30 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
 
   return (
     <Card>
-      <SectionHead icon="📄" title="Upload PDF — auto-extract course structure" />
+      <SectionHead icon="📄" title="Upload PDF — Auto-extract Course Structure" />
       <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div
-          style={{ border: `2px dashed ${dragging ? clr.accent : file ? clr.success : clr.border}`, borderRadius: 12, padding: '20px 16px', textAlign: 'center', background: dragging ? clr.accentLight : file ? clr.successLight : clr.faint, cursor: 'pointer', transition: 'all 0.2s' }}
+          style={{ 
+            border: `2px dashed ${dragging ? clr.accent : file ? clr.success : clr.border}`, 
+            borderRadius: 12, 
+            padding: '20px 16px', 
+            textAlign: 'center', 
+            background: dragging ? clr.accentLight : file ? clr.successLight : clr.faint, 
+            cursor: 'pointer', 
+            transition: 'all 0.2s' 
+          }}
           onClick={() => inputRef.current.click()}
           onDragOver={e => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
         >
           <div style={{ fontSize: 32, marginBottom: 6 }}>{file ? '✅' : '📄'}</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: file ? clr.success : clr.text }}>{file ? file.name : 'Drop PDF here or click to browse'}</div>
-          <div style={{ fontSize: 11, color: clr.muted, marginTop: 3 }}>Extracts text, images and auto-creates topics</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: file ? clr.success : clr.text }}>
+            {file ? file.name : 'Drop PDF here or click to browse'}
+          </div>
+          <div style={{ fontSize: 11, color: clr.muted, marginTop: 3 }}>
+            Extracts text, images and auto-creates topics
+          </div>
           <input ref={inputRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
         </div>
 
@@ -482,19 +404,26 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
           </div>
         )}
 
+        {generating && (
+          <div style={{ fontSize: 12, color: clr.accent, background: clr.accentLight, padding: '8px 12px', borderRadius: 8, textAlign: 'center' }}>
+            ⏳ Generating course structure from PDF...
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 10 }}>
-          <Btn onClick={handleUpload} disabled={!file || uploading} variant="primary" style={{ flex: 1, justifyContent: 'center' }}>
+          <Btn onClick={handleUpload} disabled={!file || uploading || generating} variant="primary" style={{ flex: 1, justifyContent: 'center' }}>
             {uploading ? '⏳ Uploading…' : '📤 Upload PDF'}
           </Btn>
-          {pdfId && (
+          {pdfId && !uploading && (
             <Btn onClick={handleGenerate} disabled={generating} variant="success" style={{ flex: 1, justifyContent: 'center' }}>
               {generating ? '⏳ Generating…' : '🏗 Generate Structure'}
             </Btn>
           )}
         </div>
-        {pdfId && (
+        
+        {pdfId && !uploading && !generating && (
           <div style={{ fontSize: 12, color: clr.success, background: clr.successLight, padding: '8px 12px', borderRadius: 8, border: `1px solid #bbf7d0` }}>
-            ✓ PDF #{pdfId} ready — click "Generate Structure" to create topics from the PDF content
+            ✓ PDF #{pdfId} ready — click "Generate Structure" to create topics
           </div>
         )}
       </div>
@@ -503,9 +432,9 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TOPIC MANAGER
+// TOPIC MANAGER - Manual Topic Creation (NO PDF CODE HERE)
 // ═══════════════════════════════════════════════════════════════════════════════
-function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTopicId, toast }) {
+function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTopicId, toast, pagination, onPageChange }) {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ title: '' });
   const [editId, setEditId] = useState(null);
@@ -528,6 +457,7 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
         const newTopic = { id: data.topicId || data.topic?.id, title: form.title, subtopics: [] };
         setTopics(ts => [...ts, newTopic]);
         toast.show('Topic created');
+        onPageChange(pagination.currentPage);
       }
       setModal(null);
     } catch (e) { toast.show(e.message, 'error'); }
@@ -542,6 +472,7 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
       setTopics(ts => ts.filter(t => t.id !== id));
       if (activeTopicId === id) setActiveTopicId(null);
       toast.show('Topic deleted');
+      onPageChange(pagination.currentPage);
     } catch (e) { toast.show(e.message, 'error'); }
     finally { setDeletingId(null); }
   };
@@ -549,12 +480,15 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
   return (
     <>
       <Card>
-        <SectionHead icon="📚" title="Topics" count={topics.length} action={
-          <Btn size="sm" variant="dashed" onClick={openAdd}>＋ Add topic</Btn>
+        <SectionHead icon="📚" title="Topics" count={pagination.totalItems} action={
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn size="sm" variant="ghost" onClick={() => onPageChange(pagination.currentPage)}>⟳ Refresh</Btn>
+            <Btn size="sm" variant="dashed" onClick={openAdd}>＋ Add Topic</Btn>
+          </div>
         } />
         <div style={{ padding: '8px 0' }}>
           {topics.length === 0 && (
-            <div style={{ padding: '24px', textAlign: 'center', color: clr.muted, fontSize: 13 }}>No topics yet. Add one above or upload a PDF.</div>
+            <div style={{ padding: '24px', textAlign: 'center', color: clr.muted, fontSize: 13 }}>No topics yet. Click "Add Topic" to create one.</div>
           )}
           {topics.map((t, i) => (
             <div key={t.id} style={{
@@ -563,25 +497,34 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
               borderLeft: activeTopicId === t.id ? `3px solid ${clr.accent}` : '3px solid transparent',
               cursor: 'pointer', borderBottom: `1px solid ${clr.border}`,
             }} onClick={() => setActiveTopicId(t.id)}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: clr.accentLight, color: clr.accentText, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
-              <div style={{ flex: 1, fontSize: 13, fontWeight: activeTopicId === t.id ? 600 : 400, color: activeTopicId === t.id ? clr.accentText : clr.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                <span style={{ fontSize: 11, color: clr.muted, background: clr.faint, padding: '2px 7px', borderRadius: 10 }}>{t.subtopics?.length || 0} subs</span>
-                <button onClick={e => { e.stopPropagation(); openEdit(t); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted, fontSize: 14, padding: '2px 5px' }}>✏</button>
-                <button onClick={e => { e.stopPropagation(); del(t.id); }} disabled={deletingId === t.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.danger, fontSize: 14, padding: '2px 5px' }}>🗑</button>
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: clr.accentLight, color: clr.accentText, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1 + (pagination.currentPage * pagination.pageSize)}</div>
+              <div style={{ flex: 1, fontSize: 13, fontWeight: activeTopicId === t.id ? 600 : 400 }}>{t.title}</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <span style={{ fontSize: 11, color: clr.muted, background: clr.faint, padding: '2px 7px', borderRadius: 10 }}>{t.subtopics?.length || 0}</span>
+                <button onClick={e => { e.stopPropagation(); openEdit(t); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted }}>✏</button>
+                <button onClick={e => { e.stopPropagation(); del(t.id); }} disabled={deletingId === t.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.danger }}>🗑</button>
               </div>
             </div>
           ))}
+          
+          {pagination.totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '16px', borderTop: `1px solid ${clr.border}` }}>
+              <button onClick={() => onPageChange(pagination.currentPage - 1)} disabled={!pagination.hasPrevious} style={{ padding: '6px 12px', fontSize: 12, borderRadius: 6, border: `1px solid ${clr.border}`, background: clr.white, cursor: pagination.hasPrevious ? 'pointer' : 'not-allowed', opacity: pagination.hasPrevious ? 1 : 0.5 }}>← Previous</button>
+              <span style={{ fontSize: 12, padding: '6px 12px', color: clr.muted }}>Page {pagination.currentPage + 1} of {pagination.totalPages}</span>
+              <button onClick={() => onPageChange(pagination.currentPage + 1)} disabled={!pagination.hasNext} style={{ padding: '6px 12px', fontSize: 12, borderRadius: 6, border: `1px solid ${clr.border}`, background: clr.white, cursor: pagination.hasNext ? 'pointer' : 'not-allowed', opacity: pagination.hasNext ? 1 : 0.5 }}>Next →</button>
+            </div>
+          )}
         </div>
       </Card>
 
       {modal && (
-        <Modal title={modal === 'add' ? 'Add topic' : 'Edit topic'} onClose={() => setModal(null)}>
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div><Lbl>Topic title</Lbl><Inp value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g. Network Fundamentals" /></div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <Modal title={modal === 'add' ? 'Add Topic' : 'Edit Topic'} onClose={() => setModal(null)}>
+          <div style={{ padding: 24 }}>
+            <Lbl>Topic Title</Lbl>
+            <Inp value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g., Introduction to Networking" />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
               <Btn variant="ghost" onClick={() => setModal(null)}>Cancel</Btn>
-              <Btn onClick={save} disabled={saving || !form.title.trim()}>{saving ? 'Saving…' : modal === 'add' ? 'Create topic' : 'Save changes'}</Btn>
+              <Btn onClick={save} disabled={saving || !form.title.trim()}>{saving ? 'Saving…' : 'Save'}</Btn>
             </div>
           </div>
         </Modal>
@@ -591,7 +534,7 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC MANAGER
+// SUBTOPIC MANAGER - Manual Subtopic Creation with PDF Notes
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiveSubId, toast }) {
   const [modal, setModal] = useState(null);
@@ -608,12 +551,12 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
     setSaving(true);
     try {
       if (editId) {
-        await api.put(`/admin/subtopics/${editId}`, form);
+        await api.put(`/admin/subtopics/${editId}`, { title: form.title, notes: form.notes, videoUrl: form.videoUrl });
         setSubtopics(ss => ss.map(s => s.id === editId ? { ...s, ...form } : s));
         toast.show('Subtopic updated');
       } else {
-        const data = await api.post(`/admin/topics/${topic.id}/subtopics`, form);
-        const newSub = { id: data.subtopicId || data.subtopic?.id, ...form, interviewQuestions: [], examQuestions: [], labExercises: [] };
+        const data = await api.post(`/admin/topics/${topic.id}/subtopics`, { title: form.title, notes: form.notes, videoUrl: form.videoUrl });
+        const newSub = { id: data.subtopicId || data.subtopic?.id, ...form };
         setSubtopics(ss => [...ss, newSub]);
         toast.show('Subtopic created');
       }
@@ -623,7 +566,7 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
   };
 
   const del = async (id) => {
-    if (!window.confirm('Delete this subtopic and all its content?')) return;
+    if (!window.confirm('Delete this subtopic?')) return;
     setDeletingId(id);
     try {
       await api.delete(`/admin/subtopics/${id}`);
@@ -637,12 +580,12 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
   return (
     <>
       <Card>
-        <SectionHead icon="📑" title={`Subtopics — ${topic.title}`} count={subtopics.length} action={
-          <Btn size="sm" variant="dashed" onClick={openAdd}>＋ Add subtopic</Btn>
+        <SectionHead icon="📑" title={`Subtopics - ${topic.title}`} count={subtopics.length} action={
+          <Btn size="sm" variant="dashed" onClick={openAdd}>＋ Add Subtopic</Btn>
         } />
         <div style={{ padding: '8px 0' }}>
           {subtopics.length === 0 && (
-            <div style={{ padding: 24, textAlign: 'center', color: clr.muted, fontSize: 13 }}>No subtopics yet.</div>
+            <div style={{ padding: 24, textAlign: 'center', color: clr.muted, fontSize: 13 }}>No subtopics yet. Click "Add Subtopic" to create one.</div>
           )}
           {subtopics.map((s, i) => (
             <div key={s.id} style={{
@@ -651,13 +594,13 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
               borderLeft: activeSubId === s.id ? `3px solid ${clr.accent}` : '3px solid transparent',
               cursor: 'pointer', borderBottom: `1px solid ${clr.border}`,
             }} onClick={() => setActiveSubId(s.id)}>
-              <span style={{ fontSize: 11, color: clr.muted, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{i + 1}</span>
-              <div style={{ flex: 1, fontSize: 13, fontWeight: activeSubId === s.id ? 600 : 400, color: activeSubId === s.id ? clr.accentText : clr.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title || 'Untitled'}</div>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: clr.muted, width: 24 }}>{i + 1}</span>
+              <div style={{ flex: 1, fontSize: 13 }}>{s.title}</div>
+              <div style={{ display: 'flex', gap: 4 }}>
                 {s.notes && <span title="Has notes" style={{ fontSize: 11 }}>📝</span>}
                 {s.videoUrl && <span title="Has video" style={{ fontSize: 11 }}>🎬</span>}
-                <button onClick={e => { e.stopPropagation(); openEdit(s); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted, fontSize: 13 }}>✏</button>
-                <button onClick={e => { e.stopPropagation(); del(s.id); }} disabled={deletingId === s.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.danger, fontSize: 13 }}>🗑</button>
+                <button onClick={e => { e.stopPropagation(); openEdit(s); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted }}>✏</button>
+                <button onClick={e => { e.stopPropagation(); del(s.id); }} disabled={deletingId === s.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.danger }}>🗑</button>
               </div>
             </div>
           ))}
@@ -665,14 +608,14 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
       </Card>
 
       {modal && (
-        <Modal title={editId ? 'Edit subtopic' : 'Add subtopic'} onClose={() => setModal(null)} width={600}>
+        <Modal title={editId ? 'Edit Subtopic' : 'Add Subtopic'} onClose={() => setModal(null)} width={600}>
           <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div><Lbl>Title</Lbl><Inp value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g. OSI Model" /></div>
-            <div><Lbl>Initial notes (optional)</Lbl><Txta value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} placeholder="Lesson notes…" rows={4} /></div>
-            <div><Lbl>Video URL (optional)</Lbl><Inp value={form.videoUrl} onChange={v => setForm(f => ({ ...f, videoUrl: v }))} placeholder="https://youtube.com/watch?v=…" /></div>
+            <div><Lbl>Subtopic Title</Lbl><Inp value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g., What is a Computer Network?" /></div>
+            <div><Lbl>PDF Notes / Content</Lbl><Txta value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} placeholder="Paste PDF content or write notes here..." rows={10} /></div>
+            <div><Lbl>Video URL (Optional)</Lbl><Inp value={form.videoUrl} onChange={v => setForm(f => ({ ...f, videoUrl: v }))} placeholder="https://youtube.com/watch?v=..." /></div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <Btn variant="ghost" onClick={() => setModal(null)}>Cancel</Btn>
-              <Btn onClick={save} disabled={saving || !form.title.trim()}>{saving ? 'Saving…' : editId ? 'Save changes' : 'Create subtopic'}</Btn>
+              <Btn onClick={save} disabled={saving || !form.title.trim()}>{saving ? 'Saving…' : editId ? 'Save Changes' : 'Create Subtopic'}</Btn>
             </div>
           </div>
         </Modal>
@@ -682,171 +625,39 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONTENT EDITOR TABS (simplified - keep existing implementation)
+// SUBTOPIC CONTENT EDITOR - View and Edit PDF Notes
 // ═══════════════════════════════════════════════════════════════════════════════
-const TABS = [
-  { id: 'notes', icon: '📝', label: 'Notes' },
-  { id: 'images', icon: '🖼️', label: 'Images' },
-  { id: 'video', icon: '🎬', label: 'Video' },
-  { id: 'interview', icon: '🎤', label: 'Interview Qs' },
-  { id: 'exam', icon: '📋', label: 'Exam Qs' },
-  { id: 'lab', icon: '🧪', label: 'Lab Steps' },
-];
-
-function NotesTab({ sub, subtopicId, toast, onUpdate }) {
-  const [notes, setNotes] = useState(sub.notes || '');
-  const [saving, setSaving] = useState(false);
-
-  const saveNotes = async () => {
-    setSaving(true);
-    try {
-      await api.put(`/admin/subtopics/${subtopicId}/notes`, { notes });
-      onUpdate({ notes });
-      toast.show('Notes saved');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <Lbl>Lesson notes</Lbl>
-          <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">{saving ? 'Saving…' : '💾 Save notes'}</Btn>
-        </div>
-        <Txta value={notes} onChange={setNotes} placeholder="Write comprehensive lesson notes here. Include key concepts, definitions, examples, and important points to remember…" rows={12} />
-      </div>
-    </div>
-  );
-}
-
-function ImagesTab({ sub, subtopicId, toast, onUpdate }) {
-  const [images, setImages] = useState(sub.images || []);
-  const [loading, setLoading] = useState(false);
-
-  const loadImages = async () => {
-    setLoading(true);
-    try {
-      const data = await api.get(`/admin/subtopic-images/${subtopicId}`);
-      setImages(data.images || []);
-    } catch (e) {
-      toast.show('Failed to load images', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (subtopicId) loadImages();
-  }, [subtopicId]);
-
-  const deleteImage = async (imageId) => {
-    if (!window.confirm('Delete this image?')) return;
-    try {
-      await api.delete(`/admin/subtopic-images/${imageId}`);
-      setImages(images.filter(img => img.id !== imageId));
-      toast.show('Image deleted');
-    } catch (e) {
-      toast.show('Failed to delete image', 'error');
-    }
-  };
-
-  return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Lbl>Subtopic Images ({images.length})</Lbl>
-          <Btn size="sm" onClick={loadImages} disabled={loading} variant="ghost">{loading ? 'Loading…' : '🔄 Refresh'}</Btn>
-        </div>
-        {images.length === 0 ? (
-          <div style={{ padding: 32, textAlign: 'center', background: clr.faint, borderRadius: 10, color: clr.muted }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
-            <div style={{ fontSize: 13 }}>No images uploaded for this subtopic yet.</div>
-            <div style={{ fontSize: 12, color: clr.muted, marginTop: 4 }}>Upload a PDF with images in the left panel.</div>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
-            {images.map((img, idx) => (
-              <div key={img.id || idx} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: `1px solid ${clr.border}`, background: clr.faint }}>
-                <img
-                  src={img.url}
-                  alt={`Image ${idx + 1}`}
-                  style={{ width: '100%', height: 120, objectFit: 'cover', cursor: 'pointer' }}
-                  onClick={() => window.open(img.url, '_blank')}
-                />
-                <button
-                  onClick={() => deleteImage(img.id)}
-                  style={{
-                    position: 'absolute', top: 4, right: 4, background: clr.danger, color: '#fff',
-                    border: 'none', borderRadius: 5, width: 24, height: 24, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 12, opacity: 0.8
-                  }}
-                  title="Delete image"
-                >
-                  ×
-                </button>
-                <div style={{ padding: '6px 8px', fontSize: 10, color: clr.muted, background: 'rgba(255,255,255,0.7)' }}>
-                  {img.pageNumber ? `Page ${img.pageNumber}` : `Image ${idx + 1}`}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function VideoTab({ sub, subtopicId, toast, onUpdate }) {
-  const [videoUrl, setVideoUrl] = useState(sub.videoUrl || '');
-  const [saving, setSaving] = useState(false);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await api.put(`/admin/subtopics/${subtopicId}/video`, { videoUrl });
-      onUpdate({ videoUrl });
-      toast.show('Video URL saved');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setSaving(false); }
-  };
-
-  const embedUrl = videoUrl.includes('watch?v=') ? videoUrl.replace('watch?v=', 'embed/') : videoUrl.includes('youtu.be/') ? videoUrl.replace('youtu.be/', 'youtube.com/embed/') : null;
-
-  return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <Lbl>Video URL</Lbl>
-          <Btn size="sm" variant="success" onClick={save} disabled={saving}>{saving ? 'Saving…' : '💾 Save'}</Btn>
-        </div>
-        <Inp value={videoUrl} onChange={setVideoUrl} placeholder="https://youtube.com/watch?v=…" />
-      </div>
-      {embedUrl && (
-        <div style={{ borderRadius: 10, overflow: 'hidden', border: `1px solid ${clr.border}` }}>
-          <iframe width="100%" height="300" src={embedUrl} title="video" frameBorder="0" allowFullScreen />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Simplified Interview, Exam, Lab tabs (similar to previous implementation)
-function InterviewTab({ sub, subtopicId, toast, onUpdate }) {
-  const [questions, setQuestions] = useState(sub.interviewQuestions || []);
+// ─── Interview Questions Tab Component ─────────────────────────────────────
+function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
+  const [questions, setQuestions] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ question: '', answer: '' });
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+
+  const loadQuestions = async () => {
+    try {
+      const data = await api.get(`/admin/subtopics/${subtopicId}/interview-questions`);
+      setQuestions(Array.isArray(data) ? data : []);
+      onUpdate({ interviewQuestions: data });
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => {
+    if (subtopicId) loadQuestions();
+  }, [subtopicId]);
 
   const addQ = async () => {
     if (!addForm.question.trim()) return;
     setAdding(true);
     try {
       const data = await api.post(`/admin/subtopics/${subtopicId}/interview-questions`, addForm);
-      setQuestions([...questions, { id: data.questionId, ...addForm }]);
+      const newQ = { id: data.questionId, ...addForm };
+      const updated = [...questions, newQ];
+      setQuestions(updated);
+      onUpdate({ interviewQuestions: updated });
       setAddForm({ question: '', answer: '' });
       setShowAdd(false);
-      toast.show('Question added');
+      toast.show('Interview question added');
     } catch (e) { toast.show(e.message, 'error'); }
     finally { setAdding(false); }
   };
@@ -855,7 +666,9 @@ function InterviewTab({ sub, subtopicId, toast, onUpdate }) {
     if (!window.confirm('Delete this question?')) return;
     try {
       await api.delete(`/admin/interview-questions/${id}`);
-      setQuestions(questions.filter(q => q.id !== id));
+      const updated = questions.filter(q => q.id !== id);
+      setQuestions(updated);
+      onUpdate({ interviewQuestions: updated });
       toast.show('Question deleted');
     } catch (e) { toast.show(e.message, 'error'); }
   };
@@ -863,12 +676,12 @@ function InterviewTab({ sub, subtopicId, toast, onUpdate }) {
   return (
     <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(s => !s)}>＋ Add question</Btn>
+        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(s => !s)}>＋ Add Question</Btn>
       </div>
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
-          <div><Lbl>Question</Lbl><Inp value={addForm.question} onChange={v => setAddForm(f => ({ ...f, question: v }))} placeholder="e.g. Explain the OSI model layers" /></div>
-          <div style={{ marginTop: 10 }}><Lbl>Answer</Lbl><Txta value={addForm.answer} onChange={v => setAddForm(f => ({ ...f, answer: v }))} placeholder="Expected answer…" rows={3} /></div>
+          <div><Lbl>Question</Lbl><Inp value={addForm.question} onChange={v => setAddForm(f => ({ ...f, question: v }))} placeholder="e.g. Explain OSPF?" /></div>
+          <div style={{ marginTop: 10 }}><Lbl>Answer</Lbl><Txta value={addForm.answer} onChange={v => setAddForm(f => ({ ...f, answer: v }))} placeholder="Expected answer..." rows={3} /></div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
             <Btn size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>
             <Btn size="sm" onClick={addQ} disabled={adding || !addForm.question.trim()}>{adding ? '…' : 'Add'}</Btn>
@@ -881,7 +694,7 @@ function InterviewTab({ sub, subtopicId, toast, onUpdate }) {
       {questions.map((q, i) => (
         <div key={q.id} style={{ background: clr.faint, borderRadius: 10, padding: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>Q{i + 1}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>Q{i+1}</span>
             <Btn size="sm" variant="danger" onClick={() => delQ(q.id)}>🗑</Btn>
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{q.question}</div>
@@ -892,18 +705,34 @@ function InterviewTab({ sub, subtopicId, toast, onUpdate }) {
   );
 }
 
-function ExamTab({ sub, subtopicId, toast, onUpdate }) {
-  const [questions, setQuestions] = useState(sub.examQuestions || []);
+// ─── Exam Questions (MCQ) Tab Component ────────────────────────────────────
+function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
+  const [questions, setQuestions] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+
+  const loadQuestions = async () => {
+    try {
+      const data = await api.get(`/admin/subtopics/${subtopicId}/exam-questions`);
+      setQuestions(Array.isArray(data) ? data : []);
+      onUpdate({ examQuestions: data });
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => {
+    if (subtopicId) loadQuestions();
+  }, [subtopicId]);
 
   const addQ = async () => {
     if (!addForm.question.trim()) return;
     setAdding(true);
     try {
       const data = await api.post(`/admin/subtopics/${subtopicId}/exam-questions`, addForm);
-      setQuestions([...questions, { id: data.questionId, ...addForm }]);
+      const newQ = { id: data.questionId, ...addForm };
+      const updated = [...questions, newQ];
+      setQuestions(updated);
+      onUpdate({ examQuestions: updated });
       setAddForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
       setShowAdd(false);
       toast.show('MCQ added');
@@ -912,10 +741,12 @@ function ExamTab({ sub, subtopicId, toast, onUpdate }) {
   };
 
   const delQ = async (id) => {
-    if (!window.confirm('Delete this question?')) return;
+    if (!window.confirm('Delete this MCQ?')) return;
     try {
       await api.delete(`/admin/exam-questions/${id}`);
-      setQuestions(questions.filter(q => q.id !== id));
+      const updated = questions.filter(q => q.id !== id);
+      setQuestions(updated);
+      onUpdate({ examQuestions: updated });
       toast.show('MCQ deleted');
     } catch (e) { toast.show(e.message, 'error'); }
   };
@@ -927,8 +758,8 @@ function ExamTab({ sub, subtopicId, toast, onUpdate }) {
       </div>
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
-          <div><Lbl>Question</Lbl><Txta value={addForm.question} onChange={v => setAddForm(f => ({ ...f, question: v }))} rows={2} placeholder="Enter MCQ question…" /></div>
-          {['A', 'B', 'C', 'D'].map(opt => (
+          <div><Lbl>Question</Lbl><Txta value={addForm.question} onChange={v => setAddForm(f => ({ ...f, question: v }))} rows={2} placeholder="Enter MCQ question" /></div>
+          {['A','B','C','D'].map(opt => (
             <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
               <input type="radio" name="correct" checked={addForm.correctAnswer === opt} onChange={() => setAddForm(f => ({ ...f, correctAnswer: opt }))} style={{ accentColor: clr.success }} />
               <Inp value={addForm[`option${opt}`]} onChange={v => setAddForm(f => ({ ...f, [`option${opt}`]: v }))} placeholder={`Option ${opt}`} />
@@ -946,11 +777,11 @@ function ExamTab({ sub, subtopicId, toast, onUpdate }) {
       {questions.map((q, i) => (
         <div key={q.id} style={{ background: clr.faint, borderRadius: 10, padding: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>MCQ {i + 1}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>MCQ {i+1}</span>
             <Btn size="sm" variant="danger" onClick={() => delQ(q.id)}>🗑</Btn>
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{q.question}</div>
-          {['A', 'B', 'C', 'D'].map(opt => (
+          {['A','B','C','D'].map(opt => (
             <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, padding: '4px 8px', background: q.correctAnswer === opt ? clr.successLight : 'transparent', borderRadius: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, width: 20 }}>{opt}.</span>
               <span style={{ fontSize: 13 }}>{q[`option${opt}`]}</span>
@@ -963,18 +794,34 @@ function ExamTab({ sub, subtopicId, toast, onUpdate }) {
   );
 }
 
-function LabTab({ sub, subtopicId, toast, onUpdate }) {
-  const [labs, setLabs] = useState(sub.labExercises || []);
+// ─── Lab Exercises Tab Component ───────────────────────────────────────────
+function LabTab({ subtopicId, toast, onUpdate, initialData }) {
+  const [labs, setLabs] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ title: '', instructions: '' });
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+
+  const loadLabs = async () => {
+    try {
+      const data = await api.get(`/admin/subtopics/${subtopicId}/labs`);
+      setLabs(Array.isArray(data) ? data : []);
+      onUpdate({ labExercises: data });
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => {
+    if (subtopicId) loadLabs();
+  }, [subtopicId]);
 
   const addLab = async () => {
     if (!addForm.title.trim()) return;
     setAdding(true);
     try {
       const data = await api.post(`/admin/subtopics/${subtopicId}/labs`, addForm);
-      setLabs([...labs, { id: data.labId, ...addForm }]);
+      const newLab = { id: data.labId, ...addForm };
+      const updated = [...labs, newLab];
+      setLabs(updated);
+      onUpdate({ labExercises: updated });
       setAddForm({ title: '', instructions: '' });
       setShowAdd(false);
       toast.show('Lab step added');
@@ -986,7 +833,9 @@ function LabTab({ sub, subtopicId, toast, onUpdate }) {
     if (!window.confirm('Delete this lab step?')) return;
     try {
       await api.delete(`/admin/labs/${id}`);
-      setLabs(labs.filter(l => l.id !== id));
+      const updated = labs.filter(l => l.id !== id);
+      setLabs(updated);
+      onUpdate({ labExercises: updated });
       toast.show('Lab step deleted');
     } catch (e) { toast.show(e.message, 'error'); }
   };
@@ -994,12 +843,12 @@ function LabTab({ sub, subtopicId, toast, onUpdate }) {
   return (
     <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(s => !s)}>＋ Add lab step</Btn>
+        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(s => !s)}>＋ Add Lab Step</Btn>
       </div>
       {showAdd && (
         <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
-          <div><Lbl>Step title</Lbl><Inp value={addForm.title} onChange={v => setAddForm(f => ({ ...f, title: v }))} placeholder="e.g. Configure IP address" /></div>
-          <div style={{ marginTop: 10 }}><Lbl>Instructions</Lbl><Txta value={addForm.instructions} onChange={v => setAddForm(f => ({ ...f, instructions: v }))} placeholder="Step-by-step instructions…" rows={4} /></div>
+          <div><Lbl>Step Title</Lbl><Inp value={addForm.title} onChange={v => setAddForm(f => ({ ...f, title: v }))} placeholder="e.g. Configure VLAN" /></div>
+          <div style={{ marginTop: 10 }}><Lbl>Instructions</Lbl><Txta value={addForm.instructions} onChange={v => setAddForm(f => ({ ...f, instructions: v }))} placeholder="Step-by-step instructions..." rows={4} /></div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
             <Btn size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>
             <Btn size="sm" onClick={addLab} disabled={adding || !addForm.title.trim()}>{adding ? '…' : 'Add'}</Btn>
@@ -1007,11 +856,11 @@ function LabTab({ sub, subtopicId, toast, onUpdate }) {
         </div>
       )}
       {labs.length === 0 && !showAdd && (
-        <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No lab steps yet.</div>
+        <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No lab exercises yet.</div>
       )}
       {labs.map((lab, i) => (
         <div key={lab.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: clr.accentLight, color: clr.accentText, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: clr.accentLight, color: clr.accentText, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i+1}</div>
           <div style={{ flex: 1, background: clr.faint, borderRadius: 10, padding: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600 }}>{lab.title}</span>
@@ -1025,38 +874,110 @@ function LabTab({ sub, subtopicId, toast, onUpdate }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// UPDATED SUBTOPIC CONTENT EDITOR with all tabs
+// ═══════════════════════════════════════════════════════════════════════════
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
+  const [notes, setNotes] = useState(sub.notes || '');
+  const [videoUrl, setVideoUrl] = useState(sub.videoUrl || '');
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('notes');
-  const [localSub, setLocalSub] = useState(sub);
+  const [interviewQuestions, setInterviewQuestions] = useState(sub.interviewQuestions || []);
+  const [examQuestions, setExamQuestions] = useState(sub.examQuestions || []);
+  const [labExercises, setLabExercises] = useState(sub.labExercises || []);
 
-  const handleUpdate = (patch) => {
-    setLocalSub(s => ({ ...s, ...patch }));
-    onUpdate(patch);
+  // Save Notes
+  const saveNotes = async () => {
+    setSaving(true);
+    try {
+      await api.put(`/admin/subtopics/${subtopicId}/notes`, { notes });
+      onUpdate({ notes });
+      toast.show('Notes saved');
+    } catch (e) { toast.show(e.message, 'error'); }
+    finally { setSaving(false); }
   };
 
+  // Save Video URL
+  const saveVideo = async () => {
+    setSaving(true);
+    try {
+      await api.put(`/admin/subtopics/${subtopicId}/video`, { videoUrl });
+      onUpdate({ videoUrl });
+      toast.show('Video URL saved');
+    } catch (e) { toast.show(e.message, 'error'); }
+    finally { setSaving(false); }
+  };
+
+  // Generic update handler for child tabs (used when data changes internally)
+  const handleTabUpdate = (patch) => {
+    if (patch.interviewQuestions !== undefined) {
+      setInterviewQuestions(patch.interviewQuestions);
+      onUpdate({ interviewQuestions: patch.interviewQuestions });
+    }
+    if (patch.examQuestions !== undefined) {
+      setExamQuestions(patch.examQuestions);
+      onUpdate({ examQuestions: patch.examQuestions });
+    }
+    if (patch.labExercises !== undefined) {
+      setLabExercises(patch.labExercises);
+      onUpdate({ labExercises: patch.labExercises });
+    }
+  };
+
+  const embedUrl = videoUrl?.includes('watch?v=') ? videoUrl.replace('watch?v=', 'embed/') : 
+                    videoUrl?.includes('youtu.be/') ? videoUrl.replace('youtu.be/', 'youtube.com/embed/') : null;
+
   return (
-    <Card style={{ flex: 1 }}>
+    <Card>
       <div style={{ borderBottom: `1px solid ${clr.border}`, display: 'flex', overflowX: 'auto' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-            padding: '12px 16px', fontSize: 13, fontWeight: activeTab === t.id ? 600 : 400,
-            color: activeTab === t.id ? clr.accent : clr.muted, background: 'none', border: 'none',
-            borderBottom: activeTab === t.id ? `2px solid ${clr.accent}` : '2px solid transparent',
-            cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
-          }}>{t.icon} {t.label}</button>
-        ))}
+        <button onClick={() => setActiveTab('notes')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'notes' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'notes' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>📝 Notes</button>
+        <button onClick={() => setActiveTab('video')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'video' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'video' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>🎬 Video</button>
+        <button onClick={() => setActiveTab('interview')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'interview' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'interview' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>🎤 Interview Qs</button>
+        <button onClick={() => setActiveTab('exam')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'exam' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'exam' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>📋 Exam Qs</button>
+        <button onClick={() => setActiveTab('lab')} style={{ padding: '12px 20px', fontSize: 13, fontWeight: activeTab === 'lab' ? 600 : 400, background: 'none', border: 'none', borderBottom: activeTab === 'lab' ? `2px solid ${clr.accent}` : 'none', cursor: 'pointer' }}>🧪 Lab Steps</button>
       </div>
+      
       <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 340px)' }}>
-        {activeTab === 'notes' && <NotesTab sub={localSub} subtopicId={subtopicId} toast={toast} onUpdate={handleUpdate} />}
-        {activeTab === 'video' && <VideoTab sub={localSub} subtopicId={subtopicId} toast={toast} onUpdate={handleUpdate} />}
-        {activeTab === 'interview' && <InterviewTab sub={localSub} subtopicId={subtopicId} toast={toast} onUpdate={handleUpdate} />}
-        {activeTab === 'exam' && <ExamTab sub={localSub} subtopicId={subtopicId} toast={toast} onUpdate={handleUpdate} />}
-        {activeTab === 'lab' && <LabTab sub={localSub} subtopicId={subtopicId} toast={toast} onUpdate={handleUpdate} />}
+        {activeTab === 'notes' && (
+          <div style={{ padding: 22 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Lbl>PDF Notes / Content</Lbl>
+              <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">{saving ? 'Saving…' : '💾 Save Notes'}</Btn>
+            </div>
+            <Txta value={notes} onChange={setNotes} placeholder="Paste PDF content or write notes here..." rows={15} />
+          </div>
+        )}
+        
+        {activeTab === 'video' && (
+          <div style={{ padding: 22 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Lbl>Video URL</Lbl>
+              <Btn size="sm" onClick={saveVideo} disabled={saving} variant="success">{saving ? 'Saving…' : '💾 Save Video'}</Btn>
+            </div>
+            <Inp value={videoUrl} onChange={setVideoUrl} placeholder="https://youtube.com/watch?v=..." />
+            {embedUrl && (
+              <div style={{ marginTop: 16, borderRadius: 10, overflow: 'hidden', border: `1px solid ${clr.border}` }}>
+                <iframe width="100%" height="400" src={embedUrl} title="Video" frameBorder="0" allowFullScreen />
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'interview' && (
+          <InterviewTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={interviewQuestions} />
+        )}
+
+        {activeTab === 'exam' && (
+          <ExamTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={examQuestions} />
+        )}
+
+        {activeTab === 'lab' && (
+          <LabTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={labExercises} />
+        )}
       </div>
     </Card>
   );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1069,30 +990,57 @@ export default function AdminCourseManager() {
   const [activeSubId, setActiveSubId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState('course');
+  
+  const [pagination, setPagination] = useState({
+    currentPage: 0,
+    totalPages: 0,
+    totalItems: 0,
+    pageSize: 50,
+    hasNext: false,
+    hasPrevious: false
+  });
 
   const activeTopic = topics.find(t => t.id === activeTopicId);
   const subtopics = activeTopic?.subtopics || [];
   const activeSub = subtopics.find(s => s.id === activeSubId);
 
-  const loadTopics = useCallback(async (courseId) => {
+  const loadTopics = useCallback(async (courseId, page = 0) => {
+    if (!courseId) return;
     setLoading(true);
     try {
-      const data = await api.get(`/admin/courses/${courseId}/topics`);
-      const ts = Array.isArray(data) ? data : [];
-      setTopics(ts);
-      if (ts.length > 0) {
-        setActiveTopicId(ts[0].id);
-        if (ts[0].subtopics?.length > 0) setActiveSubId(ts[0].subtopics[0].id);
-      } else {
-        setActiveTopicId(null);
-        setActiveSubId(null);
+      const url = `/admin/courses/${courseId}/topics?page=${page}&size=${pagination.pageSize}&sortBy=displayOrder`;
+      const data = await api.get(url);
+      
+      if (data.content && Array.isArray(data.content)) {
+        setTopics(data.content);
+        setPagination({
+          currentPage: data.currentPage,
+          totalPages: data.totalPages,
+          totalItems: data.totalItems,
+          pageSize: data.pageSize,
+          hasNext: data.hasNext,
+          hasPrevious: data.hasPrevious
+        });
+        
+        if (data.content.length > 0 && !activeTopicId) {
+          setActiveTopicId(data.content[0].id);
+        }
       }
-    } catch (e) {
+    } catch (error) {
+      console.error('Failed to load topics:', error);
       toast.show('Failed to load topics', 'error');
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [pagination.pageSize, toast]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < pagination.totalPages) {
+      loadTopics(selectedCourse?.id, newPage);
+      setActiveTopicId(null);
+      setActiveSubId(null);
+    }
+  };
 
   const handleCourseSelect = (course) => {
     setSelectedCourse(course);
@@ -1100,7 +1048,7 @@ export default function AdminCourseManager() {
     setActiveTopicId(null);
     setActiveSubId(null);
     setView('manage');
-    loadTopics(course.id);
+    loadTopics(course.id, 0);
   };
 
   const setSubtopics = (topicId, updater) => {
@@ -1116,28 +1064,21 @@ export default function AdminCourseManager() {
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
-      <style>{`* { box-sizing: border-box; } @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }`}</style>
-
       {/* Top bar */}
-      <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>🏫</span> Course Manager
-        </div>
+      <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
         {selectedCourse && (
           <>
             <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.2)' }} />
             <div style={{ fontSize: 13, color: clr.sidebarText }}>{selectedCourse.title}</div>
+            <div style={{ fontSize: 11, color: clr.sidebarText, background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 12 }}>
+              {pagination.totalItems} topics
+            </div>
           </>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
-          <button onClick={() => setView('course')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'course' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: 600 }}>
-            🏠 Courses
-          </button>
-          {selectedCourse && (
-            <button onClick={() => setView('manage')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'manage' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: 600 }}>
-              ✏ Manage Content
-            </button>
-          )}
+          <button onClick={() => setView('course')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'course' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>🏠 Courses</button>
+          {selectedCourse && <button onClick={() => setView('manage')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'manage' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>✏ Manage Content</button>}
         </div>
       </div>
 
@@ -1153,11 +1094,17 @@ export default function AdminCourseManager() {
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
           {/* LEFT SIDEBAR */}
-          <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <PdfUploadPanel courseId={selectedCourse.id} toast={toast} onStructureGenerated={(cid) => loadTopics(cid || selectedCourse.id)} />
+              {/* PDF Upload Panel */}
+              <PdfUploadPanel 
+                courseId={selectedCourse.id} 
+                toast={toast} 
+                onStructureGenerated={(cid) => loadTopics(cid || selectedCourse.id, 0)} 
+              />
+              
               {loading ? (
-                <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading…</div>
+                <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading...</div>
               ) : (
                 <TopicManager
                   courseId={selectedCourse.id}
@@ -1166,6 +1113,8 @@ export default function AdminCourseManager() {
                   activeTopicId={activeTopicId}
                   setActiveTopicId={(id) => { setActiveTopicId(id); setActiveSubId(null); }}
                   toast={toast}
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
                 />
               )}
               {activeTopic && (
@@ -1182,38 +1131,12 @@ export default function AdminCourseManager() {
           </div>
 
           {/* RIGHT CONTENT EDITOR */}
-          <div style={{ overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ overflowY: 'auto', padding: 20 }}>
             {activeSub ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: clr.muted, marginBottom: 2 }}>{activeTopic?.title}</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: clr.text }}>{activeSub.title}</div>
-                  </div>
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                    {activeSub.notes && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: clr.faint, color: clr.muted }}>📝 Has notes</span>}
-                    {activeSub.videoUrl && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: clr.faint, color: clr.muted }}>🎬 Has video</span>}
-                  </div>
-                </div>
-                <SubtopicContentEditor
-                  key={activeSub.id}
-                  sub={activeSub}
-                  subtopicId={activeSub.id}
-                  toast={toast}
-                  onUpdate={updateActiveSub}
-                />
-              </>
+              <SubtopicContentEditor key={activeSub.id} sub={activeSub} subtopicId={activeSub.id} toast={toast} onUpdate={updateActiveSub} />
             ) : (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: clr.muted, padding: 60 }}>
-                <div style={{ fontSize: 52, marginBottom: 16 }}>{activeTopic ? '👆' : '👈'}</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: clr.text, marginBottom: 8 }}>
-                  {activeTopic ? 'Select a subtopic' : 'Select a topic first'}
-                </div>
-                <div style={{ fontSize: 13, textAlign: 'center', lineHeight: 1.7 }}>
-                  {activeTopic
-                    ? 'Choose a subtopic from the list to edit its notes, images, exam questions, interview questions, and lab steps.'
-                    : 'Pick a topic from the left panel, then choose a subtopic to begin editing its content.'}
-                </div>
+              <div style={{ textAlign: 'center', color: clr.muted, padding: 60 }}>
+                {activeTopic ? 'Select a subtopic to view and edit its PDF notes' : 'Select a topic first, then add subtopics'}
               </div>
             )}
           </div>

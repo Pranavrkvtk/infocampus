@@ -1,4 +1,4 @@
-// src/api/pdfApi.js - COMPLETE VERSION WITH ALL ENDPOINTS
+// src/api/pdfApi.js - CLEANED VERSION (Only Required APIs)
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
@@ -31,22 +31,12 @@ export const getCourseTopics = (courseId) => {
   return api.get(`/admin/courses/${courseId}/topics`);
 };
 
-// Get course structure (topics and subtopics only)
-export const getCourseStructure = (courseId) => {
-  return api.get(`/courses/${courseId}/structure`);
-};
-
 // Get complete subtopic with all content
 export const getCompleteSubtopic = (subtopicId) => {
   return api.get(`/admin/subtopics/${subtopicId}/complete`);
 };
 
-// Delete entire course structure
-export const deleteCourseStructure = (courseId) => {
-  return api.delete(`/admin/courses/${courseId}/structure`);
-};
-
-// ==================== MANUAL TOPIC MANAGEMENT ====================
+// ==================== TOPIC MANAGEMENT ====================
 
 export const createTopic = (courseId, title) => {
   return api.post(`/admin/courses/${courseId}/topics`, { title });
@@ -64,14 +54,14 @@ export const reorderTopics = (courseId, topicIds) => {
   return api.put(`/admin/courses/${courseId}/topics/reorder`, topicIds);
 };
 
-// ==================== MANUAL SUBTOPIC MANAGEMENT ====================
+// ==================== SUBTOPIC MANAGEMENT ====================
 
-export const createSubtopic = (topicId, title, notes = '', videoUrl = '') => {
-  return api.post(`/admin/topics/${topicId}/subtopics`, { title, notes, videoUrl });
+export const createSubtopic = (topicId, title, content = '', videoUrl = '') => {
+  return api.post(`/admin/topics/${topicId}/subtopics`, { title, content, videoUrl });
 };
 
-export const updateSubtopic = (subtopicId, title, notes, videoUrl, displayOrder) => {
-  return api.put(`/admin/subtopics/${subtopicId}`, { title, notes, videoUrl, displayOrder });
+export const updateSubtopic = (subtopicId, title, content, videoUrl, displayOrder) => {
+  return api.put(`/admin/subtopics/${subtopicId}`, { title, content, videoUrl, displayOrder });
 };
 
 export const deleteSubtopic = (subtopicId) => {
@@ -82,10 +72,10 @@ export const reorderSubtopics = (topicId, subtopicIds) => {
   return api.put(`/admin/topics/${topicId}/subtopics/reorder`, subtopicIds);
 };
 
-// ==================== NOTES & VIDEO ====================
+// ==================== CONTENT MANAGEMENT ====================
 
-export const updateSubtopicNotes = (subtopicId, notes) => {
-  return api.put(`/admin/subtopics/${subtopicId}/notes`, { notes });
+export const updateSubtopicContent = (subtopicId, content) => {
+  return api.put(`/admin/subtopics/${subtopicId}/content`, { content });
 };
 
 export const updateSubtopicVideo = (subtopicId, videoUrl) => {
@@ -123,12 +113,7 @@ export const updateExamQuestion = (questionId, question, optionA, optionB, optio
 export const deleteExamQuestion = (questionId) => {
   return api.delete(`/admin/exam-questions/${questionId}`);
 };
-export const updateSubtopicContent = (subtopicId, content) => {
-    return api.put(
-        `/admin/subtopics/${subtopicId}/content`,
-        { content }
-    );
-};
+
 // ==================== LAB EXERCISES ====================
 
 export const addLabExercise = (subtopicId, title, instructions) => {
@@ -143,21 +128,13 @@ export const deleteLabExercise = (labId) => {
   return api.delete(`/admin/labs/${labId}`);
 };
 
-// ==================== PDF UPLOAD & STRUCTURE GENERATION ====================
+// ==================== PDF MANAGEMENT ====================
 
-export const uploadPdf = (file, title, contentType, extractImages, extractText, courseId, userId = null) => {
+export const uploadPdf = (file, courseId) => {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('title', title);
-  formData.append('contentType', contentType);
-  formData.append('extractImages', extractImages);
-  formData.append('extractText', extractText);
-  
   if (courseId) {
     formData.append('courseId', courseId);
-  }
-  if (userId) {
-    formData.append('userId', userId);
   }
   
   return api.post('/admin/pdfs/upload', formData, {
@@ -169,72 +146,24 @@ export const generateCourseStructure = (pdfId) => {
   return api.post(`/admin/pdfs/${pdfId}/generate-structure`);
 };
 
-export const autoFixPdf = (pdfId) => {
-  return api.post(`/admin/pdfs/${pdfId}/auto-fix`);
-};
-
-export const reprocessPdf = (pdfId) => {
-  return api.post(`/admin/pdfs/${pdfId}/force-reprocess`);
-};
-
 export const deletePdf = (pdfId) => {
   return api.delete(`/admin/pdfs/${pdfId}`);
 };
 
-// ==================== PDF QUERIES ====================
-
 export const getAllPdfs = () => {
-  return api.get('/user/pdfs');
-};
-
-export const getAllPdfsEnriched = () => {
-  return api.get('/admin/user/pdfs/enriched');
+  return api.get('/admin/pdfs');
 };
 
 export const getPdfDetails = (pdfId) => {
   return api.get(`/admin/pdfs/${pdfId}`);
 };
 
-export const getPdfText = (pdfId) => {
-  return api.get(`/admin/pdfs/${pdfId}/text`);
-};
-
 export const getPdfImages = (pdfId) => {
   return api.get(`/admin/pdfs/${pdfId}/images`);
 };
 
-export const getPdfImagesByPage = (pdfId, pageNumber) => {
-  return api.get(`/admin/pdfs/${pdfId}/images/page/${pageNumber}`);
-};
-
 export const getOrderedPdfContent = (pdfId, page = 0, size = 50) => {
   return api.get(`/admin/pdfs/${pdfId}/ordered-content?page=${page}&size=${size}`);
-};
-
-export const getPdfStatistics = () => {
-  return api.get('/admin/pdfs/statistics');
-};
-
-export const searchPdfs = (keyword) => {
-  return api.get(`/admin/pdfs/search?keyword=${keyword}`);
-};
-
-// ==================== ENROLLMENT ====================
-
-export const enrollInCourse = (courseId, userId) => {
-  return api.post(`/enrollments/enroll/${courseId}/${userId}`);
-};
-
-export const getUserEnrolledCourses = (userId) => {
-  return api.get(`/enrollments/user/${userId}/courses`);
-};
-
-export const updateCourseProgress = (enrollmentId, progress, completedLessons) => {
-  return api.put(`/enrollments/progress/${enrollmentId}`, { progress, completedLessons });
-};
-
-export const cancelEnrollment = (courseId, userId) => {
-  return api.delete(`/enrollments/enroll/${courseId}/${userId}`);
 };
 
 // ==================== UTILITIES ====================
