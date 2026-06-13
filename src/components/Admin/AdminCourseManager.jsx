@@ -193,21 +193,47 @@ function ImagesTab({ subtopicId, refreshTrigger }) {
     <div style={{ padding: 22 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
         {images.map((img, idx) => {
-          if (!img.fileName) return null;
-          const url = `${API_BASE}/admin/subtopic-images/${subtopicId}/${img.fileName}`;
+          // ✅ Use the exact URL stored in database (imagePath)
+          const url = img.imagePath ? `${API_BASE}${img.imagePath}` : null;
+          if (!url) return null;
+
           return (
             <div key={img.id || idx} style={{
-              border: `1px solid ${clr.border}`, borderRadius: 8,
-              overflow: 'hidden', background: clr.white, cursor: 'pointer',
+              border: `1px solid ${clr.border}`,
+              borderRadius: 8,
+              overflow: 'hidden',
+              background: clr.white,
+              cursor: 'pointer',
             }} onClick={() => window.open(url, '_blank')}>
               <img
                 src={url}
-                alt={img.fileName || `image-${idx}`}
-                style={{ width: '100%', height: 'auto', display: 'block' }}
-                onError={e => { e.target.style.display = 'none'; }}
+                alt={img.fileName || `Page ${img.pageNumber}`}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: 180,
+                  objectFit: 'contain',
+                  display: 'block',
+                  background: '#f8f9fb'
+                }}
+                onError={(e) => {
+                  console.error('❌ Failed to load image:', url);
+                  // Show error placeholder instead of hiding
+                  e.target.style.display = 'none';
+                  // Optionally show fallback text
+                  if (e.target.parentElement) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.textContent = '⚠️ Could not load image';
+                    errorDiv.style.padding = '8px';
+                    errorDiv.style.fontSize = '11px';
+                    errorDiv.style.color = clr.danger;
+                    errorDiv.style.textAlign = 'center';
+                    e.target.parentElement.appendChild(errorDiv);
+                  }
+                }}
               />
               <div style={{ padding: 8, fontSize: 11, color: clr.muted, textAlign: 'center' }}>
-                {img.fileName || `Page ${img.pageNumber || idx + 1}`}
+                {img.pageNumber ? `Page ${img.pageNumber}` : (img.fileName || `Image ${idx + 1}`)}
               </div>
             </div>
           );
@@ -216,7 +242,6 @@ function ImagesTab({ subtopicId, refreshTrigger }) {
     </div>
   );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -23,13 +23,14 @@ import StudentsTab from "./StudentsTab";
 import InstructorsTab from "./InstructorsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
-import AdminCourseManager from "./AdminCourseManager"; // ✅ ADD THIS
+import AdminCourseManager from "./AdminCourseManager";
 
 // ================= MAIN COMPONENT =================
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // ✅ sidebar open/close state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
@@ -51,7 +52,12 @@ export default function AdminDashboard() {
 
   // Resize listener
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+      // Auto-close sidebar on mobile, open on desktop if not mobile
+      if (window.innerWidth <= 768) setSidebarOpen(false);
+      else setSidebarOpen(true);
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -364,66 +370,112 @@ export default function AdminDashboard() {
             fetchAllInstructors={fetchAllInstructors}
           />
         );
-   
       case "pdf-viewer":
         return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view":
         return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
-      case "course-manager":  // ✅ ADD THIS CASE
+      case "course-manager":
         return <AdminCourseManager />;
       default:
         return null;
     }
   };
 
-  // Navigation items - includes PDF Uploads, PDF Viewer, Course View, and Course Manager
   const navItems = [
     { icon: "📊", label: "Dashboard", id: "dashboard" }, 
     { icon: "🌐", label: "Courses", id: "courses" }, 
     { icon: "👨‍🎓", label: "Students", id: "students" },
     { icon: "👨‍🏫", label: "Instructors", id: "instructors" },
     { icon: "👁️", label: "View PDFs", id: "pdf-viewer" },
-    { icon: "🏗️", label: "Course Manager", id: "course-manager" }  // ✅ ADD THIS
+    { icon: "🏗️", label: "Course Manager", id: "course-manager" }
   ];
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: colors.bgBase, paddingBottom: isMobile ? 70 : 0 }}>
-      {/* Sidebar - Desktop */}
+      {/* Hamburger button for desktop (visible only when sidebar closed) */}
+      {!isMobile && !sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          style={{
+            position: "fixed",
+            top: 20,
+            left: 20,
+            zIndex: 1100,
+            background: colors.surface,
+            border: `1px solid ${colors.borderLight}`,
+            borderRadius: 8,
+            padding: "8px 12px",
+            cursor: "pointer",
+            fontSize: 20,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+          }}
+        >
+          ☰
+        </button>
+      )}
+
+      {/* Slide Sidebar - Desktop */}
       {!isMobile && (
-        <nav style={{ width: 260, background: colors.surface, borderRight: `1px solid ${colors.borderLight}`, display: "flex", flexDirection: "column", padding: "28px 0", position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px", marginBottom: 32 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: colors.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff" }}>⚡</div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>INFOCAMPUS</div>
-              <div style={{ fontSize: 10, color: colors.textMuted }}>ADMIN</div>
-            </div>
-          </div>
+        <nav
+          style={{
+            width: sidebarOpen ? 260 : 0,
+            background: colors.surface,
+            borderRight: sidebarOpen ? `1px solid ${colors.borderLight}` : "none",
+            display: "flex",
+            flexDirection: "column",
+            padding: sidebarOpen ? "28px 0" : "0",
+            position: "sticky",
+            top: 0,
+            height: "100vh",
+            overflowY: "auto",
+            transition: "width 0.3s ease",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          {sidebarOpen && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px", marginBottom: 32 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: colors.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff" }}>⚡</div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700 }}>INFOCAMPUS</div>
+                  <div style={{ fontSize: 10, color: colors.textMuted }}>ADMIN</div>
+                </div>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  style={{ marginLeft: "auto", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: colors.textMuted }}
+                >
+                  ✕
+                </button>
+              </div>
 
-          {navItems.map((item) => {
-            let badge = 0;
-            if (item.id === "courses") badge = courses.length;
-            else if (item.id === "students") badge = students.length;
-            else if (item.id === "instructors") badge = instructors.length;
-            
-            return (
-              <NavItem
-                key={item.id}
-                icon={item.icon}
-                label={item.label}
-                badge={badge}
-                active={activeTab === item.id}
-                onClick={() => setActiveTab(item.id)}
-              />
-            );
-          })}
+              {navItems.map((item) => {
+                let badge = 0;
+                if (item.id === "courses") badge = courses.length;
+                else if (item.id === "students") badge = students.length;
+                else if (item.id === "instructors") badge = instructors.length;
+                
+                return (
+                  <NavItem
+                    key={item.id}
+                    icon={item.icon}
+                    label={item.label}
+                    badge={badge}
+                    active={activeTab === item.id}
+                    onClick={() => setActiveTab(item.id)}
+                  />
+                );
+              })}
 
-          <div style={{ flex: 1 }} />
-          <div style={{ padding: "0 8px 20px 8px" }}>
-            <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", borderRadius: 12, fontSize: 14, fontWeight: 600, color: colors.coral, background: colors.coralSoft, border: "none", cursor: "pointer" }}>
-              <span style={{ fontSize: 18 }}>🚪</span>
-              <span>Logout</span>
-            </button>
-          </div>
+              <div style={{ flex: 1 }} />
+              <div style={{ padding: "0 8px 20px 8px" }}>
+                <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", borderRadius: 12, fontSize: 14, fontWeight: 600, color: colors.coral, background: colors.surface, border: "none", cursor: "pointer" }}>
+                  <span style={{ fontSize: 18 }}>🚪</span>
+                  <span>Logout</span>
+                </button>
+              </div>
+            </>
+          )}
         </nav>
       )}
 
@@ -445,7 +497,13 @@ export default function AdminDashboard() {
       )}
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: isMobile ? "70px 16px 20px" : "32px 40px", overflowY: "auto" }}>
+      <main style={{
+        flex: 1,
+        padding: isMobile ? "70px 16px 20px" : "32px 40px",
+        overflowY: "auto",
+        transition: "margin-left 0.3s ease",
+        marginLeft: isMobile ? 0 : (sidebarOpen ? 0 : 0) // no extra margin needed because sidebar collapses width
+      }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, marginBottom: isMobile ? 20 : 28 }}>
           <div>
             <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, marginBottom: 4 }}>
@@ -453,19 +511,16 @@ export default function AdminDashboard() {
               {activeTab === "courses" && "Course Catalog"}
               {activeTab === "students" && "Student Management"}
               {activeTab === "instructors" && "Instructor Management"}
-              {activeTab === "pdfs" && "Upload PDF"}
               {activeTab === "pdf-viewer" && "PDF Library"}
-              {activeTab === "course-manager" && "Course Manager"}  {/* ✅ ADD THIS */}
+              {activeTab === "course-manager" && "Course Manager"}
             </h1>
             <p style={{ color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }}>
               {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
               {activeTab === "courses" && "Manage all your courses from one place"}
               {activeTab === "students" && "View and manage all enrolled students"}
               {activeTab === "instructors" && "Manage instructors, their status and permissions"}
-              {activeTab === "pdfs" && "Upload PDF files and extract text & images automatically"}
               {activeTab === "pdf-viewer" && "View all uploaded PDFs, extracted text, and images"}
-              {activeTab === "course-view" && "View PDF content as an interactive course with progress tracking"}
-              {activeTab === "course-manager" && "Create and manage courses, topics, subtopics, notes, videos, and exam questions"}  {/* ✅ ADD THIS */}
+              {activeTab === "course-manager" && "Create and manage courses, topics, subtopics, notes, videos, and exam questions"}
             </p>
           </div>
           <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
