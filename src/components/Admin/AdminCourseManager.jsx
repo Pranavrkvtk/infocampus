@@ -144,6 +144,7 @@ const SectionHead = ({ icon, title, count, action }) => (
 // COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
+  // ... (unchanged, keep your existing CourseSelector)
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -262,9 +263,10 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PDF UPLOAD PANEL - WORKING VERSION
+// PDF UPLOAD PANEL (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
+  // ... (keep your existing PdfUploadPanel exactly as before)
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -310,7 +312,6 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
         
         toast.show(`✓ PDF "${file.name}" uploaded successfully!`, 'success');
         
-        // Check if structure was auto-generated
         if (data.structureGenerated || data.topicsCount > 0) {
           toast.show(`✓ Course structure auto-generated!`, 'success');
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -432,7 +433,7 @@ function PdfUploadPanel({ courseId, onStructureGenerated, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TOPIC MANAGER
+// TOPIC MANAGER (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTopicId, toast, pagination, onPageChange }) {
   const [modal, setModal] = useState(null);
@@ -534,29 +535,30 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC MANAGER
+// SUBTOPIC MANAGER – simplified to title only (no notes/video fields in modal)
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiveSubId, toast }) {
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ title: '', notes: '', videoUrl: '' });
+  const [form, setForm] = useState({ title: '' });
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
-  const openAdd = () => { setForm({ title: '', notes: '', videoUrl: '' }); setEditId(null); setModal('form'); };
-  const openEdit = (s) => { setForm({ title: s.title, notes: s.notes || '', videoUrl: s.videoUrl || '' }); setEditId(s.id); setModal('form'); };
+  const openAdd = () => { setForm({ title: '' }); setEditId(null); setModal(true); };
+  const openEdit = (s) => { setForm({ title: s.title }); setEditId(s.id); setModal(true); };
 
   const save = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
+      const payload = { title: form.title };
       if (editId) {
-        await api.put(`/admin/subtopics/${editId}`, { title: form.title, notes: form.notes, videoUrl: form.videoUrl });
-        setSubtopics(ss => ss.map(s => s.id === editId ? { ...s, ...form } : s));
+        await api.put(`/admin/subtopics/${editId}`, payload);
+        setSubtopics(ss => ss.map(s => s.id === editId ? { ...s, title: form.title } : s));
         toast.show('Subtopic updated');
       } else {
-        const data = await api.post(`/admin/topics/${topic.id}/subtopics`, { title: form.title, notes: form.notes, videoUrl: form.videoUrl });
-        const newSub = { id: data.subtopicId || data.subtopic?.id, ...form };
+        const data = await api.post(`/admin/topics/${topic.id}/subtopics`, payload);
+        const newSub = { id: data.subtopicId || data.subtopic?.id, title: form.title, content: '', videoUrl: '' };
         setSubtopics(ss => [...ss, newSub]);
         toast.show('Subtopic created');
       }
@@ -597,8 +599,10 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
               <span style={{ fontSize: 11, color: clr.muted, width: 24 }}>{i + 1}</span>
               <div style={{ flex: 1, fontSize: 13 }}>{s.title}</div>
               <div style={{ display: 'flex', gap: 4 }}>
-                {s.notes && <span title="Has notes" style={{ fontSize: 11 }}>📝</span>}
-                {s.videoUrl && <span title="Has video" style={{ fontSize: 11 }}>🎬</span>}
+                {/* Show index number instead of notes/video indicators */}
+                <span style={{ fontSize: 11, color: clr.muted, background: clr.faint, padding: '2px 7px', borderRadius: 10 }}>
+                  {i + 1}
+                </span>
                 <button onClick={e => { e.stopPropagation(); openEdit(s); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted }}>✏</button>
                 <button onClick={e => { e.stopPropagation(); del(s.id); }} disabled={deletingId === s.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.danger }}>🗑</button>
               </div>
@@ -608,14 +612,15 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
       </Card>
 
       {modal && (
-        <Modal title={editId ? 'Edit Subtopic' : 'Add Subtopic'} onClose={() => setModal(null)} width={600}>
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div><Lbl>Subtopic Title</Lbl><Inp value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g., What is a Computer Network?" /></div>
-            <div><Lbl>PDF Notes / Content</Lbl><Txta value={form.notes} onChange={v => setForm(f => ({ ...f, notes: v }))} placeholder="Paste PDF content or write notes here..." rows={10} /></div>
-            <div><Lbl>Video URL (Optional)</Lbl><Inp value={form.videoUrl} onChange={v => setForm(f => ({ ...f, videoUrl: v }))} placeholder="https://youtube.com/watch?v=..." /></div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <Modal title={editId ? 'Edit Subtopic' : 'Add Subtopic'} onClose={() => setModal(null)}>
+          <div style={{ padding: 24 }}>
+            <Lbl>Subtopic Title</Lbl>
+            <Inp value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g., What is a Computer Network?" />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
               <Btn variant="ghost" onClick={() => setModal(null)}>Cancel</Btn>
-              <Btn onClick={save} disabled={saving || !form.title.trim()}>{saving ? 'Saving…' : editId ? 'Save Changes' : 'Create Subtopic'}</Btn>
+              <Btn onClick={save} disabled={saving || !form.title.trim()}>
+                {saving ? 'Saving…' : editId ? 'Save Changes' : 'Create Subtopic'}
+              </Btn>
             </div>
           </div>
         </Modal>
@@ -625,9 +630,10 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INTERVIEW QUESTIONS TAB
+// INTERVIEW QUESTIONS TAB (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
+  // ... keep your existing InterviewTab code
   const [questions, setQuestions] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ question: '', answer: '' });
   const [adding, setAdding] = useState(false);
@@ -705,9 +711,10 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXAM QUESTIONS (MCQ) TAB
+// EXAM QUESTIONS (MCQ) TAB (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
+  // ... keep your existing ExamTab code
   const [questions, setQuestions] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
   const [adding, setAdding] = useState(false);
@@ -796,9 +803,10 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LAB EXERCISES TAB
+// LAB EXERCISES TAB (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function LabTab({ subtopicId, toast, onUpdate, initialData }) {
+  // ... keep your existing LabTab code
   const [labs, setLabs] = useState(initialData || []);
   const [addForm, setAddForm] = useState({ title: '', instructions: '' });
   const [adding, setAdding] = useState(false);
@@ -878,7 +886,7 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR – uses `content`, syncs with useEffect
+// SUBTOPIC CONTENT EDITOR (unchanged – handles notes, video, interview, exam, lab)
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [notes, setNotes] = useState(sub.content || '');
@@ -903,11 +911,8 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
       await api.put(`/admin/subtopics/${subtopicId}/notes`, { notes });
       onUpdate({ content: notes });
       toast.show('Notes saved');
-    } catch (e) {
-      toast.show(e.message, 'error');
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { toast.show(e.message, 'error'); }
+    finally { setSaving(false); }
   };
 
   const saveVideo = async () => {
@@ -991,7 +996,7 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
+// MAIN COMPONENT (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function AdminCourseManager() {
   const toast = useToast();
@@ -1078,7 +1083,6 @@ export default function AdminCourseManager() {
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
       <style>{`* { box-sizing: border-box; } @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }`}</style>
 
-      {/* Top bar */}
       <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
         {selectedCourse && (
@@ -1107,7 +1111,6 @@ export default function AdminCourseManager() {
 
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
-          {/* LEFT SIDEBAR */}
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
               <PdfUploadPanel 
@@ -1147,7 +1150,6 @@ export default function AdminCourseManager() {
             </div>
           </div>
 
-          {/* RIGHT CONTENT EDITOR */}
           <div style={{ overflowY: 'auto', padding: 20 }}>
             {activeSub ? (
               <SubtopicContentEditor key={activeSub.id} sub={activeSub} subtopicId={activeSub.id} toast={toast} onUpdate={updateActiveSub} />
