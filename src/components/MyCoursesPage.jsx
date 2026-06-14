@@ -38,8 +38,16 @@ function MyCoursesPage() {
   const isMobile = window.innerWidth < 768;
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-  // API calls
+  // Check if user is logged in
+  const isLoggedIn = !!localStorage.getItem('token');
+
+  // ─── API calls ─────────────────────────────────────────────────────────
   const fetchEnrolledCourses = async () => {
+    if (!isLoggedIn) {
+      setCourses([]);
+      setLoading(false);
+      return;
+    }
     try {
       const data = await getEnrolledCourses();
       setCourses(data);
@@ -65,13 +73,24 @@ function MyCoursesPage() {
   };
 
   const handleEnroll = async (courseId) => {
+    if (!isLoggedIn) {
+      Swal.fire({
+        title: 'Login Required',
+        text: 'Please login to enroll in courses',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Go to Login',
+      }).then((result) => {
+        if (result.isConfirmed) navigate('/login');
+      });
+      return;
+    }
     setEnrollingCourseId(courseId);
     try {
       await enrollInCourse(courseId);
       await fetchEnrolledCourses();
-      Swal.fire('Enrolled!', 'You have successfully enrolled in the course.', 'success');
+      Swal.fire('Enrolled!', 'Successfully enrolled.', 'success');
     } catch (error) {
-      console.error('Enrollment failed:', error);
       Swal.fire('Error', 'Could not enroll. Please try again.', 'error');
     } finally {
       setEnrollingCourseId(null);
@@ -87,7 +106,6 @@ function MyCoursesPage() {
 
       const allSubtopics = [];
       allTopics.forEach(topic => {
-        // ✅ Fixed: use 'subtopics' (lowercase) to match backend JSON
         (topic.subtopics || []).forEach(sub => {
           allSubtopics.push({
             id: sub.id,
@@ -105,8 +123,7 @@ function MyCoursesPage() {
       if (savedCompleted) {
         const completed = JSON.parse(savedCompleted);
         setCompletedSections(completed);
-        const newProgress = (completed.length / allSubtopics.length) * 100;
-        setProgress(newProgress);
+        setProgress((completed.length / allSubtopics.length) * 100);
       } else {
         setCompletedSections([]);
         setProgress(0);
@@ -117,7 +134,6 @@ function MyCoursesPage() {
         setCurrentSubtopic(allSubtopics[0]);
       }
     } catch (error) {
-      console.error('Error loading course details:', error);
       Swal.fire('Error', 'Could not load course content', 'error');
     } finally {
       setContentLoading(false);
@@ -129,7 +145,6 @@ function MyCoursesPage() {
       const data = await getSubtopicImages(subtopicId);
       setImages(data);
     } catch (error) {
-      console.error('Error loading images:', error);
       setImages([]);
     }
   };
@@ -155,14 +170,13 @@ function MyCoursesPage() {
       const newCompleted = [...completedSections, index];
       setCompletedSections(newCompleted);
       localStorage.setItem(`course_completed_${selectedCourse.id}`, JSON.stringify(newCompleted));
-      const newProgress = (newCompleted.length / subtopics.length) * 100;
-      setProgress(newProgress);
+      setProgress((newCompleted.length / subtopics.length) * 100);
       Swal.fire({
         title: 'Section Completed! 🎉',
-        text: `${Math.round(newProgress)}% of the course complete`,
+        text: `${Math.round((newCompleted.length / subtopics.length) * 100)}% complete`,
         icon: 'success',
         timer: 1500,
-        showConfirmButton: false
+        showConfirmButton: false,
       });
     }
   };
@@ -181,7 +195,7 @@ function MyCoursesPage() {
         localStorage.removeItem(`course_completed_${selectedCourse.id}`);
         setCompletedSections([]);
         setProgress(0);
-        Swal.fire('Reset!', 'Your progress has been reset.', 'success');
+        Swal.fire('Reset!', 'Progress reset.', 'success');
       }
     });
   };
@@ -208,31 +222,24 @@ function MyCoursesPage() {
   };
 
   const getImageUrl = (subtopicId, fileName) => {
-    // Note: if students get 403, change to `/users/subtopic-images/` and add endpoint in UserController
     return `${API_BASE}/admin/subtopic-images/${subtopicId}/${fileName}`;
   };
 
-  const handleImageError = (imageId) => {
-    if (!imageErrors[imageId]) {
-      setImageErrors(prev => ({ ...prev, [imageId]: true }));
-    }
+  const handleImageError = (id) => {
+    if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));
   };
 
-  const getImageSrc = (subtopicId, fileName, imageId) => {
-    return imageErrors[imageId] ? FALLBACK_IMAGE : getImageUrl(subtopicId, fileName);
-  };
+  const getImageSrc = (sid, fn, id) => imageErrors[id] ? FALLBACK_IMAGE : getImageUrl(sid, fn);
 
   useEffect(() => {
     fetchEnrolledCourses();
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) {
-      fetchAllCourses();
-    }
+    if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) fetchAllCourses();
   }, [activeTab, allCourses.length, loadingAllCourses]);
 
-  // Styles (unchanged from your version)
+  // Styles (unchanged)
   const styles = {
     container: { minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%)', fontFamily: "'Inter', system-ui, sans-serif" },
     header: { background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)', color: 'white', padding: isMobile ? '40px 20px' : '60px 40px', textAlign: 'center', position: 'relative', borderBottomLeftRadius: '30px', borderBottomRightRadius: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' },
@@ -310,7 +317,7 @@ function MyCoursesPage() {
         <button style={styles.backButton} onClick={() => navigate('/')}>← Back to Home</button>
         
         <h1 style={styles.title}>
-          {activeTab === 'my' ? ' My Courses' : ' Master Cisco Networking Build Your Future'}
+          {activeTab === 'my' ? '📘 My Courses' : '🗂️ All Courses'}
         </h1>
         
         <p style={styles.subtitle}>
@@ -353,7 +360,16 @@ function MyCoursesPage() {
 
       {activeTab === 'my' && (
         <>
-          {courses.length === 0 ? (
+          {!isLoggedIn ? (
+            <div style={styles.emptyState}>
+              <div style={styles.emptyIcon}>🔐</div>
+              <h3 style={styles.emptyTitle}>Login Required</h3>
+              <p style={styles.emptyText}>Please login to see your enrolled courses.</p>
+              <button onClick={() => navigate('/login')} style={styles.viewBtn}>
+                Go to Login
+              </button>
+            </div>
+          ) : courses.length === 0 ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>📚</div>
               <h3 style={styles.emptyTitle}>No courses yet</h3>
@@ -403,7 +419,7 @@ function MyCoursesPage() {
           ) : (
             <div style={styles.pdfsGrid}>
               {allCourses.filter(c => c.title?.toLowerCase().includes(searchTerm.toLowerCase())).map(course => {
-                const isEnrolled = courses.some(ec => ec.id === course.id);
+                const isEnrolled = isLoggedIn && courses.some(ec => ec.id === course.id);
                 return (
                   <div key={course.id} style={styles.pdfCard}>
                     <div style={styles.pdfHeader(getGradient(course.title))}>
