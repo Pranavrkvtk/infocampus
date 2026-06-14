@@ -219,10 +219,10 @@ function MyCoursesPage() {
     if (name.includes('linux')) return 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
     return 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
   };
-
-  const getImageUrl = (subtopicId, fileName) => {
-    return `${API_BASE}/admin/subtopic-images/${subtopicId}/${fileName}`;
-  };
+const getImageUrl = (subtopicId, fileName) => {
+  if (!subtopicId) return FALLBACK_IMAGE;
+  return `${API_BASE}/admin/subtopic-images/${subtopicId}/${fileName}`;
+};
 
   const handleImageError = (id) => {
     if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));

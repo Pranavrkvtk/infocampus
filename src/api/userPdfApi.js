@@ -737,7 +737,7 @@ function MyCoursesPage() {
               style={styles.controlBtn(activeView === 'split')} 
               onClick={() => setActiveView('split')}
             >
-              📚 Course View
+              📚 Course Viewssssssssssssss
             </button>
             <button 
               style={styles.controlBtn(activeView === 'gallery')} 
