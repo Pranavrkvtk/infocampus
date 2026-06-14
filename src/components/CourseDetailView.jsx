@@ -27,7 +27,6 @@ function NotesTab({ content }) {
   if (!content) return <div className="empty-state">📝 No notes for this section.</div>;
   const html = renderMarkdownImages(content).replace(/\n/g, '<br/>');
 
-  // Prevent copy, cut, and right-click
   const handleCopy = (e) => e.preventDefault();
   const handleCut = (e) => e.preventDefault();
   const handleContextMenu = (e) => e.preventDefault();
@@ -43,7 +42,7 @@ function NotesTab({ content }) {
         fontFamily: 'Inter, system-ui, sans-serif',
         maxWidth: '100%',
         overflowX: 'auto',
-        userSelect: 'none', // CSS fallback
+        userSelect: 'none',
       }}
       onCopy={handleCopy}
       onCut={handleCut}
@@ -253,7 +252,7 @@ function LabsTab({ labs }) {
   );
 }
 
-// ─── Main CourseDetailView (with enhanced modern styles) ─────────────────
+// ─── Main CourseDetailView (with sticky header + tabs) ─────────────────
 export default function CourseDetailView({
   selectedCourse,
   topics,
@@ -355,7 +354,7 @@ export default function CourseDetailView({
       background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
       color: 'white',
       padding: isMobile ? '32px' : '48px',
-      borderRadius: '32px',
+      borderRadius: 'px',
       marginBottom: '32px',
       textAlign: 'center',
       boxShadow: '0 20px 35px -10px rgba(0,0,0,0.15)',
@@ -442,6 +441,7 @@ export default function CourseDetailView({
       transition: 'all 0.2s',
       ':hover': { background: '#f1f5f9', transform: 'translateX(4px)' },
     }),
+    // 🔧 FIX 1: contentPanel now has overflow hidden (no scroll)
     contentPanel: {
       background: '#fff',
       borderRadius: '24px',
@@ -449,8 +449,11 @@ export default function CourseDetailView({
       boxShadow: '0 8px 20px rgba(0,0,0,0.05)',
       border: '1px solid #eef2f6',
       maxHeight: isMobile ? 'auto' : 'calc(100vh - 120px)',
-      overflowY: 'auto',
+      overflow: 'hidden',               // ← remove scroll from parent
+      display: 'flex',
+      flexDirection: 'column',
     },
+    // 🔧 FIX 2: heading becomes sticky
     currentSectionHeader: {
       marginBottom: '24px',
       paddingBottom: '16px',
@@ -460,14 +463,25 @@ export default function CourseDetailView({
       alignItems: 'center',
       flexWrap: 'wrap',
       gap: '12px',
+      position: 'sticky',
+      top: 0,
+      background: '#fff',
+      zIndex: 100,
+      paddingTop: '10px',
     },
     currentSectionTitle: { fontSize: isMobile ? '22px' : '28px', fontWeight: '700', color: '#0f172a' },
+    // 🔧 FIX 3: tabs become sticky below heading
     tabsContainer: {
       display: 'flex',
       gap: '6px',
       borderBottom: '1px solid #e2e8f0',
       marginBottom: '28px',
       flexWrap: 'wrap',
+      position: 'sticky',
+      top: '80px',           // adjust based on your title height (~70-80px)
+      background: '#fff',
+      zIndex: 99,
+      paddingBottom: '10px',
     },
     tabButton: (active) => ({
       padding: '10px 20px',
@@ -481,6 +495,12 @@ export default function CourseDetailView({
       transition: 'all 0.2s',
       borderRadius: '0',
     }),
+    // 🔧 FIX 4: scrollable wrapper for tab content + button
+    scrollableContent: {
+      maxHeight: isMobile ? 'auto' : 'calc(100vh - 300px)',
+      overflowY: 'auto',
+      paddingRight: '10px',
+    },
     completeBtn: {
       background: '#22c55e',
       color: 'white',
@@ -576,7 +596,6 @@ export default function CourseDetailView({
           <button style={detailStyles.controlBtn(activeView === 'split')} onClick={() => setActiveView('split')}>
             📚 Course View
           </button>
-         
           <button style={detailStyles.resetBtn} onClick={resetProgress}>⟳ Reset Progress</button>
         </div>
 
@@ -630,17 +649,19 @@ export default function CourseDetailView({
               </ul>
             </div>
 
-            {/* Content panel */}
+            {/* Content panel with sticky header + tabs and scrollable content */}
             <div style={detailStyles.contentPanel}>
               {!currentSub ? (
                 <div style={detailStyles.emptyState}>Select a section from the sidebar to begin</div>
               ) : (
                 <>
+                  {/* Sticky heading */}
                   <div style={detailStyles.currentSectionHeader}>
                     <h2 style={detailStyles.currentSectionTitle}>{currentSub.title}</h2>
                     {isCompleted && <span style={detailStyles.sectionProgress}>✅ Completed</span>}
                   </div>
 
+                  {/* Sticky tabs */}
                   <div style={detailStyles.tabsContainer}>
                     {['notes', 'images', 'video', 'interview', 'exam', 'labs'].map(tab => (
                       <button
@@ -658,31 +679,34 @@ export default function CourseDetailView({
                     ))}
                   </div>
 
-                  {loadingData && activeContentTab !== 'notes' && activeContentTab !== 'images' && activeContentTab !== 'video' && (
-                    <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Loading...</div>
-                  )}
+                  {/* Scrollable content wrapper */}
+                  <div style={detailStyles.scrollableContent}>
+                    {loadingData && activeContentTab !== 'notes' && activeContentTab !== 'images' && activeContentTab !== 'video' && (
+                      <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Loading...</div>
+                    )}
 
-                  {activeContentTab === 'notes' && <NotesTab content={currentSub.content} />}
-                  {activeContentTab === 'images' && currentSub?.id && (
-                    <ImagesTab
-                      images={subtopicImages}
-                      subtopicId={currentSub.id}
-                      getImageUrl={getImageUrl}
-                      handleImageError={handleImageError}
-                    />
-                  )}
-                  {activeContentTab === 'video' && <VideoTab videoUrl={currentSub.videoUrl} />}
-                  {activeContentTab === 'interview' && <InterviewTab questions={interviewQuestions} />}
-                  {activeContentTab === 'exam' && <ExamTab questions={examQuestions} />}
-                  {activeContentTab === 'labs' && <LabsTab labs={labs} />}
+                    {activeContentTab === 'notes' && <NotesTab content={currentSub.content} />}
+                    {activeContentTab === 'images' && currentSub?.id && (
+                      <ImagesTab
+                        images={subtopicImages}
+                        subtopicId={currentSub.id}
+                        getImageUrl={getImageUrl}
+                        handleImageError={handleImageError}
+                      />
+                    )}
+                    {activeContentTab === 'video' && <VideoTab videoUrl={currentSub.videoUrl} />}
+                    {activeContentTab === 'interview' && <InterviewTab questions={interviewQuestions} />}
+                    {activeContentTab === 'exam' && <ExamTab questions={examQuestions} />}
+                    {activeContentTab === 'labs' && <LabsTab labs={labs} />}
 
-                  <button
-                    style={detailStyles.completeBtn}
-                    onClick={() => markSectionComplete(activeSection)}
-                    disabled={isCompleted}
-                  >
-                    {isCompleted ? '✓ Section Completed' : '✓ Mark Complete'}
-                  </button>
+                    <button
+                      style={detailStyles.completeBtn}
+                      onClick={() => markSectionComplete(activeSection)}
+                      disabled={isCompleted}
+                    >
+                      {isCompleted ? '✓ Section Completed' : '✓ Mark Complete'}
+                    </button>
+                  </div>
                 </>
               )}
             </div>
