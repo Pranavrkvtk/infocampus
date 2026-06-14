@@ -77,51 +77,51 @@ function MyCoursesPage() {
       setEnrollingCourseId(null);
     }
   };
+const loadCourseDetails = async (courseId) => {
+  setContentLoading(true);
+  try {
+    const data = await getCourseDetails(courseId);
+    setCourseDetails(data.course);
+    const allTopics = data.topics || [];
 
-  const loadCourseDetails = async (courseId) => {
-    setContentLoading(true);
-    try {
-      const data = await getCourseDetails(courseId);
-      setCourseDetails(data.course);
-      const allTopics = data.topics || [];
-
-      const allSubtopics = [];
-      allTopics.forEach(topic => {
-        (topic.subTopics || []).forEach(sub => {
-          allSubtopics.push({
-            id: sub.id,
-            title: sub.title,
-            topicTitle: topic.title,
-            content: sub.content,
-            videoUrl: sub.videoUrl
-          });
+    const allSubtopics = [];
+    allTopics.forEach(topic => {
+      // ✅ FIX: use 'subtopics' (lowercase) to match backend JSON
+      (topic.subtopics || []).forEach(sub => {
+        allSubtopics.push({
+          id: sub.id,
+          title: sub.title,
+          topicTitle: topic.title,
+          content: sub.content,
+          videoUrl: sub.videoUrl
         });
       });
-      setSubtopics(allSubtopics);
-      setTopics(allTopics);
+    });
+    setSubtopics(allSubtopics);
+    setTopics(allTopics);
 
-      const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
-      if (savedCompleted) {
-        const completed = JSON.parse(savedCompleted);
-        setCompletedSections(completed);
-        const newProgress = (completed.length / allSubtopics.length) * 100;
-        setProgress(newProgress);
-      } else {
-        setCompletedSections([]);
-        setProgress(0);
-      }
-      setActiveSection(0);
-      if (allSubtopics.length > 0) {
-        await loadSubtopicImages(allSubtopics[0].id);
-        setCurrentSubtopic(allSubtopics[0]);
-      }
-    } catch (error) {
-      console.error('Error loading course details:', error);
-      Swal.fire('Error', 'Could not load course content', 'error');
-    } finally {
-      setContentLoading(false);
+    const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
+    if (savedCompleted) {
+      const completed = JSON.parse(savedCompleted);
+      setCompletedSections(completed);
+      const newProgress = (completed.length / allSubtopics.length) * 100;
+      setProgress(newProgress);
+    } else {
+      setCompletedSections([]);
+      setProgress(0);
     }
-  };
+    setActiveSection(0);
+    if (allSubtopics.length > 0) {
+      await loadSubtopicImages(allSubtopics[0].id);
+      setCurrentSubtopic(allSubtopics[0]);
+    }
+  } catch (error) {
+    console.error('Error loading course details:', error);
+    Swal.fire('Error', 'Could not load course content', 'error');
+  } finally {
+    setContentLoading(false);
+  }
+};
 
   const loadSubtopicImages = async (subtopicId) => {
     try {
