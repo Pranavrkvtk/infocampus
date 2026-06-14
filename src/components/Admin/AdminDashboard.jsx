@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [sidebarOpen, setSidebarOpen] = useState(true); // ✅ sidebar open/close state
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
@@ -40,6 +40,16 @@ export default function AdminDashboard() {
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false); // ✅ Dark mode state
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add("dark-theme");
+    } else {
+      document.body.classList.remove("dark-theme");
+    }
+  }, [isDarkMode]);
 
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -54,7 +64,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
-      // Auto-close sidebar on mobile, open on desktop if not mobile
       if (window.innerWidth <= 768) setSidebarOpen(false);
       else setSidebarOpen(true);
     };
@@ -323,14 +332,14 @@ export default function AdminDashboard() {
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
     if (error) return (
-      <div style={{ textAlign: "center", color: colors.coral, padding: "40px" }}>
+      <div style={{ textAlign: "center", color: "var(--error)", padding: "40px" }}>
         ⚠️ {error}
         <button onClick={() => {
           if (activeTab === "students") fetchAllStudents();
           else if (activeTab === "courses") fetchCourses();
           else if (activeTab === "instructors") fetchAllInstructors();
           else fetchDashboardStats();
-        }} style={{ marginLeft: 12, padding: "6px 12px", background: colors.primary, color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>Retry</button>
+        }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>Retry</button>
       </div>
     );
 
@@ -391,150 +400,227 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: colors.bgBase, paddingBottom: isMobile ? 70 : 0 }}>
-      {/* Hamburger button for desktop (visible only when sidebar closed) */}
-      {!isMobile && !sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          style={{
-            position: "fixed",
-            top: 20,
-            left: 20,
-            zIndex: 1100,
-            background: colors.surface,
-            border: `1px solid ${colors.borderLight}`,
-            borderRadius: 8,
-            padding: "8px 12px",
-            cursor: "pointer",
-            fontSize: 20,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-          }}
-        >
-          ☰
-        </button>
-      )}
+    <>
+      {/* Dark theme CSS overrides */}
+      <style>
+        {`
+          :root {
+            --bg-base: #f8f9fb;
+            --surface: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-light: #e4e7ec;
+            --primary: #4f46e5;
+            --primary-soft: #eef2ff;
+            --error: #dc2626;
+            --success: #16a34a;
+            --teal: #14b8a6;
+            --teal-soft: #ccfbf1;
+            --amber-soft: #fef3c7;
+            --purple-soft: #f3e8ff;
+            --sidebar: #1e1b4b;
+            --sidebar-text: #c7d2fe;
+            --grad-primary: linear-gradient(135deg, #4f46e5, #7c3aed);
+          }
+          body.dark-theme {
+            --bg-base: #344e8a;
+            --surface: #000000;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-light: #334155;
+            --primary: #818cf8;
+            --primary-soft: #312e81;
+            --error: #f87171;
+            --success: #34d399;
+            --teal: #2dd4bf;
+            --teal-soft: #134e4a;
+            --amber-soft: #78350f;
+            --purple-soft: #4c1d95;
+            --sidebar: #0f172a;
+            --sidebar-text: #a5b4fc;
+            --grad-primary: linear-gradient(135deg, #818cf8, #a78bfa);
+          }
+          body.dark-theme .swal2-popup {
+            background: #1e293b !important;
+            color: #f1f5f9 !important;
+          }
+          body.dark-theme input, body.dark-theme textarea, body.dark-theme select {
+            background: #334155 !important;
+            color: #c3d1e0 !important;
+            border-color: #475569 !important;
+          }
+          body.dark-theme button, body.dark-theme .btn {
+            transition: all 0.2s;
+          }
+        `}
+      </style>
+      <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-base)", paddingBottom: isMobile ? 70 : 0 }}>
+        {/* Hamburger button for desktop (visible only when sidebar closed) */}
+        {!isMobile && !sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              position: "fixed",
+              top: 20,
+              left: 20,
+              zIndex: 1100,
+              background: "var(--surface)",
+              border: `1px solid var(--border-light)`,
+              borderRadius: 8,
+              padding: "8px 12px",
+              cursor: "pointer",
+              fontSize: 20,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              color: "var(--text-primary)"
+            }}
+          >
+            ☰
+          </button>
+        )}
 
-      {/* Slide Sidebar - Desktop */}
-      {!isMobile && (
-        <nav
-          style={{
-            width: sidebarOpen ? 260 : 0,
-            background: colors.surface,
-            borderRight: sidebarOpen ? `1px solid ${colors.borderLight}` : "none",
-            display: "flex",
-            flexDirection: "column",
-            padding: sidebarOpen ? "28px 0" : "0",
-            position: "sticky",
-            top: 0,
-            height: "100vh",
-            overflowY: "auto",
-            transition: "width 0.3s ease",
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-          }}
-        >
-          {sidebarOpen && (
-            <>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px", marginBottom: 32 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 12, background: colors.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff" }}>⚡</div>
-                <div>
-                  <div style={{ fontSize: 18, fontWeight: 700 }}>INFOCAMPUS</div>
-                  <div style={{ fontSize: 10, color: colors.textMuted }}>ADMIN</div>
+        {/* Slide Sidebar - Desktop */}
+        {!isMobile && (
+          <nav
+            style={{
+              width: sidebarOpen ? 260 : 0,
+              background: "var(--surface)",
+              borderRight: sidebarOpen ? `1px solid var(--border-light)` : "none",
+              display: "flex",
+              flexDirection: "column",
+              padding: sidebarOpen ? "28px 0" : "0",
+              position: "sticky",
+              top: 0,
+              height: "100vh",
+              overflowY: "auto",
+              transition: "width 0.3s ease",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            {sidebarOpen && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px", marginBottom: 32 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 12, background: "var(--grad-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff" }}>⚡</div>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>INFOCAMPUS</div>
+                    <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>ADMIN</div>
+                  </div>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    style={{ marginLeft: "auto", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--text-secondary)" }}
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  style={{ marginLeft: "auto", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: colors.textMuted }}
-                >
-                  ✕
-                </button>
+
+                {navItems.map((item) => {
+                  let badge = 0;
+                  if (item.id === "courses") badge = courses.length;
+                  else if (item.id === "students") badge = students.length;
+                  else if (item.id === "instructors") badge = instructors.length;
+                  
+                  return (
+                    <NavItem
+                      key={item.id}
+                      icon={item.icon}
+                      label={item.label}
+                      badge={badge}
+                      active={activeTab === item.id}
+                      onClick={() => setActiveTab(item.id)}
+                    />
+                  );
+                })}
+
+                <div style={{ flex: 1 }} />
+                <div style={{ padding: "0 8px 20px 8px" }}>
+                  <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", borderRadius: 12, fontSize: 14, fontWeight: 600, color: "var(--error)", background: "var(--surface)", border: "1px solid var(--border-light)", cursor: "pointer" }}>
+                    <span style={{ fontSize: 18 }}>🚪</span>
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </nav>
+        )}
+
+        {/* Mobile Header */}
+        {isMobile && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, background: "var(--surface)", borderBottom: `1px solid var(--border-light)`, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 99 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: "var(--grad-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#fff" }}>⚡</div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>INFOCAMPUS</div>
+                <div style={{ fontSize: 9, color: "var(--text-secondary)" }}>ADMIN</div>
               </div>
-
-              {navItems.map((item) => {
-                let badge = 0;
-                if (item.id === "courses") badge = courses.length;
-                else if (item.id === "students") badge = students.length;
-                else if (item.id === "instructors") badge = instructors.length;
-                
-                return (
-                  <NavItem
-                    key={item.id}
-                    icon={item.icon}
-                    label={item.label}
-                    badge={badge}
-                    active={activeTab === item.id}
-                    onClick={() => setActiveTab(item.id)}
-                  />
-                );
-              })}
-
-              <div style={{ flex: 1 }} />
-              <div style={{ padding: "0 8px 20px 8px" }}>
-                <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", borderRadius: 12, fontSize: 14, fontWeight: 600, color: colors.coral, background: colors.surface, border: "none", cursor: "pointer" }}>
-                  <span style={{ fontSize: 18 }}>🚪</span>
-                  <span>Logout</span>
-                </button>
-              </div>
-            </>
-          )}
-        </nav>
-      )}
-
-      {/* Mobile Header */}
-      {isMobile && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, background: colors.surface, borderBottom: `1px solid ${colors.borderLight}`, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 99 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: colors.gradPrimary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#fff" }}>⚡</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>INFOCAMPUS</div>
-              <div style={{ fontSize: 9, color: colors.textMuted }}>ADMIN</div>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)", textAlign: "right" }}>
+              <div style={{ fontWeight: 600, color: "var(--primary)" }}>{currentTime}</div>
+              <div>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
             </div>
           </div>
-          <div style={{ fontSize: 11, color: colors.textMuted, textAlign: "right" }}>
-            <div style={{ fontWeight: 600, color: colors.primary }}>{currentTime}</div>
-            <div>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+        )}
+
+        {/* Main Content */}
+        <main style={{
+          flex: 1,
+          padding: isMobile ? "70px 16px 20px" : "32px 40px",
+          overflowY: "auto",
+          transition: "margin-left 0.3s ease",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, marginBottom: isMobile ? 20 : 28 }}>
+            <div>
+              <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, marginBottom: 4, color: "var(--text-primary)" }}>
+                {activeTab === "dashboard" && "Dashboard"}
+                {activeTab === "courses" && "Course Catalog"}
+                {activeTab === "students" && "Student Management"}
+                {activeTab === "instructors" && "Instructor Management"}
+                {activeTab === "pdf-viewer" && "PDF Library"}
+                {activeTab === "course-manager" && "Course Manager"}
+              </h1>
+              <p style={{ color: "var(--text-secondary)", fontSize: isMobile ? 12 : 14 }}>
+                {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
+                {activeTab === "courses" && "Manage all your courses from one place"}
+                {activeTab === "students" && "View and manage all enrolled students"}
+                {activeTab === "instructors" && "Manage instructors, their status and permissions"}
+                {activeTab === "pdf-viewer" && "View all uploaded PDFs, extracted text, and images"}
+                {activeTab === "course-manager" && "Create and manage courses, topics, subtopics, notes, videos, and exam questions"}
+              </p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
+              {/* Dark mode toggle button */}
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                style={{
+                  background: "var(--surface)",
+                  border: `1px solid var(--border-light)`,
+                  borderRadius: 40,
+                  padding: "8px 16px",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                }}
+              >
+                {isDarkMode ? "☀️ Light" : "🌙 Dark"}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+          {renderContent()}
+        </main>
 
-      {/* Main Content */}
-      <main style={{
-        flex: 1,
-        padding: isMobile ? "70px 16px 20px" : "32px 40px",
-        overflowY: "auto",
-        transition: "margin-left 0.3s ease",
-        marginLeft: isMobile ? 0 : (sidebarOpen ? 0 : 0) // no extra margin needed because sidebar collapses width
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, marginBottom: isMobile ? 20 : 28 }}>
-          <div>
-            <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, marginBottom: 4 }}>
-              {activeTab === "dashboard" && "Dashboard"}
-              {activeTab === "courses" && "Course Catalog"}
-              {activeTab === "students" && "Student Management"}
-              {activeTab === "instructors" && "Instructor Management"}
-              {activeTab === "pdf-viewer" && "PDF Library"}
-              {activeTab === "course-manager" && "Course Manager"}
-            </h1>
-            <p style={{ color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }}>
-              {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
-              {activeTab === "courses" && "Manage all your courses from one place"}
-              {activeTab === "students" && "View and manage all enrolled students"}
-              {activeTab === "instructors" && "Manage instructors, their status and permissions"}
-              {activeTab === "pdf-viewer" && "View all uploaded PDFs, extracted text, and images"}
-              {activeTab === "course-manager" && "Create and manage courses, topics, subtopics, notes, videos, and exam questions"}
-            </p>
-          </div>
-          <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
-        </div>
-        {renderContent()}
-      </main>
+        {/* Mobile Bottom Navigation */}
+        {isMobile && <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />}
 
-      {/* Mobile Bottom Navigation */}
-      {isMobile && <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />}
-
-      {/* Modals */}
-      <AddCourseModal isOpen={isAddCourseModalOpen} onClose={() => setIsAddCourseModalOpen(false)} onCourseCreated={fetchCourses} />
-      <EditCourseModal isOpen={isEditCourseModalOpen} onClose={() => { setIsEditCourseModalOpen(false); setSelectedCourse(null); }} course={selectedCourse} onCourseUpdated={fetchCourses} />
-      <EditRoleModal isOpen={isEditRoleModalOpen} onClose={() => { setIsEditRoleModalOpen(false); setSelectedUser(null); }} user={selectedUser} onRoleUpdated={fetchAllStudents} />
-    </div>
+        {/* Modals */}
+        <AddCourseModal isOpen={isAddCourseModalOpen} onClose={() => setIsAddCourseModalOpen(false)} onCourseCreated={fetchCourses} />
+        <EditCourseModal isOpen={isEditCourseModalOpen} onClose={() => { setIsEditCourseModalOpen(false); setSelectedCourse(null); }} course={selectedCourse} onCourseUpdated={fetchCourses} />
+        <EditRoleModal isOpen={isEditRoleModalOpen} onClose={() => { setIsEditRoleModalOpen(false); setSelectedUser(null); }} user={selectedUser} onRoleUpdated={fetchAllStudents} />
+      </div>
+    </>
   );
 }

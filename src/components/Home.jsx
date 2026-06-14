@@ -102,7 +102,7 @@ export default function Home() {
       boxShadow: "0 4px 18px rgba(229,168,0,0.3)",
       width: isMobile ? "100%" : "auto",
     }}>
-    Upgrade Plan →
+    Browse Courses →
   </button>
 </div>
 

@@ -41,7 +41,7 @@ const handleLogin = async (e) => {
     } else if (role === "INSTRUCTOR") {
       window.location.replace("/instructor");
     } else {
-      window.location.replace("/courses");
+      window.location.replace("/my-courses");
     }
 
   } catch (error) {
