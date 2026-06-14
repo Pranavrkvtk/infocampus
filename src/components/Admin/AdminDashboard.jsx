@@ -395,7 +395,6 @@ export default function AdminDashboard() {
     { icon: "🌐", label: "Courses", id: "courses" }, 
     { icon: "👨‍🎓", label: "Students", id: "students" },
     { icon: "👨‍🏫", label: "Instructors", id: "instructors" },
-    { icon: "👁️", label: "View PDFs", id: "pdf-viewer" },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" }
   ];
 
