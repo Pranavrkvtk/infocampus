@@ -38,7 +38,6 @@ function MyCoursesPage() {
   const isMobile = window.innerWidth < 768;
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-  // Check if user is logged in
   const isLoggedIn = !!localStorage.getItem('token');
 
   // ─── API calls ─────────────────────────────────────────────────────────
@@ -231,6 +230,7 @@ function MyCoursesPage() {
 
   const getImageSrc = (sid, fn, id) => imageErrors[id] ? FALLBACK_IMAGE : getImageUrl(sid, fn);
 
+  // Effects
   useEffect(() => {
     fetchEnrolledCourses();
   }, []);
@@ -238,6 +238,13 @@ function MyCoursesPage() {
   useEffect(() => {
     if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) fetchAllCourses();
   }, [activeTab, allCourses.length, loadingAllCourses]);
+
+  // If user logs out while on 'my' tab, switch to 'all'
+  useEffect(() => {
+    if (!isLoggedIn && activeTab === 'my') {
+      setActiveTab('all');
+    }
+  }, [isLoggedIn, activeTab]);
 
   // Styles (unchanged)
   const styles = {
@@ -310,22 +317,22 @@ function MyCoursesPage() {
     );
   }
 
-  // ─── Course list view with dynamic header ─────────────────────────────
+  // ─── Course list view with dynamic header and conditional tab ─────────────────
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <button style={styles.backButton} onClick={() => navigate('/')}>← Back to Home</button>
-        
+
         <h1 style={styles.title}>
           {activeTab === 'my' ? '📘 My Courses' : '🗂️ All Courses'}
         </h1>
-        
+
         <p style={styles.subtitle}>
-          {activeTab === 'my' 
-            ? 'Continue where you left off' 
+          {activeTab === 'my'
+            ? 'Continue where you left off'
             : 'Discover new courses to boost your career'}
         </p>
-        
+
         <div style={styles.statsRow}>
           <div style={styles.statItem}>
             <div style={styles.statNumber}>
@@ -338,11 +345,20 @@ function MyCoursesPage() {
         </div>
       </div>
 
+      {/* ─── Tab Buttons ─────────────────────────────────────────────────── */}
       <div style={styles.controls}>
-        <button style={styles.controlBtn(activeTab === 'my')} onClick={() => setActiveTab('my')}>
-          📘 My Courses
-        </button>
-        <button style={styles.controlBtn(activeTab === 'all')} onClick={() => setActiveTab('all')}>
+        {isLoggedIn && (
+          <button
+            style={styles.controlBtn(activeTab === 'my')}
+            onClick={() => setActiveTab('my')}
+          >
+            📘 My Courses
+          </button>
+        )}
+        <button
+          style={styles.controlBtn(activeTab === 'all')}
+          onClick={() => setActiveTab('all')}
+        >
           🗂️ All Courses
         </button>
       </div>
@@ -380,24 +396,40 @@ function MyCoursesPage() {
             </div>
           ) : (
             <div style={styles.pdfsGrid}>
-              {courses.filter(c => c.title?.toLowerCase().includes(searchTerm.toLowerCase())).map(course => (
-                <div key={course.id} style={styles.pdfCard} onClick={() => handleCourseClick(course)}>
-                  <div style={styles.pdfHeader(getGradient(course.title))}>
-                    <span style={styles.pdfIcon}>{getCourseIcon(course.title)}</span>
-                  </div>
-                  <div style={styles.pdfBody}>
-                    <h3 style={styles.pdfTitle}>{course.title}</h3>
-                    <div style={styles.pdfMeta}>
-                      <span>⭐ {course.rating || '4.8'}</span>
-                      <span>⏱ {course.duration || '40h'}</span>
-                      <span>👥 {course.members || '5k+'}</span>
+              {courses
+                .filter((c) =>
+                  c.title?.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((course) => (
+                  <div
+                    key={course.id}
+                    style={styles.pdfCard}
+                    onClick={() => handleCourseClick(course)}
+                  >
+                    <div style={styles.pdfHeader(getGradient(course.title))}>
+                      <span style={styles.pdfIcon}>
+                        {getCourseIcon(course.title)}
+                      </span>
                     </div>
-                    <button style={styles.viewBtn} onClick={(e) => { e.stopPropagation(); handleCourseClick(course); }}>
-                      📖 Continue Learning
-                    </button>
+                    <div style={styles.pdfBody}>
+                      <h3 style={styles.pdfTitle}>{course.title}</h3>
+                      <div style={styles.pdfMeta}>
+                        <span>⭐ {course.rating || '4.8'}</span>
+                        <span>⏱ {course.duration || '40h'}</span>
+                        <span>👥 {course.members || '5k+'}</span>
+                      </div>
+                      <button
+                        style={styles.viewBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCourseClick(course);
+                        }}
+                      >
+                        📖 Continue Learning
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </>
@@ -418,33 +450,52 @@ function MyCoursesPage() {
             </div>
           ) : (
             <div style={styles.pdfsGrid}>
-              {allCourses.filter(c => c.title?.toLowerCase().includes(searchTerm.toLowerCase())).map(course => {
-                const isEnrolled = isLoggedIn && courses.some(ec => ec.id === course.id);
-                return (
-                  <div key={course.id} style={styles.pdfCard}>
-                    <div style={styles.pdfHeader(getGradient(course.title))}>
-                      <span style={styles.pdfIcon}>{getCourseIcon(course.title)}</span>
-                    </div>
-                    <div style={styles.pdfBody}>
-                      <h3 style={styles.pdfTitle}>{course.title}</h3>
-                      <div style={styles.pdfMeta}>
-                        <span>⭐ {course.rating || '4.8'}</span>
-                        <span>⏱ {course.duration || '40h'}</span>
-                        <span>👥 {course.members || '5k+'}</span>
+              {allCourses
+                .filter((c) =>
+                  c.title?.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((course) => {
+                  const isEnrolled =
+                    isLoggedIn && courses.some((ec) => ec.id === course.id);
+                  return (
+                    <div key={course.id} style={styles.pdfCard}>
+                      <div style={styles.pdfHeader(getGradient(course.title))}>
+                        <span style={styles.pdfIcon}>
+                          {getCourseIcon(course.title)}
+                        </span>
                       </div>
-                      {isEnrolled ? (
-                        <button style={{ ...styles.viewBtn, background: '#10b981' }} onClick={() => handleCourseClick(course)}>
-                          📖 Continue Learning
-                        </button>
-                      ) : (
-                        <button style={styles.viewBtn} onClick={(e) => { e.stopPropagation(); handleEnroll(course.id); }} disabled={enrollingCourseId === course.id}>
-                          {enrollingCourseId === course.id ? 'Enrolling...' : '➕ Enroll Now'}
-                        </button>
-                      )}
+                      <div style={styles.pdfBody}>
+                        <h3 style={styles.pdfTitle}>{course.title}</h3>
+                        <div style={styles.pdfMeta}>
+                          <span>⭐ {course.rating || '4.8'}</span>
+                          <span>⏱ {course.duration || '40h'}</span>
+                          <span>👥 {course.members || '5k+'}</span>
+                        </div>
+                        {isEnrolled ? (
+                          <button
+                            style={{ ...styles.viewBtn, background: '#10b981' }}
+                            onClick={() => handleCourseClick(course)}
+                          >
+                            📖 Continue Learning
+                          </button>
+                        ) : (
+                          <button
+                            style={styles.viewBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEnroll(course.id);
+                            }}
+                            disabled={enrollingCourseId === course.id}
+                          >
+                            {enrollingCourseId === course.id
+                              ? 'Enrolling...'
+                              : '➕ Enroll Now'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </>
