@@ -38,7 +38,7 @@ function MyCoursesPage() {
   const isMobile = window.innerWidth < 768;
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-  // API calls (same as before)
+  // API calls
   const fetchEnrolledCourses = async () => {
     try {
       const data = await getEnrolledCourses();
@@ -77,51 +77,52 @@ function MyCoursesPage() {
       setEnrollingCourseId(null);
     }
   };
-const loadCourseDetails = async (courseId) => {
-  setContentLoading(true);
-  try {
-    const data = await getCourseDetails(courseId);
-    setCourseDetails(data.course);
-    const allTopics = data.topics || [];
 
-    const allSubtopics = [];
-    allTopics.forEach(topic => {
-      // ✅ FIX: use 'subtopics' (lowercase) to match backend JSON
-      (topic.subtopics || []).forEach(sub => {
-        allSubtopics.push({
-          id: sub.id,
-          title: sub.title,
-          topicTitle: topic.title,
-          content: sub.content,
-          videoUrl: sub.videoUrl
+  const loadCourseDetails = async (courseId) => {
+    setContentLoading(true);
+    try {
+      const data = await getCourseDetails(courseId);
+      setCourseDetails(data.course);
+      const allTopics = data.topics || [];
+
+      const allSubtopics = [];
+      allTopics.forEach(topic => {
+        // ✅ Fixed: use 'subtopics' (lowercase) to match backend JSON
+        (topic.subtopics || []).forEach(sub => {
+          allSubtopics.push({
+            id: sub.id,
+            title: sub.title,
+            topicTitle: topic.title,
+            content: sub.content,
+            videoUrl: sub.videoUrl
+          });
         });
       });
-    });
-    setSubtopics(allSubtopics);
-    setTopics(allTopics);
+      setSubtopics(allSubtopics);
+      setTopics(allTopics);
 
-    const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
-    if (savedCompleted) {
-      const completed = JSON.parse(savedCompleted);
-      setCompletedSections(completed);
-      const newProgress = (completed.length / allSubtopics.length) * 100;
-      setProgress(newProgress);
-    } else {
-      setCompletedSections([]);
-      setProgress(0);
+      const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
+      if (savedCompleted) {
+        const completed = JSON.parse(savedCompleted);
+        setCompletedSections(completed);
+        const newProgress = (completed.length / allSubtopics.length) * 100;
+        setProgress(newProgress);
+      } else {
+        setCompletedSections([]);
+        setProgress(0);
+      }
+      setActiveSection(0);
+      if (allSubtopics.length > 0) {
+        await loadSubtopicImages(allSubtopics[0].id);
+        setCurrentSubtopic(allSubtopics[0]);
+      }
+    } catch (error) {
+      console.error('Error loading course details:', error);
+      Swal.fire('Error', 'Could not load course content', 'error');
+    } finally {
+      setContentLoading(false);
     }
-    setActiveSection(0);
-    if (allSubtopics.length > 0) {
-      await loadSubtopicImages(allSubtopics[0].id);
-      setCurrentSubtopic(allSubtopics[0]);
-    }
-  } catch (error) {
-    console.error('Error loading course details:', error);
-    Swal.fire('Error', 'Could not load course content', 'error');
-  } finally {
-    setContentLoading(false);
-  }
-};
+  };
 
   const loadSubtopicImages = async (subtopicId) => {
     try {
@@ -207,6 +208,7 @@ const loadCourseDetails = async (courseId) => {
   };
 
   const getImageUrl = (subtopicId, fileName) => {
+    // Note: if students get 403, change to `/users/subtopic-images/` and add endpoint in UserController
     return `${API_BASE}/admin/subtopic-images/${subtopicId}/${fileName}`;
   };
 
@@ -230,7 +232,7 @@ const loadCourseDetails = async (courseId) => {
     }
   }, [activeTab, allCourses.length, loadingAllCourses]);
 
-  // Enhanced modern styles
+  // Styles (unchanged from your version)
   const styles = {
     container: { minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%)', fontFamily: "'Inter', system-ui, sans-serif" },
     header: { background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)', color: 'white', padding: isMobile ? '40px 20px' : '60px 40px', textAlign: 'center', position: 'relative', borderBottomLeftRadius: '30px', borderBottomRightRadius: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' },
@@ -301,17 +303,30 @@ const loadCourseDetails = async (courseId) => {
     );
   }
 
-  // Course list view
+  // ─── Course list view with dynamic header ─────────────────────────────
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <button style={styles.backButton} onClick={() => navigate('/')}>← Back to Home</button>
-        <h1 style={styles.title}>My Learning</h1>
-        <p style={styles.subtitle}>Continue your journey or discover new horizons</p>
+        
+        <h1 style={styles.title}>
+          {activeTab === 'my' ? ' My Courses' : ' Master Cisco Networking Build Your Future'}
+        </h1>
+        
+        <p style={styles.subtitle}>
+          {activeTab === 'my' 
+            ? 'Continue where you left off' 
+            : 'Discover new courses to boost your career'}
+        </p>
+        
         <div style={styles.statsRow}>
           <div style={styles.statItem}>
-            <div style={styles.statNumber}>{courses.length}</div>
-            <div style={styles.statLabel}>Enrolled Courses</div>
+            <div style={styles.statNumber}>
+              {activeTab === 'my' ? courses.length : allCourses.length}
+            </div>
+            <div style={styles.statLabel}>
+              {activeTab === 'my' ? 'Enrolled Courses' : 'Available Courses'}
+            </div>
           </div>
         </div>
       </div>
