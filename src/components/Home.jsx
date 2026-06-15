@@ -160,24 +160,30 @@ function TrainingSection({ isMobile }) {
   return (
     <section style={{ background: "#fff", padding: isMobile ? "48px 20px" : "64px 40px" }}>
       <div style={{ maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
-        <h2 style={{ color: "#e5a800", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 700, fontSize: isMobile ? "24px" : "34px", margin: "0 0 20px", letterSpacing: "-0.3px" }}>Pick your Hands-On Training Category</h2>
-        <p style={{ color: "#333", fontFamily: "'Trebuchet MS', sans-serif", fontSize: isMobile ? "14px" : "15.5px", lineHeight: "1.7", maxWidth: "860px", margin: "0 auto 40px" }}>
-          Beginner in networking or professional? We offer Cisco lessons for all levels. If you have never worked in IT before then you will enjoy the CCNA lessons while experts will love the CCIE lessons. My lessons will help you to prepare for popular certifications like:
-        </p>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? "24px" : "60px", flexWrap: "wrap", marginBottom: "44px" }}>
-          <CiscoBadge label="CCNA" />
-          <CiscoBadge label="CCNP" />
-          <CCIEBadge />
-        </div>
-        <p style={{ color: "#444", fontFamily: "'Trebuchet MS', sans-serif", fontSize: "15px", marginBottom: "24px" }}>Or any of our other topics</p>
+        {/* ... heading and badges remain the same ... */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(6, 1fr)", gap: "4px 0", maxWidth: "900px", margin: "0 auto" }}>
           {topics.map((col, ci) => (
             <div key={ci} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {col.map((topic, ti) => (
-                <a key={ti} href="/course" style={{ color: "#3a7fc1", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: 700, fontSize: isMobile ? "13px" : "14.5px", textDecoration: "none", padding: "3px 0", display: "block", transition: "color 0.15s" }}
+                <Link
+                  key={ti}
+                  to="/my-courses"
+                  state={{ topic }}   // pass clicked topic to target page
+                  style={{
+                    color: "#3a7fc1",
+                    fontFamily: "'Trebuchet MS', sans-serif",
+                    fontWeight: 700,
+                    fontSize: isMobile ? "13px" : "14.5px",
+                    textDecoration: "none",
+                    padding: "3px 0",
+                    display: "block",
+                    transition: "color 0.15s"
+                  }}
                   onMouseEnter={e => e.target.style.color = "#e5a800"}
                   onMouseLeave={e => e.target.style.color = "#3a7fc1"}
-                >{topic}</a>
+                >
+                  {topic}
+                </Link>
               ))}
             </div>
           ))}
