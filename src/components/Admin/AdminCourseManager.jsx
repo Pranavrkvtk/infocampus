@@ -83,8 +83,14 @@ const Lbl = ({ children }) => (
   </label>
 );
 
-const Inp = ({ value, onChange, placeholder, type = 'text' }) => (
-  <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+const Inp = ({ value, onChange, placeholder, type = 'text', onKeyDown, onBlur }) => (
+  <input
+    type={type}
+    value={value || ''}
+    onChange={e => onChange(e.target.value)}
+    placeholder={placeholder}
+    onKeyDown={onKeyDown}
+    onBlur={onBlur}
     style={{ width: '100%', padding: '8px 11px', fontSize: 13, border: `1px solid ${clr.border}`, borderRadius: 8, outline: 'none', background: clr.white, color: clr.text }}
   />
 );
@@ -439,7 +445,18 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
         <Modal title={modal === 'add' ? 'Add Topic' : 'Edit Topic'} onClose={() => setModal(null)}>
           <div style={{ padding: 24 }}>
             <Lbl>Topic Title</Lbl>
-            <Inp value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g., Introduction to Networking" />
+            <Inp
+              value={form.title}
+              onChange={v => setForm(f => ({ ...f, title: v }))}
+              placeholder="e.g., INTRODUCTION TO NETWORKING"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  setForm(f => ({ ...f, title: f.title.toUpperCase() }));
+                }
+              }}
+              onBlur={() => setForm(f => ({ ...f, title: f.title.toUpperCase() }))}
+            />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
               <Btn variant="ghost" onClick={() => setModal(null)}>Cancel</Btn>
               <Btn onClick={save} disabled={saving || !form.title.trim()}>{saving ? 'Saving…' : 'Save'}</Btn>
@@ -526,7 +543,18 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
         <Modal title={editId ? 'Edit Subtopic' : 'Add Subtopic'} onClose={() => setModal(null)}>
           <div style={{ padding: 24 }}>
             <Lbl>Subtopic Title</Lbl>
-            <Inp value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} placeholder="e.g., What is a Computer Network?" />
+            <Inp
+              value={form.title}
+              onChange={v => setForm(f => ({ ...f, title: v }))}
+              placeholder="e.g., WHAT IS A COMPUTER NETWORK?"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  setForm(f => ({ ...f, title: f.title.toUpperCase() }));
+                }
+              }}
+              onBlur={() => setForm(f => ({ ...f, title: f.title.toUpperCase() }))}
+            />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
               <Btn variant="ghost" onClick={() => setModal(null)}>Cancel</Btn>
               <Btn onClick={save} disabled={saving || !form.title.trim()}>
