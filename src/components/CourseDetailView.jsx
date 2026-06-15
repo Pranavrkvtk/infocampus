@@ -6,6 +6,9 @@ import {
   getSubtopicLabs,
 } from '../api/UserApi';
 
+// ✅ Backend API base URL (adjust if your backend runs on a different port)
+const API_BASE = 'http://localhost:8082/api';
+
 // Helper: convert YouTube URL to embed URL
 const getEmbedUrl = (url) => {
   if (!url) return null;
@@ -14,11 +17,16 @@ const getEmbedUrl = (url) => {
   return url;
 };
 
-// Helper: render Markdown images inside notes (simple regex)
+// ✅ Helper: render Markdown images with absolute URLs using API_BASE
 const renderMarkdownImages = (text) => {
   if (!text) return '';
   return text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
-    return `<img src="${src}" alt="${alt}" style="max-width:100%; border-radius:16px; margin:20px 0; box-shadow:0 8px 20px rgba(0,0,0,0.1);" />`;
+    // Remove '/admin' prefix if present (old data)
+    let cleanSrc = src;
+    if (cleanSrc.startsWith('/admin/')) cleanSrc = cleanSrc.slice(6);
+    // Prepend API_BASE to make URL absolute
+    const fullSrc = `${API_BASE}${cleanSrc}`;
+    return `<img src="${fullSrc}" alt="${alt}" style="max-width:100%; border-radius:16px; margin:20px 0; box-shadow:0 8px 20px rgba(0,0,0,0.1);" />`;
   });
 };
 
@@ -51,9 +59,15 @@ function NotesTab({ content }) {
   );
 }
 
-function ImagesTab({ images, subtopicId, getImageUrl, handleImageError }) {
+// ✅ ImagesTab – kept for gallery view only (not used in content panel tabs)
+// It uses the same URL building logic.
+function ImagesTab({ images, subtopicId, handleImageError }) {
   if (!subtopicId) return <div className="empty-state">🖼️ Invalid subtopic ID.</div>;
   if (images.length === 0) return <div className="empty-state">🖼️ No images for this section.</div>;
+
+  // Build absolute image URL
+  const getImageUrl = (subId, fileName) => `${API_BASE}/subtopic-images/${subId}/${fileName}`;
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginTop: '16px' }}>
       {images.map(img => {
@@ -252,7 +266,7 @@ function LabsTab({ labs }) {
   );
 }
 
-// ─── Main CourseDetailView (with sticky header + tabs) ─────────────────
+// ─── Main CourseDetailView (sticky header + tabs, NO Images tab) ─────────────────
 export default function CourseDetailView({
   selectedCourse,
   topics,
@@ -271,8 +285,8 @@ export default function CourseDetailView({
   loadSubtopicImages,
   resetProgress,
   markSectionComplete,
-  getImageSrc,
-  getImageUrl,
+  getImageSrc,       // kept for compatibility but not used – we build our own URL
+  getImageUrl,       // kept for compatibility but not used – we build our own URL
   handleImageError,
   styles,
 }) {
@@ -286,7 +300,7 @@ export default function CourseDetailView({
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
-  const subtopicImages = images;
+  const subtopicImages = images; // used for gallery, not for content panel
 
   const fetchSubtopicData = useCallback(async (subtopicId) => {
     if (!subtopicId) return;
@@ -441,7 +455,6 @@ export default function CourseDetailView({
       transition: 'all 0.2s',
       ':hover': { background: '#f1f5f9', transform: 'translateX(4px)' },
     }),
-    // 🔧 FIX 1: contentPanel now has overflow hidden (no scroll)
     contentPanel: {
       background: '#fff',
       borderRadius: '24px',
@@ -449,11 +462,10 @@ export default function CourseDetailView({
       boxShadow: '0 8px 20px rgba(0,0,0,0.05)',
       border: '1px solid #eef2f6',
       maxHeight: isMobile ? 'auto' : 'calc(100vh - 120px)',
-      overflow: 'hidden',               // ← remove scroll from parent
+      overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
     },
-    // 🔧 FIX 2: heading becomes sticky
     currentSectionHeader: {
       marginBottom: '24px',
       paddingBottom: '16px',
@@ -470,7 +482,6 @@ export default function CourseDetailView({
       paddingTop: '10px',
     },
     currentSectionTitle: { fontSize: isMobile ? '22px' : '28px', fontWeight: '700', color: '#0f172a' },
-    // 🔧 FIX 3: tabs become sticky below heading
     tabsContainer: {
       display: 'flex',
       gap: '6px',
@@ -478,7 +489,7 @@ export default function CourseDetailView({
       marginBottom: '28px',
       flexWrap: 'wrap',
       position: 'sticky',
-      top: '80px',           // adjust based on your title height (~70-80px)
+      top: '80px',
       background: '#fff',
       zIndex: 99,
       paddingBottom: '10px',
@@ -495,7 +506,6 @@ export default function CourseDetailView({
       transition: 'all 0.2s',
       borderRadius: '0',
     }),
-    // 🔧 FIX 4: scrollable wrapper for tab content + button
     scrollableContent: {
       maxHeight: isMobile ? 'auto' : 'calc(100vh - 300px)',
       overflowY: 'auto',
@@ -573,6 +583,9 @@ export default function CourseDetailView({
     }),
   };
 
+  // Helper to build correct image URL for gallery (and anywhere else needed)
+  const buildImageUrl = (subId, fileName) => `${API_BASE}/subtopic-images/${subId}/${fileName}`;
+
   return (
     <div style={detailStyles.container}>
       <div style={detailStyles.courseDetailContainer}>
@@ -649,28 +662,26 @@ export default function CourseDetailView({
               </ul>
             </div>
 
-            {/* Content panel with sticky header + tabs and scrollable content */}
+            {/* Content panel (NO Images tab) */}
             <div style={detailStyles.contentPanel}>
               {!currentSub ? (
                 <div style={detailStyles.emptyState}>Select a section from the sidebar to begin</div>
               ) : (
                 <>
-                  {/* Sticky heading */}
                   <div style={detailStyles.currentSectionHeader}>
                     <h2 style={detailStyles.currentSectionTitle}>{currentSub.title}</h2>
                     {isCompleted && <span style={detailStyles.sectionProgress}>✅ Completed</span>}
                   </div>
 
-                  {/* Sticky tabs */}
+                  {/* Tabs: notes, video, interview, exam, labs (no images) */}
                   <div style={detailStyles.tabsContainer}>
-                    {['notes', 'images', 'video', 'interview', 'exam', 'labs'].map(tab => (
+                    {['notes', 'video', 'interview', 'exam', 'labs'].map(tab => (
                       <button
                         key={tab}
                         style={detailStyles.tabButton(activeContentTab === tab)}
                         onClick={() => setActiveContentTab(tab)}
                       >
                         {tab === 'notes' && '📄 Notes'}
-                        {tab === 'images' && '🖼️ Images'}
                         {tab === 'video' && '🎥 Video'}
                         {tab === 'interview' && '❓ Interview Qs'}
                         {tab === 'exam' && '📝 MCQ Test'}
@@ -681,19 +692,11 @@ export default function CourseDetailView({
 
                   {/* Scrollable content wrapper */}
                   <div style={detailStyles.scrollableContent}>
-                    {loadingData && activeContentTab !== 'notes' && activeContentTab !== 'images' && activeContentTab !== 'video' && (
+                    {loadingData && activeContentTab !== 'notes' && activeContentTab !== 'video' && (
                       <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Loading...</div>
                     )}
 
                     {activeContentTab === 'notes' && <NotesTab content={currentSub.content} />}
-                    {activeContentTab === 'images' && currentSub?.id && (
-                      <ImagesTab
-                        images={subtopicImages}
-                        subtopicId={currentSub.id}
-                        getImageUrl={getImageUrl}
-                        handleImageError={handleImageError}
-                      />
-                    )}
                     {activeContentTab === 'video' && <VideoTab videoUrl={currentSub.videoUrl} />}
                     {activeContentTab === 'interview' && <InterviewTab questions={interviewQuestions} />}
                     {activeContentTab === 'exam' && <ExamTab questions={examQuestions} />}
@@ -716,11 +719,14 @@ export default function CourseDetailView({
         {activeView === 'gallery' && (
           <div style={detailStyles.galleryContainer}>
             <h2 style={detailStyles.galleryTitle}>📸 All Course Images ({images.length})</h2>
-            {images.length === 0 ? <p style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No images yet</p> : (
+            {images.length === 0 ? (
+              <p style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No images yet</p>
+            ) : (
               <div style={detailStyles.imageGrid}>
                 {images.map(img => {
-                  const imageUrl = getImageUrl(img.subTopicId || img.subtopicId, img.fileName);
-                  if (!imageUrl) return null;
+                  const safeId = img.subTopicId || img.subtopicId;
+                  if (!safeId) return null;
+                  const imageUrl = buildImageUrl(safeId, img.fileName);
                   return (
                     <div key={img.id} style={detailStyles.imageCard} onClick={() => window.open(imageUrl, '_blank')}>
                       <img src={imageUrl} alt={`Page ${img.pageNumber}`} style={detailStyles.image} onError={() => handleImageError(img.id)} />

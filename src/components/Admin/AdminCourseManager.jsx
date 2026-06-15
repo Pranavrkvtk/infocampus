@@ -1,5 +1,6 @@
 // src/components/Admin/AdminCourseManager.jsx
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 const API_BASE = 'http://localhost:8082/api';
 
@@ -130,8 +131,7 @@ const SectionHead = ({ icon, title, count, action }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PDF UPLOAD BUTTON — defined at module level to avoid re-creation on each render
-// ✅ FIX: was inside SubtopicContentEditor, causing label/input link to break
+// PDF UPLOAD BUTTON
 // ═══════════════════════════════════════════════════════════════════════════════
 function PdfUploadButton({ subtopicId, uploadingPdf, onFileSelected }) {
   const inputId = `pdf-upload-${subtopicId}`;
@@ -144,9 +144,8 @@ function PdfUploadButton({ subtopicId, uploadingPdf, onFileSelected }) {
         style={{ display: 'none' }}
         onChange={(e) => {
           const file = e.target.files[0];
-          console.log('🔥 File selected:', file, 'subtopicId:', subtopicId);
           if (file) onFileSelected(file);
-          e.target.value = ''; // allow re-upload of same file
+          e.target.value = '';
         }}
       />
       <label htmlFor={inputId} style={{ display: 'inline-block' }}>
@@ -165,89 +164,6 @@ function PdfUploadButton({ subtopicId, uploadingPdf, onFileSelected }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// IMAGES TAB — defined at module level (not inside SubtopicContentEditor)
-// ✅ FIX: duplicate inner definition was shadowing this one and losing state
-// ═══════════════════════════════════════════════════════════════════════════════
-function ImagesTab({ subtopicId, refreshTrigger }) {
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const loadImages = async () => {
-    if (!subtopicId) return;
-    setLoading(true);
-    try {
-      const data = await api.get(`/admin/subtopic-images/subtopic/${subtopicId}`);
-      setImages(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error('Failed to load images', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { loadImages(); }, [subtopicId, refreshTrigger]);
-
-  if (loading) return <div style={{ padding: 22, textAlign: 'center', color: clr.muted }}>Loading images...</div>;
-  if (images.length === 0) return (
-    <div style={{ padding: 40, textAlign: 'center', color: clr.muted }}>
-      🖼️ No images extracted yet.<br />Upload a PDF with images to see them here.
-    </div>
-  );
-
-  return (
-    <div style={{ padding: 22 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-        {images.map((img, idx) => {
-          // ✅ Use the exact URL stored in database (imagePath)
-          const url = img.imagePath ? `${API_BASE}${img.imagePath}` : null;
-          if (!url) return null;
-
-          return (
-            <div key={img.id || idx} style={{
-              border: `1px solid ${clr.border}`,
-              borderRadius: 8,
-              overflow: 'hidden',
-              background: clr.white,
-              cursor: 'pointer',
-            }} onClick={() => window.open(url, '_blank')}>
-              <img
-                src={url}
-                alt={img.fileName || `Page ${img.pageNumber}`}
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  maxHeight: 180,
-                  objectFit: 'contain',
-                  display: 'block',
-                  background: '#f8f9fb'
-                }}
-                onError={(e) => {
-                  console.error('❌ Failed to load image:', url);
-                  // Show error placeholder instead of hiding
-                  e.target.style.display = 'none';
-                  // Optionally show fallback text
-                  if (e.target.parentElement) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.textContent = '⚠️ Could not load image';
-                    errorDiv.style.padding = '8px';
-                    errorDiv.style.fontSize = '11px';
-                    errorDiv.style.color = clr.danger;
-                    errorDiv.style.textAlign = 'center';
-                    e.target.parentElement.appendChild(errorDiv);
-                  }
-                }}
-              />
-              <div style={{ padding: 8, fontSize: 11, color: clr.muted, textAlign: 'center' }}>
-                {img.pageNumber ? `Page ${img.pageNumber}` : (img.fileName || `Image ${idx + 1}`)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 // ═══════════════════════════════════════════════════════════════════════════════
 // COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -449,12 +365,7 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
               value={form.title}
               onChange={v => setForm(f => ({ ...f, title: v }))}
               placeholder="e.g., INTRODUCTION TO NETWORKING"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  setForm(f => ({ ...f, title: f.title.toUpperCase() }));
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setForm(f => ({ ...f, title: f.title.toUpperCase() })); } }}
               onBlur={() => setForm(f => ({ ...f, title: f.title.toUpperCase() }))}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
@@ -547,19 +458,12 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
               value={form.title}
               onChange={v => setForm(f => ({ ...f, title: v }))}
               placeholder="e.g., WHAT IS A COMPUTER NETWORK?"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  setForm(f => ({ ...f, title: f.title.toUpperCase() }));
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setForm(f => ({ ...f, title: f.title.toUpperCase() })); } }}
               onBlur={() => setForm(f => ({ ...f, title: f.title.toUpperCase() }))}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
               <Btn variant="ghost" onClick={() => setModal(null)}>Cancel</Btn>
-              <Btn onClick={save} disabled={saving || !form.title.trim()}>
-                {saving ? 'Saving…' : editId ? 'Save Changes' : 'Create Subtopic'}
-              </Btn>
+              <Btn onClick={save} disabled={saving || !form.title.trim()}>{saving ? 'Saving…' : editId ? 'Save Changes' : 'Create Subtopic'}</Btn>
             </div>
           </div>
         </Modal>
@@ -789,9 +693,7 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR
-// ✅ FIX: PdfUploadButton and ImagesTab are now proper top-level components
-// ✅ FIX: uploadPdfToSubtopic is passed as prop to PdfUploadButton
+// SUBTOPIC CONTENT EDITOR – always preview mode, with copy protection
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [notes, setNotes] = useState(sub.content || '');
@@ -802,7 +704,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [examQuestions, setExamQuestions] = useState(sub.examQuestions || []);
   const [labExercises, setLabExercises] = useState(sub.labExercises || []);
   const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [imageRefreshTrigger, setImageRefreshTrigger] = useState(0);
 
   useEffect(() => {
     setNotes(sub.content || '');
@@ -839,14 +740,12 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
     onUpdate(patch);
   };
 
-  // ✅ PDF upload — called from PdfUploadButton via onFileSelected prop
   const uploadPdfToSubtopic = async (file) => {
     if (!file) return;
     if (file.type !== 'application/pdf') {
       toast.show('Only PDF files allowed', 'error');
       return;
     }
-    console.log('uploadPdfToSubtopic called:', file.name, 'subtopicId:', subtopicId);
     setUploadingPdf(true);
     const formData = new FormData();
     formData.append('file', file);
@@ -854,25 +753,17 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
       const response = await fetch(`${API_BASE}/admin/subtopics/${subtopicId}/upload-pdf`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        // ✅ No Content-Type header — browser sets it with boundary for FormData
         body: formData,
       });
-      console.log('Upload response status:', response.status);
       if (!response.ok) {
         const errText = await response.text();
         throw new Error(errText || `HTTP ${response.status}`);
       }
       const data = await response.json();
-      console.log('Upload success:', data);
-
-      // Refresh subtopic content
       const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
       setNotes(refreshedSub.content || '');
       setVideoUrl(refreshedSub.videoUrl || '');
       onUpdate(refreshedSub);
-
-      // Trigger image tab reload
-      setImageRefreshTrigger(prev => prev + 1);
       toast.show(`✅ PDF processed: ${data.imageCount || 0} images extracted.`, 'success');
     } catch (err) {
       console.error('Upload error:', err);
@@ -894,7 +785,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
     { key: 'interview', label: '🎤 Interview Qs' },
     { key: 'exam', label: '📋 Exam Qs' },
     { key: 'lab', label: '🧪 Lab Steps' },
-    { key: 'images', label: '🖼️ Images' },
   ];
 
   return (
@@ -916,15 +806,45 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
           <div style={{ padding: 22 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <Lbl>Notes / Content</Lbl>
-              <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">{saving ? 'Saving…' : '💾 Save Notes'}</Btn>
+              <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">
+                {saving ? 'Saving…' : '💾 Save Notes'}
+              </Btn>
             </div>
-            {/* ✅ PdfUploadButton is now a proper top-level component with props */}
             <PdfUploadButton
               subtopicId={subtopicId}
               uploadingPdf={uploadingPdf}
               onFileSelected={uploadPdfToSubtopic}
             />
-            <Txta value={notes} onChange={setNotes} rows={15} />
+            <div
+              style={{
+                border: `1px solid ${clr.border}`,
+                borderRadius: 8,
+                padding: 16,
+                background: clr.white,
+                minHeight: 300,
+                overflowY: 'auto',
+                fontSize: 13,
+                lineHeight: 1.6,
+                userSelect: 'none',            // prevent text selection
+                WebkitUserSelect: 'none',
+                MozUserSelect: 'none',
+              }}
+              onCopy={(e) => e.preventDefault()}    // block copy event
+            >
+              <ReactMarkdown
+                components={{
+                  img: ({ src, alt }) => {
+                    if (!src) return null;
+                    let cleanSrc = src;
+                    if (cleanSrc.startsWith('/admin/')) cleanSrc = cleanSrc.slice(6);
+                    const fullSrc = `${API_BASE}${cleanSrc}`;
+                    return <img src={fullSrc} alt={alt} style={{ maxWidth: '100%', height: 'auto', margin: '12px 0', borderRadius: 8 }} />;
+                  }
+                }}
+              >
+                {notes}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
         {activeTab === 'video' && (
@@ -940,8 +860,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
         {activeTab === 'interview' && <InterviewTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={interviewQuestions} />}
         {activeTab === 'exam' && <ExamTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={examQuestions} />}
         {activeTab === 'lab' && <LabTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={labExercises} />}
-        {/* ✅ ImagesTab is the top-level component — no duplicate inner definition */}
-        {activeTab === 'images' && <ImagesTab subtopicId={subtopicId} refreshTrigger={imageRefreshTrigger} />}
       </div>
     </Card>
   );
@@ -1019,8 +937,6 @@ export default function AdminCourseManager() {
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
       <style>{`* { box-sizing: border-box; } button { font-family: inherit; }`}</style>
-
-      {/* Header */}
       <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
         {selectedCourse && (
@@ -1037,8 +953,6 @@ export default function AdminCourseManager() {
           {selectedCourse && <button onClick={() => setView('manage')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'manage' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>✏ Manage Content</button>}
         </div>
       </div>
-
-      {/* Course selector view */}
       {view === 'course' && (
         <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 24px' }}>
           <Card>
@@ -1047,28 +961,24 @@ export default function AdminCourseManager() {
           </Card>
         </div>
       )}
-
-      {/* Manage content view */}
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
-          {/* Sidebar */}
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {loading
-                ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading...</div>
-                : (
-                  <TopicManager
-                    courseId={selectedCourse.id}
-                    topics={topics}
-                    setTopics={setTopics}
-                    activeTopicId={activeTopicId}
-                    setActiveTopicId={(id) => { setActiveTopicId(id); setActiveSubId(null); }}
-                    toast={toast}
-                    pagination={pagination}
-                    onPageChange={handlePageChange}
-                  />
-                )
-              }
+              {loading ? (
+                <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading...</div>
+              ) : (
+                <TopicManager
+                  courseId={selectedCourse.id}
+                  topics={topics}
+                  setTopics={setTopics}
+                  activeTopicId={activeTopicId}
+                  setActiveTopicId={(id) => { setActiveTopicId(id); setActiveSubId(null); }}
+                  toast={toast}
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                />
+              )}
               {activeTopic && (
                 <SubtopicManager
                   topic={activeTopic}
@@ -1081,19 +991,17 @@ export default function AdminCourseManager() {
               )}
             </div>
           </div>
-
-          {/* Content editor */}
           <div style={{ overflowY: 'auto', padding: 20 }}>
-            {activeSub
-              ? <SubtopicContentEditor key={activeSub.id} sub={activeSub} subtopicId={activeSub.id} toast={toast} onUpdate={updateActiveSub} />
-              : <div style={{ textAlign: 'center', color: clr.muted, padding: 60 }}>
-                  {activeTopic ? 'Select a subtopic to edit its content' : 'Select a topic first, then choose a subtopic'}
-                </div>
-            }
+            {activeSub ? (
+              <SubtopicContentEditor key={activeSub.id} sub={activeSub} subtopicId={activeSub.id} toast={toast} onUpdate={updateActiveSub} />
+            ) : (
+              <div style={{ textAlign: 'center', color: clr.muted, padding: 60 }}>
+                {activeTopic ? 'Select a subtopic to edit its content' : 'Select a topic first, then choose a subtopic'}
+              </div>
+            )}
           </div>
         </div>
       )}
-
       <ToastContainer toasts={toast.toasts} />
     </div>
   );
