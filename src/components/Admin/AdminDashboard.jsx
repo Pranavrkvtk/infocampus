@@ -24,6 +24,7 @@ import InstructorsTab from "./InstructorsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
+import ThemeCustomizer, { applyTheme, loadSavedTheme, LIGHT_DEFAULTS, DARK_DEFAULTS } from "./ThemeCustomizer";
 
 // ================= MAIN COMPONENT =================
 export default function AdminDashboard() {
@@ -40,14 +41,33 @@ export default function AdminDashboard() {
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false); // ✅ Dark mode state
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
 
-  // Apply dark mode class to body
+  // ── Restore saved theme on mount ───────────────────────────────────────────
+  useEffect(() => {
+    const saved = loadSavedTheme();
+    if (saved) {
+      const dark = saved.isDark ?? false;
+      setIsDarkMode(dark);
+      if (dark) document.body.classList.add("dark-theme");
+      const defaults = dark ? DARK_DEFAULTS : LIGHT_DEFAULTS;
+      applyTheme({ ...defaults, ...saved.vars });
+    }
+  }, []);
+
+  // ── Dark mode class toggle ─────────────────────────────────────────────────
   useEffect(() => {
     if (isDarkMode) {
       document.body.classList.add("dark-theme");
+      const saved = loadSavedTheme();
+      const vars = saved?.isDark ? { ...DARK_DEFAULTS, ...(saved.vars || {}) } : DARK_DEFAULTS;
+      applyTheme(vars);
     } else {
       document.body.classList.remove("dark-theme");
+      const saved = loadSavedTheme();
+      const vars = !saved?.isDark ? { ...LIGHT_DEFAULTS, ...(saved?.vars || {}) } : LIGHT_DEFAULTS;
+      applyTheme(vars);
     }
   }, [isDarkMode]);
 
@@ -92,7 +112,7 @@ export default function AdminDashboard() {
       const response = await getAllStudents();
       setStudents(response.data || []);
     } catch (err) {
-      if (err.name !== 'AbortError') {
+      if (err.name !== "AbortError") {
         setError(err.response?.data?.message || "Failed to load users");
         setStudents([]);
       }
@@ -113,7 +133,7 @@ export default function AdminDashboard() {
       const response = await getAllInstructors();
       setInstructors(response.data || []);
     } catch (err) {
-      if (err.name !== 'AbortError') {
+      if (err.name !== "AbortError") {
         setError(err.response?.data?.message || "Failed to load instructors");
         setInstructors([]);
       }
@@ -129,10 +149,7 @@ export default function AdminDashboard() {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const trimmedName = name?.trim();
     currentSearchTermRef.current = trimmedName || "";
-    if (!trimmedName) {
-      await fetchAllStudents();
-      return;
-    }
+    if (!trimmedName) { await fetchAllStudents(); return; }
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     setLoading(true);
@@ -140,9 +157,8 @@ export default function AdminDashboard() {
       const response = await searchUsersByName(trimmedName);
       if (currentSearchTermRef.current === trimmedName) setStudents(response.data || []);
     } catch (err) {
-      if (err.name !== 'AbortError' && currentSearchTermRef.current === trimmedName) {
+      if (err.name !== "AbortError" && currentSearchTermRef.current === trimmedName)
         setError(err.response?.data?.message || "Failed to search users");
-      }
     } finally {
       if (currentSearchTermRef.current === trimmedName) setLoading(false);
       if (abortControllerRef.current === abortController) abortControllerRef.current = null;
@@ -156,9 +172,7 @@ export default function AdminDashboard() {
       setDashboardStats(response.data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load dashboard data");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const fetchCourses = async () => {
@@ -168,118 +182,85 @@ export default function AdminDashboard() {
       setCourses(response.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load courses");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const handleViewCourse = (pdf) => {
-    setSelectedCoursePdf(pdf);
-    setActiveTab("course-view");
-  };
+  const handleViewCourse = (pdf) => { setSelectedCoursePdf(pdf); setActiveTab("course-view"); };
 
-  // Delete Course with API
   const handleDeleteCourse = async (courseId, courseTitle) => {
     const result = await Swal.fire({
-      title: 'Delete Course?',
+      title: "Delete Course?",
       html: `<p>Delete <strong>${courseTitle}</strong>? This cannot be undone!</p>`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
-      confirmButtonColor: '#E8644A',
+      icon: "warning", showCancelButton: true,
+      confirmButtonText: "Yes, Delete", confirmButtonColor: "#E8644A",
     });
-
     if (result.isConfirmed) {
-      Swal.fire({ title: 'Deleting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      
+      Swal.fire({ title: "Deleting...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        await deleteAdminCourse(courseId);
-        await fetchCourses();
-        Swal.fire({ title: 'Deleted!', icon: 'success', timer: 2000, showConfirmButton: false });
+        await deleteAdminCourse(courseId); await fetchCourses();
+        Swal.fire({ title: "Deleted!", icon: "success", timer: 2000, showConfirmButton: false });
       } catch (error) {
-        console.error("Delete error:", error);
-        Swal.fire({ title: 'Failed!', text: error.response?.data?.message || 'Failed to delete course', icon: 'error' });
+        Swal.fire({ title: "Failed!", text: error.response?.data?.message || "Failed to delete course", icon: "error" });
       }
     }
   };
 
-  // Delete Instructor
   const handleDeleteInstructor = async (instructorId, instructorName) => {
     const result = await Swal.fire({
-      title: 'Delete Instructor?',
+      title: "Delete Instructor?",
       html: `<p>Delete <strong>${instructorName}</strong>? This cannot be undone!</p>`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
-      confirmButtonColor: '#E8644A',
+      icon: "warning", showCancelButton: true,
+      confirmButtonText: "Yes, Delete", confirmButtonColor: "#E8644A",
     });
-
     if (result.isConfirmed) {
-      Swal.fire({ title: 'Deleting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      
+      Swal.fire({ title: "Deleting...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        await deleteInstructor(instructorId);
-        await fetchAllInstructors();
-        Swal.fire({ title: 'Deleted!', icon: 'success', timer: 2000, showConfirmButton: false });
+        await deleteInstructor(instructorId); await fetchAllInstructors();
+        Swal.fire({ title: "Deleted!", icon: "success", timer: 2000, showConfirmButton: false });
       } catch (error) {
-        console.error("Delete error:", error);
-        Swal.fire({ title: 'Failed!', text: error.response?.data?.message || 'Failed to delete instructor', icon: 'error' });
+        Swal.fire({ title: "Failed!", text: error.response?.data?.message || "Failed to delete instructor", icon: "error" });
       }
     }
   };
 
-  // Toggle Instructor Status
   const handleToggleInstructorStatus = async (instructorId, currentStatus) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     const action = newStatus === "ACTIVE" ? "activate" : "deactivate";
-    
     const result = await Swal.fire({
-      title: `${action === 'activate' ? 'Activate' : 'Deactivate'} Instructor?`,
+      title: `${action === "activate" ? "Activate" : "Deactivate"} Instructor?`,
       text: `Are you sure you want to ${action} this instructor?`,
-      icon: 'question',
-      showCancelButton: true,
+      icon: "question", showCancelButton: true,
       confirmButtonText: `Yes, ${action}`,
-      confirmButtonColor: action === 'activate' ? colors.teal : colors.coral,
+      confirmButtonColor: action === "activate" ? colors.teal : colors.coral,
     });
-    
     if (result.isConfirmed) {
-      Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      
+      Swal.fire({ title: "Processing...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        await updateInstructorStatus(instructorId, newStatus);
-        await fetchAllInstructors();
-        Swal.fire({ title: `Instructor ${action}d!`, icon: 'success', timer: 2000, showConfirmButton: false });
+        await updateInstructorStatus(instructorId, newStatus); await fetchAllInstructors();
+        Swal.fire({ title: `Instructor ${action}d!`, icon: "success", timer: 2000, showConfirmButton: false });
       } catch (error) {
-        console.error("Status update error:", error);
-        Swal.fire({ title: 'Failed!', text: error.response?.data?.message || `Failed to ${action} instructor`, icon: 'error' });
+        Swal.fire({ title: "Failed!", text: error.response?.data?.message || `Failed to ${action} instructor`, icon: "error" });
       }
     }
   };
 
-  // Toggle User Status with API
   const handleToggleStatus = async (studentId, currentStatus) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     const action = newStatus === "ACTIVE" ? "activate" : "deactivate";
-    
     const result = await Swal.fire({
-      title: `${action === 'activate' ? 'Activate' : 'Deactivate'} User?`,
+      title: `${action === "activate" ? "Activate" : "Deactivate"} User?`,
       text: `Are you sure you want to ${action} this user?`,
-      icon: 'question',
-      showCancelButton: true,
+      icon: "question", showCancelButton: true,
       confirmButtonText: `Yes, ${action}`,
-      confirmButtonColor: action === 'activate' ? colors.teal : colors.coral,
+      confirmButtonColor: action === "activate" ? colors.teal : colors.coral,
     });
-    
     if (result.isConfirmed) {
-      Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      
+      Swal.fire({ title: "Processing...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        await updateUserStatus(studentId, newStatus);
-        await fetchAllStudents();
-        Swal.fire({ title: `User ${action}d!`, icon: 'success', timer: 2000, showConfirmButton: false });
+        await updateUserStatus(studentId, newStatus); await fetchAllStudents();
+        Swal.fire({ title: `User ${action}d!`, icon: "success", timer: 2000, showConfirmButton: false });
       } catch (error) {
-        console.error("Status update error:", error);
-        Swal.fire({ title: 'Failed!', text: error.response?.data?.message || `Failed to ${action} user`, icon: 'error' });
+        Swal.fire({ title: "Failed!", text: error.response?.data?.message || `Failed to ${action} user`, icon: "error" });
       }
     }
   };
@@ -291,16 +272,13 @@ export default function AdminDashboard() {
     searchTimeoutRef.current = setTimeout(() => searchStudents(value), 500);
   };
 
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-    };
+  useEffect(() => () => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
   }, []);
 
   useEffect(() => {
-    setSearchTerm("");
-    currentSearchTermRef.current = "";
+    setSearchTerm(""); currentSearchTermRef.current = "";
     if (abortControllerRef.current) abortControllerRef.current.abort();
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     if (activeTab === "dashboard") fetchDashboardStats();
@@ -309,10 +287,9 @@ export default function AdminDashboard() {
     else if (activeTab === "instructors") fetchAllInstructors();
   }, [activeTab]);
 
-  const handleUpdateRole = (userId, currentRole) => {
+  const handleUpdateRole = (userId) => {
     const user = students.find(s => s.id === userId);
-    setSelectedUser(user);
-    setIsEditRoleModalOpen(true);
+    setSelectedUser(user); setIsEditRoleModalOpen(true);
   };
 
   const handleLogout = () => {
@@ -323,10 +300,10 @@ export default function AdminDashboard() {
   };
 
   const kpis = dashboardStats ? [
-    { label: "Total Students", value: dashboardStats.totalStudents?.toLocaleString() || "0", iconBg: colors.primarySoft, icon: "👨‍🎓" },
-    { label: "Total Courses", value: dashboardStats.totalCourses?.toString() || "0", iconBg: colors.tealSoft, icon: "🌐" },
-    { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0", iconBg: colors.amberSoft, icon: "📚" },
-    { label: "Total Instructors",value: dashboardStats.totalInstructors?.toString() || "0", iconBg: colors.purpleSoft, icon: "👨‍🏫" },
+    { label: "Total Students",    value: dashboardStats.totalStudents?.toLocaleString() || "0",  iconBg: colors.primarySoft, icon: "👨‍🎓" },
+    { label: "Total Courses",     value: dashboardStats.totalCourses?.toString() || "0",          iconBg: colors.tealSoft,    icon: "🌐"  },
+    { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0",iconBg: colors.amberSoft,   icon: "📚"  },
+    { label: "Total Instructors", value: dashboardStats.totalInstructors?.toString() || "0",      iconBg: colors.purpleSoft,  icon: "👨‍🏫" },
   ] : [];
 
   const renderContent = () => {
@@ -339,177 +316,158 @@ export default function AdminDashboard() {
           else if (activeTab === "courses") fetchCourses();
           else if (activeTab === "instructors") fetchAllInstructors();
           else fetchDashboardStats();
-        }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>Retry</button>
+        }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
+          Retry
+        </button>
       </div>
     );
-
     switch (activeTab) {
-      case "dashboard":
-        return <DashboardTab kpis={kpis} loading={loading} isMobile={isMobile} />;
-      case "courses":
-        return (
-          <CoursesTab
-            courses={courses}
-            isMobile={isMobile}
-            handleDeleteCourse={handleDeleteCourse}
-            setSelectedCourse={setSelectedCourse}
-            setIsEditCourseModalOpen={setIsEditCourseModalOpen}
-            setIsAddCourseModalOpen={setIsAddCourseModalOpen}
-            fetchCourses={fetchCourses}
-          />
-        );
-      case "students":
-        return (
-          <StudentsTab
-            students={students}
-            searchTerm={searchTerm}
-            handleSearchChange={handleSearchChange}
-            handleUpdateRole={handleUpdateRole}
-            handleToggleStatus={handleToggleStatus}
-            isMobile={isMobile}
-          />
-        );
-      case "instructors":
-        return (
-          <InstructorsTab
-            instructors={instructors}
-            isMobile={isMobile}
-            handleDeleteInstructor={handleDeleteInstructor}
-            handleToggleInstructorStatus={handleToggleInstructorStatus}
-            fetchAllInstructors={fetchAllInstructors}
-          />
-        );
-      case "pdf-viewer":
-        return <PdfViewerTab onViewCourse={handleViewCourse} />;
-      case "course-view":
-        return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
-      case "course-manager":
-        return <AdminCourseManager />;
-      default:
-        return null;
+      case "dashboard":   return <DashboardTab kpis={kpis} loading={loading} isMobile={isMobile} />;
+      case "courses":     return <CoursesTab courses={courses} isMobile={isMobile} handleDeleteCourse={handleDeleteCourse} setSelectedCourse={setSelectedCourse} setIsEditCourseModalOpen={setIsEditCourseModalOpen} setIsAddCourseModalOpen={setIsAddCourseModalOpen} fetchCourses={fetchCourses} />;
+      case "students":    return <StudentsTab students={students} searchTerm={searchTerm} handleSearchChange={handleSearchChange} handleUpdateRole={handleUpdateRole} handleToggleStatus={handleToggleStatus} isMobile={isMobile} />;
+      case "instructors": return <InstructorsTab instructors={instructors} isMobile={isMobile} handleDeleteInstructor={handleDeleteInstructor} handleToggleInstructorStatus={handleToggleInstructorStatus} fetchAllInstructors={fetchAllInstructors} />;
+      case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
+      case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
+      case "course-manager": return <AdminCourseManager />;
+      default: return null;
     }
   };
 
   const navItems = [
-    { icon: "📊", label: "Dashboard", id: "dashboard" }, 
-    { icon: "🌐", label: "Courses", id: "courses" }, 
-    { icon: "👨‍🎓", label: "Students", id: "students" },
-    { icon: "👨‍🏫", label: "Instructors", id: "instructors" },
-    { icon: "🏗️", label: "Course Manager", id: "course-manager" }
+    { icon: "📊", label: "Dashboard",      id: "dashboard"      },
+    { icon: "🌐", label: "Courses",        id: "courses"        },
+    { icon: "👨‍🎓", label: "Students",      id: "students"       },
+    { icon: "👨‍🏫", label: "Instructors",   id: "instructors"    },
+    { icon: "🏗️", label: "Course Manager", id: "course-manager" },
   ];
+
+  const PAGE_TITLES = {
+    dashboard:       "Dashboard",
+    courses:         "Course Catalog",
+    students:        "Student Management",
+    instructors:     "Instructor Management",
+    "pdf-viewer":    "PDF Library",
+    "course-manager":"Course Manager",
+  };
+  const PAGE_SUBS = {
+    dashboard:       "Welcome back! Track your networking academy performance",
+    courses:         "Manage all your courses from one place",
+    students:        "View and manage all enrolled students",
+    instructors:     "Manage instructors, their status and permissions",
+    "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
+    "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
+  };
 
   return (
     <>
-      {/* Dark theme CSS overrides */}
-      <style>
-        {`
-          :root {
-            --bg-base: #f8f9fb;
-            --surface: #ffffff;
-            --text-primary: #0f172a;
-            --text-secondary: #64748b;
-            --border-light: #e4e7ec;
-            --primary: #4f46e5;
-            --primary-soft: #eef2ff;
-            --error: #dc2626;
-            --success: #16a34a;
-            --teal: #14b8a6;
-            --teal-soft: #ccfbf1;
-            --amber-soft: #fef3c7;
-            --purple-soft: #f3e8ff;
-            --sidebar: #1e1b4b;
-            --sidebar-text: #c7d2fe;
-            --grad-primary: linear-gradient(135deg, #4f46e5, #7c3aed);
-          }
-          body.dark-theme {
-            --bg-base: #344e8a;
-            --surface: #000000;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --border-light: #334155;
-            --primary: #818cf8;
-            --primary-soft: #312e81;
-            --error: #f87171;
-            --success: #34d399;
-            --teal: #2dd4bf;
-            --teal-soft: #134e4a;
-            --amber-soft: #78350f;
-            --purple-soft: #4c1d95;
-            --sidebar: #0f172a;
-            --sidebar-text: #a5b4fc;
-            --grad-primary: linear-gradient(135deg, #818cf8, #a78bfa);
-          }
-          body.dark-theme .swal2-popup {
-            background: #1e293b !important;
-            color: #f1f5f9 !important;
-          }
-          body.dark-theme input, body.dark-theme textarea, body.dark-theme select {
-            background: #334155 !important;
-            color: #c3d1e0 !important;
-            border-color: #475569 !important;
-          }
-          body.dark-theme button, body.dark-theme .btn {
-            transition: all 0.2s;
-          }
-        `}
-      </style>
+      <style>{`
+        :root {
+          --bg-base: #f8f9fb;
+          --surface: #ffffff;
+          --text-primary: #0f172a;
+          --text-secondary: #64748b;
+          --border-light: #e4e7ec;
+          --primary: #4f46e5;
+          --primary-soft: #eef2ff;
+          --error: #dc2626;
+          --success: #16a34a;
+          --teal: #14b8a6;
+          --teal-soft: #ccfbf1;
+          --amber-soft: #fef3c7;
+          --purple-soft: #f3e8ff;
+          --grad-start: #4f46e5;
+          --grad-end: #7c3aed;
+          --grad-primary: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+        }
+        body.dark-theme {
+          --bg-base: #0d1117;
+          --surface: #161b22;
+          --text-primary: #e6edf3;
+          --text-secondary: #8b949e;
+          --border-light: #21262d;
+          --primary: #a78bfa;
+          --primary-soft: rgba(124,58,237,0.14);
+          --error: #f87171;
+          --success: #34d399;
+          --teal: #2dd4bf;
+          --teal-soft: rgba(45,212,191,0.1);
+          --amber-soft: rgba(251,191,36,0.1);
+          --purple-soft: rgba(124,58,237,0.12);
+          --grad-start: #7c3aed;
+          --grad-end: #a78bfa;
+          --grad-primary: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+        }
+        *, *::before, *::after {
+          transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+        }
+        body.dark-theme .swal2-popup {
+          background: #161b22 !important;
+          color: #e6edf3 !important;
+          border: 1px solid rgba(139,148,158,0.15) !important;
+        }
+        body.dark-theme .swal2-title { color: #e6edf3 !important; }
+        body.dark-theme .swal2-html-container { color: #8b949e !important; }
+        body.dark-theme input,
+        body.dark-theme textarea,
+        body.dark-theme select {
+          background: #1c2333 !important;
+          color: #e6edf3 !important;
+          border-color: rgba(139,148,158,0.2) !important;
+        }
+        body.dark-theme input::placeholder,
+        body.dark-theme textarea::placeholder { color: #8b949e !important; }
+        body.dark-theme ::-webkit-scrollbar { width: 6px; height: 6px; }
+        body.dark-theme ::-webkit-scrollbar-track { background: #0d1117; }
+        body.dark-theme ::-webkit-scrollbar-thumb {
+          background: rgba(139,148,158,0.2); border-radius: 3px;
+        }
+        body.dark-theme th {
+          background: #1c2333 !important;
+          color: #8b949e !important;
+          border-color: rgba(139,148,158,0.1) !important;
+        }
+        body.dark-theme td {
+          border-color: rgba(139,148,158,0.08) !important;
+          color: #e6edf3 !important;
+        }
+        body.dark-theme tr:hover td { background: rgba(167,139,250,0.04) !important; }
+      `}</style>
+
       <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-base)", paddingBottom: isMobile ? 70 : 0 }}>
-        {/* Hamburger button for desktop (visible only when sidebar closed) */}
+
+        {/* Hamburger — desktop sidebar closed */}
         {!isMobile && !sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{
-              position: "fixed",
-              top: 20,
-              left: 20,
-              zIndex: 1100,
-              background: "var(--surface)",
-              border: `1px solid var(--border-light)`,
-              borderRadius: 8,
-              padding: "8px 12px",
-              cursor: "pointer",
-              fontSize: 20,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-              color: "var(--text-primary)"
-            }}
-          >
-            ☰
-          </button>
+          <button onClick={() => setSidebarOpen(true)} style={{
+            position: "fixed", top: 20, left: 20, zIndex: 1100,
+            background: "var(--surface)", border: "1px solid var(--border-light)",
+            borderRadius: 8, padding: "8px 12px", cursor: "pointer",
+            fontSize: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            color: "var(--text-primary)",
+          }}>☰</button>
         )}
 
-        {/* Slide Sidebar - Desktop */}
+        {/* Desktop Sidebar */}
         {!isMobile && (
-          <nav
-            style={{
-              width: sidebarOpen ? 260 : 0,
-              background: "var(--surface)",
-              borderRight: sidebarOpen ? `1px solid var(--border-light)` : "none",
-              display: "flex",
-              flexDirection: "column",
-              padding: sidebarOpen ? "28px 0" : "0",
-              position: "sticky",
-              top: 0,
-              height: "100vh",
-              overflowY: "auto",
-              transition: "width 0.3s ease",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
+          <nav style={{
+            width: sidebarOpen ? 260 : 0,
+            background: "var(--surface)",
+            borderRight: sidebarOpen ? "1px solid var(--border-light)" : "none",
+            display: "flex", flexDirection: "column",
+            padding: sidebarOpen ? "28px 0" : "0",
+            position: "sticky", top: 0, height: "100vh",
+            overflowY: "auto", overflowX: "hidden",
+            transition: "width 0.3s ease",
+            whiteSpace: "nowrap", flexShrink: 0,
+          }}>
             {sidebarOpen && (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px", marginBottom: 32 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 12, background: "var(--grad-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff" }}>⚡</div>
+                  <div style={{ width: 38, height: 38, borderRadius: 12, background: "var(--grad-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff", flexShrink: 0 }}>⚡</div>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>INFOCAMPUS</div>
-                    <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>ADMIN</div>
+                    <div style={{ fontSize: 10, color: "var(--text-secondary)", letterSpacing: "1px" }}>ADMIN</div>
                   </div>
-                  <button
-                    onClick={() => setSidebarOpen(false)}
-                    style={{ marginLeft: "auto", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--text-secondary)" }}
-                  >
-                    ✕
-                  </button>
+                  <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--text-secondary)" }}>✕</button>
                 </div>
 
                 {navItems.map((item) => {
@@ -517,24 +475,33 @@ export default function AdminDashboard() {
                   if (item.id === "courses") badge = courses.length;
                   else if (item.id === "students") badge = students.length;
                   else if (item.id === "instructors") badge = instructors.length;
-                  
-                  return (
-                    <NavItem
-                      key={item.id}
-                      icon={item.icon}
-                      label={item.label}
-                      badge={badge}
-                      active={activeTab === item.id}
-                      onClick={() => setActiveTab(item.id)}
-                    />
-                  );
+                  return <NavItem key={item.id} icon={item.icon} label={item.label} badge={badge} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} />;
                 })}
 
+                {/* Theme customizer trigger in sidebar */}
+                <div style={{ padding: "0 8px", marginTop: 8 }}>
+                  <button onClick={() => setIsThemeOpen(true)} style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    width: "100%", padding: "12px 16px", borderRadius: 12,
+                    fontSize: 14, fontWeight: 600, cursor: "pointer",
+                    background: "var(--primary-soft)", color: "var(--primary)",
+                    border: "1px solid var(--border-light)",
+                  }}>
+                    <span style={{ fontSize: 18 }}>🎨</span>
+                    <span>Theme</span>
+                    <span style={{ marginLeft: "auto", fontSize: 11, background: "var(--primary)", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>Customize</span>
+                  </button>
+                </div>
+
                 <div style={{ flex: 1 }} />
-                <div style={{ padding: "0 8px 20px 8px" }}>
-                  <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", borderRadius: 12, fontSize: 14, fontWeight: 600, color: "var(--error)", background: "var(--surface)", border: "1px solid var(--border-light)", cursor: "pointer" }}>
-                    <span style={{ fontSize: 18 }}>🚪</span>
-                    <span>Logout</span>
+                <div style={{ padding: "0 8px 20px" }}>
+                  <button onClick={handleLogout} style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    width: "100%", padding: "12px 16px", borderRadius: 12,
+                    fontSize: 14, fontWeight: 600, color: "var(--error)",
+                    background: "var(--surface)", border: "1px solid var(--border-light)", cursor: "pointer",
+                  }}>
+                    <span style={{ fontSize: 18 }}>🚪</span><span>Logout</span>
                   </button>
                 </div>
               </>
@@ -544,81 +511,100 @@ export default function AdminDashboard() {
 
         {/* Mobile Header */}
         {isMobile && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, background: "var(--surface)", borderBottom: `1px solid var(--border-light)`, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 99 }}>
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0,
+            background: "var(--surface)", borderBottom: "1px solid var(--border-light)",
+            padding: "12px 16px", display: "flex", justifyContent: "space-between",
+            alignItems: "center", zIndex: 99,
+          }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ width: 32, height: 32, borderRadius: 10, background: "var(--grad-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#fff" }}>⚡</div>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>INFOCAMPUS</div>
-                <div style={{ fontSize: 9, color: "var(--text-secondary)" }}>ADMIN</div>
+                <div style={{ fontSize: 9, color: "var(--text-secondary)", letterSpacing: "1px" }}>ADMIN</div>
               </div>
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)", textAlign: "right" }}>
-              <div style={{ fontWeight: 600, color: "var(--primary)" }}>{currentTime}</div>
-              <div>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* Mobile theme button */}
+              <button onClick={() => setIsThemeOpen(true)} style={{
+                background: "var(--primary-soft)", border: "1px solid var(--border-light)",
+                borderRadius: 8, padding: "6px 10px", cursor: "pointer",
+                fontSize: 16, color: "var(--primary)",
+              }}>🎨</button>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)", textAlign: "right" }}>
+                <div style={{ fontWeight: 600, color: "var(--primary)" }}>{currentTime}</div>
+                <div>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Main Content */}
-        <main style={{
-          flex: 1,
-          padding: isMobile ? "70px 16px 20px" : "32px 40px",
-          overflowY: "auto",
-          transition: "margin-left 0.3s ease",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, marginBottom: isMobile ? 20 : 28 }}>
+        <main style={{ flex: 1, padding: isMobile ? "70px 16px 20px" : "32px 40px", overflowY: "auto" }}>
+          <div style={{
+            display: "flex", justifyContent: "space-between",
+            alignItems: isMobile ? "flex-start" : "center",
+            flexDirection: isMobile ? "column" : "row",
+            gap: isMobile ? 12 : 0, marginBottom: isMobile ? 20 : 28,
+          }}>
             <div>
               <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 700, marginBottom: 4, color: "var(--text-primary)" }}>
-                {activeTab === "dashboard" && "Dashboard"}
-                {activeTab === "courses" && "Course Catalog"}
-                {activeTab === "students" && "Student Management"}
-                {activeTab === "instructors" && "Instructor Management"}
-                {activeTab === "pdf-viewer" && "PDF Library"}
-                {activeTab === "course-manager" && "Course Manager"}
+                {PAGE_TITLES[activeTab] || "Dashboard"}
               </h1>
               <p style={{ color: "var(--text-secondary)", fontSize: isMobile ? 12 : 14 }}>
-                {activeTab === "dashboard" && "Welcome back! Track your networking academy performance"}
-                {activeTab === "courses" && "Manage all your courses from one place"}
-                {activeTab === "students" && "View and manage all enrolled students"}
-                {activeTab === "instructors" && "Manage instructors, their status and permissions"}
-                {activeTab === "pdf-viewer" && "View all uploaded PDFs, extracted text, and images"}
-                {activeTab === "course-manager" && "Create and manage courses, topics, subtopics, notes, videos, and exam questions"}
+                {PAGE_SUBS[activeTab] || ""}
               </p>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
-              {/* Dark mode toggle button */}
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                style={{
-                  background: "var(--surface)",
-                  border: `1px solid var(--border-light)`,
-                  borderRadius: 40,
-                  padding: "8px 16px",
-                  cursor: "pointer",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: "var(--text-primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-                }}
-              >
+
+              {/* Dark/Light toggle */}
+              <button onClick={() => setIsDarkMode(!isDarkMode)} style={{
+                background: isDarkMode ? "rgba(167,139,250,0.1)" : "var(--surface)",
+                border: isDarkMode ? "1px solid rgba(167,139,250,0.25)" : "1px solid var(--border-light)",
+                borderRadius: 40, padding: "8px 16px", cursor: "pointer",
+                fontSize: 13, fontWeight: 600,
+                color: isDarkMode ? "#a78bfa" : "var(--text-primary)",
+                display: "flex", alignItems: "center", gap: 8,
+                boxShadow: isDarkMode ? "0 0 0 1px rgba(167,139,250,0.1),0 4px 12px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
+              }}>
                 {isDarkMode ? "☀️ Light" : "🌙 Dark"}
               </button>
+
+              {/* Theme customizer button — topbar */}
+              {!isMobile && (
+                <button onClick={() => setIsThemeOpen(true)} style={{
+                  background: "var(--primary)", border: "none",
+                  borderRadius: 40, padding: "8px 18px", cursor: "pointer",
+                  fontSize: 13, fontWeight: 600, color: "#fff",
+                  display: "flex", alignItems: "center", gap: 8,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}>
+                  🎨 Customize
+                </button>
+              )}
             </div>
           </div>
+
           {renderContent()}
         </main>
 
-        {/* Mobile Bottom Navigation */}
+        {/* Mobile Bottom Nav */}
         {isMobile && <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />}
 
         {/* Modals */}
         <AddCourseModal isOpen={isAddCourseModalOpen} onClose={() => setIsAddCourseModalOpen(false)} onCourseCreated={fetchCourses} />
         <EditCourseModal isOpen={isEditCourseModalOpen} onClose={() => { setIsEditCourseModalOpen(false); setSelectedCourse(null); }} course={selectedCourse} onCourseUpdated={fetchCourses} />
         <EditRoleModal isOpen={isEditRoleModalOpen} onClose={() => { setIsEditRoleModalOpen(false); setSelectedUser(null); }} user={selectedUser} onRoleUpdated={fetchAllStudents} />
+
+        {/* Theme Customizer Modal */}
+        {isThemeOpen && (
+          <ThemeCustomizer
+            isDarkMode={isDarkMode}
+            onClose={() => setIsThemeOpen(false)}
+          />
+        )}
       </div>
     </>
   );
