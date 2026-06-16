@@ -1,4 +1,4 @@
-// src/components/CourseDetailView.jsx – Tighter left sidebar
+// src/components/CourseDetailView.jsx – Tighter left sidebar + DOCX image fix
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   getSubtopicImages,
@@ -17,13 +17,26 @@ const getEmbedUrl = (url) => {
   return url;
 };
 
-// Helper: render Markdown images with absolute URLs (strip /admin)
+// ─── Fixed renderMarkdownImages – handles both PDF and DOCX images ────
 const renderMarkdownImages = (text) => {
   if (!text) return '';
   return text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
-    let cleanSrc = src;
-    if (cleanSrc.startsWith('/admin/')) cleanSrc = cleanSrc.slice(6);
-    const fullSrc = `${API_BASE}${cleanSrc}`;
+    let fullSrc;
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      fullSrc = src;
+    } else if (src.startsWith('/api/admin/')) {
+      // DOCX images: already include /api/admin
+      fullSrc = `http://localhost:8082${src}`;
+    } else if (src.startsWith('/api/')) {
+      // Other /api/ paths
+      fullSrc = `http://localhost:8082${src}`;
+    } else if (src.startsWith('/uploads/')) {
+      // Legacy fallback
+      fullSrc = `http://localhost:8082/api/admin${src}`;
+    } else {
+      // PDF images: /subtopic-images/...
+      fullSrc = `${API_BASE}${src}`;
+    }
     return `<img src="${fullSrc}" alt="${alt}" style="max-width:100%; border-radius:12px; margin:20px 0; box-shadow:0 4px 12px rgba(0,0,0,0.08);" />`;
   });
 };
@@ -309,20 +322,21 @@ export default function CourseDetailView({
     progressBar: { background: '#e2e8f0', borderRadius: '20px', height: '8px', overflow: 'hidden' },
     progressFill: { background: '#4f46e5', height: '100%', borderRadius: '20px', width: `${progress}%`, transition: 'width 0.3s' },
     progressStats: { display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '13px', color: '#64748b' },
-splitLayout: { 
-  display: 'grid', 
-  gridTemplateColumns: isMobile ? '1fr' : '1fr 280px',  // content first, then sidebar
-  gap: '32px' 
-},    sidebar: { background: '#fff', borderRadius: '20px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #eef2f6', position: isMobile ? 'relative' : 'sticky', top: '24px', height: isMobile ? 'auto' : 'calc(100vh - 100px)', overflowY: 'auto' },
-    sidebarTitle: { fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '14px', borderBottom: '2px solid #4f46e5', display: 'inline-block', paddingBottom: '4px' }, // slightly smaller
+    splitLayout: { 
+      display: 'grid', 
+      gridTemplateColumns: isMobile ? '1fr' : '1fr 280px',
+      gap: '32px' 
+    },
+    sidebar: { background: '#fff', borderRadius: '20px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #eef2f6', position: isMobile ? 'relative' : 'sticky', top: '24px', height: isMobile ? 'auto' : 'calc(100vh - 100px)', overflowY: 'auto' },
+    sidebarTitle: { fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '14px', borderBottom: '2px solid #4f46e5', display: 'inline-block', paddingBottom: '4px' },
     topicItem: { marginBottom: '6px' },
-    topicHeader: { display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px 10px', background: '#f8fafc', borderRadius: '10px', fontWeight: '600', fontSize: '13px', color: '#1e293b', transition: 'background 0.2s', ':hover': { background: '#f1f5f9' } }, // tighter padding
-    subtopicList: { listStyle: 'none', padding: '0', margin: '0 0 0 8px' }, // less left margin
+    topicHeader: { display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px 10px', background: '#f8fafc', borderRadius: '10px', fontWeight: '600', fontSize: '13px', color: '#1e293b', transition: 'background 0.2s', ':hover': { background: '#f1f5f9' } },
+    subtopicList: { listStyle: 'none', padding: '0', margin: '0 0 0 8px' },
     subtopicItem: (isActive, isCompleted) => ({
-      padding: '6px 10px 6px 20px', // reduced vertical and horizontal padding
+      padding: '6px 10px 6px 20px',
       cursor: 'pointer',
       borderRadius: '8px',
-      fontSize: '13px', // slightly smaller
+      fontSize: '13px',
       marginBottom: '2px',
       borderLeft: `3px solid ${isActive ? '#4f46e5' : (isCompleted ? '#10b981' : '#e2e8f0')}`,
       background: isActive ? '#eef2ff' : (isCompleted ? '#f0fdf4' : 'transparent'),
@@ -359,111 +373,109 @@ splitLayout: {
         <div style={styles.header}>
           <button style={styles.backButton} onClick={handleBack}>← Back to Courses</button>
           <h1 style={styles.courseTitle}>{selectedCourse.title}</h1>
-    
         </div>
     
+        {activeView === 'split' && (
+          <div style={styles.splitLayout}>
+            {/* Content panel (left) */}
+            <div style={styles.contentPanel}>
+              {!currentSub ? (
+                <div style={styles.emptyState}>Select a section from the sidebar to begin</div>
+              ) : (
+                <>
+                  <div style={styles.sectionHeader}>
+                    <h2 style={styles.sectionTitle}>{currentSub.title}</h2>
+                    {isCompleted && <span style={styles.completedBadge}>✅ Completed</span>}
+                  </div>
 
-      {activeView === 'split' && (
-  <div style={styles.splitLayout}>
-    {/* Content panel (left) */}
-    <div style={styles.contentPanel}>
-      {!currentSub ? (
-        <div style={styles.emptyState}>Select a section from the sidebar to begin</div>
-      ) : (
-        <>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>{currentSub.title}</h2>
-            {isCompleted && <span style={styles.completedBadge}>✅ Completed</span>}
-          </div>
-
-          <div style={styles.tabsContainer}>
-            {['notes', 'video', 'interview', 'exam', 'labs'].map(tab => (
-              <button
-                key={tab}
-                style={styles.tabButton(activeContentTab === tab)}
-                onClick={() => setActiveContentTab(tab)}
-              >
-                {tab === 'notes' && '📄 Notes'}
-                {tab === 'video' && '🎥 Video'}
-                {tab === 'interview' && '❓ Interview'}
-                {tab === 'exam' && '📝 MCQ'}
-                {tab === 'labs' && '🧪 Labs'}
-              </button>
-            ))}
-          </div>
-
-          <div style={styles.scrollableContent}>
-            {loadingData && activeContentTab !== 'notes' && activeContentTab !== 'video' && (
-              <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Loading...</div>
-            )}
-
-            {activeContentTab === 'notes' && <NotesTab content={currentSub.content} />}
-            {activeContentTab === 'video' && <VideoTab videoUrl={currentSub.videoUrl} />}
-            {activeContentTab === 'interview' && <InterviewTab questions={interviewQuestions} />}
-            {activeContentTab === 'exam' && <ExamTab questions={examQuestions} />}
-            {activeContentTab === 'labs' && <LabsTab labs={labs} />}
-
-            <button
-              style={styles.completeButton}
-              onClick={() => markSectionComplete(activeSection)}
-              disabled={isCompleted}
-            >
-              {isCompleted ? '✓ Section Completed' : '✓ Mark Complete'}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-
-    {/* Sidebar (right) */}
-    <div style={styles.sidebar}>
-      <h3 style={styles.sidebarTitle}>📖 Course Content</h3>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {topics.map(topic => {
-          const topicSubs = topic.subtopics || [];
-          const isExpanded = expandedTopics[topic.id];
-          return (
-            <li key={topic.id} style={styles.topicItem}>
-              <div style={styles.topicHeader} onClick={() => toggleTopic(topic.id)}>
-                <span style={{ marginRight: '8px', fontSize: '12px' }}>{isExpanded ? '▼' : '▶'}</span>
-                <span>{topic.title}</span>
-                <span style={{ marginLeft: 'auto', fontSize: '10px', background: '#e2e8f0', padding: '2px 6px', borderRadius: '20px' }}>
-                  {topicSubs.length}
-                </span>
-              </div>
-              {isExpanded && (
-                <ul style={styles.subtopicList}>
-                  {topicSubs.map(sub => {
-                    const globalIndex = subtopics.findIndex(s => String(s.id) === String(sub.id));
-                    if (globalIndex === -1) return null;
-                    const isActive = activeSection === globalIndex;
-                    const isSecCompleted = completedSections.includes(globalIndex);
-                    return (
-                      <li
-                        key={sub.id}
-                        style={styles.subtopicItem(isActive, isSecCompleted)}
-                        onClick={async () => {
-                          setActiveSection(globalIndex);
-                          setCurrentSubtopic(sub);
-                          await loadSubtopicImages(sub.id);
-                        }}
+                  <div style={styles.tabsContainer}>
+                    {['notes', 'video', 'interview', 'exam', 'labs'].map(tab => (
+                      <button
+                        key={tab}
+                        style={styles.tabButton(activeContentTab === tab)}
+                        onClick={() => setActiveContentTab(tab)}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>{sub.title}</span>
-                          {isSecCompleted && <span style={{ fontSize: '11px', color: '#10b981' }}>✓</span>}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                        {tab === 'notes' && '📄 Notes'}
+                        {tab === 'video' && '🎥 Video'}
+                        {tab === 'interview' && '❓ Interview'}
+                        {tab === 'exam' && '📝 MCQ'}
+                        {tab === 'labs' && '🧪 Labs'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={styles.scrollableContent}>
+                    {loadingData && activeContentTab !== 'notes' && activeContentTab !== 'video' && (
+                      <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Loading...</div>
+                    )}
+
+                    {activeContentTab === 'notes' && <NotesTab content={currentSub.content} />}
+                    {activeContentTab === 'video' && <VideoTab videoUrl={currentSub.videoUrl} />}
+                    {activeContentTab === 'interview' && <InterviewTab questions={interviewQuestions} />}
+                    {activeContentTab === 'exam' && <ExamTab questions={examQuestions} />}
+                    {activeContentTab === 'labs' && <LabsTab labs={labs} />}
+
+                    <button
+                      style={styles.completeButton}
+                      onClick={() => markSectionComplete(activeSection)}
+                      disabled={isCompleted}
+                    >
+                      {isCompleted ? '✓ Section Completed' : '✓ Mark Complete'}
+                    </button>
+                  </div>
+                </>
               )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  </div>
-)}
+            </div>
+
+            {/* Sidebar (right) */}
+            <div style={styles.sidebar}>
+              <h3 style={styles.sidebarTitle}>📖 Course Content</h3>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {topics.map(topic => {
+                  const topicSubs = topic.subtopics || [];
+                  const isExpanded = expandedTopics[topic.id];
+                  return (
+                    <li key={topic.id} style={styles.topicItem}>
+                      <div style={styles.topicHeader} onClick={() => toggleTopic(topic.id)}>
+                        <span style={{ marginRight: '8px', fontSize: '12px' }}>{isExpanded ? '▼' : '▶'}</span>
+                        <span>{topic.title}</span>
+                        <span style={{ marginLeft: 'auto', fontSize: '10px', background: '#e2e8f0', padding: '2px 6px', borderRadius: '20px' }}>
+                          {topicSubs.length}
+                        </span>
+                      </div>
+                      {isExpanded && (
+                        <ul style={styles.subtopicList}>
+                          {topicSubs.map(sub => {
+                            const globalIndex = subtopics.findIndex(s => String(s.id) === String(sub.id));
+                            if (globalIndex === -1) return null;
+                            const isActive = activeSection === globalIndex;
+                            const isSecCompleted = completedSections.includes(globalIndex);
+                            return (
+                              <li
+                                key={sub.id}
+                                style={styles.subtopicItem(isActive, isSecCompleted)}
+                                onClick={async () => {
+                                  setActiveSection(globalIndex);
+                                  setCurrentSubtopic(sub);
+                                  await loadSubtopicImages(sub.id);
+                                }}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span>{sub.title}</span>
+                                  {isSecCompleted && <span style={{ fontSize: '11px', color: '#10b981' }}>✓</span>}
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        )}
         {activeView === 'gallery' && (
           <div style={{ background: '#fff', borderRadius: '24px', padding: '24px', marginTop: '24px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '24px' }}>📸 All Course Images ({images.length})</h2>
