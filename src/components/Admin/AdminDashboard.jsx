@@ -24,7 +24,7 @@ import InstructorsTab from "./InstructorsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
-import ThemeCustomizer, { applyTheme, loadSavedTheme, LIGHT_DEFAULTS, DARK_DEFAULTS } from "./ThemeCustomizer";
+import ThemeCustomizer from "./ThemeCustomizer";
 
 // ================= MAIN COMPONENT =================
 export default function AdminDashboard() {
@@ -41,35 +41,7 @@ export default function AdminDashboard() {
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
-
-  // ── Restore saved theme on mount ───────────────────────────────────────────
-  useEffect(() => {
-    const saved = loadSavedTheme();
-    if (saved) {
-      const dark = saved.isDark ?? false;
-      setIsDarkMode(dark);
-      if (dark) document.body.classList.add("dark-theme");
-      const defaults = dark ? DARK_DEFAULTS : LIGHT_DEFAULTS;
-      applyTheme({ ...defaults, ...saved.vars });
-    }
-  }, []);
-
-  // ── Dark mode class toggle ─────────────────────────────────────────────────
-  useEffect(() => {
-    if (isDarkMode) {
-      document.body.classList.add("dark-theme");
-      const saved = loadSavedTheme();
-      const vars = saved?.isDark ? { ...DARK_DEFAULTS, ...(saved.vars || {}) } : DARK_DEFAULTS;
-      applyTheme(vars);
-    } else {
-      document.body.classList.remove("dark-theme");
-      const saved = loadSavedTheme();
-      const vars = !saved?.isDark ? { ...LIGHT_DEFAULTS, ...(saved?.vars || {}) } : LIGHT_DEFAULTS;
-      applyTheme(vars);
-    }
-  }, [isDarkMode]);
 
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -379,58 +351,30 @@ export default function AdminDashboard() {
           --grad-end: #7c3aed;
           --grad-primary: linear-gradient(135deg, var(--grad-start), var(--grad-end));
         }
-        body.dark-theme {
-          --bg-base: #0d1117;
-          --surface: #161b22;
-          --text-primary: #e6edf3;
-          --text-secondary: #8b949e;
-          --border-light: #21262d;
-          --primary: #a78bfa;
-          --primary-soft: rgba(124,58,237,0.14);
-          --error: #f87171;
-          --success: #34d399;
-          --teal: #2dd4bf;
-          --teal-soft: rgba(45,212,191,0.1);
-          --amber-soft: rgba(251,191,36,0.1);
-          --purple-soft: rgba(124,58,237,0.12);
-          --grad-start: #7c3aed;
-          --grad-end: #a78bfa;
-          --grad-primary: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-        }
         *, *::before, *::after {
           transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
         }
-        body.dark-theme .swal2-popup {
-          background: #161b22 !important;
-          color: #e6edf3 !important;
-          border: 1px solid rgba(139,148,158,0.15) !important;
+        input, textarea, select {
+          background: #fff !important;
+          color: #0f172a !important;
+          border-color: #e4e7ec !important;
         }
-        body.dark-theme .swal2-title { color: #e6edf3 !important; }
-        body.dark-theme .swal2-html-container { color: #8b949e !important; }
-        body.dark-theme input,
-        body.dark-theme textarea,
-        body.dark-theme select {
-          background: #1c2333 !important;
-          color: #e6edf3 !important;
-          border-color: rgba(139,148,158,0.2) !important;
+        input::placeholder, textarea::placeholder { color: #64748b !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb {
+          background: #cbd5e1; border-radius: 3px;
         }
-        body.dark-theme input::placeholder,
-        body.dark-theme textarea::placeholder { color: #8b949e !important; }
-        body.dark-theme ::-webkit-scrollbar { width: 6px; height: 6px; }
-        body.dark-theme ::-webkit-scrollbar-track { background: #0d1117; }
-        body.dark-theme ::-webkit-scrollbar-thumb {
-          background: rgba(139,148,158,0.2); border-radius: 3px;
+        th {
+          background: #f1f5f9 !important;
+          color: #475569 !important;
+          border-color: #e2e8f0 !important;
         }
-        body.dark-theme th {
-          background: #1c2333 !important;
-          color: #8b949e !important;
-          border-color: rgba(139,148,158,0.1) !important;
+        td {
+          border-color: #e2e8f0 !important;
+          color: #0f172a !important;
         }
-        body.dark-theme td {
-          border-color: rgba(139,148,158,0.08) !important;
-          color: #e6edf3 !important;
-        }
-        body.dark-theme tr:hover td { background: rgba(167,139,250,0.04) !important; }
+        tr:hover td { background: #f8fafc !important; }
       `}</style>
 
       <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-base)", paddingBottom: isMobile ? 70 : 0 }}>
@@ -525,7 +469,6 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {/* Mobile theme button */}
               <button onClick={() => setIsThemeOpen(true)} style={{
                 background: "var(--primary-soft)", border: "1px solid var(--border-light)",
                 borderRadius: 8, padding: "6px 10px", cursor: "pointer",
@@ -559,19 +502,6 @@ export default function AdminDashboard() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
 
-              {/* Dark/Light toggle */}
-              <button onClick={() => setIsDarkMode(!isDarkMode)} style={{
-                background: isDarkMode ? "rgba(167,139,250,0.1)" : "var(--surface)",
-                border: isDarkMode ? "1px solid rgba(167,139,250,0.25)" : "1px solid var(--border-light)",
-                borderRadius: 40, padding: "8px 16px", cursor: "pointer",
-                fontSize: 13, fontWeight: 600,
-                color: isDarkMode ? "#a78bfa" : "var(--text-primary)",
-                display: "flex", alignItems: "center", gap: 8,
-                boxShadow: isDarkMode ? "0 0 0 1px rgba(167,139,250,0.1),0 4px 12px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.08)",
-              }}>
-                {isDarkMode ? "☀️ Light" : "🌙 Dark"}
-              </button>
-
               {/* Theme customizer button — topbar */}
               {!isMobile && (
                 <button onClick={() => setIsThemeOpen(true)} style={{
@@ -598,10 +528,10 @@ export default function AdminDashboard() {
         <EditCourseModal isOpen={isEditCourseModalOpen} onClose={() => { setIsEditCourseModalOpen(false); setSelectedCourse(null); }} course={selectedCourse} onCourseUpdated={fetchCourses} />
         <EditRoleModal isOpen={isEditRoleModalOpen} onClose={() => { setIsEditRoleModalOpen(false); setSelectedUser(null); }} user={selectedUser} onRoleUpdated={fetchAllStudents} />
 
-        {/* Theme Customizer Modal */}
+        {/* Theme Customizer Modal — always light mode */}
         {isThemeOpen && (
           <ThemeCustomizer
-            isDarkMode={isDarkMode}
+            isDarkMode={false}
             onClose={() => setIsThemeOpen(false)}
           />
         )}

@@ -1,3 +1,4 @@
+// src/components/Student/CourseDetailView.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   getSubtopicImages,
@@ -5,6 +6,8 @@ import {
   getSubtopicExamQuestions,
   getSubtopicLabs,
 } from '../api/UserApi';
+
+const API_BASE = 'http://localhost:8082';
 
 // Helper: convert YouTube URL to embed URL
 const getEmbedUrl = (url) => {
@@ -14,23 +17,61 @@ const getEmbedUrl = (url) => {
   return url;
 };
 
-// Helper: render Markdown images inside notes (simple regex)
+// ─── Improved Markdown renderer with copy protection ─────────────────────
 const renderMarkdownImages = (text) => {
   if (!text) return '';
-  return text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
-    return `<img src="${src}" alt="${alt}" style="max-width:100%; border-radius:12px; margin:16px 0; box-shadow:0 4px 12px rgba(0,0,0,0.1);" />`;
+
+  // 1. Process images: ![alt](src)
+  let html = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+    let fullSrc;
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      fullSrc = src;                           // already absolute
+    } else if (src.startsWith('/api/')) {
+      fullSrc = `${API_BASE}${src}`;           // /api/admin/uploads/...
+    } else if (src.startsWith('/uploads/')) {
+      fullSrc = `${API_BASE}/api/admin${src}`; // legacy PDF path
+    } else {
+      fullSrc = `${API_BASE}${src}`;           // fallback
+    }
+    return `<img src="${fullSrc}" alt="${alt}" 
+      style="max-width:100%; border-radius:12px; margin:16px 0; box-shadow:0 4px 12px rgba(0,0,0,0.1); display:block;" 
+      onerror="this.style.border='2px dashed #dc2626'; this.alt='Failed: ${fullSrc}';"
+    />`;
   });
+
+  // 2. Markdown headings
+  html = html.replace(/^### (.+)$/gm, '<h3 style="font-size:16px;font-weight:700;margin:20px 0 8px;color:#1e293b;">$1</h3>');
+  html = html.replace(/^## (.+)$/gm,  '<h2 style="font-size:18px;font-weight:700;margin:24px 0 10px;color:#1e293b;">$1</h2>');
+  html = html.replace(/^# (.+)$/gm,   '<h1 style="font-size:22px;font-weight:800;margin:28px 0 12px;color:#0f172a;">$1</h1>');
+
+  // 3. Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g,     '<em>$1</em>');
+
+  // 4. Newlines to <br/>
+  html = html.replace(/\n/g, '<br/>');
+  return html;
 };
 
 // ─── Tab Components ──────────────────────────────────────────────────────
 function NotesTab({ content }) {
   if (!content) return <div className="empty-state">No notes for this section.</div>;
-  const html = renderMarkdownImages(content).replace(/\n/g, '<br/>');
+  const html = renderMarkdownImages(content);
   return (
     <div
       className="notes-content"
       dangerouslySetInnerHTML={{ __html: html }}
-      style={{ lineHeight: '1.7', color: '#334155', fontSize: '15px' }}
+      style={{
+        lineHeight: '1.8',
+        color: '#334155',
+        fontSize: '15px',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
+      }}
+      onCopy={(e) => e.preventDefault()}
+      onContextMenu={(e) => e.preventDefault()}
     />
   );
 }
@@ -214,7 +255,6 @@ export default function CourseDetailView({
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
-  // Use the already filtered images from parent (images are for this subtopic)
   const subtopicImages = images;
 
   const fetchSubtopicData = useCallback(async (subtopicId) => {
@@ -254,7 +294,7 @@ export default function CourseDetailView({
     );
   }
 
-  // Extend styles with tab-related styles (preserve original)
+  // Extend styles with tab‑specific styles
   const detailStyles = {
     ...styles,
     courseDetailContainer: { ...styles.courseDetailContainer, maxWidth: '1400px', margin: '0 auto', padding: isMobile ? '20px' : '40px' },
@@ -337,12 +377,8 @@ export default function CourseDetailView({
                       {isExpanded && (
                         <ul style={{ listStyle: 'none', paddingLeft: '0', marginTop: '4px' }}>
                           {topicSubs.map(sub => {
-                            // ✅ Fix: convert both IDs to string to avoid type mismatch
                             const globalIndex = subtopics.findIndex(s => String(s.id) === String(sub.id));
-                            if (globalIndex === -1) {
-                              console.error('Subtopic not found in flattened list:', sub);
-                              return null;
-                            }
+                            if (globalIndex === -1) return null;
                             const isActive = activeSection === globalIndex;
                             const isSecCompleted = completedSections.includes(globalIndex);
                             return (
@@ -350,7 +386,6 @@ export default function CourseDetailView({
                                 key={sub.id}
                                 style={detailStyles.subtopicItem(isActive, isSecCompleted)}
                                 onClick={async () => {
-                                  if (globalIndex === -1) return;
                                   setActiveSection(globalIndex);
                                   setCurrentSubtopic(sub);
                                   await loadSubtopicImages(sub.id);
@@ -437,9 +472,8 @@ export default function CourseDetailView({
             {images.length === 0 ? <p>No images yet</p> : (
               <div style={detailStyles.imageGrid}>
                 {images.map(img => {
-                  // Use safe subtopicId: prefer img.subTopicId, then img.subtopicId
                   const safeId = img.subTopicId || img.subtopicId;
-                  if (!safeId) return null; // skip images without valid subtopicId
+                  if (!safeId) return null;
                   return (
                     <div key={img.id} style={detailStyles.imageCard} onClick={() => window.open(getImageUrl(safeId, img.fileName), '_blank')}>
                       <img src={getImageSrc(safeId, img.fileName, img.id)} alt={`Page ${img.pageNumber}`} style={detailStyles.image} onError={() => handleImageError(img.id)} />

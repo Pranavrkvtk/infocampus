@@ -131,15 +131,15 @@ const SectionHead = ({ icon, title, count, action }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PDF UPLOAD BUTTON
+// DOCUMENT UPLOAD BUTTON (supports PDF, DOC, DOCX)
 // ═══════════════════════════════════════════════════════════════════════════════
-function PdfUploadButton({ subtopicId, uploadingPdf, onFileSelected }) {
-  const inputId = `pdf-upload-${subtopicId}`;
+function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
+  const inputId = `doc-upload-${subtopicId}`;
   return (
     <div style={{ marginBottom: 16 }}>
       <input
         type="file"
-        accept=".pdf"
+        accept=".pdf,.doc,.docx"
         id={inputId}
         style={{ display: 'none' }}
         onChange={(e) => {
@@ -151,13 +151,13 @@ function PdfUploadButton({ subtopicId, uploadingPdf, onFileSelected }) {
       <label htmlFor={inputId} style={{ display: 'inline-block' }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          cursor: uploadingPdf ? 'not-allowed' : 'pointer',
-          opacity: uploadingPdf ? 0.5 : 1,
+          cursor: uploading ? 'not-allowed' : 'pointer',
+          opacity: uploading ? 0.5 : 1,
           padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 8,
           background: clr.accentLight, color: clr.accentText,
           border: `1.5px dashed ${clr.accent}`,
         }}>
-          {uploadingPdf ? '📎 Uploading PDF...' : '📎 Upload PDF to this subtopic'}
+          {uploading ? '📎 Uploading document...' : '📎 Upload Document (PDF/DOC/DOCX)'}
         </span>
       </label>
     </div>
@@ -693,7 +693,44 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR – always preview mode, with copy protection
+// MARKDOWN IMAGE RENDERER
+// Handles both DOCX images (/api/admin/uploads/...) and PDF images
+// ═══════════════════════════════════════════════════════════════════════════════
+function MarkdownImage({ src, alt }) {
+  if (!src) return null;
+
+  let fullSrc;
+  if (src.startsWith('http://') || src.startsWith('https://')) {
+    // Already an absolute URL — use as-is
+    fullSrc = src;
+  } else if (src.startsWith('/api/')) {
+    // Absolute path starting with /api/ — prepend host only
+    fullSrc = `http://localhost:8082${src}`;
+  } else if (src.startsWith('/uploads/')) {
+    // Legacy PDF path: /uploads/subtopic_X/images/filename
+    fullSrc = `${API_BASE}/admin${src}`;
+  } else {
+    // Fallback
+    fullSrc = `${API_BASE}${src}`;
+  }
+
+  return (
+    <img
+      src={fullSrc}
+      alt={alt || 'image'}
+      style={{ maxWidth: '100%', height: 'auto', margin: '12px 0', borderRadius: 8, display: 'block' }}
+      onError={(e) => {
+        // Show broken image placeholder with the attempted URL for debugging
+        e.target.style.border = '2px dashed #dc2626';
+        e.target.style.padding = '8px';
+        e.target.alt = `Failed to load: ${fullSrc}`;
+      }}
+    />
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUBTOPIC CONTENT EDITOR
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [notes, setNotes] = useState(sub.content || '');
@@ -703,7 +740,7 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [interviewQuestions, setInterviewQuestions] = useState(sub.interviewQuestions || []);
   const [examQuestions, setExamQuestions] = useState(sub.examQuestions || []);
   const [labExercises, setLabExercises] = useState(sub.labExercises || []);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   useEffect(() => {
     setNotes(sub.content || '');
@@ -740,13 +777,18 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
     onUpdate(patch);
   };
 
-  const uploadPdfToSubtopic = async (file) => {
+  const uploadDocument = async (file) => {
     if (!file) return;
-    if (file.type !== 'application/pdf') {
-      toast.show('Only PDF files allowed', 'error');
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.show('Only PDF, DOC and DOCX files are allowed', 'error');
       return;
     }
-    setUploadingPdf(true);
+    setUploadingDoc(true);
     const formData = new FormData();
     formData.append('file', file);
     try {
@@ -760,16 +802,17 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
         throw new Error(errText || `HTTP ${response.status}`);
       }
       const data = await response.json();
+      // Refresh subtopic content after upload so images render immediately
       const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
       setNotes(refreshedSub.content || '');
       setVideoUrl(refreshedSub.videoUrl || '');
       onUpdate(refreshedSub);
-      toast.show(`✅ PDF processed: ${data.imageCount || 0} images extracted.`, 'success');
+      toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
     } catch (err) {
       console.error('Upload error:', err);
       toast.show(err.message || 'Upload failed', 'error');
     } finally {
-      setUploadingPdf(false);
+      setUploadingDoc(false);
     }
   };
 
@@ -787,6 +830,11 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
     { key: 'lab', label: '🧪 Lab Steps' },
   ];
 
+  // Shared ReactMarkdown components config — reused for both preview and student view
+  const markdownComponents = {
+    img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
+  };
+
   return (
     <Card>
       <div style={{ borderBottom: `1px solid ${clr.border}`, display: 'flex', overflowX: 'auto' }}>
@@ -801,65 +849,106 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
           </button>
         ))}
       </div>
+
       <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 340px)' }}>
         {activeTab === 'notes' && (
           <div style={{ padding: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <Lbl>Notes / Content</Lbl>
+            {/* ── Toolbar ── */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Lbl>📝 Markdown Editor (Admin Editable)</Lbl>
               <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">
                 {saving ? 'Saving…' : '💾 Save Notes'}
               </Btn>
             </div>
-            <PdfUploadButton
+
+            {/* ── Upload button ── */}
+            <DocumentUploadButton
               subtopicId={subtopicId}
-              uploadingPdf={uploadingPdf}
-              onFileSelected={uploadPdfToSubtopic}
+              uploading={uploadingDoc}
+              onFileSelected={uploadDocument}
             />
-            <div
-              style={{
-                border: `1px solid ${clr.border}`,
-                borderRadius: 8,
-                padding: 16,
-                background: clr.white,
-                minHeight: 300,
-                overflowY: 'auto',
-                fontSize: 13,
-                lineHeight: 1.6,
-                userSelect: 'none',            // prevent text selection
-                WebkitUserSelect: 'none',
-                MozUserSelect: 'none',
-              }}
-              onCopy={(e) => e.preventDefault()}    // block copy event
-            >
-              <ReactMarkdown
-                components={{
-                  img: ({ src, alt }) => {
-                    if (!src) return null;
-                    let cleanSrc = src;
-                    if (cleanSrc.startsWith('/admin/')) cleanSrc = cleanSrc.slice(6);
-                    const fullSrc = `${API_BASE}${cleanSrc}`;
-                    return <img src={fullSrc} alt={alt} style={{ maxWidth: '100%', height: 'auto', margin: '12px 0', borderRadius: 8 }} />;
-                  }
+
+            {/* ── Editable textarea ── */}
+            <div style={{ marginBottom: 20 }}>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={12}
+                style={{
+                  width: '100%',
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  padding: 12,
+                  border: `1px solid ${clr.border}`,
+                  borderRadius: 8,
+                  outline: 'none',
+                  background: clr.white,
+                  color: clr.text,
+                  resize: 'vertical',
                 }}
+              />
+            </div>
+
+            {/* ── Preview (copy-protected, mirrors what students see) ── */}
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: clr.muted }}>
+                📄 Preview (Students will see this with copy protection)
+              </div>
+              <div
+                style={{
+                  border: `1px solid ${clr.border}`,
+                  borderRadius: 8,
+                  padding: 16,
+                  background: clr.white,
+                  minHeight: 200,
+                  overflowY: 'auto',
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                }}
+                onCopy={(e) => e.preventDefault()}
               >
-                {notes}
-              </ReactMarkdown>
+                <ReactMarkdown components={markdownComponents}>
+                  {notes}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         )}
+
         {activeTab === 'video' && (
           <div style={{ padding: 22 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <Lbl>Video URL</Lbl>
-              <Btn size="sm" onClick={saveVideo} disabled={saving} variant="success">{saving ? 'Saving…' : '💾 Save Video'}</Btn>
+              <Btn size="sm" onClick={saveVideo} disabled={saving} variant="success">
+                {saving ? 'Saving…' : '💾 Save Video'}
+              </Btn>
             </div>
             <Inp value={videoUrl} onChange={setVideoUrl} placeholder="https://youtube.com/watch?v=..." />
-            {embedUrl && <iframe width="100%" height="400" src={embedUrl} frameBorder="0" allowFullScreen style={{ marginTop: 16, borderRadius: 8 }} />}
+            {embedUrl && (
+              <iframe
+                width="100%"
+                height="400"
+                src={embedUrl}
+                frameBorder="0"
+                allowFullScreen
+                style={{ marginTop: 16, borderRadius: 8 }}
+              />
+            )}
           </div>
         )}
-        {activeTab === 'interview' && <InterviewTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={interviewQuestions} />}
-        {activeTab === 'exam' && <ExamTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={examQuestions} />}
-        {activeTab === 'lab' && <LabTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={labExercises} />}
+
+        {activeTab === 'interview' && (
+          <InterviewTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={interviewQuestions} />
+        )}
+        {activeTab === 'exam' && (
+          <ExamTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={examQuestions} />
+        )}
+        {activeTab === 'lab' && (
+          <LabTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={labExercises} />
+        )}
       </div>
     </Card>
   );
@@ -937,6 +1026,8 @@ export default function AdminCourseManager() {
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
       <style>{`* { box-sizing: border-box; } button { font-family: inherit; }`}</style>
+
+      {/* ── Header ── */}
       <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
         {selectedCourse && (
@@ -949,10 +1040,18 @@ export default function AdminCourseManager() {
           </>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
-          <button onClick={() => setView('course')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'course' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>🏠 Courses</button>
-          {selectedCourse && <button onClick={() => setView('manage')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'manage' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>✏ Manage Content</button>}
+          <button onClick={() => setView('course')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'course' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>
+            🏠 Courses
+          </button>
+          {selectedCourse && (
+            <button onClick={() => setView('manage')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'manage' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>
+              ✏ Manage Content
+            </button>
+          )}
         </div>
       </div>
+
+      {/* ── Course selector view ── */}
       {view === 'course' && (
         <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 24px' }}>
           <Card>
@@ -961,8 +1060,11 @@ export default function AdminCourseManager() {
           </Card>
         </div>
       )}
+
+      {/* ── Content management view ── */}
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
+          {/* Left sidebar: topics + subtopics */}
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
               {loading ? (
@@ -991,9 +1093,17 @@ export default function AdminCourseManager() {
               )}
             </div>
           </div>
+
+          {/* Right panel: subtopic content editor */}
           <div style={{ overflowY: 'auto', padding: 20 }}>
             {activeSub ? (
-              <SubtopicContentEditor key={activeSub.id} sub={activeSub} subtopicId={activeSub.id} toast={toast} onUpdate={updateActiveSub} />
+              <SubtopicContentEditor
+                key={activeSub.id}
+                sub={activeSub}
+                subtopicId={activeSub.id}
+                toast={toast}
+                onUpdate={updateActiveSub}
+              />
             ) : (
               <div style={{ textAlign: 'center', color: clr.muted, padding: 60 }}>
                 {activeTopic ? 'Select a subtopic to edit its content' : 'Select a topic first, then choose a subtopic'}
@@ -1002,6 +1112,7 @@ export default function AdminCourseManager() {
           </div>
         </div>
       )}
+
       <ToastContainer toasts={toast.toasts} />
     </div>
   );
