@@ -1,6 +1,7 @@
 // src/components/Admin/AdminCourseManager.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw'; // ← NEW
 
 const API_BASE = 'http://localhost:8082/api';
 
@@ -165,7 +166,7 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR
+// COURSE SELECTOR (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
@@ -266,9 +267,22 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TOPIC MANAGER
+// TOPIC MANAGER (with props for expanded topics and subtopic selection)
 // ═══════════════════════════════════════════════════════════════════════════════
-function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTopicId, toast, pagination, onPageChange }) {
+function TopicManager({
+  courseId,
+  topics,
+  setTopics,
+  activeTopicId,
+  setActiveTopicId,
+  activeSubId,
+  setActiveSubId,
+  toast,
+  pagination,
+  onPageChange,
+  expandedTopics,
+  toggleTopic,
+}) {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ title: '' });
   const [editId, setEditId] = useState(null);
@@ -324,24 +338,60 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
           {topics.length === 0 && (
             <div style={{ padding: '24px', textAlign: 'center', color: clr.muted, fontSize: 13 }}>No topics yet. Click "Add Topic" to create one.</div>
           )}
-          {topics.map((t, i) => (
-            <div key={t.id} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
-              background: activeTopicId === t.id ? clr.accentLight : 'transparent',
-              borderLeft: activeTopicId === t.id ? `3px solid ${clr.accent}` : '3px solid transparent',
-              cursor: 'pointer', borderBottom: `1px solid ${clr.border}`,
-            }} onClick={() => setActiveTopicId(t.id)}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: clr.accentLight, color: clr.accentText, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {i + 1 + (pagination.currentPage * pagination.pageSize)}
+          {topics.map((t, i) => {
+            const isExpanded = expandedTopics[t.id] ?? false;
+            return (
+              <div key={t.id}>
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
+                    background: activeTopicId === t.id ? clr.accentLight : 'transparent',
+                    borderLeft: activeTopicId === t.id ? `3px solid ${clr.accent}` : '3px solid transparent',
+                    cursor: 'pointer', borderBottom: `1px solid ${clr.border}`,
+                  }}
+                  onClick={() => {
+                    toggleTopic(t.id);
+                    setActiveTopicId(t.id);
+                  }}
+                >
+                  <div style={{ width: 24, height: 24, borderRadius: 6, background: clr.accentLight, color: clr.accentText, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {i + 1 + (pagination.currentPage * pagination.pageSize)}
+                  </div>
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: activeTopicId === t.id ? 600 : 400 }}>{t.title}</div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <span style={{ fontSize: 11, color: clr.muted, background: clr.faint, padding: '2px 7px', borderRadius: 10 }}>{t.subtopics?.length || 0}</span>
+                    <button onClick={e => { e.stopPropagation(); openEdit(t); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted }}>✏</button>
+                    <button onClick={e => { e.stopPropagation(); del(t.id); }} disabled={deletingId === t.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.danger }}>🗑</button>
+                    <button onClick={e => { e.stopPropagation(); toggleTopic(t.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted }}>
+                      {isExpanded ? '▲' : '▼'}
+                    </button>
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div style={{ paddingLeft: '20px' }}>
+                    {t.subtopics?.map((sub, idx) => (
+                      <div
+                        key={sub.id}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '6px 16px',
+                          background: activeSubId === sub.id ? clr.accentLight : 'transparent',
+                          borderLeft: activeSubId === sub.id ? `3px solid ${clr.accent}` : '3px solid transparent',
+                          cursor: 'pointer', borderBottom: `1px solid ${clr.border}`,
+                        }}
+                        onClick={() => {
+                          setActiveTopicId(t.id);
+                          setActiveSubId(sub.id);
+                        }}
+                      >
+                        <span style={{ fontSize: 11, color: clr.muted, width: 24 }}>{idx + 1}</span>
+                        <div style={{ flex: 1, fontSize: 13 }}>{sub.title}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div style={{ flex: 1, fontSize: 13, fontWeight: activeTopicId === t.id ? 600 : 400 }}>{t.title}</div>
-              <div style={{ display: 'flex', gap: 4 }}>
-                <span style={{ fontSize: 11, color: clr.muted, background: clr.faint, padding: '2px 7px', borderRadius: 10 }}>{t.subtopics?.length || 0}</span>
-                <button onClick={e => { e.stopPropagation(); openEdit(t); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.muted }}>✏</button>
-                <button onClick={e => { e.stopPropagation(); del(t.id); }} disabled={deletingId === t.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: clr.danger }}>🗑</button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {pagination.totalPages > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '16px', borderTop: `1px solid ${clr.border}` }}>
               <button onClick={() => onPageChange(pagination.currentPage - 1)} disabled={!pagination.hasPrevious}
@@ -380,7 +430,7 @@ function TopicManager({ courseId, topics, setTopics, activeTopicId, setActiveTop
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC MANAGER
+// SUBTOPIC MANAGER (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiveSubId, toast }) {
   const [modal, setModal] = useState(null);
@@ -473,7 +523,7 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INTERVIEW QUESTIONS TAB
+// INTERVIEW QUESTIONS TAB (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
   const [questions, setQuestions] = useState(initialData || []);
@@ -542,7 +592,7 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXAM QUESTIONS TAB
+// EXAM QUESTIONS TAB (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   const [questions, setQuestions] = useState(initialData || []);
@@ -622,7 +672,7 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LAB EXERCISES TAB
+// LAB EXERCISES TAB (unchanged)
 // ═══════════════════════════════════════════════════════════════════════════════
 function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   const [labs, setLabs] = useState(initialData || []);
@@ -694,23 +744,18 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MARKDOWN IMAGE RENDERER
-// Handles both DOCX images (/api/admin/uploads/...) and PDF images
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   if (!src) return null;
 
   let fullSrc;
   if (src.startsWith('http://') || src.startsWith('https://')) {
-    // Already an absolute URL — use as-is
     fullSrc = src;
   } else if (src.startsWith('/api/')) {
-    // Absolute path starting with /api/ — prepend host only
     fullSrc = `http://localhost:8082${src}`;
   } else if (src.startsWith('/uploads/')) {
-    // Legacy PDF path: /uploads/subtopic_X/images/filename
     fullSrc = `${API_BASE}/admin${src}`;
   } else {
-    // Fallback
     fullSrc = `${API_BASE}${src}`;
   }
 
@@ -720,7 +765,6 @@ function MarkdownImage({ src, alt }) {
       alt={alt || 'image'}
       style={{ maxWidth: '100%', height: 'auto', margin: '12px 0', borderRadius: 8, display: 'block' }}
       onError={(e) => {
-        // Show broken image placeholder with the attempted URL for debugging
         e.target.style.border = '2px dashed #dc2626';
         e.target.style.padding = '8px';
         e.target.alt = `Failed to load: ${fullSrc}`;
@@ -730,9 +774,9 @@ function MarkdownImage({ src, alt }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR
+// SUBTOPIC CONTENT EDITOR (with search & yellow highlight using rehypeRaw)
 // ═══════════════════════════════════════════════════════════════════════════════
-function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
+function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSearchTerm }) {
   const [notes, setNotes] = useState(sub.content || '');
   const [videoUrl, setVideoUrl] = useState(sub.videoUrl || '');
   const [saving, setSaving] = useState(false);
@@ -742,6 +786,54 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
   const [labExercises, setLabExercises] = useState(sub.labExercises || []);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
+  // ── Search state ────────────────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState('');
+  const [matches, setMatches] = useState([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
+
+  // ── When highlightSearchTerm prop changes, set local search term ──────────
+  useEffect(() => {
+    if (highlightSearchTerm && highlightSearchTerm.trim()) {
+      setSearchTerm(highlightSearchTerm);
+    } else {
+      setSearchTerm('');
+    }
+  }, [highlightSearchTerm]);
+
+  // ── Compute search matches ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setMatches([]);
+      setCurrentMatchIndex(-1);
+      return;
+    }
+    const regex = new RegExp(searchTerm, 'gi');
+    const text = notes;
+    const found = [];
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      found.push({ start: match.index, end: match.index + match[0].length });
+    }
+    setMatches(found);
+    setCurrentMatchIndex(found.length > 0 ? 0 : -1);
+  }, [searchTerm, notes]);
+
+  // ── Navigate to a specific match ────────────────────────────────────────────
+  const goToMatch = (index) => {
+    if (index < 0 || index >= matches.length) return;
+    const match = matches[index];
+    setCurrentMatchIndex(index);
+    const textarea = document.getElementById('notes-editor');
+    if (textarea) {
+      textarea.focus();
+      textarea.setSelectionRange(match.start, match.end);
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
+      const lines = textarea.value.substring(0, match.start).split('\n').length;
+      textarea.scrollTop = (lines - 3) * lineHeight;
+    }
+  };
+
+  // ── Rest of the component logic ────────────────────────────────────────────
   useEffect(() => {
     setNotes(sub.content || '');
     setVideoUrl(sub.videoUrl || '');
@@ -802,7 +894,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
         throw new Error(errText || `HTTP ${response.status}`);
       }
       const data = await response.json();
-      // Refresh subtopic content after upload so images render immediately
       const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
       setNotes(refreshedSub.content || '');
       setVideoUrl(refreshedSub.videoUrl || '');
@@ -830,10 +921,19 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
     { key: 'lab', label: '🧪 Lab Steps' },
   ];
 
-  // Shared ReactMarkdown components config — reused for both preview and student view
+  // ── Base markdown components (images) ──
   const markdownComponents = {
     img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
   };
+
+const highlightText = (text) => {
+  console.log('Search term:', searchTerm);
+  if (!searchTerm.trim()) return text;
+  const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const result = text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark style="background:#fde047;color:#1e293b;padding:0 2px;border-radius:2px;">$1</mark>');
+  console.log('Result contains mark tags?', result.includes('<mark'));
+  return result;
+};
 
   return (
     <Card>
@@ -868,9 +968,77 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
               onFileSelected={uploadDocument}
             />
 
+            {/* ── Search bar ── */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
+              <input
+                type="text"
+                placeholder="Search notes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '6px 10px',
+                  border: `1px solid ${clr.border}`,
+                  borderRadius: '6px',
+                  outline: 'none',
+                  fontSize: '13px',
+                  background: clr.white,
+                  color: clr.text,
+                }}
+              />
+              {matches.length > 0 && (
+                <span style={{ fontSize: '12px', color: clr.muted, minWidth: '60px' }}>
+                  {currentMatchIndex + 1} of {matches.length}
+                </span>
+              )}
+              <button
+                onClick={() => goToMatch(currentMatchIndex - 1)}
+                disabled={matches.length === 0}
+                style={{
+                  background: matches.length ? clr.accentLight : clr.faint,
+                  border: `1px solid ${clr.border}`,
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  cursor: matches.length ? 'pointer' : 'not-allowed',
+                  color: matches.length ? clr.accentText : clr.muted,
+                }}
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => goToMatch(currentMatchIndex + 1)}
+                disabled={matches.length === 0}
+                style={{
+                  background: matches.length ? clr.accentLight : clr.faint,
+                  border: `1px solid ${clr.border}`,
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  cursor: matches.length ? 'pointer' : 'not-allowed',
+                  color: matches.length ? clr.accentText : clr.muted,
+                }}
+              >
+                ↓
+              </button>
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                    color: clr.muted,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
             {/* ── Editable textarea ── */}
             <div style={{ marginBottom: 20 }}>
               <textarea
+                id="notes-editor"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={12}
@@ -889,10 +1057,10 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
               />
             </div>
 
-            {/* ── Preview (copy-protected, mirrors what students see) ── */}
+            {/* ── Preview with yellow highlighting (rehypeRaw) ── */}
             <div>
               <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: clr.muted }}>
-                📄 Preview (Students will see this with copy protection)
+                📄 Preview (Students will see this with copy protection) – <mark style={{ background: '#fde047', padding: '0 4px', borderRadius: '2px' }}>yellow</mark> highlights matches
               </div>
               <div
                 style={{
@@ -910,8 +1078,11 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate }) {
                 }}
                 onCopy={(e) => e.preventDefault()}
               >
-                <ReactMarkdown components={markdownComponents}>
-                  {notes}
+                <ReactMarkdown
+                  components={markdownComponents}
+                  rehypePlugins={[rehypeRaw]}
+                >
+                  {highlightText(notes)}
                 </ReactMarkdown>
               </div>
             </div>
@@ -970,6 +1141,72 @@ export default function AdminCourseManager() {
     pageSize: 50, hasNext: false, hasPrevious: false,
   });
 
+  // ── Global search state ────────────────────────────────────────────────────
+  const [courseSearchTerm, setCourseSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
+  const [highlightSearchTerm, setHighlightSearchTerm] = useState('');
+  const [expandedTopics, setExpandedTopics] = useState({});
+
+  // ── Compute search results across all subtopics ────────────────────────────
+  const allSubtopics = useMemo(() => {
+    const subs = [];
+    topics.forEach(topic => {
+      (topic.subtopics || []).forEach(sub => {
+        subs.push({
+          ...sub,
+          topicId: topic.id,
+          topicTitle: topic.title,
+        });
+      });
+    });
+    return subs;
+  }, [topics]);
+
+  useEffect(() => {
+    if (!courseSearchTerm.trim()) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+    const term = courseSearchTerm.toLowerCase().trim();
+    const results = allSubtopics
+      .map(sub => {
+        const content = sub.content || '';
+        const title = sub.title || '';
+        let match = false;
+        let snippet = '';
+        let preview = '';
+        if (content.toLowerCase().includes(term)) {
+          match = true;
+          const idx = content.toLowerCase().indexOf(term);
+          const start = Math.max(0, idx - 40);
+          const end = Math.min(content.length, idx + term.length + 40);
+          snippet = (start > 0 ? '...' : '') + content.substring(start, end) + (end < content.length ? '...' : '');
+          preview = content.substring(Math.max(0, idx - 60), Math.min(content.length, idx + term.length + 60));
+        } else if (title.toLowerCase().includes(term)) {
+          match = true;
+          snippet = title;
+          preview = title;
+        }
+        return match ? { ...sub, snippet, preview } : null;
+      })
+      .filter(Boolean);
+    setSearchResults(results);
+    setShowResults(results.length > 0);
+  }, [courseSearchTerm, allSubtopics]);
+
+  // ── Navigate to a search result ────────────────────────────────────────────
+  const navigateToResult = (result) => {
+    setActiveTopicId(result.topicId);
+    setActiveSubId(result.id);
+    setHighlightSearchTerm(courseSearchTerm);
+    setExpandedTopics(prev => ({ ...prev, [result.topicId]: true }));
+    setCourseSearchTerm('');
+    setShowResults(false);
+    setSearchResults([]);
+  };
+
   const activeTopic = topics.find(t => t.id === activeTopicId);
   const subtopics = activeTopic?.subtopics || [];
   const activeSub = subtopics.find(s => s.id === activeSubId);
@@ -989,6 +1226,9 @@ export default function AdminCourseManager() {
         if (data.content.length > 0 && !activeTopicId) {
           setActiveTopicId(data.content[0].id);
         }
+        const expanded = {};
+        data.content.forEach(t => { expanded[t.id] = true; });
+        setExpandedTopics(expanded);
       }
     } catch (error) {
       console.error('Failed to load topics:', error);
@@ -1021,6 +1261,10 @@ export default function AdminCourseManager() {
       ...t,
       subtopics: (t.subtopics || []).map(s => s.id === activeSubId ? { ...s, ...patch } : s),
     })));
+  };
+
+  const toggleTopic = (topicId) => {
+    setExpandedTopics(prev => ({ ...prev, [topicId]: !prev[topicId] }));
   };
 
   return (
@@ -1064,9 +1308,63 @@ export default function AdminCourseManager() {
       {/* ── Content management view ── */}
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
-          {/* Left sidebar: topics + subtopics */}
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* ── Global search ── */}
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search all subtopics..."
+                  value={courseSearchTerm}
+                  onChange={(e) => setCourseSearchTerm(e.target.value)}
+                  onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: `1px solid ${clr.border}`,
+                    borderRadius: 8,
+                    fontSize: 13,
+                    outline: 'none',
+                    background: clr.white,
+                    color: clr.text,
+                  }}
+                />
+                {showResults && searchResults.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: clr.white,
+                    border: `1px solid ${clr.border}`,
+                    borderRadius: 8,
+                    maxHeight: 300,
+                    overflowY: 'auto',
+                    zIndex: 100,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  }}>
+                    {searchResults.map((res) => (
+                      <div
+                        key={res.id}
+                        onClick={() => navigateToResult(res)}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: `1px solid ${clr.border}`,
+                          '&:hover': { background: clr.accentLight },
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{res.title}</div>
+                        <div style={{ fontSize: 12, color: clr.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {res.snippet || res.preview || ''}
+                        </div>
+                        <div style={{ fontSize: 11, color: clr.accent }}>in {res.topicTitle}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {loading ? (
                 <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>Loading...</div>
               ) : (
@@ -1075,10 +1373,14 @@ export default function AdminCourseManager() {
                   topics={topics}
                   setTopics={setTopics}
                   activeTopicId={activeTopicId}
-                  setActiveTopicId={(id) => { setActiveTopicId(id); setActiveSubId(null); }}
+                  setActiveTopicId={setActiveTopicId}
+                  activeSubId={activeSubId}
+                  setActiveSubId={setActiveSubId}
                   toast={toast}
                   pagination={pagination}
                   onPageChange={handlePageChange}
+                  expandedTopics={expandedTopics}
+                  toggleTopic={toggleTopic}
                 />
               )}
               {activeTopic && (
@@ -1094,7 +1396,6 @@ export default function AdminCourseManager() {
             </div>
           </div>
 
-          {/* Right panel: subtopic content editor */}
           <div style={{ overflowY: 'auto', padding: 20 }}>
             {activeSub ? (
               <SubtopicContentEditor
@@ -1103,6 +1404,7 @@ export default function AdminCourseManager() {
                 subtopicId={activeSub.id}
                 toast={toast}
                 onUpdate={updateActiveSub}
+                highlightSearchTerm={highlightSearchTerm}
               />
             ) : (
               <div style={{ textAlign: 'center', color: clr.muted, padding: 60 }}>
