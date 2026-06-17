@@ -201,6 +201,34 @@ export const getInstructorStats = (instructorId) => {
   return api.get(`/admin/instructors/${instructorId}/stats`);
 };
 
+// ==================== MEDIA MANAGEMENT APIs ====================
+
+// Get current home video URL (public endpoint, but we'll call via admin for consistency)
+export const getHomeVideo = () => {
+  return api.get("/admin/home-video");
+};
+
+// Upload a new home video (multipart/form-data)
+export const uploadHomeVideo = (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post("/admin/home-video/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+
+// Delete the home video
+export const deleteHomeVideo = () => {
+  return api.delete("/admin/home-video");
+};
+
+// Update home video URL directly (without uploading a file)
+export const updateHomeVideoUrl = (videoUrl) => {
+  return api.patch("/admin/home-video", { videoUrl });
+};
+
 // ==================== STATISTICS APIs ====================
 
 // Get lab completion statistics

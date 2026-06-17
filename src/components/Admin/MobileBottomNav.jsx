@@ -1,54 +1,78 @@
 import React from "react";
-import { colors, navItems } from "./AdminStyles";
 
-export default function MobileBottomNav({ activeTab, onTabChange, onLogout }) {
+export default function MobileBottomNav({ activeTab, onTabChange, onLogout, items }) {
+  // Fallback to default items if not provided
+  const defaultItems = [
+    { icon: "📊", label: "Dashboard", id: "dashboard" },
+    { icon: "🌐", label: "Courses", id: "courses" },
+    { icon: "👨‍🎓", label: "Students", id: "students" },
+    { icon: "👨‍🏫", label: "Instructors", id: "instructors" },
+    { icon: "🎬", label: "Media", id: "media" },        // Added
+    { icon: "🏗️", label: "Course Manager", id: "course-manager" },
+  ];
+  const navItems = items || defaultItems;
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: colors.surface,
-        borderTop: `1px solid ${colors.borderLight}`,
-        display: "flex",
-        justifyContent: "space-around",
-        padding: "8px 16px",
-        paddingBottom: "max(8px, env(safe-area-inset-bottom))", // Added safe area
-        zIndex: 100,
-      }}
-    >
+    <div style={{
+      position: "fixed",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: "var(--surface)",
+      borderTop: "1px solid var(--border-light)",
+      display: "flex",
+      justifyContent: "space-around",
+      padding: "8px 0",
+      zIndex: 100,
+    }}>
       {navItems.map((item) => (
-        <div
+        <button
           key={item.id}
           onClick={() => onTabChange(item.id)}
           style={{
+            background: "transparent",
+            border: "none",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 4,
+            fontSize: 12,
+            color: activeTab === item.id ? "var(--primary)" : "var(--text-secondary)",
+            padding: "4px 8px",
             cursor: "pointer",
-            color: activeTab === item.id ? colors.primary : colors.textMuted,
+            position: "relative",
           }}
         >
-          <span style={{ fontSize: 20 }}>{item.icon}</span>
-          <span style={{ fontSize: 10, fontWeight: 500 }}>{item.label}</span>
-        </div>
+          <span style={{ fontSize: 22 }}>{item.icon}</span>
+          <span style={{ fontSize: 10, marginTop: 2 }}>{item.label}</span>
+          {activeTab === item.id && (
+            <span style={{
+              position: "absolute",
+              top: -2,
+              width: 20,
+              height: 3,
+              background: "var(--primary)",
+              borderRadius: 2,
+            }} />
+          )}
+        </button>
       ))}
-      <div
+      <button
         onClick={onLogout}
         style={{
+          background: "transparent",
+          border: "none",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 4,
+          fontSize: 12,
+          color: "var(--error)",
+          padding: "4px 8px",
           cursor: "pointer",
-          color: colors.coral,
         }}
       >
-        <span style={{ fontSize: 20 }}>🚪</span>
-        <span style={{ fontSize: 10, fontWeight: 500 }}>Logout</span>
-      </div>
+        <span style={{ fontSize: 22 }}>🚪</span>
+        <span style={{ fontSize: 10 }}>Logout</span>
+      </button>
     </div>
   );
 }

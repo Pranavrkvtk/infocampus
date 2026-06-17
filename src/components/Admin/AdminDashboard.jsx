@@ -8,7 +8,11 @@ import {
   updateUserStatus,
   getAllInstructors,
   deleteInstructor,
-  updateInstructorStatus
+  updateInstructorStatus,
+  getHomeVideo,
+  uploadHomeVideo,
+  deleteHomeVideo,
+  updateHomeVideoUrl,   // <-- NEW
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
@@ -26,7 +30,111 @@ import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
 import ThemeCustomizer from "./ThemeCustomizer";
 
-// ================= MAIN COMPONENT =================
+// ===================== MEDIA TAB (UPDATED) =====================
+// ===================== MEDIA TAB (URL ONLY) =====================
+function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
+  const [urlInput, setUrlInput] = useState("");
+  const [updatingUrl, setUpdatingUrl] = useState(false);
+
+  useEffect(() => {
+    setUrlInput(videoUrl || "");
+  }, [videoUrl]);
+
+  const handleSaveUrl = async () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) {
+      Swal.fire("Error", "Please enter a valid video URL", "error");
+      return;
+    }
+    try {
+      new URL(trimmed);
+    } catch (_) {
+      Swal.fire("Invalid URL", "Please enter a full URL (e.g., https://...)", "error");
+      return;
+    }
+    const result = await Swal.fire({
+      title: "Set Video URL?",
+      text: "This will replace the current home video.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, set URL",
+      confirmButtonColor: colors.teal,
+    });
+    if (!result.isConfirmed) return;
+
+    setUpdatingUrl(true);
+    try {
+      await updateHomeVideoUrl(trimmed);
+      await fetchHomeVideo();
+      Swal.fire("Success!", "Home video URL updated.", "success");
+    } catch (err) {
+      Swal.fire("Error", err.response?.data?.message || "Failed to update URL", "error");
+    } finally {
+      setUpdatingUrl(false);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <div
+        style={{
+          background: "var(--surface)",
+          borderRadius: 16,
+          padding: 32,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+          border: "1px solid var(--border-light)",
+        }}
+      >
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, color: "var(--text-primary)" }}>
+          🎬 Home Page Video URL
+        </h2>
+        <p style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
+          Paste a direct video URL or a YouTube link. This will be shown on the public home page.
+        </p>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <input
+            type="text"
+            placeholder="https://example.com/video.mp4 or YouTube link"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            style={{
+              flex: 1,
+              padding: "12px 16px",
+              borderRadius: 8,
+              border: "1px solid var(--border-light)",
+              fontSize: 14,
+              background: "var(--bg-base)",
+              color: "var(--text-primary)",
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={handleSaveUrl}
+            disabled={updatingUrl || !urlInput.trim()}
+            style={{
+              padding: "12px 24px",
+              background: "var(--primary)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: 600,
+              cursor: "pointer",
+              opacity: (updatingUrl || !urlInput.trim()) ? 0.6 : 1,
+              whiteSpace: "nowrap",
+              transition: "opacity 0.2s",
+            }}
+          >
+            {updatingUrl ? "Saving..." : "Set URL"}
+          </button>
+        </div>
+      
+      </div>
+    </div>
+  );
+}
+
+// ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,6 +150,11 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
+
+  // ---------- video state ----------
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoLoading, setVideoLoading] = useState(false);
+  // ---------------------------------
 
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -72,6 +185,21 @@ export default function AdminDashboard() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // ---------- fetch home video ----------
+  const fetchHomeVideo = async () => {
+    setVideoLoading(true);
+    try {
+      const response = await getHomeVideo();
+      setVideoUrl(response.data.videoUrl || "");
+    } catch (err) {
+      console.error("Failed to fetch home video:", err);
+      setVideoUrl("");
+    } finally {
+      setVideoLoading(false);
+    }
+  };
+  // --------------------------------------
 
   // Fetch all students
   const fetchAllStudents = async () => {
@@ -257,6 +385,7 @@ export default function AdminDashboard() {
     else if (activeTab === "courses") fetchCourses();
     else if (activeTab === "students") fetchAllStudents();
     else if (activeTab === "instructors") fetchAllInstructors();
+    else if (activeTab === "media") fetchHomeVideo();
   }, [activeTab]);
 
   const handleUpdateRole = (userId) => {
@@ -287,6 +416,7 @@ export default function AdminDashboard() {
           if (activeTab === "students") fetchAllStudents();
           else if (activeTab === "courses") fetchCourses();
           else if (activeTab === "instructors") fetchAllInstructors();
+          else if (activeTab === "media") fetchHomeVideo();
           else fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
           Retry
@@ -298,6 +428,7 @@ export default function AdminDashboard() {
       case "courses":     return <CoursesTab courses={courses} isMobile={isMobile} handleDeleteCourse={handleDeleteCourse} setSelectedCourse={setSelectedCourse} setIsEditCourseModalOpen={setIsEditCourseModalOpen} setIsAddCourseModalOpen={setIsAddCourseModalOpen} fetchCourses={fetchCourses} />;
       case "students":    return <StudentsTab students={students} searchTerm={searchTerm} handleSearchChange={handleSearchChange} handleUpdateRole={handleUpdateRole} handleToggleStatus={handleToggleStatus} isMobile={isMobile} />;
       case "instructors": return <InstructorsTab instructors={instructors} isMobile={isMobile} handleDeleteInstructor={handleDeleteInstructor} handleToggleInstructorStatus={handleToggleInstructorStatus} fetchAllInstructors={fetchAllInstructors} />;
+      case "media":       return <MediaTab videoUrl={videoUrl} videoLoading={videoLoading} fetchHomeVideo={fetchHomeVideo} setVideoLoading={setVideoLoading} />;
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
@@ -310,6 +441,7 @@ export default function AdminDashboard() {
     { icon: "🌐", label: "Courses",        id: "courses"        },
     { icon: "👨‍🎓", label: "Students",      id: "students"       },
     { icon: "👨‍🏫", label: "Instructors",   id: "instructors"    },
+    { icon: "🎬", label: "Media",          id: "media"          },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
   ];
 
@@ -318,6 +450,7 @@ export default function AdminDashboard() {
     courses:         "Course Catalog",
     students:        "Student Management",
     instructors:     "Instructor Management",
+    media:           "Media Manager",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
   };
@@ -326,6 +459,7 @@ export default function AdminDashboard() {
     courses:         "Manage all your courses from one place",
     students:        "View and manage all enrolled students",
     instructors:     "Manage instructors, their status and permissions",
+    media:           "Manage the home page video and future image assets",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
   };
@@ -502,7 +636,6 @@ export default function AdminDashboard() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
 
-              {/* Theme customizer button — topbar */}
               {!isMobile && (
                 <button onClick={() => setIsThemeOpen(true)} style={{
                   background: "var(--primary)", border: "none",
@@ -521,14 +654,21 @@ export default function AdminDashboard() {
         </main>
 
         {/* Mobile Bottom Nav */}
-        {isMobile && <MobileBottomNav activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />}
+        {isMobile && (
+          <MobileBottomNav
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onLogout={handleLogout}
+            items={navItems}
+          />
+        )}
 
         {/* Modals */}
         <AddCourseModal isOpen={isAddCourseModalOpen} onClose={() => setIsAddCourseModalOpen(false)} onCourseCreated={fetchCourses} />
         <EditCourseModal isOpen={isEditCourseModalOpen} onClose={() => { setIsEditCourseModalOpen(false); setSelectedCourse(null); }} course={selectedCourse} onCourseUpdated={fetchCourses} />
         <EditRoleModal isOpen={isEditRoleModalOpen} onClose={() => { setIsEditRoleModalOpen(false); setSelectedUser(null); }} user={selectedUser} onRoleUpdated={fetchAllStudents} />
 
-        {/* Theme Customizer Modal — always light mode */}
+        {/* Theme Customizer Modal */}
         {isThemeOpen && (
           <ThemeCustomizer
             isDarkMode={false}
