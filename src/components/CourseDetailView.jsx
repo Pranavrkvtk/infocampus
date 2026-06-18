@@ -151,7 +151,7 @@ function NotesTab({ content }) {
   );
 }
 
-// ─── VideoTab ──────────────────────────────────────────────────────
+// ─── VideoTab ──────────────────────────────────────────────────────────
 function VideoTab({ videoUrls }) {
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
   if (urls.length === 0) return <div className="empty-state">🎬 No video for this section.</div>;
@@ -177,9 +177,11 @@ function VideoTab({ videoUrls }) {
   );
 }
 
-function InterviewTab({ questions }) {
+// ─── InterviewTab with Back to Top button ─────────────────────────────
+function InterviewTab({ questions, onBackToTop }) {
   const [expanded, setExpanded] = useState({});
   if (!questions || questions.length === 0) return <div className="empty-state">🎤 No interview questions.</div>;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {questions.map((q, idx) => (
@@ -207,11 +209,33 @@ function InterviewTab({ questions }) {
           )}
         </div>
       ))}
+      {/* Back to Top button at the end of interview questions */}
+      <button
+        onClick={onBackToTop}
+        style={{
+          display: 'block',
+          margin: '16px auto 0',
+          background: 'transparent',
+          border: '1px solid #cbd5e1',
+          padding: '6px 16px',
+          borderRadius: '30px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          color: '#475569',
+          fontWeight: 500,
+          transition: 'background 0.2s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      >
+        ⬆ Back to Top
+      </button>
     </div>
   );
 }
 
-function ExamTab({ questions, onScoreUpdate }) {
+// ─── ExamTab with Back to Top button ──────────────────────────────────
+function ExamTab({ questions, onScoreUpdate, onBackToTop }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(null);
@@ -278,11 +302,33 @@ function ExamTab({ questions, onScoreUpdate }) {
           🎉 Score: {score.correct} / {score.total} ({Math.round((score.correct / score.total) * 100)}%)
         </div>
       )}
+      {/* Back to Top button at the end of MCQ practice */}
+      <button
+        onClick={onBackToTop}
+        style={{
+          display: 'block',
+          margin: '16px auto 0',
+          background: 'transparent',
+          border: '1px solid #cbd5e1',
+          padding: '6px 16px',
+          borderRadius: '30px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          color: '#475569',
+          fontWeight: 500,
+          transition: 'background 0.2s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      >
+        ⬆ Back to Top
+      </button>
     </div>
   );
 }
 
-function LabsTab({ labs }) {
+// ─── LabsTab with Back to Top button ──────────────────────────────────
+function LabsTab({ labs, onBackToTop }) {
   const [completed, setCompleted] = useState({});
   if (!labs || labs.length === 0) return <div className="empty-state">🧪 No lab exercises.</div>;
 
@@ -316,6 +362,27 @@ function LabsTab({ labs }) {
           <div style={{ fontSize: '14px', color: '#475569', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{lab.instructions}</div>
         </div>
       ))}
+      {/* Back to Top button at the end of labs */}
+      <button
+        onClick={onBackToTop}
+        style={{
+          display: 'block',
+          margin: '16px auto 0',
+          background: 'transparent',
+          border: '1px solid #cbd5e1',
+          padding: '6px 16px',
+          borderRadius: '30px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          color: '#475569',
+          fontWeight: 500,
+          transition: 'background 0.2s',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      >
+        ⬆ Back to Top
+      </button>
     </div>
   );
 }
@@ -552,21 +619,21 @@ export default function CourseDetailView({
                   {interviewQuestions.length > 0 && (
                     <section id="section-interview" style={styles.contentSection}>
                       <h3 style={styles.contentSectionHeading}>❓ Interview Questions</h3>
-                      <InterviewTab questions={interviewQuestions} />
+                      <InterviewTab questions={interviewQuestions} onBackToTop={handleBackToTop} />
                     </section>
                   )}
 
                   {examQuestions.length > 0 && (
                     <section id="section-exam" style={styles.contentSection}>
                       <h3 style={styles.contentSectionHeading}>📝 MCQ Practice</h3>
-                      <ExamTab questions={examQuestions} />
+                      <ExamTab questions={examQuestions} onScoreUpdate={() => {}} onBackToTop={handleBackToTop} />
                     </section>
                   )}
 
                   {labs.length > 0 && (
                     <section id="section-labs" style={styles.contentSection}>
                       <h3 style={styles.contentSectionHeading}>🧪 Labs</h3>
-                      <LabsTab labs={labs} />
+                      <LabsTab labs={labs} onBackToTop={handleBackToTop} />
                     </section>
                   )}
 
@@ -659,7 +726,6 @@ export default function CourseDetailView({
                           </a>
                         </li>
                       ))}
-                      {/* ❌ "Back to Top" entry removed from here */}
                     </ol>
                   </div>
                 )}
