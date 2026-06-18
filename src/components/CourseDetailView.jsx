@@ -392,9 +392,18 @@ export default function CourseDetailView({
 
   const toggleTopic = (topicId) => setExpandedTopics((prev) => ({ ...prev, [topicId]: !prev[topicId] }));
 
+  // ─── ✅ FIXED SCROLL FUNCTION WITH NAVBAR OFFSET ──────────────────
   const scrollToSection = (anchorId) => {
     const el = document.getElementById(anchorId);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (el) {
+      const navbarHeight = 56; // height of the sticky navbar – adjust if yours is different
+      const elementPosition = el.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - navbarHeight - 20; // 20px extra padding for visual comfort
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth',
+      });
+    }
   };
 
   if (contentLoading) {
@@ -439,7 +448,7 @@ export default function CourseDetailView({
     },
 
     sidebar: { background: '#fff', borderRadius: '20px', padding: '18px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #eef2f6', position: isMobile ? 'relative' : 'sticky', top: '24px', height: isMobile ? 'auto' : 'calc(100vh - 48px)', overflowY: 'auto' },
-    sidebarTitle: { fontSize: '15px', fontWeight: '700', color: '#0f172a', marginBottom: '14px', letterSpacing: '0.01em' },
+    sidebarTitle: { fontSize: '15px', fontWeight: '700', color: '#0f172a', marginBottom: '14px', letterSpacing: '0.01em' ,justifyContent: 'center', display: 'flex'},
     topicItem: { marginBottom: '4px', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' },
     topicHeader: { display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 2px', fontWeight: '600', fontSize: '13px', color: '#1e293b' },
     topicIcon: { width: '15px', height: '15px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#64748b', border: '1px solid #cbd5e1', borderRadius: '3px' },
@@ -476,6 +485,26 @@ export default function CourseDetailView({
 
     completeButton: { background: '#22c55e', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '40px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '12px', width: '100%' },
     emptyState: { textAlign: 'center', padding: '60px 20px', color: '#94a3b8' },
+
+    // ── NEW: Back to Top button style ──
+    backToTopButton: {
+      display: 'block',
+      margin: '24px auto 0',
+      background: 'transparent',
+      border: '1px solid #cbd5e1',
+      padding: '8px 20px',
+      borderRadius: '40px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      color: '#475569',
+      fontWeight: 500,
+      transition: 'background 0.2s',
+    },
+  };
+
+  // ─── Handlers ────────────────────────────────────────────────────────
+  const handleBackToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -512,29 +541,6 @@ export default function CourseDetailView({
                     <h2 style={styles.sectionTitle}>{currentSub.title}</h2>
                     {isCompleted && <span style={styles.completedBadge}>✅ Completed</span>}
                   </div>
-
-                  {/* Lesson Contents jump box */}
-                  {sectionList.length > 0 && (
-                    <div style={styles.lessonBox}>
-                      <div style={styles.lessonBoxTitle}>Lesson Contents</div>
-                      <ol style={styles.lessonBoxList}>
-                        {sectionList.map((s) => (
-                          <li key={s.key}>
-                            <a
-                              href={`#${s.anchor}`}
-                              style={styles.lessonBoxLink}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                scrollToSection(s.anchor);
-                              }}
-                            >
-                              {s.label}
-                            </a>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
 
                   {/* ─── Stacked sections ──────────────────────────── */}
                   {videoUrls.length > 0 && (
@@ -582,12 +588,23 @@ export default function CourseDetailView({
                     <div style={styles.emptyState}>No content has been added for this section yet.</div>
                   )}
 
+                  {/* ─── Mark Complete & Back to Top ────────────────── */}
                   <button
                     style={styles.completeButton}
                     onClick={() => markSectionComplete(activeSection)}
                     disabled={isCompleted}
                   >
                     {isCompleted ? '✓ Section Completed' : '✓ Mark Complete'}
+                  </button>
+
+                  {/* ── Back to Top button ── */}
+                  <button
+                    style={styles.backToTopButton}
+                    onClick={handleBackToTop}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#ffffff')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    ⬆ Back to Top
                   </button>
                 </>
               )}
@@ -637,6 +654,29 @@ export default function CourseDetailView({
                     </li>
                   );
                 })}
+
+                {/* Lesson Contents jump box */}
+                {sectionList.length > 0 && (
+                  <div style={styles.lessonBox}>
+                    <div style={styles.lessonBoxTitle}>Lesson Contents</div>
+                    <ol style={styles.lessonBoxList}>
+                      {sectionList.map((s) => (
+                        <li key={s.key}>
+                          <a
+                            href={`#${s.anchor}`}
+                            style={styles.lessonBoxLink}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              scrollToSection(s.anchor);
+                            }}
+                          >
+                            {s.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
               </ul>
             </div>
           </div>
