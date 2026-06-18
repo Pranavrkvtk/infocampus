@@ -151,13 +151,10 @@ function NotesTab({ content }) {
   );
 }
 
-// ─── Updated VideoTab to accept an array of URLs ──────────────────────
+// ─── VideoTab ──────────────────────────────────────────────────────
 function VideoTab({ videoUrls }) {
-  // If videoUrls is a string, convert to array (legacy support)
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
-
   if (urls.length === 0) return <div className="empty-state">🎬 No video for this section.</div>;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       {urls.map((url, idx) => {
@@ -180,7 +177,6 @@ function VideoTab({ videoUrls }) {
   );
 }
 
-// ─── Other tabs (unchanged) ──────────────────────────────────────────
 function InterviewTab({ questions }) {
   const [expanded, setExpanded] = useState({});
   if (!questions || questions.length === 0) return <div className="empty-state">🎤 No interview questions.</div>;
@@ -357,8 +353,6 @@ export default function CourseDetailView({
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
 
-  // ── Compute video URLs array ──────────────────────────────────────
-  // Support both the new 'videoUrls' array and the old 'videoUrl' string
   const videoUrls = Array.isArray(currentSub?.videoUrls)
     ? currentSub.videoUrls
     : (currentSub?.videoUrl ? [currentSub.videoUrl] : []);
@@ -392,18 +386,18 @@ export default function CourseDetailView({
 
   const toggleTopic = (topicId) => setExpandedTopics((prev) => ({ ...prev, [topicId]: !prev[topicId] }));
 
-  // ─── ✅ FIXED SCROLL FUNCTION WITH NAVBAR OFFSET ──────────────────
   const scrollToSection = (anchorId) => {
     const el = document.getElementById(anchorId);
     if (el) {
-      const navbarHeight = 56; // height of the sticky navbar – adjust if yours is different
+      const navbarHeight = 56;
       const elementPosition = el.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - navbarHeight - 20; // 20px extra padding for visual comfort
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth',
-      });
+      const offsetPosition = elementPosition - navbarHeight - 20;
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     }
+  };
+
+  const handleBackToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (contentLoading) {
@@ -416,7 +410,6 @@ export default function CourseDetailView({
     );
   }
 
-  // Section list – now uses videoUrls.length > 0 instead of !!videoUrl
   const sectionList = [
     { key: 'video', label: '🎥 Video', anchor: 'section-video', available: videoUrls.length > 0 },
     { key: 'notes', label: '📄 Notes', anchor: 'section-notes', available: !!currentSub?.content },
@@ -427,7 +420,6 @@ export default function CourseDetailView({
 
   const buildImageUrl = (subId, fileName) => `${API_BASE}/subtopic-images/${subId}/${fileName}`;
 
-  // ─── Styles ─────────────────────────────────────────────────────────
   const styles = {
     container: { background: '#f8fafc', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' },
     detailContainer: { maxWidth: '1280px', margin: '0 auto', padding: isMobile ? '20px' : '32px' },
@@ -486,7 +478,6 @@ export default function CourseDetailView({
     completeButton: { background: '#22c55e', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '40px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '12px', width: '100%' },
     emptyState: { textAlign: 'center', padding: '60px 20px', color: '#94a3b8' },
 
-    // ── NEW: Back to Top button style ──
     backToTopButton: {
       display: 'block',
       margin: '24px auto 0',
@@ -500,11 +491,6 @@ export default function CourseDetailView({
       fontWeight: 500,
       transition: 'background 0.2s',
     },
-  };
-
-  // ─── Handlers ────────────────────────────────────────────────────────
-  const handleBackToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -588,7 +574,7 @@ export default function CourseDetailView({
                     <div style={styles.emptyState}>No content has been added for this section yet.</div>
                   )}
 
-                  {/* ─── Mark Complete & Back to Top ────────────────── */}
+                  {/* ─── Mark Complete & Bottom Back to Top ────────────────── */}
                   <button
                     style={styles.completeButton}
                     onClick={() => markSectionComplete(activeSection)}
@@ -597,11 +583,10 @@ export default function CourseDetailView({
                     {isCompleted ? '✓ Section Completed' : '✓ Mark Complete'}
                   </button>
 
-                  {/* ── Back to Top button ── */}
                   <button
                     style={styles.backToTopButton}
                     onClick={handleBackToTop}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#ffffff')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     ⬆ Back to Top
@@ -610,7 +595,7 @@ export default function CourseDetailView({
               )}
             </div>
 
-            {/* Sidebar (right) */}
+            {/* ─── Sidebar (right) ────────────────────────────────── */}
             <div style={styles.sidebar}>
               <h3 style={styles.sidebarTitle}>Course Contents</h3>
               <div style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>
@@ -655,7 +640,7 @@ export default function CourseDetailView({
                   );
                 })}
 
-                {/* Lesson Contents jump box */}
+                {/* ─── Lesson Contents jump box ────────────────── */}
                 {sectionList.length > 0 && (
                   <div style={styles.lessonBox}>
                     <div style={styles.lessonBoxTitle}>Lesson Contents</div>
@@ -674,6 +659,7 @@ export default function CourseDetailView({
                           </a>
                         </li>
                       ))}
+                      {/* ❌ "Back to Top" entry removed from here */}
                     </ol>
                   </div>
                 )}
