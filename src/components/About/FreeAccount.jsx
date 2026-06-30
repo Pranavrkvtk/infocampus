@@ -7,6 +7,7 @@ function FreeAccount() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -16,6 +17,18 @@ function FreeAccount() {
         icon: "warning",
         title: "Name Required",
         text: "Please enter your name",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
+    // ✅ Name must not contain numbers
+    const nameRegex = /^[A-Za-z ]+$/;
+    if (!nameRegex.test(name.trim())) {
+      Swal.fire({
+        icon: "warning",
+        title: "Invalid Name",
+        text: "Name must not contain numbers or special characters",
         confirmButtonColor: "#f59e0b",
       });
       return;
@@ -53,16 +66,46 @@ function FreeAccount() {
       return;
     }
 
+    // ✅ Password must be exactly 6 digits
+    const passwordRegex = /^[0-9]{6}$/;
+    if (!passwordRegex.test(password.trim())) {
+      Swal.fire({
+        icon: "warning",
+        title: "Invalid Password",
+        text: "Password must be exactly 6 digits",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
+    // ✅ Confirm password required
+    if (!confirmPassword.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Confirm Password Required",
+        text: "Please re-enter your password",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
+    // ✅ Passwords must match
+    if (password !== confirmPassword) {
+      Swal.fire({
+        icon: "warning",
+        title: "Passwords Don't Match",
+        text: "Password and Confirm Password must be the same",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
     try {
       console.log("Name:", name);
       console.log("Email:", email);
       console.log("Password:", password);
 
-      const res = await registerUser({
-        name,
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const res = await registerUser({ name, email, password });
 
       console.log("Success:", res.data);
 
@@ -81,11 +124,11 @@ function FreeAccount() {
       setName("");
       setEmail("");
       setPassword("");
+      setConfirmPassword("");
 
     } catch (error) {
       console.log("Error:", error);
 
-      // ✅ Updated to match GlobalExceptionHandler's { "error": "..." } shape
       const message =
         error.response?.data?.error ||
         error.response?.data?.message ||
@@ -123,7 +166,12 @@ function FreeAccount() {
               name="register_name"
               placeholder="John Smith"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!/[0-9]/.test(val)) {
+                  setName(val);
+                }
+              }}
               autoComplete="off"
               required
             />
@@ -147,10 +195,35 @@ function FreeAccount() {
             <input
               type="password"
               name="register_password"
-              placeholder="Min. 6 characters"
+              placeholder="6 digits only"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (/^[0-9]*$/.test(val) && val.length <= 6) {
+                  setPassword(val);
+                }
+              }}
               autoComplete="new-password"
+              maxLength={6}
+              required
+            />
+          </div>
+
+          <div>
+            <label>Confirm Password</label>
+            <input
+              type="password"
+              name="register_confirm_password"
+              placeholder="Re-enter 6 digit password"
+              value={confirmPassword}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (/^[0-9]*$/.test(val) && val.length <= 6) {
+                  setConfirmPassword(val);
+                }
+              }}
+              autoComplete="new-password"
+              maxLength={6}
               required
             />
           </div>
