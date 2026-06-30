@@ -2,85 +2,104 @@ import React, { useState } from "react";
 import "./FreeAccount.css";
 import { registerUser } from "./../../api/authApi";
 import Swal from "sweetalert2";
+
 function FreeAccount() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-const handleRegister = async (e) => {
-  e.preventDefault();
+  const handleRegister = async (e) => {
+    e.preventDefault();
 
-  if (!name.trim()) {
-    Swal.fire({
-      icon: "warning",
-      title: "Name Required",
-      text: "Please enter your name",
-      confirmButtonColor: "#f59e0b",
-    });
-    return;
-  }
+    if (!name.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Name Required",
+        text: "Please enter your name",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
 
-  if (!email.trim()) {
-    Swal.fire({
-      icon: "warning",
-      title: "Email Required",
-      text: "Please enter your email",
-      confirmButtonColor: "#f59e0b",
-    });
-    return;
-  }
+    if (!email.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Email Required",
+        text: "Please enter your email",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
 
-  if (!password.trim()) {
-    Swal.fire({
-      icon: "warning",
-      title: "Password Required",
-      text: "Please enter your password",
-      confirmButtonColor: "#f59e0b",
-    });
-    return;
-  }
+    // ✅ Gmail-only validation
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    if (!gmailRegex.test(email.trim().toLowerCase())) {
+      Swal.fire({
+        icon: "warning",
+        title: "Invalid Email",
+        text: "Only @gmail.com email addresses are allowed",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
 
-  try {
-    console.log("Name:", name);
-    console.log("Email:", email);
-    console.log("Password:", password);
+    if (!password.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Password Required",
+        text: "Please enter your password",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
 
-    const res = await registerUser({ name, email, password });
+    try {
+      console.log("Name:", name);
+      console.log("Email:", email);
+      console.log("Password:", password);
 
-    console.log("Success:", res.data);
+      const res = await registerUser({
+        name,
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    await Swal.fire({
-      icon: "success",
-      title: "🎉 Account Created!",
-      html: `
-        <h3>Welcome, ${name}!</h3>
-        <p>Your account has been created successfully.</p>
-      `,
-      confirmButtonColor: "#10b981",
-      timer: 2500,
-      timerProgressBar: true,
-    });
+      console.log("Success:", res.data);
 
-    setName("");
-    setEmail("");
-    setPassword("");
+      await Swal.fire({
+        icon: "success",
+        title: "🎉 Account Created!",
+        html: `
+          <h3>Welcome, ${name}!</h3>
+          <p>Your account has been created successfully.</p>
+        `,
+        confirmButtonColor: "#10b981",
+        timer: 2500,
+        timerProgressBar: true,
+      });
 
-  } catch (error) {
-    console.log("Error:", error);
+      setName("");
+      setEmail("");
+      setPassword("");
 
-    const message =
-      error.response?.data?.message ||
-      error.response?.data ||
-      "Registration Failed";
+    } catch (error) {
+      console.log("Error:", error);
 
-    Swal.fire({
-      icon: "error",
-      title: "Registration Failed ❌",
-      text: message,
-      confirmButtonColor: "#ef4444",
-    });
-  }
-};
+      // ✅ Updated to match GlobalExceptionHandler's { "error": "..." } shape
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        (typeof error.response?.data === "string" ? error.response.data : null) ||
+        "Registration Failed";
+
+      Swal.fire({
+        icon: "error",
+        title: "Registration Failed ❌",
+        text: message,
+        confirmButtonColor: "#ef4444",
+      });
+    }
+  };
 
   return (
     <div className="fa-page">
@@ -94,11 +113,9 @@ const handleRegister = async (e) => {
           onSubmit={handleRegister}
           autoComplete="off"
         >
-          {/* ✅ FIX 2: Dummy hidden fields to prevent Chrome autofill */}
           <input type="text"     name="fakeusernameremembered" style={{ display: "none" }} readOnly />
           <input type="password" name="fakepasswordremembered" style={{ display: "none" }} readOnly />
 
-          {/* NAME */}
           <div>
             <label>Full Name</label>
             <input
@@ -112,13 +129,12 @@ const handleRegister = async (e) => {
             />
           </div>
 
-          {/* EMAIL — ✅ FIX 1: name + autoComplete to block autofill */}
           <div>
             <label>Email Address</label>
             <input
               type="email"
               name="register_email"
-              placeholder="john@example.com"
+              placeholder="john@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="new-email"
@@ -126,7 +142,6 @@ const handleRegister = async (e) => {
             />
           </div>
 
-          {/* PASSWORD — ✅ FIX 1: new-password blocks Chrome autofill */}
           <div>
             <label>Password</label>
             <input

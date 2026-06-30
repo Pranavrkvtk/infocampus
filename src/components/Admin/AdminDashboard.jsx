@@ -28,7 +28,7 @@ import InstructorsTab from "./InstructorsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
-import ThemeCustomizer from "./ThemeCustomizer";
+// import ThemeCustomizer from "./ThemeCustomizer";
 
 // ===================== MEDIA TAB (UPDATED) =====================
 // ===================== MEDIA TAB (URL ONLY) =====================
@@ -556,20 +556,7 @@ export default function AdminDashboard() {
                   return <NavItem key={item.id} icon={item.icon} label={item.label} badge={badge} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} />;
                 })}
 
-                {/* Theme customizer trigger in sidebar */}
-                <div style={{ padding: "0 8px", marginTop: 8 }}>
-                  <button onClick={() => setIsThemeOpen(true)} style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    width: "100%", padding: "12px 16px", borderRadius: 12,
-                    fontSize: 14, fontWeight: 600, cursor: "pointer",
-                    background: "var(--primary-soft)", color: "var(--primary)",
-                    border: "1px solid var(--border-light)",
-                  }}>
-                    <span style={{ fontSize: 18 }}>🎨</span>
-                    <span>Theme</span>
-                    <span style={{ marginLeft: "auto", fontSize: 11, background: "var(--primary)", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>Customize</span>
-                  </button>
-                </div>
+              
 
                 <div style={{ flex: 1 }} />
                 <div style={{ padding: "0 8px 20px" }}>
@@ -636,17 +623,7 @@ export default function AdminDashboard() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
 
-              {!isMobile && (
-                <button onClick={() => setIsThemeOpen(true)} style={{
-                  background: "var(--primary)", border: "none",
-                  borderRadius: 40, padding: "8px 18px", cursor: "pointer",
-                  fontSize: 13, fontWeight: 600, color: "#fff",
-                  display: "flex", alignItems: "center", gap: 8,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                }}>
-                  🎨 Customize
-                </button>
-              )}
+           
             </div>
           </div>
 
@@ -668,13 +645,7 @@ export default function AdminDashboard() {
         <EditCourseModal isOpen={isEditCourseModalOpen} onClose={() => { setIsEditCourseModalOpen(false); setSelectedCourse(null); }} course={selectedCourse} onCourseUpdated={fetchCourses} />
         <EditRoleModal isOpen={isEditRoleModalOpen} onClose={() => { setIsEditRoleModalOpen(false); setSelectedUser(null); }} user={selectedUser} onRoleUpdated={fetchAllStudents} />
 
-        {/* Theme Customizer Modal */}
-        {isThemeOpen && (
-          <ThemeCustomizer
-            isDarkMode={false}
-            onClose={() => setIsThemeOpen(false)}
-          />
-        )}
+     
       </div>
     </>
   );
