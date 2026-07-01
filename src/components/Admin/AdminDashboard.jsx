@@ -8,12 +8,13 @@ import {
   updateUserStatus,
   getAllInstructors,
   deleteInstructor,
-  hardDeleteInstructor, // ✅ Import hard delete
+  hardDeleteInstructor,
   updateInstructorStatus,
   getHomeVideo,
   uploadHomeVideo,
   deleteHomeVideo,
   updateHomeVideoUrl,
+  getAllEnrollments, // ✅ ADDED
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
@@ -26,6 +27,7 @@ import DashboardTab from "./DashboardTab";
 import CoursesTab from "./CoursesTab";
 import StudentsTab from "./StudentsTab";
 import InstructorsTab from "./InstructorsTab";
+import EnrollmentsTab from "./EnrollmentsTab"; // ✅ ADDED
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
@@ -162,6 +164,7 @@ export default function AdminDashboard() {
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
   const [instructors, setInstructors] = useState([]);
+  const [enrollments, setEnrollments] = useState([]); // ✅ ADDED
 
   // Resize listener
   useEffect(() => {
@@ -241,6 +244,27 @@ export default function AdminDashboard() {
     }
   };
 
+  // ✅ Fetch all enrollments
+  const fetchEnrollments = async () => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getAllEnrollments();
+      setEnrollments(response.data || []);
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        setError(err.response?.data?.message || "Failed to load enrollments");
+        setEnrollments([]);
+      }
+    } finally {
+      setLoading(false);
+      if (abortControllerRef.current === abortController) abortControllerRef.current = null;
+    }
+  };
+
   // Search students
   const searchStudents = useCallback(async (name) => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -303,9 +327,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // ✅ UPDATED: Handle delete instructor with both soft and hard delete
   const handleDeleteInstructor = async (instructorId, instructorName, isActive = true) => {
-    // If instructor is inactive, ask for permanent deletion
     if (!isActive) {
       const result = await Swal.fire({
         title: "Permanently Delete Instructor?",
@@ -354,7 +376,6 @@ export default function AdminDashboard() {
       return;
     }
 
-    // If instructor is active, show options: Deactivate or Delete
     const { value: choice } = await Swal.fire({
       title: `Manage ${instructorName}`,
       text: "What would you like to do with this instructor?",
@@ -369,7 +390,6 @@ export default function AdminDashboard() {
       cancelButtonColor: "#6b7280"
     });
 
-    // Deactivate (soft delete)
     if (choice === true) {
       const confirm = await Swal.fire({
         title: "Deactivate Instructor?",
@@ -414,10 +434,7 @@ export default function AdminDashboard() {
           });
         }
       }
-    }
-    
-    // Permanent Delete (hard delete)
-    else if (choice === false) {
+    } else if (choice === false) {
       const confirm = await Swal.fire({
         title: "Permanently Delete?",
         html: `
@@ -527,6 +544,7 @@ export default function AdminDashboard() {
     else if (activeTab === "courses") fetchCourses();
     else if (activeTab === "students") fetchAllStudents();
     else if (activeTab === "instructors") fetchAllInstructors();
+    else if (activeTab === "enrollments") fetchEnrollments(); // ✅ ADDED
     else if (activeTab === "media") fetchHomeVideo();
   }, [activeTab]);
 
@@ -558,6 +576,7 @@ export default function AdminDashboard() {
           if (activeTab === "students") fetchAllStudents();
           else if (activeTab === "courses") fetchCourses();
           else if (activeTab === "instructors") fetchAllInstructors();
+          else if (activeTab === "enrollments") fetchEnrollments(); // ✅ ADDED
           else if (activeTab === "media") fetchHomeVideo();
           else fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
@@ -566,10 +585,13 @@ export default function AdminDashboard() {
       </div>
     );
     switch (activeTab) {
-      case "dashboard":   return <DashboardTab kpis={kpis} loading={loading} isMobile={isMobile} />;
+      case "dashboard":   return <DashboardTab kpis={kpis} loading={loading} isMobile={isMobile}
+            onNavigate={setActiveTab} // ✅ Pass navigation function
+ />;
       case "courses":     return <CoursesTab courses={courses} isMobile={isMobile} handleDeleteCourse={handleDeleteCourse} setSelectedCourse={setSelectedCourse} setIsEditCourseModalOpen={setIsEditCourseModalOpen} setIsAddCourseModalOpen={setIsAddCourseModalOpen} fetchCourses={fetchCourses} />;
       case "students":    return <StudentsTab students={students} searchTerm={searchTerm} handleSearchChange={handleSearchChange} handleUpdateRole={handleUpdateRole} handleToggleStatus={handleToggleStatus} isMobile={isMobile} />;
       case "instructors": return <InstructorsTab instructors={instructors} isMobile={isMobile} handleDeleteInstructor={handleDeleteInstructor} handleToggleInstructorStatus={handleToggleInstructorStatus} fetchAllInstructors={fetchAllInstructors} />;
+      case "enrollments": return <EnrollmentsTab isMobile={isMobile} />; // ✅ ADDED
       case "media":       return <MediaTab videoUrl={videoUrl} videoLoading={videoLoading} fetchHomeVideo={fetchHomeVideo} setVideoLoading={setVideoLoading} />;
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
@@ -583,6 +605,7 @@ export default function AdminDashboard() {
     { icon: "🌐", label: "Courses",        id: "courses"        },
     { icon: "👨‍🎓", label: "Students",      id: "students"       },
     { icon: "👨‍🏫", label: "Instructors",   id: "instructors"    },
+    { icon: "📋", label: "Enrollments",    id: "enrollments"    }, // ✅ ADDED
     { icon: "🎬", label: "Media",          id: "media"          },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
   ];
@@ -592,6 +615,7 @@ export default function AdminDashboard() {
     courses:         "Course Catalog",
     students:        "Student Management",
     instructors:     "Instructor Management",
+    enrollments:     "Enrollment Management", // ✅ ADDED
     media:           "Media Manager",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
@@ -601,6 +625,7 @@ export default function AdminDashboard() {
     courses:         "Manage all your courses from one place",
     students:        "View and manage all enrolled students",
     instructors:     "Manage instructors, their status and permissions",
+    enrollments:     "View all student enrollments and progress", // ✅ ADDED
     media:           "Manage the home page video and future image assets",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
@@ -695,6 +720,7 @@ export default function AdminDashboard() {
                   if (item.id === "courses") badge = courses.length;
                   else if (item.id === "students") badge = students.length;
                   else if (item.id === "instructors") badge = instructors.length;
+                  else if (item.id === "enrollments") badge = enrollments.length; // ✅ ADDED
                   return <NavItem key={item.id} icon={item.icon} label={item.label} badge={badge} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} />;
                 })}
 

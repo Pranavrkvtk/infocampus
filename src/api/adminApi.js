@@ -170,12 +170,12 @@ export const updateInstructor = (instructorId, instructorData) => {
   return api.put(`/admin/instructors/${instructorId}`, instructorData);
 };
 
-// ✅ Soft delete (deactivate) - existing
+// Soft delete (deactivate) - existing
 export const deleteInstructor = (instructorId) => {
   return api.delete(`/admin/instructors/${instructorId}`);
 };
 
-// ✅ NEW: Hard delete (permanent deletion)
+// Hard delete (permanent deletion)
 export const hardDeleteInstructor = (instructorId) => {
   return api.delete(`/admin/instructors/${instructorId}/hard-delete`);
 };
@@ -187,7 +187,7 @@ export const updateInstructorStatus = (instructorId, status) => {
   });
 };
 
-// ✅ NEW: Reactivate instructor
+// Reactivate instructor
 export const reactivateInstructor = (instructorId) => {
   return api.patch(`/admin/instructors/${instructorId}/reactivate`);
 };
@@ -210,6 +210,53 @@ export const removeCourseFromInstructor = (instructorId, courseId) => {
 // Get instructor statistics
 export const getInstructorStats = (instructorId) => {
   return api.get(`/admin/instructors/${instructorId}/stats`);
+};
+
+// ==================== ENROLLMENT MANAGEMENT APIs ====================
+
+// Get all enrollments
+export const getAllEnrollments = () => {
+  return api.get("/admin/enrollments");
+};
+
+// Get enrollment by ID
+export const getEnrollmentById = (enrollmentId) => {
+  return api.get(`/admin/enrollments/${enrollmentId}`);
+};
+
+// Delete enrollment by ID (Admin only)
+export const deleteEnrollmentById = (enrollmentId) => {
+  return api.delete(`/admin/enrollments/${enrollmentId}`);
+};
+
+// Get enrollment statistics
+export const getEnrollmentStats = () => {
+  return api.get("/admin/enrollments/stats");
+};
+
+// Get enrollments by course
+export const getEnrollmentsByCourse = (courseId) => {
+  return api.get(`/admin/enrollments/course/${courseId}`);
+};
+
+// Get enrollments by user
+export const getEnrollmentsByUser = (userId) => {
+  return api.get(`/admin/enrollments/user/${userId}`);
+};
+
+// Get user's enrolled courses with details
+export const getUserEnrolledCourses = (userId) => {
+  return api.get(`/admin/enrollments/user/${userId}/courses`);
+};
+
+// Enroll in course
+export const enrollInCourse = (courseId, userId) => {
+  return api.post(`/admin/enrollments/enroll/${courseId}/${userId}`);
+};
+
+// Cancel enrollment
+export const cancelEnrollment = (courseId, userId) => {
+  return api.delete(`/admin/enrollments/enroll/${courseId}/${userId}`);
 };
 
 // ==================== MEDIA MANAGEMENT APIs ====================

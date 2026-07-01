@@ -1,0 +1,506 @@
+import React, { useState, useEffect } from "react";
+import { colors } from "./AdminStyles";
+import Swal from "sweetalert2";
+import { getAllEnrollments, deleteEnrollmentById } from "../../api/adminApi";
+
+export default function EnrollmentsTab({ isMobile }) {
+  const [enrollments, setEnrollments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [selectedCourse, setSelectedCourse] = useState("ALL");
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    completed: 0,
+    dropped: 0,
+    inactive: 0
+  });
+  const [courses, setCourses] = useState([]);
+
+  // Fetch enrollments
+  const fetchEnrollments = async () => {
+    setLoading(true);
+    try {
+      const response = await getAllEnrollments();
+      const data = response.data || [];
+      setEnrollments(data);
+      
+      // Extract unique courses for filter
+      const uniqueCourses = [...new Set(data.map(e => e.course?.title).filter(Boolean))];
+      setCourses(uniqueCourses);
+      
+      // Calculate stats
+      const active = data.filter(e => e.status === "ACTIVE").length;
+      const completed = data.filter(e => e.status === "COMPLETED").length;
+      const dropped = data.filter(e => e.status === "DROPPED").length;
+      const inactive = data.filter(e => e.status === "INACTIVE").length;
+      
+      setStats({
+        total: data.length,
+        active,
+        completed,
+        dropped,
+        inactive
+      });
+      
+    } catch (error) {
+      console.error("Error fetching enrollments:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Failed to load enrollments",
+        text: error.response?.data?.message || "Please try again"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEnrollments();
+  }, []);
+
+  // Handle delete enrollment
+  const handleDeleteEnrollment = async (enrollmentId, studentName, courseTitle) => {
+    const result = await Swal.fire({
+      title: "Delete Enrollment?",
+      html: `
+        <p>Remove <strong>${studentName}</strong> from <strong>${courseTitle}</strong>?</p>
+        <p style="color: #991b1b; font-size: 13px; margin-top: 8px;">
+          ⚠️ This will permanently remove the enrollment record.
+          <br>This action <strong>cannot</strong> be undone!
+        </p>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Remove",
+      confirmButtonColor: "#dc2626",
+      cancelButtonText: "Cancel"
+    });
+
+    if (result.isConfirmed) {
+      Swal.fire({
+        title: "Removing...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+        await deleteEnrollmentById(enrollmentId);
+        await fetchEnrollments();
+        Swal.fire({
+          title: "Removed!",
+          text: `${studentName} has been removed from ${courseTitle}`,
+          icon: "success",
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        Swal.fire({
+          title: "Failed!",
+          text: error.response?.data?.message || "Failed to remove enrollment",
+          icon: "error"
+        });
+      }
+    }
+  };
+
+  // Filter enrollments
+  const filteredEnrollments = enrollments.filter(enrollment => {
+    const studentName = enrollment.user?.name?.toLowerCase() || "";
+    const courseTitle = enrollment.course?.title?.toLowerCase() || "";
+    const searchLower = searchTerm.toLowerCase();
+    
+    const matchesSearch = studentName.includes(searchLower) || 
+                         courseTitle.includes(searchLower) ||
+                         enrollment.user?.email?.toLowerCase().includes(searchLower);
+    
+    const matchesStatus = filterStatus === "ALL" || enrollment.status === filterStatus;
+    
+    const matchesCourse = selectedCourse === "ALL" || enrollment.course?.title === selectedCourse;
+    
+    return matchesSearch && matchesStatus && matchesCourse;
+  });
+
+  // Get status badge
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      "ACTIVE": { bg: "#d1fae5", color: "#065f46", text: "Active" },
+      "COMPLETED": { bg: "#dbeafe", color: "#1e40af", text: "Completed" },
+      "DROPPED": { bg: "#fee2e2", color: "#991b1b", text: "Dropped" },
+      "INACTIVE": { bg: "#fef3c7", color: "#92400e", text: "Inactive" }
+    };
+    return statusMap[status] || statusMap["ACTIVE"];
+  };
+
+  const getProgressColor = (progress) => {
+    if (progress >= 80) return "#10b981";
+    if (progress >= 50) return "#f59e0b";
+    return "#ef4444";
+  };
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "40px" }}>
+        <div style={{ 
+          width: "40px", 
+          height: "40px", 
+          border: `4px solid ${colors.borderLight}`,
+          borderTop: `4px solid ${colors.primary}`,
+          borderRadius: "50%",
+          animation: "spin 1s linear infinite",
+          margin: "0 auto"
+        }} />
+        <p style={{ marginTop: "16px", color: "var(--text-secondary)" }}>
+          Loading enrollments...
+        </p>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: isMobile ? "0" : "0 20px" }}>
+      {/* Stats Cards */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)",
+        gap: "16px",
+        marginBottom: "24px"
+      }}>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center"
+        }}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--text-primary)" }}>
+            {stats.total}
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            Total Enrollments
+          </div>
+        </div>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center"
+        }}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "#065f46" }}>
+            {stats.active}
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            🟢 Active
+          </div>
+        </div>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center"
+        }}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "#1e40af" }}>
+            {stats.completed}
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            ✅ Completed
+          </div>
+        </div>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center"
+        }}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "#991b1b" }}>
+            {stats.dropped}
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            ❌ Dropped
+          </div>
+        </div>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center"
+        }}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "#92400e" }}>
+            {stats.inactive}
+          </div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            ⚪ Inactive
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "12px",
+        marginBottom: "20px",
+        alignItems: "center"
+      }}>
+        <div style={{
+          flex: 1,
+          minWidth: "200px"
+        }}>
+          <input
+            type="text"
+            placeholder="🔍 Search by student or course..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 16px",
+              borderRadius: "10px",
+              border: "1px solid var(--border-light)",
+              fontSize: "14px",
+              outline: "none",
+              background: "var(--surface)",
+              color: "var(--text-primary)"
+            }}
+          />
+        </div>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={{
+            padding: "10px 16px",
+            borderRadius: "10px",
+            border: "1px solid var(--border-light)",
+            fontSize: "14px",
+            outline: "none",
+            background: "var(--surface)",
+            color: "var(--text-primary)",
+            cursor: "pointer"
+          }}
+        >
+          <option value="ALL">📊 All Status</option>
+          <option value="ACTIVE">🟢 Active</option>
+          <option value="COMPLETED">✅ Completed</option>
+          <option value="DROPPED">❌ Dropped</option>
+          <option value="INACTIVE">⚪ Inactive</option>
+        </select>
+
+        <select
+          value={selectedCourse}
+          onChange={(e) => setSelectedCourse(e.target.value)}
+          style={{
+            padding: "10px 16px",
+            borderRadius: "10px",
+            border: "1px solid var(--border-light)",
+            fontSize: "14px",
+            outline: "none",
+            background: "var(--surface)",
+            color: "var(--text-primary)",
+            cursor: "pointer",
+            maxWidth: "200px"
+          }}
+        >
+          <option value="ALL">📚 All Courses</option>
+          {courses.map((course, index) => (
+            <option key={index} value={course}>{course}</option>
+          ))}
+        </select>
+
+        <button
+          onClick={fetchEnrollments}
+          style={{
+            padding: "10px 16px",
+            borderRadius: "10px",
+            border: "none",
+            background: colors.primary,
+            color: "#fff",
+            fontWeight: 600,
+            cursor: "pointer"
+          }}
+        >
+          🔄 Refresh
+        </button>
+      </div>
+
+      {/* Enrollments Table */}
+      {filteredEnrollments.length === 0 ? (
+        <div style={{
+          textAlign: "center",
+          padding: "60px 20px",
+          background: "var(--surface)",
+          borderRadius: "16px",
+          border: "1px solid var(--border-light)"
+        }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>📋</div>
+          <h3 style={{ color: "var(--text-primary)", marginBottom: "8px" }}>
+            No Enrollments Found
+          </h3>
+          <p style={{ color: "var(--text-secondary)" }}>
+            {searchTerm || filterStatus !== "ALL" || selectedCourse !== "ALL" 
+              ? "Try adjusting your filters" 
+              : "No students are enrolled in any courses yet"}
+          </p>
+        </div>
+      ) : (
+        <div style={{
+          background: "var(--surface)",
+          borderRadius: "16px",
+          overflow: "hidden",
+          border: "1px solid var(--border-light)"
+        }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              minWidth: "700px"
+            }}>
+              <thead>
+                <tr style={{
+                  background: "var(--bg-base)",
+                  borderBottom: "2px solid var(--border-light)"
+                }}>
+                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Student
+                  </th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Course
+                  </th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Progress
+                  </th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Status
+                  </th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Enrolled At
+                  </th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEnrollments.map((enrollment, index) => {
+                  const student = enrollment.user || {};
+                  const course = enrollment.course || {};
+                  const progress = enrollment.progress || 0;
+                  const status = enrollment.status || "ACTIVE";
+                  const statusBadge = getStatusBadge(status);
+                  const progressColor = getProgressColor(progress);
+
+                  return (
+                    <tr
+                      key={enrollment.id || index}
+                      style={{
+                        borderBottom: "1px solid var(--border-light)",
+                        background: index % 2 === 0 ? "var(--surface)" : "var(--bg-base)"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--primary-soft)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = index % 2 === 0 ? "var(--surface)" : "var(--bg-base)";
+                      }}
+                    >
+                      <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                        <div>
+                          <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                            {student.name || "Unknown Student"}
+                          </div>
+                          <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                            {student.email || "No email"}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                        <div>
+                          <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>
+                            {course.title || "Unknown Course"}
+                          </div>
+                          <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                            {course.instructor || "No instructor"}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
+                          <div style={{
+                            flex: 1,
+                            maxWidth: "100px",
+                            height: "6px",
+                            background: "var(--bg-base)",
+                            borderRadius: "3px",
+                            overflow: "hidden"
+                          }}>
+                            <div style={{
+                              width: `${progress}%`,
+                              height: "100%",
+                              background: progressColor,
+                              borderRadius: "3px"
+                            }} />
+                          </div>
+                          <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)", minWidth: "40px" }}>
+                            {progress}%
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>
+                        <span style={{
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          background: statusBadge.bg,
+                          color: statusBadge.color
+                        }}>
+                          {statusBadge.text}
+                        </span>
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle", fontSize: "13px", color: "var(--text-secondary)" }}>
+                        {enrollment.enrolledAt 
+                          ? new Date(enrollment.enrolledAt).toLocaleDateString()
+                          : "N/A"}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>
+                        <button
+                          onClick={() => handleDeleteEnrollment(
+                            enrollment.id,
+                            student.name || "Unknown",
+                            course.title || "Unknown Course"
+                          )}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            border: "none",
+                            background: "#fee2e2",
+                            color: "#dc2626",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            cursor: "pointer"
+                          }}
+                        >
+                          🗑️ Remove
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

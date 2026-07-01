@@ -34,6 +34,72 @@ export default function InstructorsTab({
     (i.status || "ACTIVE").toUpperCase() === "INACTIVE"
   ).length;
 
+  // ✅ Enhanced email validation function
+  const validateEmail = (email) => {
+    // Trim and lowercase
+    const trimmedEmail = email.trim().toLowerCase();
+    
+    // Check if empty
+    if (!trimmedEmail) {
+      return { valid: false, message: "Email is required" };
+    }
+    
+    // Check for Gmail only (as per backend requirement)
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    if (!gmailRegex.test(trimmedEmail)) {
+      return { valid: false, message: "Only @gmail.com email addresses are allowed" };
+    }
+    
+    // Additional validation: check for spaces
+    if (trimmedEmail.includes(' ')) {
+      return { valid: false, message: "Email cannot contain spaces" };
+    }
+    
+    // Check for consecutive dots
+    if (trimmedEmail.includes('..')) {
+      return { valid: false, message: "Email cannot contain consecutive dots" };
+    }
+    
+    // Check for special characters at start or end
+    if (trimmedEmail.startsWith('.') || trimmedEmail.startsWith('_') || 
+        trimmedEmail.startsWith('-') || trimmedEmail.endsWith('.') || 
+        trimmedEmail.endsWith('_') || trimmedEmail.endsWith('-')) {
+      return { valid: false, message: "Email cannot start or end with special characters" };
+    }
+    
+    // Check if email already exists in the list
+    const emailExists = instructors.some(instructor => 
+      instructor.email?.toLowerCase() === trimmedEmail
+    );
+    if (emailExists) {
+      return { valid: false, message: "This email is already registered as an instructor" };
+    }
+    
+    return { valid: true, message: "Valid email" };
+  };
+
+  // ✅ Validate password
+  const validatePassword = (password) => {
+    if (!password || password.length < 6) {
+      return { valid: false, message: "Password must be at least 6 characters" };
+    }
+    if (password.length > 50) {
+      return { valid: false, message: "Password cannot exceed 50 characters" };
+    }
+    return { valid: true, message: "Valid password" };
+  };
+
+  // ✅ Validate name
+  const validateName = (name) => {
+    if (!name || name.trim().length < 2) {
+      return { valid: false, message: "Name must be at least 2 characters" };
+    }
+    if (name.trim().length > 100) {
+      return { valid: false, message: "Name cannot exceed 100 characters" };
+    }
+    return { valid: true, message: "Valid name" };
+  };
+
   const handleAddInstructor = async () => {
     const { value: formValues } = await Swal.fire({
       title: "Add New Instructor",
@@ -53,14 +119,14 @@ export default function InstructorsTab({
           id="swal-email" 
           type="email"
           class="swal2-input" 
-          placeholder="Email *" 
+          placeholder="Email * (must be @gmail.com)" 
           autocomplete="off"
         />
         <input 
           id="swal-password" 
           type="password" 
           class="swal2-input" 
-          placeholder="Password *" 
+          placeholder="Password * (min 6 chars)" 
           autocomplete="new-password"
         />
         <input 
@@ -85,26 +151,36 @@ export default function InstructorsTab({
         document.getElementById("swal-phone").value = "";
       },
       preConfirm: () => {
-        const name      = document.getElementById("swal-name").value.trim();
-        const email     = document.getElementById("swal-email").value.trim();
-        const password  = document.getElementById("swal-password").value.trim();
+        const name = document.getElementById("swal-name").value.trim();
+        const email = document.getElementById("swal-email").value.trim().toLowerCase();
+        const password = document.getElementById("swal-password").value.trim();
         const expertise = document.getElementById("swal-expertise").value.trim();
-        const phone     = document.getElementById("swal-phone").value.trim();
+        const phone = document.getElementById("swal-phone").value.trim();
 
-        if (!name || !email || !password) {
-          Swal.showValidationMessage("Please fill in all required fields (*)");
+        // ✅ Validate Name
+        const nameValidation = validateName(name);
+        if (!nameValidation.valid) {
+          Swal.showValidationMessage(nameValidation.message);
           return false;
         }
 
-        // Basic email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          Swal.showValidationMessage("Please enter a valid email address");
+        // ✅ Validate Email
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.valid) {
+          Swal.showValidationMessage(emailValidation.message);
           return false;
         }
 
-        if (password.length < 6) {
-          Swal.showValidationMessage("Password must be at least 6 characters");
+        // ✅ Validate Password
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.valid) {
+          Swal.showValidationMessage(passwordValidation.message);
+          return false;
+        }
+
+        // ✅ Optional: Phone validation (if provided)
+        if (phone && !/^[0-9+\-\s()]{10,15}$/.test(phone)) {
+          Swal.showValidationMessage("Please enter a valid phone number (10-15 digits)");
           return false;
         }
 
@@ -136,13 +212,26 @@ export default function InstructorsTab({
         });
       } catch (error) {
         console.error("Add instructor error:", error);
+        
+        // ✅ Better error handling
+        let errorMessage = "Failed to add instructor. Please try again.";
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Check if error is about duplicate email
+        if (errorMessage.toLowerCase().includes("already exists") || 
+            errorMessage.toLowerCase().includes("duplicate")) {
+          errorMessage = "This email is already registered. Please use a different email.";
+        }
+        
         Swal.fire({
           title: "Failed!",
-          text:
-            error.response?.data?.message ||
-            error.response?.data?.error ||
-            error.message ||
-            "Failed to add instructor. Please try again.",
+          text: errorMessage,
           icon: "error"
         });
       }
