@@ -11,11 +11,28 @@ export default function InstructorsTab({
   fetchAllInstructors
 }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
 
-  const filteredInstructors = instructors.filter(instructor =>
+  // Filter instructors based on search term
+  const searchedInstructors = instructors.filter(instructor =>
     instructor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     instructor.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // ✅ Filter based on showInactive toggle
+  const filteredInstructors = showInactive 
+    ? searchedInstructors 
+    : searchedInstructors.filter(instructor => 
+        (instructor.status || "ACTIVE").toUpperCase() === "ACTIVE"
+      );
+
+  // Count active and inactive
+  const activeCount = instructors.filter(i => 
+    (i.status || "ACTIVE").toUpperCase() === "ACTIVE"
+  ).length;
+  const inactiveCount = instructors.filter(i => 
+    (i.status || "ACTIVE").toUpperCase() === "INACTIVE"
+  ).length;
 
   const handleAddInstructor = async () => {
     const { value: formValues } = await Swal.fire({
@@ -133,11 +150,11 @@ export default function InstructorsTab({
   };
 
   const getInstructorStatus = (instructor) =>
-    instructor.status ?? "INACTIVE";
+    (instructor.status || "ACTIVE").toUpperCase();
 
   return (
     <div>
-      {/* Header with Search and Add Button */}
+      {/* Header with Search, Filter, and Add Button */}
       <div
         style={{
           display: "flex",
@@ -150,27 +167,66 @@ export default function InstructorsTab({
       >
         <div
           style={{
-            position: "relative",
-            flex: 1,
-            maxWidth: isMobile ? "100%" : "300px"
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+            flex: 1
           }}
         >
-          <input
-            type="text"
-            placeholder="🔍 Search instructors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+          <div
             style={{
-              width: "100%",
-              padding: "10px 16px",
-              borderRadius: "10px",
-              border: `1px solid ${colors.borderLight}`,
-              fontSize: "14px",
-              outline: "none",
-              transition: "all 0.2s",
-              boxSizing: "border-box"
+              position: "relative",
+              flex: 1,
+              minWidth: isMobile ? "100%" : "200px",
+              maxWidth: isMobile ? "100%" : "300px"
             }}
-          />
+          >
+            <input
+              type="text"
+              placeholder="🔍 Search instructors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 16px",
+                borderRadius: "10px",
+                border: `1px solid ${colors.borderLight}`,
+                fontSize: "14px",
+                outline: "none",
+                transition: "all 0.2s",
+                boxSizing: "border-box",
+                background: "var(--surface)",
+                color: "var(--text-primary)"
+              }}
+            />
+          </div>
+
+          {/* ✅ Show Inactive Toggle */}
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "13px",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              style={{
+                width: "18px",
+                height: "18px",
+                cursor: "pointer",
+                accentColor: colors.primary
+              }}
+            />
+            Show Inactive ({inactiveCount})
+          </label>
         </div>
 
         <button
@@ -186,11 +242,92 @@ export default function InstructorsTab({
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            fontSize: "14px"
+            fontSize: "14px",
+            transition: "opacity 0.2s",
+            whiteSpace: "nowrap"
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
           <span>➕</span> Add Instructor
         </button>
+      </div>
+
+      {/* ✅ Stats Bar */}
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          padding: "12px 16px",
+          background: "var(--surface)",
+          borderRadius: "10px",
+          marginBottom: "20px",
+          border: `1px solid ${colors.borderLight}`,
+          flexWrap: "wrap"
+        }}
+      >
+        <div>
+          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            Total
+          </span>
+          <span
+            style={{
+              fontSize: "16px",
+              fontWeight: 700,
+              marginLeft: "8px",
+              color: "var(--text-primary)"
+            }}
+          >
+            {instructors.length}
+          </span>
+        </div>
+        <div>
+          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            Active
+          </span>
+          <span
+            style={{
+              fontSize: "16px",
+              fontWeight: 700,
+              marginLeft: "8px",
+              color: colors.teal
+            }}
+          >
+            {activeCount}
+          </span>
+        </div>
+        <div>
+          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+            Inactive
+          </span>
+          <span
+            style={{
+              fontSize: "16px",
+              fontWeight: 700,
+              marginLeft: "8px",
+              color: colors.coral
+            }}
+          >
+            {inactiveCount}
+          </span>
+        </div>
+        {searchTerm && (
+          <div>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+              Showing
+            </span>
+            <span
+              style={{
+                fontSize: "16px",
+                fontWeight: 700,
+                marginLeft: "8px",
+                color: "var(--text-primary)"
+              }}
+            >
+              {filteredInstructors.length}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Empty State */}
@@ -198,15 +335,37 @@ export default function InstructorsTab({
         <div
           style={{
             textAlign: "center",
-            padding: "60px",
-            background: colors.surface,
-            borderRadius: "20px"
+            padding: "60px 20px",
+            background: "var(--surface)",
+            borderRadius: "20px",
+            border: `1px solid ${colors.borderLight}`
           }}
         >
           <div style={{ fontSize: "48px", marginBottom: "16px" }}>👨‍🏫</div>
-          <p style={{ color: colors.textSecondary }}>
-            {searchTerm ? "No instructors match your search" : "No instructors found"}
+          <p style={{ color: "var(--text-secondary)", fontSize: "16px" }}>
+            {searchTerm
+              ? `No instructors match "${searchTerm}"`
+              : showInactive
+              ? "No inactive instructors found"
+              : "All instructors are active"}
           </p>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              style={{
+                marginTop: "12px",
+                padding: "8px 16px",
+                background: "var(--primary-soft)",
+                color: "var(--primary)",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: 500
+              }}
+            >
+              Clear Search
+            </button>
+          )}
         </div>
       ) : (
         /* Instructors Grid */
@@ -227,11 +386,13 @@ export default function InstructorsTab({
               <div
                 key={instructor.id}
                 style={{
-                  background: colors.surface,
+                  background: "var(--surface)",
                   borderRadius: "16px",
                   overflow: "hidden",
-                  border: `1px solid ${colors.borderLight}`,
-                  transition: "transform 0.2s, box-shadow 0.2s"
+                  border: `1px solid ${isActive ? colors.borderLight : "#fecaca"}`,
+                  transition: "transform 0.2s, box-shadow 0.2s",
+                  opacity: isActive ? 1 : 0.75,
+                  position: "relative"
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "translateY(-4px)";
@@ -243,6 +404,28 @@ export default function InstructorsTab({
                   e.currentTarget.style.boxShadow = "none";
                 }}
               >
+                {/* ✅ Inactive Banner */}
+                {!isActive && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "12px",
+                      right: "-30px",
+                      background: "#dc2626",
+                      color: "#fff",
+                      padding: "4px 30px",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      transform: "rotate(45deg)",
+                      textTransform: "uppercase",
+                      letterSpacing: "1px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                    }}
+                  >
+                    Inactive
+                  </div>
+                )}
+
                 {/* Card Header */}
                 <div
                   style={{
@@ -262,7 +445,7 @@ export default function InstructorsTab({
                         width: "50px",
                         height: "50px",
                         borderRadius: "50%",
-                        background: colors.gradPrimary,
+                        background: isActive ? colors.gradPrimary : "#9ca3af",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -271,7 +454,7 @@ export default function InstructorsTab({
                         flexShrink: 0
                       }}
                     >
-                      👨‍🏫
+                      {isActive ? "👨‍🏫" : "🚫"}
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <h3
@@ -281,7 +464,8 @@ export default function InstructorsTab({
                           fontWeight: 700,
                           overflow: "hidden",
                           textOverflow: "ellipsis",
-                          whiteSpace: "nowrap"
+                          whiteSpace: "nowrap",
+                          color: "var(--text-primary)"
                         }}
                       >
                         {instructor.name || "Unnamed"}
@@ -290,7 +474,7 @@ export default function InstructorsTab({
                         style={{
                           margin: "4px 0 0",
                           fontSize: "12px",
-                          color: colors.textSecondary,
+                          color: "var(--text-secondary)",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap"
@@ -321,7 +505,7 @@ export default function InstructorsTab({
                   {/* Expertise Tags */}
                   <div style={{ marginBottom: "12px" }}>
                     <span
-                      style={{ fontSize: "12px", color: colors.textSecondary }}
+                      style={{ fontSize: "12px", color: "var(--text-secondary)" }}
                     >
                       Expertise
                     </span>
@@ -339,12 +523,12 @@ export default function InstructorsTab({
                           <span
                             key={i}
                             style={{
-                              background: colors.primarySoft,
+                              background: "var(--primary-soft)",
                               padding: "4px 10px",
                               borderRadius: "8px",
                               fontSize: "11px",
                               fontWeight: 600,
-                              color: colors.primary
+                              color: "var(--primary)"
                             }}
                           >
                             {skill.trim()}
@@ -366,27 +550,27 @@ export default function InstructorsTab({
                   >
                     <div>
                       <div
-                        style={{ fontSize: "11px", color: colors.textSecondary }}
+                        style={{ fontSize: "11px", color: "var(--text-secondary)" }}
                       >
                         Courses
                       </div>
-                      <div style={{ fontSize: "20px", fontWeight: 700 }}>
+                      <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)" }}>
                         {instructor.coursesCount ?? 0}
                       </div>
                     </div>
                     <div>
                       <div
-                        style={{ fontSize: "11px", color: colors.textSecondary }}
+                        style={{ fontSize: "11px", color: "var(--text-secondary)" }}
                       >
                         Students
                       </div>
-                      <div style={{ fontSize: "20px", fontWeight: 700 }}>
+                      <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)" }}>
                         {instructor.studentsCount ?? 0}
                       </div>
                     </div>
                     <div>
                       <div
-                        style={{ fontSize: "11px", color: colors.textSecondary }}
+                        style={{ fontSize: "11px", color: "var(--text-secondary)" }}
                       >
                         Rating
                       </div>
@@ -421,7 +605,7 @@ export default function InstructorsTab({
                         background: isActive ? colors.coralSoft : colors.tealSoft,
                         color: isActive ? colors.coral : colors.teal,
                         fontSize: "12px",
-                        transition: "opacity 0.2s"
+                        transition: "all 0.2s"
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
                       onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
@@ -444,7 +628,7 @@ export default function InstructorsTab({
                         background: colors.coralSoft,
                         color: colors.coral,
                         fontSize: "12px",
-                        transition: "opacity 0.2s"
+                        transition: "all 0.2s"
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
                       onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}

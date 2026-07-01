@@ -79,6 +79,7 @@ export const searchUsersByName = (name) => {
     }
   });
 };
+
 // Get all users
 export const getAllUsers = () => {
   return api.get("/admin/users");
@@ -169,9 +170,14 @@ export const updateInstructor = (instructorId, instructorData) => {
   return api.put(`/admin/instructors/${instructorId}`, instructorData);
 };
 
-// Delete instructor
+// ✅ Soft delete (deactivate) - existing
 export const deleteInstructor = (instructorId) => {
   return api.delete(`/admin/instructors/${instructorId}`);
+};
+
+// ✅ NEW: Hard delete (permanent deletion)
+export const hardDeleteInstructor = (instructorId) => {
+  return api.delete(`/admin/instructors/${instructorId}/hard-delete`);
 };
 
 // Update instructor status (ACTIVE, INACTIVE)
@@ -179,6 +185,11 @@ export const updateInstructorStatus = (instructorId, status) => {
   return api.patch(`/admin/instructors/${instructorId}/status`, null, {
     params: { status }
   });
+};
+
+// ✅ NEW: Reactivate instructor
+export const reactivateInstructor = (instructorId) => {
+  return api.patch(`/admin/instructors/${instructorId}/reactivate`);
 };
 
 // Get courses taught by instructor

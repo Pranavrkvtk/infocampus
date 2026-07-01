@@ -8,11 +8,12 @@ import {
   updateUserStatus,
   getAllInstructors,
   deleteInstructor,
+  hardDeleteInstructor, // ✅ Import hard delete
   updateInstructorStatus,
   getHomeVideo,
   uploadHomeVideo,
   deleteHomeVideo,
-  updateHomeVideoUrl,   // <-- NEW
+  updateHomeVideoUrl,
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
@@ -28,10 +29,8 @@ import InstructorsTab from "./InstructorsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
-// import ThemeCustomizer from "./ThemeCustomizer";
 
-// ===================== MEDIA TAB (UPDATED) =====================
-// ===================== MEDIA TAB (URL ONLY) =====================
+// ===================== MEDIA TAB =====================
 function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
   const [urlInput, setUrlInput] = useState("");
   const [updatingUrl, setUpdatingUrl] = useState(false);
@@ -128,7 +127,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
             {updatingUrl ? "Saving..." : "Set URL"}
           </button>
         </div>
-      
       </div>
     </div>
   );
@@ -305,20 +303,164 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteInstructor = async (instructorId, instructorName) => {
-    const result = await Swal.fire({
-      title: "Delete Instructor?",
-      html: `<p>Delete <strong>${instructorName}</strong>? This cannot be undone!</p>`,
-      icon: "warning", showCancelButton: true,
-      confirmButtonText: "Yes, Delete", confirmButtonColor: "#E8644A",
+  // ✅ UPDATED: Handle delete instructor with both soft and hard delete
+  const handleDeleteInstructor = async (instructorId, instructorName, isActive = true) => {
+    // If instructor is inactive, ask for permanent deletion
+    if (!isActive) {
+      const result = await Swal.fire({
+        title: "Permanently Delete Instructor?",
+        html: `
+          <p>Delete <strong>${instructorName}</strong>?</p>
+          <p style="color: #991b1b; font-size: 13px; margin-top: 8px;">
+            ⚠️ This will permanently delete the instructor and all their data.
+            <br>This action <strong>cannot</strong> be undone!
+          </p>
+        `,
+        icon: "error",
+        showCancelButton: true,
+        confirmButtonText: "Yes, Permanently Delete",
+        confirmButtonColor: "#dc2626",
+        cancelButtonText: "Cancel",
+        cancelButtonColor: "#6b7280"
+      });
+      
+      if (result.isConfirmed) {
+        Swal.fire({ 
+          title: "Deleting...", 
+          allowOutsideClick: false, 
+          didOpen: () => Swal.showLoading() 
+        });
+        
+        try {
+          await hardDeleteInstructor(instructorId);
+          await fetchAllInstructors();
+          
+          Swal.fire({ 
+            title: "Deleted!", 
+            text: `${instructorName} has been permanently deleted.`,
+            icon: "success", 
+            timer: 2000, 
+            showConfirmButton: false 
+          });
+        } catch (error) {
+          console.error("Hard delete error:", error);
+          Swal.fire({ 
+            title: "Failed!", 
+            text: error.response?.data?.message || error.response?.data?.error || "Failed to delete instructor", 
+            icon: "error" 
+          });
+        }
+      }
+      return;
+    }
+
+    // If instructor is active, show options: Deactivate or Delete
+    const { value: choice } = await Swal.fire({
+      title: `Manage ${instructorName}`,
+      text: "What would you like to do with this instructor?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "🔒 Deactivate",
+      cancelButtonText: "Cancel",
+      showDenyButton: true,
+      denyButtonText: "🗑️ Permanently Delete",
+      denyButtonColor: "#dc2626",
+      confirmButtonColor: "#f59e0b",
+      cancelButtonColor: "#6b7280"
     });
-    if (result.isConfirmed) {
-      Swal.fire({ title: "Deleting...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      try {
-        await deleteInstructor(instructorId); await fetchAllInstructors();
-        Swal.fire({ title: "Deleted!", icon: "success", timer: 2000, showConfirmButton: false });
-      } catch (error) {
-        Swal.fire({ title: "Failed!", text: error.response?.data?.message || "Failed to delete instructor", icon: "error" });
+
+    // Deactivate (soft delete)
+    if (choice === true) {
+      const confirm = await Swal.fire({
+        title: "Deactivate Instructor?",
+        html: `
+          <p>Deactivate <strong>${instructorName}</strong>?</p>
+          <p style="color: #92400e; font-size: 13px; margin-top: 8px;">
+            ⚠️ This instructor will no longer be able to log in.
+            <br>They can be <strong>reactivated</strong> later if needed.
+          </p>
+        `,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, Deactivate",
+        confirmButtonColor: "#f59e0b",
+        cancelButtonText: "Cancel"
+      });
+
+      if (confirm.isConfirmed) {
+        Swal.fire({ 
+          title: "Deactivating...", 
+          allowOutsideClick: false, 
+          didOpen: () => Swal.showLoading() 
+        });
+        
+        try {
+          await deleteInstructor(instructorId);
+          await fetchAllInstructors();
+          
+          Swal.fire({ 
+            title: "Deactivated!", 
+            text: `${instructorName} has been deactivated.`,
+            icon: "success", 
+            timer: 2000, 
+            showConfirmButton: false 
+          });
+        } catch (error) {
+          console.error("Deactivate error:", error);
+          Swal.fire({ 
+            title: "Failed!", 
+            text: error.response?.data?.message || error.response?.data?.error || "Failed to deactivate instructor", 
+            icon: "error" 
+          });
+        }
+      }
+    }
+    
+    // Permanent Delete (hard delete)
+    else if (choice === false) {
+      const confirm = await Swal.fire({
+        title: "Permanently Delete?",
+        html: `
+          <p>Delete <strong>${instructorName}</strong>?</p>
+          <p style="color: #991b1b; font-size: 13px; margin-top: 8px;">
+            ⚠️ This will permanently delete the instructor and all their data.
+            <br>This action <strong>cannot</strong> be undone!
+          </p>
+        `,
+        icon: "error",
+        showCancelButton: true,
+        confirmButtonText: "Yes, Delete Permanently",
+        confirmButtonColor: "#dc2626",
+        cancelButtonText: "Cancel",
+        cancelButtonColor: "#6b7280"
+      });
+
+      if (confirm.isConfirmed) {
+        Swal.fire({ 
+          title: "Deleting...", 
+          allowOutsideClick: false, 
+          didOpen: () => Swal.showLoading() 
+        });
+        
+        try {
+          await hardDeleteInstructor(instructorId);
+          await fetchAllInstructors();
+          
+          Swal.fire({ 
+            title: "Deleted!", 
+            text: `${instructorName} has been permanently deleted.`,
+            icon: "success", 
+            timer: 2000, 
+            showConfirmButton: false 
+          });
+        } catch (error) {
+          console.error("Hard delete error:", error);
+          Swal.fire({ 
+            title: "Failed!", 
+            text: error.response?.data?.message || error.response?.data?.error || "Failed to delete instructor", 
+            icon: "error" 
+          });
+        }
       }
     }
   };
@@ -556,8 +698,6 @@ export default function AdminDashboard() {
                   return <NavItem key={item.id} icon={item.icon} label={item.label} badge={badge} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} />;
                 })}
 
-              
-
                 <div style={{ flex: 1 }} />
                 <div style={{ padding: "0 8px 20px" }}>
                   <button onClick={handleLogout} style={{
@@ -622,8 +762,6 @@ export default function AdminDashboard() {
 
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
-
-           
             </div>
           </div>
 
@@ -644,8 +782,6 @@ export default function AdminDashboard() {
         <AddCourseModal isOpen={isAddCourseModalOpen} onClose={() => setIsAddCourseModalOpen(false)} onCourseCreated={fetchCourses} />
         <EditCourseModal isOpen={isEditCourseModalOpen} onClose={() => { setIsEditCourseModalOpen(false); setSelectedCourse(null); }} course={selectedCourse} onCourseUpdated={fetchCourses} />
         <EditRoleModal isOpen={isEditRoleModalOpen} onClose={() => { setIsEditRoleModalOpen(false); setSelectedUser(null); }} user={selectedUser} onRoleUpdated={fetchAllStudents} />
-
-     
       </div>
     </>
   );
