@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { colors } from "./AdminStyles";
 import Swal from "sweetalert2";
-import { getAllEnrollments, deleteEnrollmentById } from "../../api/adminApi";
+import { getAllEnrollments, deleteEnrollmentById, getAllInstructors } from "../../api/adminApi";
 
 export default function EnrollmentsTab({ isMobile }) {
   const [enrollments, setEnrollments] = useState([]);
@@ -17,6 +17,61 @@ export default function EnrollmentsTab({ isMobile }) {
     inactive: 0
   });
   const [courses, setCourses] = useState([]);
+  const [instructors, setInstructors] = useState([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+
+  // Fetch instructors
+  const fetchInstructors = async () => {
+    try {
+      const response = await getAllInstructors();
+      let instructorsData = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          instructorsData = response.data;
+        } else if (response.data.content && Array.isArray(response.data.content)) {
+          instructorsData = response.data.content;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          instructorsData = response.data.data;
+        }
+      } else if (Array.isArray(response)) {
+        instructorsData = response;
+      } else if (response && response.content && Array.isArray(response.content)) {
+        instructorsData = response.content;
+      }
+      
+      setInstructors(instructorsData);
+    } catch (error) {
+      console.error("Error fetching instructors:", error);
+    }
+  };
+
+  // Get instructor name by ID or name
+  const getInstructorName = (instructorValue) => {
+    if (!instructorValue) return "No instructor";
+    
+    // If it's already a string name (not a number), return it directly
+    if (typeof instructorValue === 'string' && isNaN(instructorValue)) {
+      return instructorValue;
+    }
+    
+    // If it's a number or numeric string, try to find by ID
+    const id = typeof instructorValue === 'string' ? parseInt(instructorValue) : instructorValue;
+    
+    // Only try to find by ID if it's a valid number
+    if (!isNaN(id)) {
+      const instructor = instructors.find(inst => inst.id === id);
+      if (instructor) {
+        return instructor.name || instructor.email || `Instructor #${id}`;
+      }
+    }
+    
+    // If not found, return the value itself
+    return instructorValue || "No instructor";
+  };
 
   // Fetch enrollments
   const fetchEnrollments = async () => {
@@ -58,7 +113,13 @@ export default function EnrollmentsTab({ isMobile }) {
 
   useEffect(() => {
     fetchEnrollments();
+    fetchInstructors();
   }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, selectedCourse]);
 
   // Handle delete enrollment
   const handleDeleteEnrollment = async (enrollmentId, studentName, courseTitle) => {
@@ -121,6 +182,43 @@ export default function EnrollmentsTab({ isMobile }) {
     
     return matchesSearch && matchesStatus && matchesCourse;
   });
+
+  // Get current page items
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredEnrollments.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredEnrollments.length / itemsPerPage);
+
+  // Handle page change
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    const tableContainer = document.querySelector('.enrollment-table-container');
+    if (tableContainer) {
+      tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // Handle next page
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      const tableContainer = document.querySelector('.enrollment-table-container');
+      if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  // Handle previous page
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      const tableContainer = document.querySelector('.enrollment-table-container');
+      if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   // Get status badge
   const getStatusBadge = (status) => {
@@ -353,12 +451,15 @@ export default function EnrollmentsTab({ isMobile }) {
           </p>
         </div>
       ) : (
-        <div style={{
-          background: "var(--surface)",
-          borderRadius: "16px",
-          overflow: "hidden",
-          border: "1px solid var(--border-light)"
-        }}>
+        <div 
+          className="enrollment-table-container"
+          style={{
+            background: "var(--surface)",
+            borderRadius: "16px",
+            overflow: "hidden",
+            border: "1px solid var(--border-light)"
+          }}
+        >
           <div style={{ overflowX: "auto" }}>
             <table style={{
               width: "100%",
@@ -391,13 +492,16 @@ export default function EnrollmentsTab({ isMobile }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredEnrollments.map((enrollment, index) => {
+                {currentItems.map((enrollment, index) => {
                   const student = enrollment.user || {};
                   const course = enrollment.course || {};
                   const progress = enrollment.progress || 0;
                   const status = enrollment.status || "ACTIVE";
                   const statusBadge = getStatusBadge(status);
                   const progressColor = getProgressColor(progress);
+                  
+                  // Get instructor name
+                  const instructorName = course.instructor ? getInstructorName(course.instructor) : "No instructor";
 
                   return (
                     <tr
@@ -429,7 +533,7 @@ export default function EnrollmentsTab({ isMobile }) {
                             {course.title || "Unknown Course"}
                           </div>
                           <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                            {course.instructor || "No instructor"}
+                            <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>Instructor:</span> {instructorName}
                           </div>
                         </div>
                       </td>
@@ -499,6 +603,104 @@ export default function EnrollmentsTab({ isMobile }) {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px 20px",
+                borderTop: "1px solid var(--border-light)",
+                background: "var(--bg-base)",
+                flexWrap: "wrap",
+                gap: "10px"
+              }}
+            >
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                Showing {indexOfFirstItem + 1} to{" "}
+                {Math.min(indexOfLastItem, filteredEnrollments.length)} of{" "}
+                {filteredEnrollments.length} enrollments
+              </div>
+
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--border-light)",
+                    background: currentPage === 1 ? "var(--bg-base)" : "var(--surface)",
+                    color: currentPage === 1 ? "var(--text-secondary)" : "var(--text-primary)",
+                    cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                    fontSize: "13px",
+                    opacity: currentPage === 1 ? 0.5 : 1,
+                    transition: "all 0.2s"
+                  }}
+                >
+                  ← Previous
+                </button>
+
+                {/* Page numbers */}
+                <div style={{ display: "flex", gap: "4px" }}>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    if (pageNum > totalPages) return null;
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => paginate(pageNum)}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          border: "1px solid var(--border-light)",
+                          background: currentPage === pageNum ? colors.primary : "var(--surface)",
+                          color: currentPage === pageNum ? "#fff" : "var(--text-primary)",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          fontWeight: currentPage === pageNum ? 600 : 400,
+                          transition: "all 0.2s"
+                        }}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--border-light)",
+                    background: currentPage === totalPages ? "var(--bg-base)" : "var(--surface)",
+                    color: currentPage === totalPages ? "var(--text-secondary)" : "var(--text-primary)",
+                    cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                    fontSize: "13px",
+                    opacity: currentPage === totalPages ? 0.5 : 1,
+                    transition: "all 0.2s"
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

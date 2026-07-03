@@ -7,8 +7,6 @@ import {
   createInstructorCourse,
   deleteInstructorCourse,
   updateInstructorCourse,
-  getInstructorHomeVideo,
-  updateInstructorHomeVideoUrl,
   searchInstructorStudentsByName,
   getAllInstructorCourses,
   getAvailableCourses,
@@ -26,108 +24,6 @@ import CourseViewTab from "../CourseViewTab";
 import PdfViewerTab from "../PdfViewerTab";
 import AdminCourseManager from "../Admin/AdminCourseManager";
 
-// ===================== MEDIA TAB (INSTRUCTOR VERSION) =====================
-function MediaTab({ videoUrl, videoLoading, fetchHomeVideo }) {
-  const [urlInput, setUrlInput] = useState("");
-  const [updatingUrl, setUpdatingUrl] = useState(false);
-
-  useEffect(() => {
-    setUrlInput(videoUrl || "");
-  }, [videoUrl]);
-
-  const handleSaveUrl = async () => {
-    const trimmed = urlInput.trim();
-    if (!trimmed) {
-      Swal.fire("Error", "Please enter a valid video URL", "error");
-      return;
-    }
-    try {
-      new URL(trimmed);
-    } catch (_) {
-      Swal.fire("Invalid URL", "Please enter a full URL (e.g., https://...)", "error");
-      return;
-    }
-    const result = await Swal.fire({
-      title: "Set Video URL?",
-      text: "This will replace the current home video.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Yes, set URL",
-      confirmButtonColor: colors.teal,
-    });
-    if (!result.isConfirmed) return;
-
-    setUpdatingUrl(true);
-    try {
-      await updateInstructorHomeVideoUrl(trimmed);
-      await fetchHomeVideo();
-      Swal.fire("Success!", "Home video URL updated.", "success");
-    } catch (err) {
-      Swal.fire("Error", err.response?.data?.message || "Failed to update URL", "error");
-    } finally {
-      setUpdatingUrl(false);
-    }
-  };
-
-  return (
-    <div style={{ maxWidth: 600, margin: "0 auto" }}>
-      <div
-        style={{
-          background: "var(--surface)",
-          borderRadius: 16,
-          padding: 32,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-          border: "1px solid var(--border-light)",
-        }}
-      >
-        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, color: "var(--text-primary)" }}>
-          🎬 Home Page Video URL
-        </h2>
-        <p style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
-          Paste a direct video URL or a YouTube link. This will be shown on the public home page.
-        </p>
-
-        <div style={{ display: "flex", gap: 10 }}>
-          <input
-            type="text"
-            placeholder="https://example.com/video.mp4 or YouTube link"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            style={{
-              flex: 1,
-              padding: "12px 16px",
-              borderRadius: 8,
-              border: "1px solid var(--border-light)",
-              fontSize: 14,
-              background: "var(--bg-base)",
-              color: "var(--text-primary)",
-              outline: "none",
-            }}
-          />
-          <button
-            onClick={handleSaveUrl}
-            disabled={updatingUrl || !urlInput.trim()}
-            style={{
-              padding: "12px 24px",
-              background: "var(--primary)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontWeight: 600,
-              cursor: "pointer",
-              opacity: (updatingUrl || !urlInput.trim()) ? 0.6 : 1,
-              whiteSpace: "nowrap",
-              transition: "opacity 0.2s",
-            }}
-          >
-            {updatingUrl ? "Saving..." : "Set URL"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ===================== MAIN INSTRUCTOR DASHBOARD =====================
 export default function InstructorDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -141,11 +37,6 @@ export default function InstructorDashboard() {
   const [isEditCourseModalOpen, setIsEditCourseModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
-
-  // ---------- video state ----------
-  const [videoUrl, setVideoUrl] = useState("");
-  const [videoLoading, setVideoLoading] = useState(false);
-  // ---------------------------------
 
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -175,21 +66,6 @@ export default function InstructorDashboard() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // ---------- fetch home video ----------
-  const fetchHomeVideo = async () => {
-    setVideoLoading(true);
-    try {
-      const response = await getInstructorHomeVideo();
-      setVideoUrl(response.data.videoUrl || "");
-    } catch (err) {
-      console.error("Failed to fetch home video:", err);
-      setVideoUrl("");
-    } finally {
-      setVideoLoading(false);
-    }
-  };
-  // --------------------------------------
 
   // Fetch students (only those in instructor's courses)
   const fetchStudents = async () => {
@@ -354,8 +230,6 @@ export default function InstructorDashboard() {
       fetchCourses();
     } else if (activeTab === "students") {
       fetchStudents();
-    } else if (activeTab === "media") {
-      fetchHomeVideo();
     }
   }, [activeTab]);
 
@@ -381,7 +255,6 @@ export default function InstructorDashboard() {
         <button onClick={() => {
           if (activeTab === "students") fetchStudents();
           else if (activeTab === "courses") fetchCourses();
-          else if (activeTab === "media") fetchHomeVideo();
           else if (activeTab === "dashboard") fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
           Retry
@@ -418,9 +291,6 @@ export default function InstructorDashboard() {
           />
         );
       
-      case "media":       
-        return <MediaTab videoUrl={videoUrl} videoLoading={videoLoading} fetchHomeVideo={fetchHomeVideo} />;
-      
       case "pdf-viewer":  
         return <PdfViewerTab onViewCourse={handleViewCourse} />;
       
@@ -440,7 +310,6 @@ export default function InstructorDashboard() {
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "My Courses",     id: "courses"        },
     { icon: "👨‍🎓", label: "My Students",   id: "students"       },
-    { icon: "🎬", label: "Media",          id: "media"          },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
   ];
 
@@ -448,7 +317,6 @@ export default function InstructorDashboard() {
     dashboard:       "Instructor Dashboard",
     courses:         "My Courses",
     students:        "My Students",
-    media:           "Media Manager",
     "pdf-viewer":    "PDF Library",
     "course-view":   "Course View",
     "course-manager":"Course Manager",
@@ -458,7 +326,6 @@ export default function InstructorDashboard() {
     dashboard:       "Welcome back! Manage your courses and students",
     courses:         "Create and manage your courses",
     students:        "View students enrolled in your courses",
-    media:           "Manage the home page video",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-view":   "View course details",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
@@ -618,7 +485,6 @@ export default function InstructorDashboard() {
                   if (activeTab === "dashboard") fetchDashboardStats();
                   else if (activeTab === "courses") fetchCourses();
                   else if (activeTab === "students") fetchStudents();
-                  else if (activeTab === "media") fetchHomeVideo();
                   Swal.fire({
                     title: "Refreshed!",
                     text: "Data updated successfully",

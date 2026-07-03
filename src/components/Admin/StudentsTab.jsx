@@ -17,6 +17,10 @@ export default function StudentsTab({
   const [filterRole, setFilterRole] = useState("ALL");
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   // --- Debounced search ---
   const [localSearch, setLocalSearch] = useState(searchTerm || "");
@@ -68,11 +72,54 @@ export default function StudentsTab({
     });
   }, [students, filterStatus, filterRole]);
 
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, filterRole, searchTerm]);
+
   // Reset selection when filters change
   useEffect(() => {
     setSelectedStudents([]);
     setSelectAll(false);
   }, [filterStatus, filterRole, searchTerm]);
+
+  // Get current page items
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredStudents.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+
+  // Handle page change
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top of table when changing pages
+    const tableContainer = document.querySelector('.table-container');
+    if (tableContainer) {
+      tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // Handle next page
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      const tableContainer = document.querySelector('.table-container');
+      if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  // Handle previous page
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      const tableContainer = document.querySelector('.table-container');
+      if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -106,12 +153,12 @@ export default function StudentsTab({
     });
   };
 
-  // Handle select all
+  // Handle select all on current page
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedStudents([]);
     } else {
-      const selectableIds = filteredStudents
+      const selectableIds = currentItems
         .filter((s) => isSelectable(s))
         .map((s) => s.id);
       setSelectedStudents(selectableIds);
@@ -362,6 +409,7 @@ export default function StudentsTab({
         </div>
       ) : (
         <div
+          className="table-container"
           style={{
             background: "var(--surface)",
             borderRadius: "16px",
@@ -401,7 +449,7 @@ export default function StudentsTab({
               </thead>
 
               <tbody>
-                {filteredStudents.map((student, index) => {
+                {currentItems.map((student, index) => {
                   const isProtectedAdmin =
                     student.role === "ADMIN" && protectedEmails.includes(student.email);
                   const status = student.status || "ACTIVE";
@@ -571,6 +619,102 @@ export default function StudentsTab({
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px 20px",
+                borderTop: "1px solid var(--border-light)",
+                background: "var(--bg-base)",
+                flexWrap: "wrap",
+                gap: "10px",
+              }}
+            >
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                Showing {indexOfFirstItem + 1} to{" "}
+                {Math.min(indexOfLastItem, filteredStudents.length)} of{" "}
+                {filteredStudents.length} students
+              </div>
+
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--border-light)",
+                    background: currentPage === 1 ? "var(--bg-base)" : "var(--surface)",
+                    color: currentPage === 1 ? "var(--text-secondary)" : "var(--text-primary)",
+                    cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                    fontSize: "13px",
+                    opacity: currentPage === 1 ? 0.5 : 1,
+                  }}
+                >
+                  ← Previous
+                </button>
+
+                {/* Page numbers */}
+                <div style={{ display: "flex", gap: "4px" }}>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    if (pageNum > totalPages) return null;
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => paginate(pageNum)}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          border: "1px solid var(--border-light)",
+                          background: currentPage === pageNum ? colors.primary : "var(--surface)",
+                          color: currentPage === pageNum ? "#fff" : "var(--text-primary)",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          fontWeight: currentPage === pageNum ? 600 : 400,
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--border-light)",
+                    background: currentPage === totalPages ? "var(--bg-base)" : "var(--surface)",
+                    color: currentPage === totalPages ? "var(--text-secondary)" : "var(--text-primary)",
+                    cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                    fontSize: "13px",
+                    opacity: currentPage === totalPages ? 0.5 : 1,
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

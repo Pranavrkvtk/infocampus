@@ -118,11 +118,15 @@ export default function AddCourseModal({
       return;
     }
     
-    // For admin, instructor selection is required
+    // For admin, instructor selection is optional
+    // Only validate instructor if you want to require it
+    // Remove this check to allow unassigned courses
+    /*
     if (!isInstructor && !form.instructor) {
       Swal.fire("Error", "Please select an instructor", "error");
       return;
     }
+    */
     
     setLoading(true);
     try {
@@ -136,9 +140,15 @@ export default function AddCourseModal({
         level: form.level || null,
       };
 
-      // For admin mode, include instructor ID
-      if (!isInstructor) {
+      // For admin mode, include instructor ID if selected
+      if (!isInstructor && form.instructor) {
         courseData.instructor = form.instructor;
+      } else if (!isInstructor) {
+        // If no instructor selected, you can either:
+        // 1. Set instructor to null (if backend allows)
+        // 2. Set instructor to a default value
+        // 3. Leave it out of the request
+        courseData.instructor = null; // Or don't include this field
       }
 
       console.log('Creating course with data:', courseData);
@@ -286,18 +296,15 @@ export default function AddCourseModal({
             {/* Instructor dropdown - only show for admin */}
             {!isInstructor && (
               <div style={{ flex: 1 }}>
-                <label style={label}>Instructor *</label>
+                <label style={label}>Instructor (Optional)</label>
                 <select 
                   name="instructor" 
                   value={form.instructor} 
                   onChange={handleChange} 
-                  required 
                   style={input}
                   disabled={loadingInstructors}
                 >
-                  <option value="">
-                    {loadingInstructors ? "Loading instructors..." : "Select Instructor"}
-                  </option>
+                  <option value="">Unassigned</option>
                   {Array.isArray(instructors) && instructors.length > 0 ? (
                     instructors.map((instructor) => {
                       const id = getInstructorId(instructor);

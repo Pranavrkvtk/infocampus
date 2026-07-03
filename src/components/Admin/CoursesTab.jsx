@@ -2,8 +2,17 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { colors, Badge } from "./AdminStyles";
-import { deleteAdminCourse, updateAdminCourse, getAllInstructors } from "../../api/adminApi";
-import { getAvailableCourses, assignCourseToInstructor } from "../../api/instructorApi";
+import { 
+  deleteAdminCourse, 
+  updateAdminCourse, 
+  getAllInstructors 
+} from "../../api/adminApi";
+import { 
+  getAvailableCourses, 
+  assignCourseToInstructor,
+  updateInstructorCourse,
+  deleteInstructorCourse
+} from "../../api/instructorApi";
 
 export default function CoursesTab({
   courses,
@@ -21,6 +30,11 @@ export default function CoursesTab({
   const [instructors, setInstructors] = useState([]);
   const [editingCourse, setEditingCourse] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const [loadingInstructors, setLoadingInstructors] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   // Fetch available courses for instructor
   useEffect(() => {
@@ -29,15 +43,18 @@ export default function CoursesTab({
     }
   }, [isInstructor]);
 
-  // Fetch instructors for dropdown
+  // Fetch instructors for dropdown (only for admin)
   useEffect(() => {
-    fetchInstructors();
-  }, []);
+    if (!isInstructor) {
+      fetchInstructors();
+    }
+  }, [isInstructor]);
 
   // Reset selection when courses change
   useEffect(() => {
     setSelectedCourses([]);
     setSelectAll(false);
+    setCurrentPage(1); // Reset to first page when courses change
   }, [courses]);
 
   const fetchAvailableCourses = async () => {
@@ -50,11 +67,47 @@ export default function CoursesTab({
   };
 
   const fetchInstructors = async () => {
+    setLoadingInstructors(true);
     try {
       const response = await getAllInstructors();
-      setInstructors(response.data || []);
+      console.log('Full response from getAllInstructors:', response);
+      
+      // Handle different response structures
+      let instructorsData = [];
+      
+      // Check if response has data property
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          instructorsData = response.data;
+        } else if (response.data.content && Array.isArray(response.data.content)) {
+          instructorsData = response.data.content;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          instructorsData = response.data.data;
+        } else if (response.data.instructors && Array.isArray(response.data.instructors)) {
+          instructorsData = response.data.instructors;
+        }
+      } else if (Array.isArray(response)) {
+        instructorsData = response;
+      } else if (response && response.content && Array.isArray(response.content)) {
+        instructorsData = response.content;
+      }
+      
+      // Filter out invalid instructors
+      const validInstructors = instructorsData.filter(inst => 
+        inst && (inst.id || inst._id) && (inst.name || inst.email)
+      );
+      
+      console.log('Valid instructors found:', validInstructors);
+      setInstructors(validInstructors);
+      
+      if (validInstructors.length === 0) {
+        console.warn('No valid instructors found in response');
+      }
     } catch (error) {
       console.error('Error fetching instructors:', error);
+      setInstructors([]);
+    } finally {
+      setLoadingInstructors(false);
     }
   };
 
@@ -69,12 +122,12 @@ export default function CoursesTab({
     });
   };
 
-  // Handle select all
+  // Handle select all on current page
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedCourses([]);
     } else {
-      const allIds = courses.map(c => c.id);
+      const allIds = currentItems.map(c => c.id);
       setSelectedCourses(allIds);
     }
     setSelectAll(!selectAll);
@@ -119,7 +172,13 @@ export default function CoursesTab({
 
     try {
       // Delete all selected courses one by one
-      const deletePromises = selectedCourses.map((id) => deleteAdminCourse(id));
+      const deletePromises = selectedCourses.map((id) => {
+        if (isInstructor) {
+          return deleteInstructorCourse(id);
+        } else {
+          return deleteAdminCourse(id);
+        }
+      });
       await Promise.all(deletePromises);
 
       setSelectedCourses([]);
@@ -159,7 +218,11 @@ export default function CoursesTab({
       Swal.fire({ title: 'Deleting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       
       try {
-        await deleteAdminCourse(courseId);
+        if (isInstructor) {
+          await deleteInstructorCourse(courseId);
+        } else {
+          await deleteAdminCourse(courseId);
+        }
         if (fetchCourses) await fetchCourses();
         if (isInstructor) await fetchAvailableCourses();
         Swal.fire({ title: 'Deleted!', icon: 'success', timer: 2000, showConfirmButton: false });
@@ -198,7 +261,28 @@ export default function CoursesTab({
 
   // Handle inline edit with instructor dropdown
   const handleInlineEdit = (course) => {
-    setEditingCourse({ ...course });
+    // Find the instructor ID from the course data
+    let instructorId = null;
+    if (course.instructorId) {
+      instructorId = course.instructorId;
+    } else if (course.instructor && typeof course.instructor === 'object') {
+      instructorId = course.instructor.id;
+    } else if (typeof course.instructor === 'string' && !isNaN(course.instructor)) {
+      // If instructor is a string that looks like a number (ID)
+      instructorId = parseInt(course.instructor);
+    } else if (typeof course.instructor === 'string') {
+      // Try to find instructor by name
+      const foundInstructor = instructors.find(i => 
+        i.name === course.instructor || 
+        i.email === course.instructor
+      );
+      instructorId = foundInstructor?.id || null;
+    }
+    
+    setEditingCourse({ 
+      ...course, 
+      instructorId: instructorId 
+    });
   };
 
   const handleCancelEdit = () => {
@@ -210,13 +294,38 @@ export default function CoursesTab({
     
     setUpdating(true);
     try {
-      await updateAdminCourse(editingCourse.id, {
+      // Prepare update data for backend
+      const updateData = {
         title: editingCourse.title,
-        instructorId: editingCourse.instructorId,
-        price: editingCourse.price,
-        status: editingCourse.status,
-        duration: editingCourse.duration
-      });
+        description: editingCourse.description || "",
+        price: editingCourse.price || 0,
+        duration: editingCourse.duration || "",
+        level: editingCourse.level || "Beginner",
+        videoUrl: editingCourse.videoUrl || "",
+        imageUrl: editingCourse.imageUrl || ""
+      };
+
+      // For admin mode, include instructor as string (backend expects string)
+      if (!isInstructor) {
+        // Backend expects instructor as a string (ID as string)
+        if (editingCourse.instructorId) {
+          updateData.instructor = String(editingCourse.instructorId);
+        } else {
+          updateData.instructor = null;
+        }
+      } else {
+        // Instructor mode: keep the instructor as string
+        updateData.instructor = editingCourse.instructor || String(editingCourse.instructorId) || null;
+      }
+
+      console.log('Sending update data:', updateData);
+      
+      // Use the appropriate update function
+      if (isInstructor) {
+        await updateInstructorCourse(editingCourse.id, updateData);
+      } else {
+        await updateAdminCourse(editingCourse.id, updateData);
+      }
       
       await fetchCourses();
       setEditingCourse(null);
@@ -236,6 +345,44 @@ export default function CoursesTab({
       });
     } finally {
       setUpdating(false);
+    }
+  };
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = courses.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(courses.length / itemsPerPage);
+
+  // Handle page change
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top of table when changing pages
+    const tableContainer = document.querySelector('.courses-table-container');
+    if (tableContainer) {
+      tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  // Handle next page
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      const tableContainer = document.querySelector('.courses-table-container');
+      if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  // Handle previous page
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      const tableContainer = document.querySelector('.courses-table-container');
+      if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
 
@@ -310,7 +457,10 @@ export default function CoursesTab({
       </div>
 
       {/* My Courses Table */}
-      <div style={{ overflowX: "auto", marginBottom: isInstructor ? 30 : 0 }}>
+      <div 
+        className="courses-table-container"
+        style={{ overflowX: "auto", marginBottom: isInstructor ? 30 : 0 }}
+      >
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 850 }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${colors.borderLight}`, background: colors.bgBase }}>
@@ -343,9 +493,19 @@ export default function CoursesTab({
                 </td>
               </tr>
             ) : (
-              courses.map((c, idx) => {
+              currentItems.map((c, idx) => {
                 const isSelected = selectedCourses.includes(c.id);
                 const isEditing = editingCourse?.id === c.id;
+                
+                // Get instructor name for display
+                let instructorName = c.instructor || "—";
+                if (typeof c.instructor === 'object' && c.instructor !== null) {
+                  instructorName = c.instructor.name || c.instructor.email || "—";
+                } else if (typeof c.instructor === 'string' && !isNaN(c.instructor)) {
+                  // If instructor is a number string (ID), try to find the name
+                  const foundInstructor = instructors.find(i => i.id === parseInt(c.instructor));
+                  instructorName = foundInstructor ? foundInstructor.name || foundInstructor.email : `Instructor #${c.instructor}`;
+                }
                 
                 return (
                   <tr 
@@ -389,10 +549,13 @@ export default function CoursesTab({
                       )}
                     </td>
                     <td style={{ padding: "12px", color: colors.textSecondary }}>
-                      {isEditing ? (
+                      {isEditing && !isInstructor ? (
                         <select
                           value={editingCourse.instructorId || ''}
-                          onChange={(e) => setEditingCourse({ ...editingCourse, instructorId: parseInt(e.target.value) || null })}
+                          onChange={(e) => setEditingCourse({ 
+                            ...editingCourse, 
+                            instructorId: e.target.value ? parseInt(e.target.value) : null 
+                          })}
                           style={{
                             width: "100%",
                             padding: "4px 8px",
@@ -401,16 +564,26 @@ export default function CoursesTab({
                             fontSize: "13px",
                             background: "#fff",
                           }}
+                          disabled={loadingInstructors}
                         >
-                          <option value="">Select Instructor</option>
-                          {instructors.map(instructor => (
-                            <option key={instructor.id} value={instructor.id}>
-                              {instructor.name || instructor.email || `Instructor #${instructor.id}`}
-                            </option>
-                          ))}
+                          <option value="">Unassigned</option>
+                          {loadingInstructors ? (
+                            <option value="" disabled>Loading instructors...</option>
+                          ) : (
+                            instructors.length > 0 ? (
+                              instructors.map(instructor => (
+                                <option key={instructor.id} value={instructor.id}>
+                                  {instructor.name || instructor.email || `Instructor #${instructor.id}`}
+                                  {instructor.coursesCount !== undefined && ` (${instructor.coursesCount} courses)`}
+                                </option>
+                              ))
+                            ) : (
+                              <option value="" disabled>No instructors available</option>
+                            )
+                          )}
                         </select>
                       ) : (
-                        c.instructor || "—"
+                        instructorName
                       )}
                     </td>
                     <td style={{ padding: "12px", color: colors.teal, fontWeight: 600 }}>
@@ -523,6 +696,104 @@ export default function CoursesTab({
             )}
           </tbody>
         </table>
+
+        {/* Pagination */}
+        {courses.length > itemsPerPage && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "16px 20px",
+              borderTop: `1px solid ${colors.borderLight}`,
+              background: colors.bgBase,
+              flexWrap: "wrap",
+              gap: "10px"
+            }}
+          >
+            <div style={{ fontSize: "13px", color: colors.textMuted }}>
+              Showing {indexOfFirstItem + 1} to{" "}
+              {Math.min(indexOfLastItem, courses.length)} of{" "}
+              {courses.length} courses
+            </div>
+
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+              <button
+                onClick={prevPage}
+                disabled={currentPage === 1}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  border: `1px solid ${colors.borderLight}`,
+                  background: currentPage === 1 ? colors.bgBase : colors.surface,
+                  color: currentPage === 1 ? colors.textMuted : "var(--text-primary)",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  fontSize: "13px",
+                  opacity: currentPage === 1 ? 0.5 : 1,
+                  transition: "all 0.2s"
+                }}
+              >
+                ← Previous
+              </button>
+
+              {/* Page numbers */}
+              <div style={{ display: "flex", gap: "4px" }}>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  if (pageNum > totalPages) return null;
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => paginate(pageNum)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        border: `1px solid ${colors.borderLight}`,
+                        background: currentPage === pageNum ? colors.primary : colors.surface,
+                        color: currentPage === pageNum ? "#fff" : "var(--text-primary)",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        fontWeight: currentPage === pageNum ? 600 : 400,
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={nextPage}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  border: `1px solid ${colors.borderLight}`,
+                  background: currentPage === totalPages ? colors.bgBase : colors.surface,
+                  color: currentPage === totalPages ? colors.textMuted : "var(--text-primary)",
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  fontSize: "13px",
+                  opacity: currentPage === totalPages ? 0.5 : 1,
+                  transition: "all 0.2s"
+                }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Available Courses Section (Only for Instructor) */}
