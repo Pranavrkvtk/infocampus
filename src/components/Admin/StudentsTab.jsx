@@ -1,412 +1,627 @@
-import React from "react";
-import {
-  colors,
-  Badge,
-} from "./AdminStyles";
+// src/components/Admin/StudentsTab.jsx
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { colors } from "./AdminStyles";
+import Swal from "sweetalert2";
 
 export default function StudentsTab({
   students,
   searchTerm,
   handleSearchChange,
-  handleUpdateRole,
   handleToggleStatus,
+  handleDeleteStudent,
   isMobile,
 }) {
-  const protectedEmails = [
-    "pranav@gmail.com",
-    "admin@gmail.com",
-  ];
+  const protectedEmails = ["admin@gmail.com"];
+
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterRole, setFilterRole] = useState("ALL");
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+
+  // --- Debounced search ---
+  const [localSearch, setLocalSearch] = useState(searchTerm || "");
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    setLocalSearch(searchTerm || "");
+  }, [searchTerm]);
+
+  const onSearchInput = (e) => {
+    const value = e.target.value;
+    setLocalSearch(value);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      handleSearchChange({ target: { value } });
+    }, 300);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  // Stats
+  const stats = useMemo(() => {
+    const total = students.length;
+    const active = students.filter((s) => (s.status || "ACTIVE") === "ACTIVE").length;
+    const inactive = students.filter((s) => s.status === "INACTIVE").length;
+    const admins = students.filter((s) => s.role === "ADMIN").length;
+    return { total, active, inactive, admins };
+  }, [students]);
+
+  // Roles available for filter dropdown
+  const roles = useMemo(
+    () => [...new Set(students.map((s) => s.role || "STUDENT").filter(Boolean))],
+    [students]
+  );
+
+  // Filtered list
+  const filteredStudents = useMemo(() => {
+    return students.filter((s) => {
+      const status = s.status || "ACTIVE";
+      const role = s.role || "STUDENT";
+      const matchesStatus = filterStatus === "ALL" || status === filterStatus;
+      const matchesRole = filterRole === "ALL" || role === filterRole;
+      return matchesStatus && matchesRole;
+    });
+  }, [students, filterStatus, filterRole]);
+
+  // Reset selection when filters change
+  useEffect(() => {
+    setSelectedStudents([]);
+    setSelectAll(false);
+  }, [filterStatus, filterRole, searchTerm]);
+
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      ACTIVE: { bg: "#d1fae5", color: "#065f46", text: "🟢 Active" },
+      INACTIVE: { bg: "#fee2e2", color: "#991b1b", text: "🔴 Inactive" },
+    };
+    return statusMap[status] || statusMap["ACTIVE"];
+  };
+
+  const getRoleBadge = (role) => {
+    const roleMap = {
+      ADMIN: { bg: "#dbeafe", color: "#1e40af", text: "👑 Admin" },
+      STUDENT: { bg: "#fef3c7", color: "#92400e", text: "🎓 Student" },
+    };
+    return roleMap[role] || roleMap["STUDENT"];
+  };
+
+  // Check if student can be selected (not protected admin)
+  const isSelectable = (student) => {
+    return !(student.role === "ADMIN" && protectedEmails.includes(student.email));
+  };
+
+  // Handle individual student selection
+  const handleSelectStudent = (studentId) => {
+    setSelectedStudents((prev) => {
+      if (prev.includes(studentId)) {
+        return prev.filter((id) => id !== studentId);
+      } else {
+        return [...prev, studentId];
+      }
+    });
+  };
+
+  // Handle select all
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedStudents([]);
+    } else {
+      const selectableIds = filteredStudents
+        .filter((s) => isSelectable(s))
+        .map((s) => s.id);
+      setSelectedStudents(selectableIds);
+    }
+    setSelectAll(!selectAll);
+  };
+
+  // Bulk delete selected students
+  const handleBulkDelete = async () => {
+    if (selectedStudents.length === 0) {
+      Swal.fire("No Selection", "Please select at least one student to delete.", "info");
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: `Delete ${selectedStudents.length} Students?`,
+      html: `
+        <p>Permanently remove <strong>${selectedStudents.length}</strong> students?</p>
+        <p style="color: #991b1b; font-size: 13px; margin-top: 8px;">
+          ⚠️ This will permanently delete all selected student accounts and their associated data.
+          <br>This action <strong>cannot</strong> be undone!
+        </p>
+        <ul style="text-align: left; max-height: 150px; overflow-y: auto; font-size: 13px; margin-top: 10px;">
+          ${selectedStudents.map(id => {
+            const student = students.find(s => s.id === id);
+            return `<li>${student?.name || 'Unknown'} (${student?.email || 'No email'})</li>`;
+          }).join('')}
+        </ul>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: `Yes, Delete ${selectedStudents.length} Students`,
+      confirmButtonColor: "#dc2626",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+      // Delete all selected students one by one
+      const deletePromises = selectedStudents.map((id) => handleDeleteStudent(id));
+      await Promise.all(deletePromises);
+
+      setSelectedStudents([]);
+      setSelectAll(false);
+
+      Swal.fire({
+        title: "Deleted!",
+        text: `${selectedStudents.length} students have been permanently removed.`,
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      Swal.fire({
+        title: "Failed!",
+        text: error?.response?.data?.message || "Failed to delete some students",
+        icon: "error",
+      });
+    }
+  };
+
+  // Permanently delete a single student
+  const confirmDelete = async (student) => {
+    const result = await Swal.fire({
+      title: "Delete Student?",
+      html: `
+        <p>Permanently remove <strong>${student.name}</strong> (${student.email})?</p>
+        <p style="color: #991b1b; font-size: 13px; margin-top: 8px;">
+          ⚠️ This will permanently delete the student account and all associated data.
+          <br>This action <strong>cannot</strong> be undone!
+        </p>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Delete Permanently",
+      confirmButtonColor: "#dc2626",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+      await handleDeleteStudent(student.id);
+      Swal.fire({
+        title: "Deleted!",
+        text: `${student.name} has been permanently removed.`,
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      Swal.fire({
+        title: "Failed!",
+        text: error?.response?.data?.message || "Failed to delete student",
+        icon: "error",
+      });
+    }
+  };
 
   return (
-    <div
-      style={{
-        background: colors.surface,
-        border: `1px solid ${colors.borderLight}`,
-        borderRadius: 16,
-        padding: isMobile ? 16 : 20,
-      }}
-    >
-      {/* Header */}
+    <div style={{ padding: isMobile ? "0" : "0 20px" }}>
+      {/* Stats Cards */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+          gap: "16px",
+          marginBottom: "24px",
+        }}
+      >
+        <div style={statCardStyle}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--text-primary)" }}>
+            {stats.total}
+          </div>
+          <div style={statLabelStyle}>Total Students</div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "#065f46" }}>
+            {stats.active}
+          </div>
+          <div style={statLabelStyle}>🟢 Active</div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "#991b1b" }}>
+            {stats.inactive}
+          </div>
+          <div style={statLabelStyle}>🔴 Inactive</div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "#1e40af" }}>
+            {stats.admins}
+          </div>
+          <div style={statLabelStyle}>👑 Admins</div>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
       <div
         style={{
           display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          justifyContent: "space-between",
-          alignItems: isMobile ? "stretch" : "center",
-          gap: 12,
-          marginBottom: 20,
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "20px",
+          alignItems: "center",
         }}
       >
-        <div>
-          <h2
-            style={{
-              fontSize: isMobile ? 18 : 20,
-              fontWeight: 700,
-              margin: 0,
-            }}
-          >
-            👨‍🎓 All Students
-          </h2>
-
-          <p
-            style={{
-              fontSize: 12,
-              color: colors.textMuted,
-              marginTop: 4,
-            }}
-          >
-            Total {students.length} students
-            {searchTerm && ` for "${searchTerm}"`}
-          </p>
+        <div style={{ flex: 1, minWidth: "200px" }}>
+          <input
+            type="text"
+            placeholder="🔍 Search users by name..."
+            value={localSearch}
+            onChange={onSearchInput}
+            style={inputStyle}
+          />
         </div>
 
-        <input
-          type="text"
-          placeholder="Search users by name..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          style={{
-            padding: "8px 14px",
-            border: `1px solid ${colors.borderLight}`,
-            borderRadius: 40,
-            fontSize: 13,
-            width: isMobile ? "100%" : 260,
-            outline: "none",
-          }}
-        />
-      </div>
-
-      {/* Table */}
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            minWidth: 900,
-          }}
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={selectStyle}
         >
-          <thead>
-            <tr
-              style={{
-                borderBottom: `2px solid ${colors.borderLight}`,
-                background: colors.bgBase,
-              }}
-            >
-              <th style={thStyle}>ID</th>
-              <th style={thStyle}>Student</th>
-              <th style={thStyle}>Email</th>
-              <th style={thStyle}>Role</th>
-              <th style={thStyle}>Status</th>
-              <th style={{ ...thStyle, textAlign: "center" }}>
-                Actions
-              </th>
-            </tr>
-          </thead>
+          <option value="ALL">📊 All Status</option>
+          <option value="ACTIVE">🟢 Active</option>
+          <option value="INACTIVE">🔴 Inactive</option>
+        </select>
 
-          <tbody>
-            {students.length > 0 ? (
-              students.map((student, index) => {
-                const isProtectedAdmin =
-                  student.role === "ADMIN" &&
-                  protectedEmails.includes(student.email);
+        <select
+          value={filterRole}
+          onChange={(e) => setFilterRole(e.target.value)}
+          style={{ ...selectStyle, maxWidth: "200px" }}
+        >
+          <option value="ALL">🧑‍🤝‍🧑 All Roles</option>
+          {roles.map((role, index) => (
+            <option key={index} value={role}>
+              {role}
+            </option>
+          ))}
+        </select>
 
-                return (
-                  <tr
-                    key={student.id}
-                    style={{
-                      borderBottom: `1px solid ${colors.borderLight}`,
-                      background:
-                        index % 2 === 0
-                          ? colors.surface
-                          : colors.bgBase,
-                      opacity:
-                        student.status === "INACTIVE"
-                          ? 0.7
-                          : 1,
-                    }}
-                  >
-                    <td style={tdStyle}>
-                      #{student.id}
-                    </td>
-
-                    <td style={tdStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: "50%",
-                            background:
-                              student.status === "ACTIVE"
-                                ? colors.primarySoft
-                                : colors.coralSoft,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 700,
-                            color:
-                              student.status === "ACTIVE"
-                                ? colors.primary
-                                : colors.coral,
-                          }}
-                        >
-                          {student.name
-                            ?.charAt(0)
-                            ?.toUpperCase()}
-                        </div>
-
-                        <div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {student.name}
-                            </span>
-
-                            {isProtectedAdmin && (
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  padding: "2px 6px",
-                                  borderRadius: 20,
-                                  background:
-                                    colors.coralSoft,
-                                  color: colors.coral,
-                                }}
-                              >
-                                🔒 Protected
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td style={tdStyle}>
-                      {student.email}
-                    </td>
-
-                    <td style={tdStyle}>
-                      <Badge
-                        status={
-                          student.role || "STUDENT"
-                        }
-                      />
-                    </td>
-
-                    <td style={tdStyle}>
-                      <Badge
-                        status={
-                          student.status || "ACTIVE"
-                        }
-                      />
-                    </td>
-
-                    <td
-                      style={{
-                        ...tdStyle,
-                        textAlign: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <button
-                          onClick={() =>
-                            handleUpdateRole(
-                              student.id,
-                              student.role
-                            )
-                          }
-                          disabled={isProtectedAdmin}
-                          style={{
-                            ...editBtn,
-                            opacity:
-                              isProtectedAdmin ? 0.6 : 1,
-                            cursor:
-                              isProtectedAdmin
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
-                        >
-                          👑 Edit Role
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            handleToggleStatus(
-                              student.id,
-                              student.status
-                            )
-                          }
-                          disabled={isProtectedAdmin}
-                          style={{
-                            ...statusBtn,
-                            background:
-                              student.status ===
-                              "ACTIVE"
-                                ? colors.coralSoft
-                                : colors.tealSoft,
-                            color:
-                              student.status ===
-                              "ACTIVE"
-                                ? colors.coral
-                                : colors.teal,
-                            opacity:
-                              isProtectedAdmin ? 0.6 : 1,
-                          }}
-                        >
-                          {student.status ===
-                          "ACTIVE"
-                            ? "🔴 Deactivate"
-                            : "🟢 Activate"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td
-                  colSpan={6}
-                  style={{
-                    textAlign: "center",
-                    padding: 60,
-                    color: colors.textMuted,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 48,
-                      marginBottom: 12,
-                    }}
-                  >
-                    👥
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {searchTerm
-                      ? `No students found matching "${searchTerm}"`
-                      : "No students found"}
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        {/* Bulk Delete Button */}
+        {selectedStudents.length > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            style={{
+              padding: "10px 20px",
+              borderRadius: "10px",
+              border: "none",
+              background: "#dc2626",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: "13px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#b91c1c";
+              e.currentTarget.style.transform = "scale(1.02)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#dc2626";
+              e.currentTarget.style.transform = "scale(1)";
+            }}
+          >
+            🗑️ Delete Selected ({selectedStudents.length})
+          </button>
+        )}
       </div>
 
-      {/* Footer Stats */}
-      {students.length > 0 && (
+      {/* Students Table */}
+      {filteredStudents.length === 0 ? (
         <div
           style={{
-            marginTop: 20,
-            paddingTop: 16,
-            borderTop: `1px solid ${colors.borderLight}`,
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 16,
+            textAlign: "center",
+            padding: "60px 20px",
+            background: "var(--surface)",
+            borderRadius: "16px",
+            border: "1px solid var(--border-light)",
           }}
         >
-          <span
-            style={{
-              fontSize: 12,
-              color: colors.textSecondary,
-            }}
-          >
-            Active:{" "}
-            {
-              students.filter(
-                (s) => s.status === "ACTIVE"
-              ).length
-            }
-          </span>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>👥</div>
+          <h3 style={{ color: "var(--text-primary)", marginBottom: "8px" }}>
+            No Students Found
+          </h3>
+          <p style={{ color: "var(--text-secondary)" }}>
+            {localSearch || filterStatus !== "ALL" || filterRole !== "ALL"
+              ? "Try adjusting your filters"
+              : "No students have registered yet"}
+          </p>
+        </div>
+      ) : (
+        <div
+          style={{
+            background: "var(--surface)",
+            borderRadius: "16px",
+            overflow: "hidden",
+            border: "1px solid var(--border-light)",
+          }}
+        >
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "850px" }}>
+              <thead>
+                <tr
+                  style={{
+                    background: "var(--bg-base)",
+                    borderBottom: "2px solid var(--border-light)",
+                  }}
+                >
+                  <th style={{ ...thStyle, textAlign: "center", width: "40px" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        cursor: "pointer",
+                        accentColor: "#4f46e5",
+                      }}
+                    />
+                  </th>
+                  <th style={thStyle}>ID</th>
+                  <th style={thStyle}>Student</th>
+                  <th style={thStyle}>Email</th>
+                  <th style={{ ...thStyle, textAlign: "center" }}>Role</th>
+                  <th style={{ ...thStyle, textAlign: "center" }}>Status</th>
+                  <th style={{ ...thStyle, textAlign: "center" }}>Actions</th>
+                </tr>
+              </thead>
 
-          <span
-            style={{
-              fontSize: 12,
-              color: colors.textSecondary,
-            }}
-          >
-            Inactive:{" "}
-            {
-              students.filter(
-                (s) => s.status === "INACTIVE"
-              ).length
-            }
-          </span>
+              <tbody>
+                {filteredStudents.map((student, index) => {
+                  const isProtectedAdmin =
+                    student.role === "ADMIN" && protectedEmails.includes(student.email);
+                  const status = student.status || "ACTIVE";
+                  const role = student.role || "STUDENT";
+                  const statusBadge = getStatusBadge(status);
+                  const roleBadge = getRoleBadge(role);
+                  const selectable = isSelectable(student);
+                  const isSelected = selectedStudents.includes(student.id);
 
-          <span
-            style={{
-              fontSize: 12,
-              color: colors.textSecondary,
-            }}
-          >
-            Admins:{" "}
-            {
-              students.filter(
-                (s) => s.role === "ADMIN"
-              ).length
-            }
-          </span>
+                  return (
+                    <tr
+                      key={student.id}
+                      style={{
+                        borderBottom: "1px solid var(--border-light)",
+                        background: index % 2 === 0 ? "var(--surface)" : "var(--bg-base)",
+                        opacity: status === "INACTIVE" ? 0.7 : 1,
+                        ...(isSelected && { background: colors.primarySoft }),
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = "var(--primary-soft)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background =
+                            index % 2 === 0 ? "var(--surface)" : "var(--bg-base)";
+                        }
+                      }}
+                    >
+                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleSelectStudent(student.id)}
+                          disabled={!selectable}
+                          style={{
+                            width: "16px",
+                            height: "16px",
+                            cursor: selectable ? "pointer" : "not-allowed",
+                            accentColor: "#4f46e5",
+                            opacity: selectable ? 1 : 0.4,
+                          }}
+                        />
+                      </td>
+
+                      <td style={tdStyle}>#{student.id}</td>
+
+                      <td style={tdStyle}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: "50%",
+                              background: status === "ACTIVE" ? colors.primarySoft : colors.coralSoft,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 700,
+                              color: status === "ACTIVE" ? colors.primary : colors.coral,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {student.name?.charAt(0)?.toUpperCase()}
+                          </div>
+
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                                {student.name}
+                              </span>
+                              {isProtectedAdmin && (
+                                <span
+                                  style={{
+                                    fontSize: 9,
+                                    padding: "2px 6px",
+                                    borderRadius: 20,
+                                    background: colors.coralSoft,
+                                    color: colors.coral,
+                                  }}
+                                >
+                                  🔒 Protected
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td style={{ ...tdStyle, color: "var(--text-secondary)" }}>
+                        {student.email}
+                      </td>
+
+                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                        <span
+                          style={{
+                            padding: "4px 12px",
+                            borderRadius: "20px",
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            background: roleBadge.bg,
+                            color: roleBadge.color,
+                          }}
+                        >
+                          {roleBadge.text}
+                        </span>
+                      </td>
+
+                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                        <span
+                          style={{
+                            padding: "4px 12px",
+                            borderRadius: "20px",
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            background: statusBadge.bg,
+                            color: statusBadge.color,
+                          }}
+                        >
+                          {statusBadge.text}
+                        </span>
+                      </td>
+
+                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+                          <button
+                            onClick={() => handleToggleStatus(student.id, student.status)}
+                            disabled={isProtectedAdmin}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: "8px",
+                              border: "none",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: isProtectedAdmin ? "not-allowed" : "pointer",
+                              background: status === "ACTIVE" ? "#fee2e2" : "#d1fae5",
+                              color: status === "ACTIVE" ? "#dc2626" : "#065f46",
+                              opacity: isProtectedAdmin ? 0.6 : 1,
+                            }}
+                          >
+                            {status === "ACTIVE" ? "🔴 Deactivate" : "🟢 Activate"}
+                          </button>
+
+                          <button
+                            onClick={() => confirmDelete(student)}
+                            disabled={isProtectedAdmin}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: "8px",
+                              border: "none",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: isProtectedAdmin ? "not-allowed" : "pointer",
+                              background: "#fee2e2",
+                              color: "#dc2626",
+                              opacity: isProtectedAdmin ? 0.6 : 1,
+                            }}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
+const statCardStyle = {
+  background: "var(--surface)",
+  padding: "16px",
+  borderRadius: "12px",
+  border: "1px solid var(--border-light)",
+  textAlign: "center",
+};
+
+const statLabelStyle = {
+  fontSize: "13px",
+  color: "var(--text-secondary)",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "10px 16px",
+  borderRadius: "10px",
+  border: "1px solid var(--border-light)",
+  fontSize: "14px",
+  outline: "none",
+  background: "var(--surface)",
+  color: "var(--text-primary)",
+};
+
+const selectStyle = {
+  padding: "10px 16px",
+  borderRadius: "10px",
+  border: "1px solid var(--border-light)",
+  fontSize: "14px",
+  outline: "none",
+  background: "var(--surface)",
+  color: "var(--text-primary)",
+  cursor: "pointer",
+};
+
 const thStyle = {
+  padding: "12px 16px",
   textAlign: "left",
-  padding: "12px 10px",
-  fontSize: 12,
+  fontSize: "13px",
   fontWeight: 600,
+  color: "var(--text-secondary)",
 };
 
 const tdStyle = {
-  padding: "12px 10px",
-  fontSize: 13,
-};
-
-const editBtn = {
-  padding: "5px 12px",
-  borderRadius: 6,
-  border: `1px solid ${colors.borderLight}`,
-  background: colors.surface,
-  color: colors.primary,
-  fontSize: 11,
-  fontWeight: 600,
-};
-
-const statusBtn = {
-  padding: "5px 12px",
-  borderRadius: 6,
-  border: "none",
-  fontSize: 11,
-  fontWeight: 600,
-  cursor: "pointer",
+  padding: "12px 16px",
+  verticalAlign: "middle",
+  fontSize: "13px",
 };

@@ -14,13 +14,35 @@ export const getInstructorDashboardStats = async () => {
 
 // ==================== COURSE MANAGEMENT ====================
 
-// Get instructor's courses
+// Get instructor's own courses
 export const getInstructorCourses = async () => {
   try {
     const response = await api.get("/instructor/courses");
     return response;
   } catch (error) {
     console.error("Error fetching instructor courses:", error);
+    throw error;
+  }
+};
+
+// Get ALL courses (including admin-created courses)
+export const getAllInstructorCourses = async () => {
+  try {
+    const response = await api.get("/instructor/courses/all");
+    return response;
+  } catch (error) {
+    console.error("Error fetching all courses:", error);
+    throw error;
+  }
+};
+
+// Get available courses (not assigned to this instructor yet)
+export const getAvailableCourses = async () => {
+  try {
+    const response = await api.get("/instructor/courses/available");
+    return response;
+  } catch (error) {
+    console.error("Error fetching available courses:", error);
     throw error;
   }
 };
@@ -65,6 +87,17 @@ export const getInstructorCourseDetails = async (courseId) => {
     return response;
   } catch (error) {
     console.error("Error fetching course details:", error);
+    throw error;
+  }
+};
+
+// Assign a course to instructor (for admin-created courses)
+export const assignCourseToInstructor = async (courseId) => {
+  try {
+    const response = await api.post(`/instructor/courses/${courseId}/assign`);
+    return response;
+  } catch (error) {
+    console.error("Error assigning course:", error);
     throw error;
   }
 };
@@ -220,10 +253,13 @@ export const testInstructorAuth = async () => {
 export default {
   getInstructorDashboardStats,
   getInstructorCourses,
+  getAllInstructorCourses,
+  getAvailableCourses,
   createInstructorCourse,
   updateInstructorCourse,
   deleteInstructorCourse,
   getInstructorCourseDetails,
+  assignCourseToInstructor,
   getInstructorStudents,
   searchInstructorStudentsByName,
   getInstructorStudentDetails,

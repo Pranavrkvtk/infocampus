@@ -9,6 +9,55 @@ export default function StudentsTab({
   isMobile,
   isInstructor = false,
 }) {
+  // Helper function to get enrolled courses count
+  const getCourseCount = (student) => {
+    if (student.courses && Array.isArray(student.courses)) {
+      return student.courses.length;
+    }
+    if (student.enrolledCourses && Array.isArray(student.enrolledCourses)) {
+      return student.enrolledCourses.length;
+    }
+    if (student.courseCount) {
+      return student.courseCount;
+    }
+    if (student.enrollmentCount) {
+      return student.enrollmentCount;
+    }
+    return 0;
+  };
+
+  // Helper function to get enrolled courses list
+  const getCourseList = (student) => {
+    if (student.courses && Array.isArray(student.courses)) {
+      return student.courses.map(c => c.courseTitle || c.title || c.name).join(", ");
+    }
+    if (student.enrolledCourses && Array.isArray(student.enrolledCourses)) {
+      return student.enrolledCourses.join(", ");
+    }
+    return "";
+  };
+
+  // Helper function to get progress
+  const getProgress = (student) => {
+    if (student.courses && Array.isArray(student.courses) && student.courses.length > 0) {
+      // Calculate average progress from all courses
+      const totalProgress = student.courses.reduce((sum, c) => sum + (c.progress || 0), 0);
+      return Math.round(totalProgress / student.courses.length);
+    }
+    return student.progress || 0;
+  };
+
+  // Helper function to get student status
+  const getStudentStatus = (student) => {
+    if (student.status) return student.status;
+    if (student.courses && Array.isArray(student.courses) && student.courses.length > 0) {
+      // Check if any course is active
+      const hasActive = student.courses.some(c => c.status === "ACTIVE");
+      return hasActive ? "ACTIVE" : "INACTIVE";
+    }
+    return "ACTIVE";
+  };
+
   return (
     <div
       style={{
@@ -64,72 +113,95 @@ export default function StudentsTab({
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700 }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${colors.borderLight}`, background: colors.bgBase }}>
               <th style={{ padding: "12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>ID</th>
               <th style={{ padding: "12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>Student Name</th>
               <th style={{ padding: "12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>Email</th>
-              <th style={{ padding: "12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>Enrolled Courses</th>
+              <th style={{ padding: "12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>Courses</th>
               <th style={{ padding: "12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>Progress</th>
               <th style={{ padding: "12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>Status</th>
+              <th style={{ padding: "12px", textAlign: "left", fontSize: 12, fontWeight: 600, color: colors.textSecondary }}>Enrolled Date</th>
             </tr>
           </thead>
           <tbody>
-            {students.map((s, idx) => (
-              <tr
-                key={s.id}
-                style={{
-                  borderBottom: `1px solid ${colors.borderLight}`,
-                  background: idx % 2 === 0 ? colors.surface : colors.bgBase,
-                  transition: "background 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = colors.primarySoft;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = idx % 2 === 0 ? colors.surface : colors.bgBase;
-                }}
-              >
-                <td style={{ padding: "12px", fontSize: 13, color: colors.textSecondary }}>#{s.id}</td>
-                <td style={{ padding: "12px", fontWeight: 500, color: colors.textPrimary }}>
-                  {s.name || `${s.firstName || ""} ${s.lastName || ""}`.trim() || "Unnamed"}
-                </td>
-                <td style={{ padding: "12px", color: colors.textSecondary }}>{s.email}</td>
-                <td style={{ padding: "12px", color: colors.textSecondary }}>
-                  {s.enrolledCourses || s.courseCount || 0}
-                </td>
-                <td style={{ padding: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div
-                      style={{
-                        flex: 1,
-                        height: 6,
-                        background: colors.borderLight,
-                        borderRadius: 3,
-                        width: 80,
-                      }}
-                    >
+            {students.map((s, idx) => {
+              const courseCount = getCourseCount(s);
+              const courseList = getCourseList(s);
+              const progress = getProgress(s);
+              const status = getStudentStatus(s);
+              
+              return (
+                <tr
+                  key={s.id}
+                  style={{
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    background: idx % 2 === 0 ? colors.surface : colors.bgBase,
+                    transition: "background 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = colors.primarySoft;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = idx % 2 === 0 ? colors.surface : colors.bgBase;
+                  }}
+                >
+                  <td style={{ padding: "12px", fontSize: 13, color: colors.textSecondary }}>#{s.id}</td>
+                  <td style={{ padding: "12px", fontWeight: 500, color: colors.textPrimary }}>
+                    {s.name || `${s.firstName || ""} ${s.lastName || ""}`.trim() || "Unnamed"}
+                  </td>
+                  <td style={{ padding: "12px", color: colors.textSecondary }}>{s.email}</td>
+                  <td style={{ padding: "12px", color: colors.textSecondary }}>
+                    <div>
+                      <span style={{ fontWeight: 600, color: colors.teal }}>{courseCount}</span>
+                      {courseList && (
+                        <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
+                          {courseList.length > 40 ? courseList.substring(0, 40) + "..." : courseList}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ padding: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 100 }}>
                       <div
                         style={{
-                          width: `${s.progress || 0}%`,
+                          flex: 1,
                           height: 6,
-                          background: colors.teal,
+                          background: colors.borderLight,
                           borderRadius: 3,
-                          transition: "width 0.3s ease",
+                          width: 80,
                         }}
-                      />
+                      >
+                        <div
+                          style={{
+                            width: `${Math.min(progress, 100)}%`,
+                            height: 6,
+                            background: progress >= 80 ? colors.teal : progress >= 50 ? colors.primary : colors.amber,
+                            borderRadius: 3,
+                            transition: "width 0.3s ease",
+                          }}
+                        />
+                      </div>
+                      <span style={{ fontSize: 11, color: colors.textMuted, fontWeight: 600, minWidth: 35 }}>
+                        {progress}%
+                      </span>
                     </div>
-                    <span style={{ fontSize: 11, color: colors.textMuted, fontWeight: 600 }}>
-                      {s.progress || 0}%
-                    </span>
-                  </div>
-                </td>
-                <td style={{ padding: "12px" }}>
-                  <Badge status={s.status || "ACTIVE"} />
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td style={{ padding: "12px" }}>
+                    <Badge status={status} />
+                  </td>
+                  <td style={{ padding: "12px", fontSize: 12, color: colors.textSecondary }}>
+                    {s.courses && s.courses.length > 0 && s.courses[0].enrolledAt 
+                      ? new Date(s.courses[0].enrolledAt).toLocaleDateString()
+                      : s.enrolledAt 
+                        ? new Date(s.enrolledAt).toLocaleDateString()
+                        : "-"
+                    }
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {students.length === 0 && (

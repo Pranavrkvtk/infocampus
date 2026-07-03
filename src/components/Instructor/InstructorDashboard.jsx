@@ -10,6 +10,9 @@ import {
   getInstructorHomeVideo,
   updateInstructorHomeVideoUrl,
   searchInstructorStudentsByName,
+  getAllInstructorCourses,
+  getAvailableCourses,
+  assignCourseToInstructor,
 } from "../../api/instructorApi";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
 import NavItem from "./NavItem";
@@ -237,8 +240,10 @@ export default function InstructorDashboard() {
     setError(null);
     try {
       const response = await getInstructorDashboardStats();
+      console.log('Dashboard Stats:', response.data);
       setDashboardStats(response.data);
     } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
       setError(err.response?.data?.message || "Failed to load dashboard data");
     } finally { 
       setLoading(false); 
@@ -251,8 +256,17 @@ export default function InstructorDashboard() {
     setError(null);
     try {
       const response = await getInstructorCourses();
-      setCourses(response.data || []);
+      console.log('Courses Response:', response.data);
+      
+      // Ensure each course has enrollmentCount
+      const coursesData = (response.data || []).map(course => ({
+        ...course,
+        enrollmentCount: course.enrollmentCount || course.studentCount || 0,
+      }));
+      
+      setCourses(coursesData);
     } catch (err) {
+      console.error('Error fetching courses:', err);
       setError(err.response?.data?.message || "Failed to load courses");
       setCourses([]);
     } finally { 
@@ -284,7 +298,6 @@ export default function InstructorDashboard() {
       try {
         await deleteInstructorCourse(courseId); 
         await fetchCourses();
-        // Refresh stats too
         await fetchDashboardStats();
         Swal.fire({ 
           title: "Deleted!", 
@@ -293,6 +306,7 @@ export default function InstructorDashboard() {
           showConfirmButton: false 
         });
       } catch (error) {
+        console.error('Delete error:', error);
         Swal.fire({ 
           title: "Failed!", 
           text: error.response?.data?.message || "Failed to delete course", 
@@ -599,6 +613,35 @@ export default function InstructorDashboard() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={() => {
+                  if (activeTab === "dashboard") fetchDashboardStats();
+                  else if (activeTab === "courses") fetchCourses();
+                  else if (activeTab === "students") fetchStudents();
+                  else if (activeTab === "media") fetchHomeVideo();
+                  Swal.fire({
+                    title: "Refreshed!",
+                    text: "Data updated successfully",
+                    icon: "success",
+                    timer: 1500,
+                    showConfirmButton: false
+                  });
+                }}
+                style={{
+                  padding: "8px 14px",
+                  background: colors.primary,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                🔄 Refresh
+              </button>
               <DateTimeWidget isMobile={isMobile} currentTime={currentTime} />
             </div>
           </div>

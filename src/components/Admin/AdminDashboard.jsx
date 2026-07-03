@@ -15,6 +15,7 @@ import {
   deleteHomeVideo,
   updateHomeVideoUrl,
   getAllEnrollments, // ✅ ADDED
+  deleteUser,         // 👈 used for permanent student delete
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
@@ -524,6 +525,15 @@ export default function AdminDashboard() {
     }
   };
 
+  // ✅ Permanently delete a student
+  // StudentsTab already shows its own SweetAlert2 confirmation, loading
+  // spinner, and success/error toasts via its `confirmDelete` function,
+  // so this handler just needs to call the API and refresh the list.
+  const handleDeleteStudent = async (studentId) => {
+    await deleteUser(studentId);
+    await fetchAllStudents();
+  };
+
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
@@ -589,7 +599,7 @@ export default function AdminDashboard() {
             onNavigate={setActiveTab} // ✅ Pass navigation function
  />;
       case "courses":     return <CoursesTab courses={courses} isMobile={isMobile} handleDeleteCourse={handleDeleteCourse} setSelectedCourse={setSelectedCourse} setIsEditCourseModalOpen={setIsEditCourseModalOpen} setIsAddCourseModalOpen={setIsAddCourseModalOpen} fetchCourses={fetchCourses} />;
-      case "students":    return <StudentsTab students={students} searchTerm={searchTerm} handleSearchChange={handleSearchChange} handleUpdateRole={handleUpdateRole} handleToggleStatus={handleToggleStatus} isMobile={isMobile} />;
+      case "students":    return <StudentsTab students={students} searchTerm={searchTerm} handleSearchChange={handleSearchChange} handleToggleStatus={handleToggleStatus} handleDeleteStudent={handleDeleteStudent} isMobile={isMobile} />;
       case "instructors": return <InstructorsTab instructors={instructors} isMobile={isMobile} handleDeleteInstructor={handleDeleteInstructor} handleToggleInstructorStatus={handleToggleInstructorStatus} fetchAllInstructors={fetchAllInstructors} />;
       case "enrollments": return <EnrollmentsTab isMobile={isMobile} />; // ✅ ADDED
       case "media":       return <MediaTab videoUrl={videoUrl} videoLoading={videoLoading} fetchHomeVideo={fetchHomeVideo} setVideoLoading={setVideoLoading} />;

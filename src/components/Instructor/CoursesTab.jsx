@@ -98,7 +98,8 @@ export default function CoursesTab({
                   {c.title || "Untitled"}
                 </td>
                 <td style={{ padding: "12px", color: colors.textSecondary }}>
-                  {c.studentCount || 0}
+                  {/* ✅ FIX: Use enrollmentCount instead of studentCount */}
+                  {c.enrollmentCount || c.studentCount || 0}
                 </td>
                 <td style={{ padding: "12px", color: colors.teal, fontWeight: 600 }}>
                   ${c.price || "0"}

@@ -1,3 +1,4 @@
+// src/api/adminApi.js
 import api from "./axios";
 
 // ==================== DASHBOARD APIs ====================
@@ -64,6 +65,220 @@ export const updateCourseStatus = (id, status) => {
 // Get simple course list for admin (legacy)
 export const getAdminCoursesSimple = () => {
   return api.get("/admin/courses");
+};
+
+// ==================== INSTRUCTOR COURSE MANAGEMENT ====================
+
+// Get instructor's courses (for instructor dashboard)
+export const getInstructorCourses = async () => {
+  try {
+    const response = await api.get("/admin/instructor/courses");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor courses:", error);
+    throw error;
+  }
+};
+
+// Create new course (for instructor)
+export const createInstructorCourse = async (courseData) => {
+  try {
+    const response = await api.post("/admin/instructor/courses", courseData);
+    return response;
+  } catch (error) {
+    console.error("Error creating instructor course:", error);
+    throw error;
+  }
+};
+
+// Update instructor's course
+export const updateInstructorCourse = async (courseId, courseData) => {
+  try {
+    const response = await api.put(`/admin/instructor/courses/${courseId}`, courseData);
+    return response;
+  } catch (error) {
+    console.error("Error updating instructor course:", error);
+    throw error;
+  }
+};
+
+// Delete instructor's course
+export const deleteInstructorCourse = async (courseId) => {
+  try {
+    const response = await api.delete(`/admin/instructor/courses/${courseId}`);
+    return response;
+  } catch (error) {
+    console.error("Error deleting instructor course:", error);
+    throw error;
+  }
+};
+
+// Get instructor course details
+export const getInstructorCourseDetails = async (courseId) => {
+  try {
+    const response = await api.get(`/admin/instructor/courses/${courseId}`);
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor course details:", error);
+    throw error;
+  }
+};
+
+// ==================== INSTRUCTOR STUDENT MANAGEMENT ====================
+
+// Get instructor's students
+export const getInstructorStudents = async () => {
+  try {
+    const response = await api.get("/admin/instructor/students");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor students:", error);
+    throw error;
+  }
+};
+
+// Search students by name (within instructor's courses)
+export const searchInstructorStudentsByName = async (name) => {
+  try {
+    const response = await api.get("/admin/instructor/students/search", {
+      params: { name }
+    });
+    return response;
+  } catch (error) {
+    console.error("Error searching instructor students:", error);
+    throw error;
+  }
+};
+
+// Get instructor student details
+export const getInstructorStudentDetails = async (studentId) => {
+  try {
+    const response = await api.get(`/admin/instructor/students/${studentId}`);
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor student details:", error);
+    throw error;
+  }
+};
+
+// ==================== INSTRUCTOR ENROLLMENT MANAGEMENT ====================
+
+// Get instructor's enrollments
+export const getInstructorEnrollments = async () => {
+  try {
+    const response = await api.get("/admin/instructor/enrollments");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor enrollments:", error);
+    throw error;
+  }
+};
+
+// Update enrollment status (within instructor's courses)
+export const updateInstructorEnrollmentStatus = async (enrollmentId, status) => {
+  try {
+    const response = await api.patch(`/admin/instructor/enrollments/${enrollmentId}/status`, { status });
+    return response;
+  } catch (error) {
+    console.error("Error updating instructor enrollment status:", error);
+    throw error;
+  }
+};
+
+// ==================== INSTRUCTOR DASHBOARD STATS ====================
+
+// Get instructor dashboard stats
+export const getInstructorDashboardStats = async () => {
+  try {
+    const response = await api.get("/admin/instructor/dashboard/stats");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor dashboard stats:", error);
+    throw error;
+  }
+};
+
+// ==================== INSTRUCTOR MEDIA MANAGEMENT ====================
+
+// Get home video (instructor view)
+export const getInstructorHomeVideo = async () => {
+  try {
+    const response = await api.get("/admin/instructor/home-video");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor home video:", error);
+    throw error;
+  }
+};
+
+// Update home video URL (instructor view)
+export const updateInstructorHomeVideoUrl = async (videoUrl) => {
+  try {
+    const response = await api.put("/admin/instructor/home-video", { videoUrl });
+    return response;
+  } catch (error) {
+    console.error("Error updating instructor home video:", error);
+    throw error;
+  }
+};
+
+// ==================== INSTRUCTOR PROFILE MANAGEMENT ====================
+
+// Get instructor profile
+export const getInstructorProfile = async () => {
+  try {
+    const response = await api.get("/admin/instructor/profile");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor profile:", error);
+    throw error;
+  }
+};
+
+// Update instructor profile
+export const updateInstructorProfile = async (profileData) => {
+  try {
+    const response = await api.put("/admin/instructor/profile", profileData);
+    return response;
+  } catch (error) {
+    console.error("Error updating instructor profile:", error);
+    throw error;
+  }
+};
+
+// ==================== INSTRUCTOR ANALYTICS ====================
+
+// Get instructor analytics
+export const getInstructorAnalytics = async () => {
+  try {
+    const response = await api.get("/admin/instructor/analytics");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor analytics:", error);
+    throw error;
+  }
+};
+
+// Get instructor revenue stats
+export const getInstructorRevenueStats = async () => {
+  try {
+    const response = await api.get("/admin/instructor/revenue");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor revenue stats:", error);
+    throw error;
+  }
+};
+
+// Get instructor course performance
+export const getInstructorCoursePerformance = async (courseId) => {
+  try {
+    const response = await api.get(`/admin/instructor/courses/${courseId}/performance`);
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor course performance:", error);
+    throw error;
+  }
 };
 
 // ==================== USER MANAGEMENT APIs ====================
@@ -193,7 +408,7 @@ export const reactivateInstructor = (instructorId) => {
 };
 
 // Get courses taught by instructor
-export const getInstructorCourses = (instructorId) => {
+export const getInstructorCoursesByAdmin = (instructorId) => {
   return api.get(`/admin/instructors/${instructorId}/courses`);
 };
 
@@ -318,4 +533,111 @@ export const getAdminAuthHeaders = () => {
       Authorization: `Bearer ${token}`
     }
   };
+};
+
+// ==================== EXPORT ALL ====================
+
+export default {
+  // Dashboard
+  getDashboardKPIs,
+  getTopEnrolledCourses,
+  getRecentActivities,
+  getTopPerformingStudents,
+  getDashboardStats,
+  
+  // Course Management - Admin
+  getAdminCourses,
+  getAdminCourseById,
+  createAdminCourse,
+  updateAdminCourse,
+  deleteAdminCourse,
+  updateCourseStatus,
+  getAdminCoursesSimple,
+  
+  // Course Management - Instructor
+  getInstructorCourses,
+  createInstructorCourse,
+  updateInstructorCourse,
+  deleteInstructorCourse,
+  getInstructorCourseDetails,
+  
+  // Instructor Dashboard
+  getInstructorDashboardStats,
+  
+  // Instructor Students
+  getInstructorStudents,
+  searchInstructorStudentsByName,
+  getInstructorStudentDetails,
+  
+  // Instructor Enrollments
+  getInstructorEnrollments,
+  updateInstructorEnrollmentStatus,
+  
+  // Instructor Media
+  getInstructorHomeVideo,
+  updateInstructorHomeVideoUrl,
+  
+  // Instructor Profile
+  getInstructorProfile,
+  updateInstructorProfile,
+  
+  // Instructor Analytics
+  getInstructorAnalytics,
+  getInstructorRevenueStats,
+  getInstructorCoursePerformance,
+  
+  // User Management
+  searchUsersByName,
+  getAllUsers,
+  getUserById,
+  updateUserRole,
+  updateUserStatus,
+  deleteUser,
+  
+  // Student Management
+  getAllStudents,
+  getStudentById,
+  getStudentProgress,
+  updateStudentStatusById,
+  getStudentStats,
+  getAdminStudents,
+  
+  // Instructor Management
+  getAllInstructors,
+  getInstructorById,
+  createInstructor,
+  updateInstructor,
+  deleteInstructor,
+  hardDeleteInstructor,
+  updateInstructorStatus,
+  reactivateInstructor,
+  getInstructorCoursesByAdmin,
+  assignCourseToInstructor,
+  removeCourseFromInstructor,
+  getInstructorStats,
+  
+  // Enrollment Management
+  getAllEnrollments,
+  getEnrollmentById,
+  deleteEnrollmentById,
+  getEnrollmentStats,
+  getEnrollmentsByCourse,
+  getEnrollmentsByUser,
+  getUserEnrolledCourses,
+  enrollInCourse,
+  cancelEnrollment,
+  
+  // Media Management
+  getHomeVideo,
+  uploadHomeVideo,
+  deleteHomeVideo,
+  updateHomeVideoUrl,
+  
+  // Statistics
+  getLabCompletionStats,
+  getEnrollmentTrends,
+  
+  // Utility
+  checkAdminRole,
+  getAdminAuthHeaders,
 };
