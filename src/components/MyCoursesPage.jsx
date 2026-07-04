@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CourseDetailView from './CourseDetailView';
+import CourseEnrollmentPage from './CourseEnrollmentPage';
 import Swal from 'sweetalert2';
 import {
   getEnrolledCourses,
@@ -12,12 +13,43 @@ import {
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
+// ─── Design tokens ───────────────────────────────────────────────
+const COLORS = {
+  plumDark: '#3B2340',
+  plumMid: '#5B3A63',
+  plumLight: '#83698A',
+  accent: '#714B67',
+  ink: '#1F1B24',
+  slate: '#6B6470',
+  line: '#E8E3EA',
+  paper: '#FFFFFF',
+  canvas: '#FAF9FB',
+  tagBg: '#F1E9F0',
+  tagText: '#714B67',
+  success: '#2E8B57',
+};
+
+// ─── Course Image Mapping ────────────────────────────────────────
+const COURSE_IMAGES = {
+  'ccna': 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=250&fit=crop',
+  'ccnp': 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=250&fit=crop',
+  'ccie': 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&h=250&fit=crop',
+  'security': 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=250&fit=crop',
+  'linux': 'https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=400&h=250&fit=crop',
+  'python': 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400&h=250&fit=crop',
+  'fortinet': 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=250&fit=crop',
+  'aws': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&h=250&fit=crop',
+  'azure': 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=250&fit=crop',
+  'devops': 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=400&h=250&fit=crop',
+  'default': 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=250&fit=crop'
+};
+
 function MyCoursesPage() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [activeView, setActiveView] = useState('split');
+  const [activeView, setActiveView] = useState('catalog');
   const [activeSection, setActiveSection] = useState(0);
   const [completedSections, setCompletedSections] = useState([]);
   const [progress, setProgress] = useState(0);
@@ -39,6 +71,15 @@ function MyCoursesPage() {
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
   const isLoggedIn = !!localStorage.getItem('token');
+
+  // ─── Helper: Get course image ──────────────────────────────────────────
+  const getCourseImage = (title) => {
+    const name = title?.toLowerCase() || '';
+    for (const [key, url] of Object.entries(COURSE_IMAGES)) {
+      if (name.includes(key)) return url;
+    }
+    return COURSE_IMAGES.default;
+  };
 
   // ─── API calls ─────────────────────────────────────────────────────────
   const fetchEnrolledCourses = async () => {
@@ -88,7 +129,21 @@ function MyCoursesPage() {
     try {
       await enrollInCourse(courseId);
       await fetchEnrolledCourses();
-      Swal.fire('Enrolled!', 'Successfully enrolled.', 'success');
+      
+      const enrolledCourse = allCourses.find(c => c.id === courseId);
+      if (enrolledCourse) {
+        setSelectedCourse(enrolledCourse);
+        await loadCourseDetails(courseId);
+        setActiveView('split');
+      }
+      
+      Swal.fire({
+        title: 'Enrolled! 🎉',
+        text: 'You are now enrolled in this course. Start learning now!',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
     } catch (error) {
       Swal.fire('Error', 'Could not enroll. Please try again.', 'error');
     } finally {
@@ -111,7 +166,9 @@ function MyCoursesPage() {
             title: sub.title,
             topicTitle: topic.title,
             content: sub.content,
-            videoUrl: sub.videoUrl
+            videoUrl: sub.videoUrl,
+            videoUrls: sub.videoUrls || [],
+            ...sub
           });
         });
       });
@@ -133,6 +190,7 @@ function MyCoursesPage() {
         setCurrentSubtopic(allSubtopics[0]);
       }
     } catch (error) {
+      console.error('Error loading course details:', error);
       Swal.fire('Error', 'Could not load course content', 'error');
     } finally {
       setContentLoading(false);
@@ -148,19 +206,57 @@ function MyCoursesPage() {
     }
   };
 
-  const handleCourseClick = async (course) => {
+  // ─── Course Selection Handlers ──────────────────────────────────────
+  const handleViewCourse = async (course) => {
     setSelectedCourse(course);
-    await loadCourseDetails(course.id);
+    setActiveView('enrollment');
+    try {
+      await loadCourseDetails(course.id);
+    } catch (error) {
+      console.error('Error pre-loading course:', error);
+    }
   };
 
-  const handleBack = () => {
+  const handleContinueLearning = async (course) => {
+    setSelectedCourse(course);
+    setActiveView('split');
+    try {
+      await loadCourseDetails(course.id);
+    } catch (error) {
+      console.error('Error loading course:', error);
+      Swal.fire('Error', 'Could not load course content', 'error');
+    }
+  };
+
+  const handleStartLearning = async () => {
+    if (!isCourseEnrolled(selectedCourse?.id)) {
+      Swal.fire({
+        title: 'Not Enrolled',
+        text: 'Please enroll in this course first to start learning.',
+        icon: 'info',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
+    setActiveView('split');
+    if (selectedCourse) {
+      await loadCourseDetails(selectedCourse.id);
+    }
+  };
+
+  const handleBackToCatalog = () => {
     setSelectedCourse(null);
+    setActiveView('catalog');
     setTopics([]);
     setSubtopics([]);
     setImages([]);
     setImageErrors({});
     setCourseDetails(null);
     setCurrentSubtopic(null);
+  };
+
+  const handleBackFromEnrollment = () => {
+    handleBackToCatalog();
   };
 
   const markSectionComplete = (index) => {
@@ -199,30 +295,34 @@ function MyCoursesPage() {
     });
   };
 
-  const getCourseIcon = (title) => {
-    const name = title?.toLowerCase() || '';
-    if (name.includes('ccna')) return '🌐';
-    if (name.includes('ccnp')) return '🚀';
-    if (name.includes('ccie')) return '🔐';
-    if (name.includes('security')) return '🛡️';
-    if (name.includes('linux')) return '🐧';
-    if (name.includes('python')) return '🐍';
-    return '📄';
+  // ─── Helper: Determine if course is enrolled ──────────────────────────
+  const isCourseEnrolled = (courseId) => {
+    return courses.some((ec) => ec.id === courseId);
   };
 
-  const getGradient = (title) => {
+  // Each course gets a stable, deterministic accent + icon
+  const TRACKS = [
+    { match: 'ccna', icon: '🌐', tint: '#EAF6F1' },
+    { match: 'ccnp', icon: '🚀', tint: '#FDF3E7' },
+    { match: 'ccie', icon: '🔐', tint: '#FBEAEA' },
+    { match: 'security', icon: '🛡️', tint: '#F1EAFB' },
+    { match: 'linux', icon: '🐧', tint: '#E7F6FA' },
+    { match: 'python', icon: '🐍', tint: '#EAF6EF' },
+    { match: 'fortinet', icon: '🧱', tint: '#EFF1FB' },
+    { match: 'aws', icon: '☁️', tint: '#E8F4FD' },
+    { match: 'azure', icon: '💠', tint: '#E3F2FD' },
+    { match: 'devops', icon: '⚡', tint: '#FFF3E0' },
+  ];
+
+  const getTrack = (title) => {
     const name = title?.toLowerCase() || '';
-    if (name.includes('ccna')) return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-    if (name.includes('ccnp')) return 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
-    if (name.includes('ccie')) return 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-    if (name.includes('security')) return 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)';
-    if (name.includes('linux')) return 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)';
-    return 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+    return TRACKS.find(t => name.includes(t.match)) || { icon: '📄', tint: '#F2F1F6' };
   };
-const getImageUrl = (subtopicId, fileName) => {
-  if (!subtopicId) return FALLBACK_IMAGE;
-  return `${API_BASE}/admin/subtopic-images/${subtopicId}/${fileName}`;
-};
+
+  const getImageUrl = (subtopicId, fileName) => {
+    if (!subtopicId) return FALLBACK_IMAGE;
+    return `${API_BASE}/admin/subtopic-images/${subtopicId}/${fileName}`;
+  };
 
   const handleImageError = (id) => {
     if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));
@@ -239,44 +339,147 @@ const getImageUrl = (subtopicId, fileName) => {
     if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) fetchAllCourses();
   }, [activeTab, allCourses.length, loadingAllCourses]);
 
-  // If user logs out while on 'my' tab, switch to 'all'
   useEffect(() => {
     if (!isLoggedIn && activeTab === 'my') {
       setActiveTab('all');
     }
   }, [isLoggedIn, activeTab]);
 
-  // Styles (unchanged)
+  // ─── Styles ─────────────────────────────────────────────────────────────
   const styles = {
-    container: { minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%)', fontFamily: "'Inter', system-ui, sans-serif" },
-    header: { background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)', color: 'white', padding: isMobile ? '40px 20px' : '60px 40px', textAlign: 'center', position: 'relative', borderBottomLeftRadius: '30px', borderBottomRightRadius: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' },
-    backButton: { position: 'absolute', top: '20px', left: '20px', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '14px', padding: '8px 16px', borderRadius: '40px', transition: 'all 0.2s', '&:hover': { background: 'rgba(255,255,255,0.3)' } },
-    title: { fontSize: isMobile ? '28px' : '42px', fontWeight: '800', marginBottom: '12px', letterSpacing: '-0.5px' },
-    subtitle: { fontSize: isMobile ? '14px' : '18px', opacity: 0.9 },
-    statsRow: { display: 'flex', justifyContent: 'center', gap: isMobile ? '20px' : '40px', marginTop: '30px', flexWrap: 'wrap' },
-    statItem: { textAlign: 'center', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', padding: '15px 25px', borderRadius: '20px' },
-    statNumber: { fontSize: isMobile ? '28px' : '36px', fontWeight: '800', color: '#c7d2fe' },
-    statLabel: { fontSize: '13px', opacity: 0.9, marginTop: '5px' },
-    controls: { display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '30px', flexWrap: 'wrap', padding: '20px' },
-    controlBtn: (active) => ({ padding: '12px 28px', border: 'none', borderRadius: '40px', cursor: 'pointer', fontSize: '15px', fontWeight: '600', background: active ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : '#ffffff', color: active ? 'white' : '#4b5563', boxShadow: active ? '0 4px 15px rgba(99,102,241,0.4)' : '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s' }),
-    searchBar: { position: 'relative', maxWidth: '500px', margin: '0 auto 40px' },
-    searchInput: { width: '100%', padding: '14px 20px 14px 50px', border: 'none', borderRadius: '50px', fontSize: '15px', background: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', transition: 'box-shadow 0.2s', outline: 'none', '&:focus': { boxShadow: '0 4px 20px rgba(99,102,241,0.15)' } },
-    searchIcon: { position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', color: '#9ca3af' },
-    pdfsGrid: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px', padding: isMobile ? '20px' : '20px 40px', maxWidth: '1400px', margin: '0 auto' },
-    pdfCard: { background: 'white', borderRadius: '24px', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.02)', '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 20px 35px -10px rgba(0,0,0,0.1)' } },
-    pdfHeader: (gradient) => ({ height: isMobile ? '140px' : '180px', background: gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }),
-    pdfIcon: { fontSize: isMobile ? '56px' : '72px', filter: 'drop-shadow(2px 4px 8px rgba(0,0,0,0.1))' },
-    pdfBody: { padding: '24px' },
-    pdfTitle: { fontSize: '20px', fontWeight: '700', color: '#1e293b', marginBottom: '10px', wordBreak: 'break-word' },
-    pdfMeta: { display: 'flex', gap: '16px', fontSize: '13px', color: '#64748b', marginBottom: '20px', flexWrap: 'wrap' },
-    viewBtn: { width: '100%', padding: '12px', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: 'white', border: 'none', borderRadius: '40px', fontWeight: '600', cursor: 'pointer', transition: 'opacity 0.2s', '&:hover': { opacity: 0.9 } },
-    emptyState: { textAlign: 'center', padding: '80px 20px', background: 'white', borderRadius: '32px', maxWidth: '500px', margin: '40px auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' },
-    emptyIcon: { fontSize: '72px', marginBottom: '20px' },
-    emptyTitle: { fontSize: '24px', fontWeight: '700', color: '#1e293b', marginBottom: '10px' },
-    emptyText: { color: '#64748b', marginBottom: '30px' },
-    loadingContainer: { textAlign: 'center', padding: '80px', color: '#6366f1' },
-    spinner: { width: '60px', height: '60px', border: '4px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' },
-    footer: { textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '13px', borderTop: '1px solid #e2e8f0', marginTop: '40px' },
+    page: { minHeight: '100vh', background: COLORS.canvas, fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: COLORS.ink },
+
+    nav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '16px 20px' : '18px 40px', borderBottom: `1px solid ${COLORS.line}`, background: COLORS.paper },
+    navLeft: { display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' },
+    logoMark: { width: '30px', height: '30px', borderRadius: '8px', background: `linear-gradient(135deg, ${COLORS.plumMid}, ${COLORS.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '15px' },
+    logoText: { fontWeight: 800, fontSize: '18px', letterSpacing: '-0.3px', color: COLORS.ink },
+    navRight: { display: 'flex', alignItems: 'center', gap: '12px' },
+    navGhostBtn: { background: 'transparent', border: 'none', color: COLORS.ink, fontWeight: 600, fontSize: '14px', cursor: 'pointer', padding: '8px 4px' },
+    navPrimaryBtn: { background: COLORS.accent, color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 18px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' },
+
+    hero: { position: 'relative', overflow: 'hidden', background: `linear-gradient(120deg, ${COLORS.plumDark} 0%, ${COLORS.plumMid} 55%, ${COLORS.plumLight} 100%)`, padding: isMobile ? '44px 24px' : '64px 60px', color: '#fff' },
+    heroInner: { maxWidth: '760px' },
+    heroEyebrow: { fontSize: '13px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', opacity: 0.75, marginBottom: '14px' },
+    heroTitle: { fontSize: isMobile ? '32px' : '48px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.5px', marginBottom: '18px' },
+    heroText: { fontSize: isMobile ? '15px' : '17px', lineHeight: 1.6, opacity: 0.88, maxWidth: '520px', marginBottom: '28px' },
+    heroBtn: { background: '#fff', color: COLORS.accent, border: 'none', borderRadius: '8px', padding: '13px 26px', fontWeight: 700, fontSize: '15px', cursor: 'pointer', boxShadow: '0 10px 25px -8px rgba(0,0,0,0.4)' },
+    heroDecor: { position: 'absolute', right: isMobile ? '-60px' : '20px', top: '50%', transform: 'translateY(-50%)', fontSize: isMobile ? '100px' : '160px', opacity: 0.12, lineHeight: 1 },
+
+    sectionBar: { display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: '18px', padding: isMobile ? '28px 20px 0' : '40px 60px 0', maxWidth: '1320px', margin: '0 auto' },
+    sectionTitle: { fontSize: '24px', fontWeight: 800, letterSpacing: '-0.3px', color: COLORS.ink },
+    tabRow: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+    tabPill: (active) => ({ padding: '9px 18px', borderRadius: '999px', border: `1px solid ${active ? COLORS.accent : COLORS.line}`, background: active ? COLORS.accent : COLORS.paper, color: active ? '#fff' : COLORS.slate, fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }),
+    searchWrap: { position: 'relative', width: isMobile ? '100%' : '280px' },
+    searchIcon: { position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '15px', color: COLORS.slate },
+    searchInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px 10px 38px', border: `1px solid ${COLORS.line}`, borderRadius: '999px', fontSize: '14px', outline: 'none', background: COLORS.paper, color: COLORS.ink },
+
+    grid: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '28px', padding: isMobile ? '24px 20px 60px' : '28px 60px 80px', maxWidth: '1320px', margin: '0 auto' },
+    card: { 
+      background: COLORS.paper, 
+      borderRadius: '16px', 
+      overflow: 'hidden', 
+      cursor: 'pointer', 
+      transition: 'transform 0.2s, box-shadow 0.2s', 
+      display: 'flex', 
+      flexDirection: 'column',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      ':hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.10)',
+      }
+    },
+    cardImage: {
+      width: '100%',
+      height: '180px',
+      objectFit: 'cover',
+      background: '#f0f0f0',
+    },
+    cardBody: { 
+      padding: '18px 20px 16px', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '8px', 
+      flex: 1 
+    },
+    cardTitle: { 
+      fontSize: '17px', 
+      fontWeight: 700, 
+      color: COLORS.ink, 
+      lineHeight: 1.35,
+      marginBottom: '4px',
+      display: '-webkit-box',
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: 'vertical',
+      overflow: 'hidden',
+    },
+    cardMetaRow: { 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '16px', 
+      fontSize: '12.5px', 
+      color: COLORS.slate,
+      marginTop: 'auto',
+      paddingTop: '4px',
+      flexWrap: 'wrap',
+    },
+    cardFooter: { padding: '0 20px 18px' },
+    enrollBtn: { 
+      width: '100%', 
+      padding: '11px', 
+      background: COLORS.accent, 
+      color: '#fff', 
+      border: 'none', 
+      borderRadius: '10px', 
+      fontWeight: 700, 
+      fontSize: '13.5px', 
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      ':hover': {
+        background: '#5B3A63',
+        transform: 'scale(1.01)',
+      }
+    },
+    viewBtn: { 
+      width: '100%', 
+      padding: '11px', 
+      background: '#fff', 
+      color: COLORS.accent, 
+      border: `2px solid ${COLORS.accent}`, 
+      borderRadius: '10px', 
+      fontWeight: 700, 
+      fontSize: '13.5px', 
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      ':hover': {
+        background: COLORS.accent,
+        color: '#fff',
+      }
+    },
+    continueBtn: { 
+      width: '100%', 
+      padding: '11px', 
+      background: COLORS.accent, 
+      color: '#fff', 
+      border: 'none', 
+      borderRadius: '10px', 
+      fontWeight: 700, 
+      fontSize: '13.5px', 
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      ':hover': {
+        background: '#5B3A63',
+      }
+    },
+
+    emptyState: { textAlign: 'center', padding: '70px 20px', background: COLORS.paper, border: `1px solid ${COLORS.line}`, borderRadius: '16px', maxWidth: '480px', margin: '40px auto' },
+    emptyIcon: { fontSize: '56px', marginBottom: '16px' },
+    emptyTitle: { fontSize: '20px', fontWeight: 800, color: COLORS.ink, marginBottom: '8px' },
+    emptyText: { color: COLORS.slate, marginBottom: '24px', fontSize: '14px' },
+
+    loadingContainer: { textAlign: 'center', padding: '90px 20px', color: COLORS.accent },
+    spinner: { width: '46px', height: '46px', border: `4px solid ${COLORS.line}`, borderTopColor: COLORS.accent, borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 18px' },
+
+    footer: { textAlign: 'center', padding: '30px', color: COLORS.slate, fontSize: '13px', borderTop: `1px solid ${COLORS.line}` },
   };
 
   if (loading) {
@@ -289,7 +492,58 @@ const getImageUrl = (subtopicId, fileName) => {
     );
   }
 
-  if (selectedCourse) {
+  // ─── Render: Enrollment Page (View-Only) ──────────────────────────────
+  if (selectedCourse && activeView === 'enrollment') {
+    const enrollmentCourseData = {
+      id: selectedCourse.id,
+      title: selectedCourse.title || 'Course',
+      subtitle: selectedCourse.subtitle || 'Learn with expert instructors',
+      rating: selectedCourse.rating || 4.8,
+      reviews: selectedCourse.reviews || 1247,
+      students: selectedCourse.students || 168902,
+      lastUpdate: selectedCourse.lastUpdate || '06/05/2026',
+      duration: selectedCourse.duration || '5 hours 48 minutes',
+      level: selectedCourse.level || 'Intermediate',
+      language: selectedCourse.language || 'English',
+      certificate: selectedCourse.certificate || 'Yes',
+      price: selectedCourse.price || 49.99,
+      image: selectedCourse.image || getCourseImage(selectedCourse.title),
+      description: selectedCourse.description || 'Master networking fundamentals with this comprehensive course.',
+      objectives: selectedCourse.objectives || [],
+      trainer: selectedCourse.trainer || {
+        name: 'Expert Instructor',
+        title: 'Senior Network Engineer',
+        bio: 'Experienced network engineer with years of industry expertise.',
+        avatar: '',
+        experience: '10+ years',
+        certifications: ['CCNA', 'CCNP', 'CCIE'],
+        company: 'Cisco Systems',
+        students: 45000,
+        courses: 12,
+        rating: 4.9,
+      },
+      syllabus: selectedCourse.syllabus || [],
+      requirements: selectedCourse.requirements || [],
+      targetAudience: selectedCourse.targetAudience || [],
+    };
+
+    const isEnrolled = isCourseEnrolled(selectedCourse.id);
+
+    return (
+      <CourseEnrollmentPage
+        course={enrollmentCourseData}
+        isEnrolled={isEnrolled}
+        onEnroll={() => handleEnroll(selectedCourse.id)}
+        onBack={handleBackFromEnrollment}
+        onStartLearning={handleStartLearning}
+        viewOnly={!isEnrolled}
+        isLoggedIn={isLoggedIn}
+      />
+    );
+  }
+
+  // ─── Render: Course Detail View ──────────────────────────────────────
+  if (selectedCourse && activeView === 'split') {
     return (
       <CourseDetailView
         selectedCourse={selectedCourse}
@@ -302,7 +556,7 @@ const getImageUrl = (subtopicId, fileName) => {
         completedSections={completedSections}
         currentSubtopic={currentSubtopic}
         contentLoading={contentLoading}
-        handleBack={handleBack}
+        handleBack={handleBackToCatalog}
         setActiveView={setActiveView}
         setActiveSection={setActiveSection}
         setCurrentSubtopic={setCurrentSubtopic}
@@ -317,124 +571,113 @@ const getImageUrl = (subtopicId, fileName) => {
     );
   }
 
-  // ─── Course list view with dynamic header and conditional tab ─────────────────
+  // ─── Render: Course Catalog ───────────────────────────────────────────
+  const visibleCourses = (activeTab === 'my' ? courses : allCourses)
+    .filter((c) => c.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <button style={styles.backButton} onClick={() => navigate('/')}>← Back to Home</button>
-
-        <h1 style={styles.title}>
-          {activeTab === 'my' ? '📘 My Courses' : '🗂️ All Courses'}
-        </h1>
-
-        <p style={styles.subtitle}>
-          {activeTab === 'my'
-            ? 'Continue where you left off'
-            : 'Discover new courses to boost your career'}
-        </p>
-
-        <div style={styles.statsRow}>
-          <div style={styles.statItem}>
-            <div style={styles.statNumber}>
-              {activeTab === 'my' ? courses.length : allCourses.length}
-            </div>
-            <div style={styles.statLabel}>
-              {activeTab === 'my' ? 'Enrolled Courses' : 'Available Courses'}
-            </div>
-          </div>
+    <div style={styles.page}>
+      {/* ─── Hero ────────────────────────────────────────────────────── */}
+      <div style={styles.hero}>
+        <span style={styles.heroDecor}>🎓</span>
+        <div style={styles.heroInner}>
+          <div style={styles.heroEyebrow}>Networking &amp; Security Academy</div>
+          <h1 style={styles.heroTitle}>Knowledge is a superpower</h1>
+          <p style={styles.heroText}>
+            Level up your networking and security skills — from CCNA fundamentals
+            to CCIE expert tracks. Your next certification starts here.
+          </p>
+          <button style={styles.heroBtn} onClick={() => setActiveTab('all')}>Pick a course →</button>
         </div>
       </div>
 
-      {/* ─── Tab Buttons ─────────────────────────────────────────────────── */}
-      <div style={styles.controls}>
-        {isLoggedIn && (
-          <button
-            style={styles.controlBtn(activeTab === 'my')}
-            onClick={() => setActiveTab('my')}
-          >
-            📘 My Courses
+      {/* ─── Section bar: title, tabs, search ───────────────────────────── */}
+      <div style={styles.sectionBar}>
+        <div style={styles.sectionTitle}>
+          {activeTab === 'my' ? 'My Courses' : 'All Courses'}
+        </div>
+        <div style={styles.tabRow}>
+          {isLoggedIn && (
+            <button style={styles.tabPill(activeTab === 'my')} onClick={() => setActiveTab('my')}>
+              My Courses
+            </button>
+          )}
+          <button style={styles.tabPill(activeTab === 'all')} onClick={() => setActiveTab('all')}>
+            All Courses
           </button>
-        )}
-        <button
-          style={styles.controlBtn(activeTab === 'all')}
-          onClick={() => setActiveTab('all')}
-        >
-          🗂️ All Courses
-        </button>
+        </div>
+        <div style={styles.searchWrap}>
+          <span style={styles.searchIcon}>🔍</span>
+          <input
+            type="text"
+            placeholder="Search courses..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
       </div>
 
-      <div style={styles.searchBar}>
-        <span style={styles.searchIcon}>🔍</span>
-        <input
-          type="text"
-          placeholder="Search courses..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={styles.searchInput}
-        />
-      </div>
-
+      {/* ─── My Courses ──────────────────────────────────────────────── */}
       {activeTab === 'my' && (
         <>
           {!isLoggedIn ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>🔐</div>
-              <h3 style={styles.emptyTitle}>Login Required</h3>
-              <p style={styles.emptyText}>Please login to see your enrolled courses.</p>
-              <button onClick={() => navigate('/login')} style={styles.viewBtn}>
-                Go to Login
-              </button>
+              <h3 style={styles.emptyTitle}>Login required</h3>
+              <p style={styles.emptyText}>Please log in to see your enrolled courses.</p>
+              <button onClick={() => navigate('/login')} style={styles.enrollBtn}>Go to Login</button>
             </div>
           ) : courses.length === 0 ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>📚</div>
               <h3 style={styles.emptyTitle}>No courses yet</h3>
-              <p style={styles.emptyText}>Enroll in a course to start learning!</p>
-              <button onClick={() => setActiveTab('all')} style={styles.viewBtn}>
-                Browse All Courses
-              </button>
+              <p style={styles.emptyText}>Enroll in a course to start learning.</p>
+              <button onClick={() => setActiveTab('all')} style={styles.enrollBtn}>Browse All Courses</button>
             </div>
           ) : (
-            <div style={styles.pdfsGrid}>
-              {courses
-                .filter((c) =>
-                  c.title?.toLowerCase().includes(searchTerm.toLowerCase())
-                )
-                .map((course) => (
-                  <div
-                    key={course.id}
-                    style={styles.pdfCard}
-                    onClick={() => handleCourseClick(course)}
-                  >
-                    <div style={styles.pdfHeader(getGradient(course.title))}>
-                      <span style={styles.pdfIcon}>
-                        {getCourseIcon(course.title)}
-                      </span>
-                    </div>
-                    <div style={styles.pdfBody}>
-                      <h3 style={styles.pdfTitle}>{course.title}</h3>
-                      <div style={styles.pdfMeta}>
-                        <span>⭐ {course.rating || '4.8'}</span>
-                        <span>⏱ {course.duration || '40h'}</span>
-                        <span>👥 {course.members || '5k+'}</span>
+            <div style={styles.grid}>
+              {visibleCourses.map((course) => {
+                const track = getTrack(course.title);
+                const imageUrl = getCourseImage(course.title);
+                return (
+                  <div key={course.id} style={styles.card}>
+                    <img 
+                      src={imageUrl} 
+                      alt={course.title}
+                      style={styles.cardImage}
+                      onError={(e) => {
+                        e.target.src = COURSE_IMAGES.default;
+                      }}
+                    />
+                    <div style={styles.cardBody}>
+                      <div style={styles.cardTitle}>{course.title}</div>
+                      <div style={styles.cardMetaRow}>
+                        <span>⏱ {course.duration || '—'}</span>
+                        <span>📋 {course.steps || course.subtopicCount || '—'} steps</span>
+                        <span>{track.icon}</span>
                       </div>
-                      <button
-                        style={styles.viewBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCourseClick(course);
+                    </div>
+                    <div style={styles.cardFooter}>
+                      <button 
+                        style={styles.continueBtn} 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleContinueLearning(course); 
                         }}
                       >
-                        📖 Continue Learning
+                        Continue Learning
                       </button>
                     </div>
                   </div>
-                ))}
+                );
+              })}
             </div>
           )}
         </>
       )}
 
+      {/* ─── All Courses ─────────────────────────────────────────────── */}
       {activeTab === 'all' && (
         <>
           {loadingAllCourses ? (
@@ -449,60 +692,83 @@ const getImageUrl = (subtopicId, fileName) => {
               <p style={styles.emptyText}>Check back later for new courses.</p>
             </div>
           ) : (
-            <div style={styles.pdfsGrid}>
-              {allCourses
-                .filter((c) =>
-                  c.title?.toLowerCase().includes(searchTerm.toLowerCase())
-                )
-                .map((course) => {
-                  const isEnrolled =
-                    isLoggedIn && courses.some((ec) => ec.id === course.id);
-                  return (
-                    <div key={course.id} style={styles.pdfCard}>
-                      <div style={styles.pdfHeader(getGradient(course.title))}>
-                        <span style={styles.pdfIcon}>
-                          {getCourseIcon(course.title)}
+            <div style={styles.grid}>
+              {visibleCourses.map((course) => {
+                const track = getTrack(course.title);
+                const isEnrolled = isLoggedIn && courses.some((ec) => ec.id === course.id);
+                const imageUrl = getCourseImage(course.title);
+                return (
+                  <div
+                    key={course.id}
+                    style={styles.card}
+                  >
+                    <div style={{ position: 'relative' }}>
+                      <img 
+                        src={imageUrl} 
+                        alt={course.title}
+                        style={styles.cardImage}
+                        onError={(e) => {
+                          e.target.src = COURSE_IMAGES.default;
+                        }}
+                      />
+                      {isEnrolled && (
+                        <span style={{
+                          position: 'absolute',
+                          top: '12px',
+                          right: '12px',
+                          background: COLORS.success,
+                          color: '#fff',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '4px 12px',
+                          borderRadius: '999px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        }}>
+                          Enrolled
                         </span>
-                      </div>
-                      <div style={styles.pdfBody}>
-                        <h3 style={styles.pdfTitle}>{course.title}</h3>
-                        <div style={styles.pdfMeta}>
-                          <span>⭐ {course.rating || '4.8'}</span>
-                          <span>⏱ {course.duration || '40h'}</span>
-                          <span>👥 {course.members || '5k+'}</span>
-                        </div>
-                        {isEnrolled ? (
-                          <button
-                            style={{ ...styles.viewBtn, background: '#10b981' }}
-                            onClick={() => handleCourseClick(course)}
-                          >
-                            📖 Continue Learning
-                          </button>
-                        ) : (
-                          <button
-                            style={styles.viewBtn}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEnroll(course.id);
-                            }}
-                            disabled={enrollingCourseId === course.id}
-                          >
-                            {enrollingCourseId === course.id
-                              ? 'Enrolling...'
-                              : '➕ Enroll Now'}
-                          </button>
-                        )}
+                      )}
+                    </div>
+                    <div style={styles.cardBody}>
+                      <div style={styles.cardTitle}>{course.title}</div>
+                      <div style={styles.cardMetaRow}>
+                        <span>⏱ {course.duration || '—'}</span>
+                        <span>📋 {course.steps || course.subtopicCount || '—'} steps</span>
+                        <span>{track.icon}</span>
                       </div>
                     </div>
-                  );
-                })}
+                    <div style={styles.cardFooter}>
+                      {isEnrolled ? (
+                        <button 
+                          style={styles.continueBtn} 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handleContinueLearning(course); 
+                          }}
+                        >
+                          Continue Learning
+                        </button>
+                      ) : (
+                        <button
+                          style={styles.viewBtn}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handleViewCourse(course); 
+                          }}
+                        >
+                          View Course
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
       )}
 
       <div style={styles.footer}>
-        <p>✨ Click any course to resume learning | Progress saved automatically ✨</p>
+        <p>Click any course to view details — enrolled courses can be resumed anytime.</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
