@@ -68,7 +68,10 @@ export const updateInstructorCourse = async (courseId, courseData) => {
     throw error;
   }
 };
-
+export const getRecentActivity = async (limit = 10) => {
+  const response = await api.get(`/instructor/activity/recent?limit=${limit}`);
+  return response.data;
+};
 // Delete course
 export const deleteInstructorCourse = async (courseId) => {
   try {

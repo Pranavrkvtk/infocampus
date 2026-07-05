@@ -1,5 +1,5 @@
 // src/components/CoursesTab.jsx
-import React from "react";
+import React, { useState } from "react";
 import { colors, Badge } from "./AdminStyles";
 
 export default function CoursesTab({
@@ -11,6 +11,27 @@ export default function CoursesTab({
   handleDeleteCourse,
   isInstructor = false,
 }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchField, setSearchField] = useState("title"); // 'title', 'id', 'status', 'level'
+
+  // Filter courses based on search
+  const filteredCourses = courses.filter((course) => {
+    const searchLower = searchTerm.toLowerCase().trim();
+    if (!searchLower) return true;
+
+    switch (searchField) {
+      case "id":
+        return course.id.toString().includes(searchLower);
+      case "status":
+        return (course.status || "DRAFT").toLowerCase().includes(searchLower);
+      case "level":
+        return (course.level || "Beginner").toLowerCase().includes(searchLower);
+      case "title":
+      default:
+        return (course.title || "Untitled").toLowerCase().includes(searchLower);
+    }
+  });
+
   return (
     <div
       style={{
@@ -35,7 +56,8 @@ export default function CoursesTab({
             {isInstructor ? "🌐 My Courses" : "🌐 All Courses"}
           </h2>
           <p style={{ fontSize: 12, color: colors.textMuted }}>
-            Total {courses.length} {isInstructor ? "courses you're teaching" : "courses available"}
+            Total {filteredCourses.length} {isInstructor ? "courses you're teaching" : "courses available"}
+            {searchTerm && ` (filtered from ${courses.length})`}
           </p>
         </div>
         <button
@@ -64,6 +86,94 @@ export default function CoursesTab({
         </button>
       </div>
 
+      {/* Search Bar */}
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          marginBottom: 20,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <input
+            type="text"
+            placeholder="Search courses..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 16px",
+              borderRadius: 8,
+              border: `1px solid ${colors.borderLight}`,
+              background: colors.bgBase,
+              color: colors.textPrimary,
+              fontSize: 14,
+              outline: "none",
+              transition: "all 0.2s ease",
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = colors.primary;
+              e.currentTarget.style.boxShadow = `0 0 0 3px ${colors.primarySoft}`;
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = colors.borderLight;
+              e.currentTarget.style.boxShadow = "none";
+            }}
+          />
+        </div>
+        <select
+          value={searchField}
+          onChange={(e) => setSearchField(e.target.value)}
+          style={{
+            padding: "10px 16px",
+            borderRadius: 8,
+            border: `1px solid ${colors.borderLight}`,
+            background: colors.bgBase,
+            color: colors.textPrimary,
+            fontSize: 14,
+            outline: "none",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = colors.primary;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = colors.borderLight;
+          }}
+        >
+          <option value="title">Search by Title</option>
+          <option value="id">Search by ID</option>
+          <option value="status">Search by Status</option>
+          <option value="level">Search by Level</option>
+        </select>
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm("")}
+            style={{
+              padding: "10px 20px",
+              borderRadius: 8,
+              border: `1px solid ${colors.borderLight}`,
+              background: colors.surface,
+              color: colors.textSecondary,
+              cursor: "pointer",
+              fontSize: 14,
+              transition: "all 0.2s ease",
+              whiteSpace: "nowrap",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = colors.borderLight;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = colors.surface;
+            }}
+          >
+            ✕ Clear
+          </button>
+        )}
+      </div>
+
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800 }}>
           <thead>
@@ -78,7 +188,7 @@ export default function CoursesTab({
             </tr>
           </thead>
           <tbody>
-            {courses.map((c, idx) => (
+            {filteredCourses.map((c, idx) => (
               <tr
                 key={c.id}
                 style={{
@@ -98,7 +208,6 @@ export default function CoursesTab({
                   {c.title || "Untitled"}
                 </td>
                 <td style={{ padding: "12px", color: colors.textSecondary }}>
-                  {/* ✅ FIX: Use enrollmentCount instead of studentCount */}
                   {c.enrollmentCount || c.studentCount || 0}
                 </td>
                 <td style={{ padding: "12px", color: colors.teal, fontWeight: 600 }}>
@@ -161,7 +270,7 @@ export default function CoursesTab({
             ))}
           </tbody>
         </table>
-        {courses.length === 0 && (
+        {filteredCourses.length === 0 && (
           <div
             style={{
               textAlign: "center",
@@ -169,12 +278,33 @@ export default function CoursesTab({
               color: colors.textMuted,
             }}
           >
-            <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>
+              {searchTerm ? "🔍" : "📚"}
+            </div>
             <p style={{ fontSize: 16, fontWeight: 500 }}>
-              {isInstructor
+              {searchTerm
+                ? `No courses found matching "${searchTerm}"`
+                : isInstructor
                 ? "No courses yet. Click 'New Course' to get started!"
                 : "No courses available."}
             </p>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                style={{
+                  marginTop: 12,
+                  padding: "8px 20px",
+                  borderRadius: 6,
+                  border: `1px solid ${colors.borderLight}`,
+                  background: colors.surface,
+                  color: colors.textSecondary,
+                  cursor: "pointer",
+                  fontSize: 13,
+                }}
+              >
+                Clear Search
+              </button>
+            )}
           </div>
         )}
       </div>

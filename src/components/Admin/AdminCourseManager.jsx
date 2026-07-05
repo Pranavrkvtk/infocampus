@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
+import AddCourseModal from './AddCourseModal'; // ✅ Import AddCourseModal
 
 const API_BASE = 'http://localhost:8082/api';
 
@@ -176,14 +177,12 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.show('Please select an image file', 'error');
       event.target.value = '';
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.show('Image size should be less than 5MB', 'error');
       event.target.value = '';
@@ -215,7 +214,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
         if (onImageUploaded) {
           onImageUploaded(result.course);
         }
-        // Refresh preview
         setPreviewUrl(`${API_BASE}${result.imageUrl}`);
       } else {
         throw new Error(result.message || 'Upload failed');
@@ -307,19 +305,14 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR (with image upload)
+// COURSE SELECTOR (with AddCourseModal)
 // ═══════════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR (with image upload - FIXED)
-// ═══════════════════════════════════════════════════════════════════════════════
-function CourseSelector({ selectedCourse, onSelect, toast, onCourseUpdate }) {
+function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newCourse, setNewCourse] = useState({ title: '', description: '', instructor: '', level: 'Beginner', duration: '', price: 0 });
-  const [creating, setCreating] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const loadCourses = async () => {
     setLoading(true);
@@ -332,25 +325,9 @@ function CourseSelector({ selectedCourse, onSelect, toast, onCourseUpdate }) {
 
   useEffect(() => { loadCourses(); }, []);
 
-  const handleCreateCourse = async () => {
-    if (!newCourse.title.trim()) { toast.show('Please enter a course title', 'error'); return; }
-    setCreating(true);
-    try {
-      const response = await fetch(`${API_BASE}/admin/courses`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify(newCourse),
-      });
-      if (response.ok) {
-        const newCourseData = await response.json();
-        await loadCourses();
-        setNewCourse({ title: '', description: '', instructor: '', level: 'Beginner', duration: '', price: 0 });
-        setShowCreateModal(false);
-        onSelect(newCourseData);
-        toast.show(`Course "${newCourse.title}" created!`);
-      } else throw new Error('Failed to create course');
-    } catch (error) { toast.show(error.message, 'error'); }
-    finally { setCreating(false); }
+  const handleCourseCreated = async () => {
+    await loadCourses();
+    toast.show('Course created successfully!', 'success');
   };
 
   const filtered = courses.filter(c => c.title?.toLowerCase().includes(search.toLowerCase()));
@@ -372,7 +349,9 @@ function CourseSelector({ selectedCourse, onSelect, toast, onCourseUpdate }) {
       <div style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <Lbl>Select course to manage</Lbl>
-          <Btn size="sm" variant="dashed" onClick={() => setShowCreateModal(true)}>+ Create New Course</Btn>
+          <Btn size="sm" variant="dashed" onClick={() => setIsAddModalOpen(true)}>
+            + Create New Course
+          </Btn>
         </div>
         <Inp value={search} onChange={setSearch} placeholder="Search courses…" />
         <div style={{ marginTop: 12 }}>
@@ -428,30 +407,20 @@ function CourseSelector({ selectedCourse, onSelect, toast, onCourseUpdate }) {
           }
         </div>
       </div>
-      {showCreateModal && (
-        <Modal title="Create New Course" onClose={() => setShowCreateModal(false)} width={600}>
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div><Lbl>Course Title *</Lbl><Inp value={newCourse.title} onChange={v => setNewCourse({ ...newCourse, title: v })} /></div>
-            <div><Lbl>Description</Lbl><Txta value={newCourse.description} onChange={v => setNewCourse({ ...newCourse, description: v })} rows={3} /></div>
-            <div><Lbl>Instructor</Lbl><Inp value={newCourse.instructor} onChange={v => setNewCourse({ ...newCourse, instructor: v })} /></div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{ flex: 1 }}><Lbl>Level</Lbl><Inp value={newCourse.level} onChange={v => setNewCourse({ ...newCourse, level: v })} /></div>
-              <div style={{ flex: 1 }}><Lbl>Duration</Lbl><Inp value={newCourse.duration} onChange={v => setNewCourse({ ...newCourse, duration: v })} /></div>
-            </div>
-            <div><Lbl>Price</Lbl><Inp type="number" value={newCourse.price} onChange={v => setNewCourse({ ...newCourse, price: parseFloat(v) || 0 })} /></div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <Btn variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Btn>
-              <Btn onClick={handleCreateCourse} disabled={creating || !newCourse.title.trim()}>{creating ? 'Creating...' : 'Create Course'}</Btn>
-            </div>
-          </div>
-        </Modal>
-      )}
+
+      {/* ✅ Use AddCourseModal */}
+      <AddCourseModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onCourseCreated={handleCourseCreated}
+        isInstructor={false}
+      />
     </>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TOPIC MANAGER (with props for expanded topics and subtopic selection)
+// TOPIC MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════
 function TopicManager({
   courseId,
@@ -614,7 +583,7 @@ function TopicManager({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC MANAGER (unchanged)
+// SUBTOPIC MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiveSubId, toast }) {
   const [modal, setModal] = useState(null);
@@ -707,7 +676,7 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INTERVIEW QUESTIONS TAB (unchanged)
+// INTERVIEW QUESTIONS TAB
 // ═══════════════════════════════════════════════════════════════════════════════
 function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
   const [questions, setQuestions] = useState(initialData || []);
@@ -776,7 +745,7 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// EXAM QUESTIONS TAB (unchanged)
+// EXAM QUESTIONS TAB
 // ═══════════════════════════════════════════════════════════════════════════════
 function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   const [questions, setQuestions] = useState(initialData || []);
@@ -856,7 +825,7 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LAB EXERCISES TAB (unchanged)
+// LAB EXERCISES TAB
 // ═══════════════════════════════════════════════════════════════════════════════
 function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   const [labs, setLabs] = useState(initialData || []);
@@ -958,7 +927,7 @@ function MarkdownImage({ src, alt }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR (with search & yellow highlight using rehypeRaw)
+// SUBTOPIC CONTENT EDITOR
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSearchTerm }) {
   const [notes, setNotes] = useState(sub.content || '');
@@ -970,12 +939,10 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
   const [labExercises, setLabExercises] = useState(sub.labExercises || []);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
-  // ── Search state ────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState('');
   const [matches, setMatches] = useState([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
 
-  // ── When highlightSearchTerm prop changes, set local search term ──────────
   useEffect(() => {
     if (highlightSearchTerm && highlightSearchTerm.trim()) {
       setSearchTerm(highlightSearchTerm);
@@ -984,7 +951,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     }
   }, [highlightSearchTerm]);
 
-  // ── Compute search matches ──────────────────────────────────────────────────
   useEffect(() => {
     if (!searchTerm.trim()) {
       setMatches([]);
@@ -1002,7 +968,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     setCurrentMatchIndex(found.length > 0 ? 0 : -1);
   }, [searchTerm, notes]);
 
-  // ── Navigate to a specific match ────────────────────────────────────────────
   const goToMatch = (index) => {
     if (index < 0 || index >= matches.length) return;
     const match = matches[index];
@@ -1017,7 +982,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     }
   };
 
-  // ── Rest of the component logic ────────────────────────────────────────────
   useEffect(() => {
     setNotes(sub.content || '');
     setVideoUrl(sub.videoUrl || '');
@@ -1105,7 +1069,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     { key: 'lab', label: '🧪 Lab Steps' },
   ];
 
-  // ── Base markdown components (images) ──
   const markdownComponents = {
     img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
   };
@@ -1134,7 +1097,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
       <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 340px)' }}>
         {activeTab === 'notes' && (
           <div style={{ padding: 22 }}>
-            {/* ── Toolbar ── */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Lbl>📝 Markdown Editor (Admin Editable)</Lbl>
               <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">
@@ -1142,14 +1104,12 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
               </Btn>
             </div>
 
-            {/* ── Upload button ── */}
             <DocumentUploadButton
               subtopicId={subtopicId}
               uploading={uploadingDoc}
               onFileSelected={uploadDocument}
             />
 
-            {/* ── Search bar ── */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
               <input
                 type="text"
@@ -1216,7 +1176,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
               )}
             </div>
 
-            {/* ── Editable textarea ── */}
             <div style={{ marginBottom: 20 }}>
               <textarea
                 id="notes-editor"
@@ -1238,7 +1197,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
               />
             </div>
 
-            {/* ── Preview with yellow highlighting (rehypeRaw) ── */}
             <div>
               <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: clr.muted }}>
                 📄 Preview (Students will see this with copy protection) – <mark style={{ background: '#fde047', padding: '0 4px', borderRadius: '2px' }}>yellow</mark> highlights matches
@@ -1322,14 +1280,12 @@ export default function AdminCourseManager() {
     pageSize: 50, hasNext: false, hasPrevious: false,
   });
 
-  // ── Global search state ────────────────────────────────────────────────────
   const [courseSearchTerm, setCourseSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [highlightSearchTerm, setHighlightSearchTerm] = useState('');
   const [expandedTopics, setExpandedTopics] = useState({});
 
-  // ── Compute search results across all subtopics ────────────────────────────
   const allSubtopics = useMemo(() => {
     const subs = [];
     topics.forEach(topic => {
@@ -1377,7 +1333,6 @@ export default function AdminCourseManager() {
     setShowResults(results.length > 0);
   }, [courseSearchTerm, allSubtopics]);
 
-  // ── Navigate to a search result ────────────────────────────────────────────
   const navigateToResult = (result) => {
     setActiveTopicId(result.topicId);
     setActiveSubId(result.id);
@@ -1433,8 +1388,6 @@ export default function AdminCourseManager() {
 
   const handleCourseUpdate = (updatedCourse) => {
     setSelectedCourse(updatedCourse);
-    // Refresh the course list in the sidebar
-    // You can add logic here to update the course in the courses list
   };
 
   const setSubtopics = (topicId, updater) => {

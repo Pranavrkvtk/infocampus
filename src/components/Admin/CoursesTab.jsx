@@ -32,6 +32,10 @@ export default function CoursesTab({
   const [updating, setUpdating] = useState(false);
   const [loadingInstructors, setLoadingInstructors] = useState(false);
   
+  // ✅ Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterInstructor, setFilterInstructor] = useState("ALL");
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
@@ -54,8 +58,13 @@ export default function CoursesTab({
   useEffect(() => {
     setSelectedCourses([]);
     setSelectAll(false);
-    setCurrentPage(1); // Reset to first page when courses change
+    setCurrentPage(1);
   }, [courses]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterInstructor]);
 
   const fetchAvailableCourses = async () => {
     try {
@@ -72,10 +81,8 @@ export default function CoursesTab({
       const response = await getAllInstructors();
       console.log('Full response from getAllInstructors:', response);
       
-      // Handle different response structures
       let instructorsData = [];
       
-      // Check if response has data property
       if (response && response.data) {
         if (Array.isArray(response.data)) {
           instructorsData = response.data;
@@ -92,7 +99,6 @@ export default function CoursesTab({
         instructorsData = response.content;
       }
       
-      // Filter out invalid instructors
       const validInstructors = instructorsData.filter(inst => 
         inst && (inst.id || inst._id) && (inst.name || inst.email)
       );
@@ -111,7 +117,6 @@ export default function CoursesTab({
     }
   };
 
-  // Handle individual course selection
   const handleSelectCourse = (courseId) => {
     setSelectedCourses(prev => {
       if (prev.includes(courseId)) {
@@ -122,7 +127,6 @@ export default function CoursesTab({
     });
   };
 
-  // Handle select all on current page
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedCourses([]);
@@ -133,7 +137,6 @@ export default function CoursesTab({
     setSelectAll(!selectAll);
   };
 
-  // Bulk delete selected courses
   const handleBulkDelete = async () => {
     if (selectedCourses.length === 0) {
       Swal.fire("No Selection", "Please select at least one course to delete.", "info");
@@ -171,7 +174,6 @@ export default function CoursesTab({
     });
 
     try {
-      // Delete all selected courses one by one
       const deletePromises = selectedCourses.map((id) => {
         if (isInstructor) {
           return deleteInstructorCourse(id);
@@ -259,19 +261,15 @@ export default function CoursesTab({
     }
   };
 
-  // Handle inline edit with instructor dropdown
   const handleInlineEdit = (course) => {
-    // Find the instructor ID from the course data
     let instructorId = null;
     if (course.instructorId) {
       instructorId = course.instructorId;
     } else if (course.instructor && typeof course.instructor === 'object') {
       instructorId = course.instructor.id;
     } else if (typeof course.instructor === 'string' && !isNaN(course.instructor)) {
-      // If instructor is a string that looks like a number (ID)
       instructorId = parseInt(course.instructor);
     } else if (typeof course.instructor === 'string') {
-      // Try to find instructor by name
       const foundInstructor = instructors.find(i => 
         i.name === course.instructor || 
         i.email === course.instructor
@@ -281,7 +279,8 @@ export default function CoursesTab({
     
     setEditingCourse({ 
       ...course, 
-      instructorId: instructorId 
+      instructorId: instructorId,
+      description: course.description || ''
     });
   };
 
@@ -294,7 +293,6 @@ export default function CoursesTab({
     
     setUpdating(true);
     try {
-      // Prepare update data for backend
       const updateData = {
         title: editingCourse.title,
         description: editingCourse.description || "",
@@ -305,22 +303,18 @@ export default function CoursesTab({
         imageUrl: editingCourse.imageUrl || ""
       };
 
-      // For admin mode, include instructor as string (backend expects string)
       if (!isInstructor) {
-        // Backend expects instructor as a string (ID as string)
         if (editingCourse.instructorId) {
           updateData.instructor = String(editingCourse.instructorId);
         } else {
           updateData.instructor = null;
         }
       } else {
-        // Instructor mode: keep the instructor as string
         updateData.instructor = editingCourse.instructor || String(editingCourse.instructorId) || null;
       }
 
       console.log('Sending update data:', updateData);
       
-      // Use the appropriate update function
       if (isInstructor) {
         await updateInstructorCourse(editingCourse.id, updateData);
       } else {
@@ -348,23 +342,60 @@ export default function CoursesTab({
     }
   };
 
+  // ✅ Get unique instructors for filter
+  const getUniqueInstructors = () => {
+    const instructorNames = new Set();
+    courses.forEach(course => {
+      let name = course.instructor || "Unknown";
+      if (typeof course.instructor === 'object' && course.instructor !== null) {
+        name = course.instructor.name || course.instructor.email || "Unknown";
+      } else if (typeof course.instructor === 'string' && !isNaN(course.instructor)) {
+        const found = instructors.find(i => i.id === parseInt(course.instructor));
+        name = found ? found.name || found.email : `Instructor #${course.instructor}`;
+      }
+      instructorNames.add(name);
+    });
+    return Array.from(instructorNames).sort();
+  };
+
+  // ✅ Filter and sort courses
+  const filteredAndSortedCourses = [...courses]
+    .filter(course => {
+      // Filter by search term (course name)
+      const matchesSearch = course.title?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+      
+      // Filter by instructor
+      let instructorName = course.instructor || "Unknown";
+      if (typeof course.instructor === 'object' && course.instructor !== null) {
+        instructorName = course.instructor.name || course.instructor.email || "Unknown";
+      } else if (typeof course.instructor === 'string' && !isNaN(course.instructor)) {
+        const found = instructors.find(i => i.id === parseInt(course.instructor));
+        instructorName = found ? found.name || found.email : `Instructor #${course.instructor}`;
+      }
+      
+      const matchesInstructor = filterInstructor === "ALL" || instructorName === filterInstructor;
+      
+      return matchesSearch && matchesInstructor;
+    })
+    .sort((a, b) => {
+      // ✅ Sort by ID descending (newest first)
+      return b.id - a.id;
+    });
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = courses.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(courses.length / itemsPerPage);
+  const currentItems = filteredAndSortedCourses.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredAndSortedCourses.length / itemsPerPage);
 
-  // Handle page change
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
-    // Scroll to top of table when changing pages
     const tableContainer = document.querySelector('.courses-table-container');
     if (tableContainer) {
       tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
-  // Handle next page
   const nextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
@@ -375,7 +406,6 @@ export default function CoursesTab({
     }
   };
 
-  // Handle previous page
   const prevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
@@ -385,6 +415,8 @@ export default function CoursesTab({
       }
     }
   };
+
+  const uniqueInstructors = getUniqueInstructors();
 
   return (
     <div style={{
@@ -408,7 +440,7 @@ export default function CoursesTab({
           <p style={{ fontSize: 12, color: colors.textMuted }}>
             {isInstructor 
               ? `You have ${courses.length} courses assigned` 
-              : `Total ${courses.length} courses available`
+              : `Total ${filteredAndSortedCourses.length} courses available`
             }
           </p>
         </div>
@@ -456,7 +488,77 @@ export default function CoursesTab({
         </div>
       </div>
 
-      {/* My Courses Table */}
+      {/* ✅ Search and Filter Bar */}
+      <div style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "12px",
+        marginBottom: "16px",
+        alignItems: "center"
+      }}>
+        <div style={{
+          flex: 1,
+          minWidth: "200px"
+        }}>
+          <input
+            type="text"
+            placeholder="🔍 Search by course name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px 14px",
+              borderRadius: "8px",
+              border: `1px solid ${colors.borderLight}`,
+              fontSize: "13px",
+              outline: "none",
+              background: "var(--surface)",
+              color: "var(--text-primary)"
+            }}
+          />
+        </div>
+
+        <select
+          value={filterInstructor}
+          onChange={(e) => setFilterInstructor(e.target.value)}
+          style={{
+            padding: "8px 14px",
+            borderRadius: "8px",
+            border: `1px solid ${colors.borderLight}`,
+            fontSize: "13px",
+            outline: "none",
+            background: "var(--surface)",
+            color: "var(--text-primary)",
+            cursor: "pointer",
+            minWidth: "150px"
+          }}
+        >
+          <option value="ALL">👨‍🏫 All Instructors</option>
+          {uniqueInstructors.map((name, index) => (
+            <option key={index} value={name}>{name}</option>
+          ))}
+        </select>
+
+        <button
+          onClick={() => {
+            setSearchTerm("");
+            setFilterInstructor("ALL");
+          }}
+          style={{
+            padding: "8px 14px",
+            borderRadius: "8px",
+            border: `1px solid ${colors.borderLight}`,
+            background: "var(--surface)",
+            color: "var(--text-secondary)",
+            cursor: "pointer",
+            fontSize: "13px"
+          }}
+        >
+          ✕ Clear Filters
+        </button>
+      </div>
+
+      {/* Courses Table */}
       <div 
         className="courses-table-container"
         style={{ overflowX: "auto", marginBottom: isInstructor ? 30 : 0 }}
@@ -479,6 +581,7 @@ export default function CoursesTab({
               </th>
               <th style={{ padding: "12px", textAlign: "left" }}>ID</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Course Name</th>
+              <th style={{ padding: "12px", textAlign: "left" }}>Description</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Instructor</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Price</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Status</th>
@@ -486,9 +589,9 @@ export default function CoursesTab({
             </tr>
           </thead>
           <tbody>
-            {courses.length === 0 ? (
+            {filteredAndSortedCourses.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ padding: "40px", textAlign: "center", color: colors.textMuted }}>
+                <td colSpan="8" style={{ padding: "40px", textAlign: "center", color: colors.textMuted }}>
                   {isInstructor ? 'No courses assigned yet.' : 'No courses available.'}
                 </td>
               </tr>
@@ -497,12 +600,10 @@ export default function CoursesTab({
                 const isSelected = selectedCourses.includes(c.id);
                 const isEditing = editingCourse?.id === c.id;
                 
-                // Get instructor name for display
                 let instructorName = c.instructor || "—";
                 if (typeof c.instructor === 'object' && c.instructor !== null) {
                   instructorName = c.instructor.name || c.instructor.email || "—";
                 } else if (typeof c.instructor === 'string' && !isNaN(c.instructor)) {
-                  // If instructor is a number string (ID), try to find the name
                   const foundInstructor = instructors.find(i => i.id === parseInt(c.instructor));
                   instructorName = foundInstructor ? foundInstructor.name || foundInstructor.email : `Instructor #${c.instructor}`;
                 }
@@ -546,6 +647,39 @@ export default function CoursesTab({
                         />
                       ) : (
                         c.title || "Untitled"
+                      )}
+                    </td>
+                    <td style={{ padding: "12px", maxWidth: "200px" }}>
+                      {isEditing ? (
+                        <textarea
+                          value={editingCourse.description || ''}
+                          onChange={(e) => setEditingCourse({ ...editingCourse, description: e.target.value })}
+                          style={{
+                            width: "100%",
+                            padding: "4px 8px",
+                            border: `1px solid ${colors.primary}`,
+                            borderRadius: 4,
+                            fontSize: "13px",
+                            minHeight: "40px",
+                            resize: "vertical",
+                            fontFamily: "inherit",
+                          }}
+                          rows={2}
+                          placeholder="Enter description"
+                        />
+                      ) : (
+                        <div style={{ 
+                          fontSize: "13px", 
+                          color: colors.textSecondary,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          wordBreak: "break-word"
+                        }}>
+                          {c.description || "—"}
+                        </div>
                       )}
                     </td>
                     <td style={{ padding: "12px", color: colors.textSecondary }}>
@@ -698,7 +832,7 @@ export default function CoursesTab({
         </table>
 
         {/* Pagination */}
-        {courses.length > itemsPerPage && (
+        {filteredAndSortedCourses.length > itemsPerPage && (
           <div
             style={{
               display: "flex",
@@ -713,8 +847,8 @@ export default function CoursesTab({
           >
             <div style={{ fontSize: "13px", color: colors.textMuted }}>
               Showing {indexOfFirstItem + 1} to{" "}
-              {Math.min(indexOfLastItem, courses.length)} of{" "}
-              {courses.length} courses
+              {Math.min(indexOfLastItem, filteredAndSortedCourses.length)} of{" "}
+              {filteredAndSortedCourses.length} courses
             </div>
 
             <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -736,7 +870,6 @@ export default function CoursesTab({
                 ← Previous
               </button>
 
-              {/* Page numbers */}
               <div style={{ display: "flex", gap: "4px" }}>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum;

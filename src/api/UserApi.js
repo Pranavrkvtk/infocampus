@@ -53,6 +53,38 @@ export const enrollInCourse = async (courseId) => {
   return response.data;
 };
 
+// ========== ENROLLMENT COUNT ==========
+export const getEnrollmentCount = async (courseId) => {
+  const response = await api.get(`/users/courses/${courseId}/enrollment-count`);
+  return response.data;
+};
+
+// ========== INSTRUCTOR APIs (NEW) ==========
+
+// Get instructor details for a specific course
+export const getCourseInstructor = async (courseId) => {
+  const response = await api.get(`/users/courses/${courseId}/instructor`);
+  return response.data;
+};
+
+// Get all instructors
+export const getAllInstructors = async () => {
+  const response = await api.get("/users/instructors");
+  return response.data;
+};
+
+// Get instructor by ID
+export const getInstructorById = async (instructorId) => {
+  const response = await api.get(`/users/instructors/${instructorId}`);
+  return response.data;
+};
+
+// Get courses by instructor
+export const getInstructorCourses = async (instructorId) => {
+  const response = await api.get(`/users/instructors/${instructorId}/courses`);
+  return response.data;
+};
+
 // ========== COURSE CONTENT ==========
 export const getCourseDetails = async (courseId) => {
   const response = await api.get(`/users/courses/${courseId}/details`);
@@ -107,6 +139,13 @@ export default {
   uploadCourseImage,
   getEnrolledCourses,
   enrollInCourse,
+  getEnrollmentCount,
+  // New instructor APIs
+  getCourseInstructor,
+  getAllInstructors,
+  getInstructorById,
+  getInstructorCourses,
+  // Course content
   getCourseDetails,
   getCourseTopics,
   getSubtopicInterviewQuestions,

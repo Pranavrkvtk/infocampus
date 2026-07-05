@@ -53,15 +53,12 @@ export default function EnrollmentsTab({ isMobile }) {
   const getInstructorName = (instructorValue) => {
     if (!instructorValue) return "No instructor";
     
-    // If it's already a string name (not a number), return it directly
     if (typeof instructorValue === 'string' && isNaN(instructorValue)) {
       return instructorValue;
     }
     
-    // If it's a number or numeric string, try to find by ID
     const id = typeof instructorValue === 'string' ? parseInt(instructorValue) : instructorValue;
     
-    // Only try to find by ID if it's a valid number
     if (!isNaN(id)) {
       const instructor = instructors.find(inst => inst.id === id);
       if (instructor) {
@@ -69,7 +66,6 @@ export default function EnrollmentsTab({ isMobile }) {
       }
     }
     
-    // If not found, return the value itself
     return instructorValue || "No instructor";
   };
 
@@ -79,7 +75,15 @@ export default function EnrollmentsTab({ isMobile }) {
     try {
       const response = await getAllEnrollments();
       const data = response.data || [];
-      setEnrollments(data);
+      
+      // ✅ Sort enrollments by enrolledAt (most recent first)
+      const sortedData = [...data].sort((a, b) => {
+        const dateA = a.enrolledAt ? new Date(a.enrolledAt) : new Date(0);
+        const dateB = b.enrolledAt ? new Date(b.enrolledAt) : new Date(0);
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      setEnrollments(sortedData);
       
       // Extract unique courses for filter
       const uniqueCourses = [...new Set(data.map(e => e.course?.title).filter(Boolean))];
@@ -500,8 +504,17 @@ export default function EnrollmentsTab({ isMobile }) {
                   const statusBadge = getStatusBadge(status);
                   const progressColor = getProgressColor(progress);
                   
-                  // Get instructor name
                   const instructorName = course.instructor ? getInstructorName(course.instructor) : "No instructor";
+
+                  // Format enrollment date
+                  let enrolledDate = "N/A";
+                  if (enrollment.enrolledAt) {
+                    try {
+                      enrolledDate = new Date(enrollment.enrolledAt).toLocaleDateString();
+                    } catch (e) {
+                      enrolledDate = "N/A";
+                    }
+                  }
 
                   return (
                     <tr
@@ -572,9 +585,7 @@ export default function EnrollmentsTab({ isMobile }) {
                         </span>
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle", fontSize: "13px", color: "var(--text-secondary)" }}>
-                        {enrollment.enrolledAt 
-                          ? new Date(enrollment.enrolledAt).toLocaleDateString()
-                          : "N/A"}
+                        {enrolledDate}
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>
                         <button

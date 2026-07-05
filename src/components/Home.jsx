@@ -6,6 +6,10 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [hasEnrolledCourses, setHasEnrolledCourses] = useState(false);
+  const [checkingEnrollments, setCheckingEnrollments] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,25 +19,62 @@ export default function Home() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Check if user is logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+
+    if (token) {
+      const seenKey = `hasSeenHomeBefore_${token}`;
+      const hasSeenBefore = localStorage.getItem(seenKey);
+
+      if (hasSeenBefore) {
+        setIsNewUser(false);
+      } else {
+        setIsNewUser(true);
+        localStorage.setItem(seenKey, "true");
+      }
+
+      // Check if user has enrolled courses
+      checkEnrolledCourses(token);
+    } else {
+      setCheckingEnrollments(false);
+    }
+  }, []);
+
+  // Check if user has any enrolled courses
+  const checkEnrolledCourses = async (token) => {
+    try {
+      const response = await api.get("/users/has-enrolled-courses", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setHasEnrolledCourses(response.data.hasEnrolledCourses);
+      console.log("Has enrolled courses:", response.data.hasEnrolledCourses);
+    } catch (error) {
+      console.error("Error checking enrolled courses:", error);
+      setHasEnrolledCourses(false);
+    } finally {
+      setCheckingEnrollments(false);
+    }
+  };
+
   // Helper to turn relative URLs into absolute ones
   const getAbsoluteUrl = (url) => {
     if (!url) return url;
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
-    // use the same baseURL as your axios instance (e.g., http://localhost:8082)
-    const BACKEND_BASE = "http://localhost:8082"; // TODO: move to env
+    const BACKEND_BASE = "http://localhost:8082";
     return `${BACKEND_BASE}${url}`;
   };
 
   useEffect(() => {
     console.log("🔍 Fetching home video from /api/public/home-video via axios");
 
-    // Use the configured axios instance instead of raw fetch
     api
-      .get("/public/home-video") // baseURL already includes /api
+      .get("/public/home-video")
       .then((res) => {
         console.log("✅ Video data received:", res.data);
         const url = res.data.videoUrl || "";
-        // If it's a relative path (uploaded file), make it absolute
         setVideoUrl(getAbsoluteUrl(url));
         setLoading(false);
       })
@@ -101,7 +142,6 @@ export default function Home() {
       );
     }
 
-    // YouTube
     if (isYouTubeUrl(videoUrl)) {
       const embedUrl = getYouTubeEmbedUrl(videoUrl);
       console.log("🎬 YouTube embed URL:", embedUrl);
@@ -130,7 +170,6 @@ export default function Home() {
       );
     }
 
-    // Direct video file (MP4, WebM, etc.)
     return (
       <video
         autoPlay
@@ -158,6 +197,42 @@ export default function Home() {
     );
   };
 
+  // Determine welcome message based on user state
+  const getWelcomeMessage = () => {
+    if (!isLoggedIn) return null;
+    
+    if (isNewUser) {
+      return {
+        message: "🎉 Welcome to Infocampus! Your account is ready — let's start your first lesson.",
+        bgColor: "linear-gradient(135deg, #e5a800 0%, #f5c842 100%)",
+        textColor: "#1a1a1a",
+        btnText: "Start Learning →"
+      };
+    }
+    
+    // For returning users
+    if (!hasEnrolledCourses) {
+      return {
+        message: "🌟 Ready to begin your journey? Explore our courses and start learning today!",
+        bgColor: "linear-gradient(135deg, #714B67 0%, #5B3A63 100%)",
+        textColor: "#fff",
+        btnText: "Explore Courses →"
+      };
+    }
+    
+    return {
+      message: "👋 Welcome back! Continue learning from where you left off.",
+      bgColor: "linear-gradient(135deg, #3abf94 0%, #2e9d7a 100%)",
+      textColor: "#fff",
+      btnText: "Continue Learning →"
+    };
+  };
+
+  const welcome = getWelcomeMessage();
+
+  // Don't show welcome message while checking enrollments
+  const showWelcome = !checkingEnrollments && isLoggedIn && welcome;
+
   return (
     <div
       style={{
@@ -166,48 +241,72 @@ export default function Home() {
         background: "#f8f8f6",
       }}
     >
-      {/* Top Banner */}
-      <div
-        style={{
-          background: "#f5c842",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "12px",
-          padding: "10px 16px",
-          flexWrap: "wrap",
-          textAlign: "center",
-        }}
-      >
-        <span
+      {/* Top Banner - Hide when logged in */}
+      {!isLoggedIn && (
+        <div
           style={{
-            fontFamily: "'Trebuchet MS', sans-serif",
-            fontWeight: 500,
-            fontSize: isMobile ? "13px" : "15px",
-            color: "#1a1a1a",
+            background: "#f5c842",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "12px",
+            padding: "10px 16px",
+            flexWrap: "wrap",
+            textAlign: "center",
           }}
         >
-          Unlock Free Cisco Lessons – No Credit Card Needed!
-        </span>
-        <Link to="/free-account" style={{ textDecoration: "none" }}>
-          <button
+          <span
             style={{
-              background: "#3abf94",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              padding: "8px 18px",
               fontFamily: "'Trebuchet MS', sans-serif",
-              fontWeight: 700,
+              fontWeight: 500,
               fontSize: isMobile ? "13px" : "15px",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
+              color: "#1a1a1a",
             }}
           >
-            Sign up for Free
-          </button>
-        </Link>
-      </div>
+            Unlock Free Cisco Lessons – No Credit Card Needed!
+          </span>
+          <Link to="/free-account" style={{ textDecoration: "none" }}>
+            <button
+              style={{
+                background: "#3abf94",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                padding: "8px 18px",
+                fontFamily: "'Trebuchet MS', sans-serif",
+                fontWeight: 700,
+                fontSize: isMobile ? "13px" : "15px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Sign up for Free
+            </button>
+          </Link>
+        </div>
+      )}
+
+      {/* Welcome message for logged in users */}
+      {showWelcome && (
+        <div
+          style={{
+            background: welcome.bgColor,
+            padding: "12px 16px",
+            textAlign: "center",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "'Trebuchet MS', sans-serif",
+              fontWeight: 500,
+              fontSize: isMobile ? "13px" : "15px",
+              color: welcome.textColor,
+            }}
+          >
+            {welcome.message}
+          </span>
+        </div>
+      )}
 
       {/* Main Content */}
       <main
@@ -258,7 +357,13 @@ export default function Home() {
               width: isMobile ? "100%" : "auto",
             }}
           >
-            Browse Courses →
+            {!isLoggedIn 
+              ? "Browse Courses →" 
+              : isNewUser 
+                ? "Start Learning →" 
+                : !hasEnrolledCourses 
+                  ? "Explore Courses →" 
+                  : "Continue Learning →"}
           </button>
         </div>
 

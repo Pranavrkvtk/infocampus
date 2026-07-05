@@ -1,7 +1,12 @@
 // src/components/CourseEnrollmentPage.jsx
 // Course enrollment page with course details, stats, and trainer information
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  getCourseDetails, 
+  getEnrollmentCount,
+  getInstructorById 
+} from '../api/UserApi';
 
 const API_BASE = 'http://localhost:8082/api';
 
@@ -38,61 +43,210 @@ export default function CourseEnrollmentPage({
 }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isEnrolling, setIsEnrolling] = useState(false);
+  const [courseDetails, setCourseDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [enrollmentCount, setEnrollmentCount] = useState(0);
+  const [loadingEnrollmentCount, setLoadingEnrollmentCount] = useState(false);
+  const [instructorDetails, setInstructorDetails] = useState(null);
+  const [loadingInstructor, setLoadingInstructor] = useState(false);
+
   const isMobile = window.innerWidth < 768;
 
-  // Use provided course data or default
-  const courseData = course || {
-    id: 1,
-    title: 'CCNA 200-301',
-    subtitle: 'Cisco Certified Network Associate',
-    rating: 4.8,
-    reviews: 1247,
-    students: 168902,
-    lastUpdate: '06/05/2026',
-    duration: '5 hours 48 minutes',
-    level: 'Intermediate',
-    language: 'English',
-    certificate: 'Yes',
-    price: 49.99,
-    description: 'Master the fundamentals of networking with this comprehensive CCNA 200-301 course.',
-    objectives: [
-      'Understand network fundamentals and OSI model',
-      'Configure and troubleshoot IPv4 addressing',
-      'Master Ethernet fundamentals and switching',
-      'Implement network access and IP connectivity',
-      'Configure IP services and security fundamentals',
-      'Learn automation and programmability concepts',
-    ],
-    trainer: {
-      name: 'John Smith',
-      title: 'Senior Network Engineer & Instructor',
-      bio: 'John is a Cisco Certified Internetwork Expert (CCIE) with over 15 years of experience.',
-      experience: '15+ years',
-      certifications: ['CCIE', 'CCNP', 'CCNA', 'JNCIP'],
-      company: 'Cisco Systems',
-      students: 45000,
-      courses: 12,
-      rating: 4.9,
-    },
-    syllabus: [
-      { title: 'Network Fundamentals', duration: '1h 20m', lessons: 12 },
-      { title: 'Network Access', duration: '1h 15m', lessons: 10 },
-      { title: 'IP Connectivity', duration: '1h 30m', lessons: 14 },
-      { title: 'IP Services', duration: '45m', lessons: 8 },
-      { title: 'Security Fundamentals', duration: '38m', lessons: 6 },
-      { title: 'Automation & Programmability', duration: '20m', lessons: 4 },
-    ],
-    requirements: [
-      'Basic understanding of computer networks',
-      'Familiarity with networking concepts',
-      'Access to a computer with internet',
-    ],
-    targetAudience: [
-      'Aspiring network engineers',
-      'IT professionals seeking CCNA certification',
-      'Students pursuing networking careers',
-    ],
+  // Fetch course details when component mounts or course changes
+  useEffect(() => {
+    if (course?.id) {
+      fetchCourseDetails(course.id);
+      fetchEnrollmentCount(course.id);
+    }
+  }, [course?.id]);
+
+  const fetchCourseDetails = async (courseId) => {
+    setLoadingDetails(true);
+    try {
+      const data = await getCourseDetails(courseId);
+      console.log('Course details from API:', data);
+      setCourseDetails(data);
+      
+      // If instructor ID is in course data, fetch instructor details
+      if (data?.course?.instructor) {
+        fetchInstructorDetails(data.course.instructor);
+      }
+    } catch (error) {
+      console.error('Error fetching course details:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
   };
+
+  const fetchEnrollmentCount = async (courseId) => {
+    setLoadingEnrollmentCount(true);
+    try {
+      const data = await getEnrollmentCount(courseId);
+      console.log('Enrollment count from API:', data);
+      setEnrollmentCount(data.total || 0);
+    } catch (error) {
+      console.error('Error fetching enrollment count:', error);
+      setEnrollmentCount(0);
+    } finally {
+      setLoadingEnrollmentCount(false);
+    }
+  };
+
+  const fetchInstructorDetails = async (instructorId) => {
+    // If instructorId is a name string, skip API call
+    if (!instructorId || isNaN(instructorId)) {
+      setInstructorDetails({ name: instructorId || 'Expert Instructor' });
+      return;
+    }
+    
+    setLoadingInstructor(true);
+    try {
+      const data = await getInstructorById(parseInt(instructorId));
+      console.log('Instructor details from API:', data);
+      setInstructorDetails(data);
+    } catch (error) {
+      console.error('Error fetching instructor details:', error);
+      setInstructorDetails({ name: `Instructor ${instructorId}` });
+    } finally {
+      setLoadingInstructor(false);
+    }
+  };
+
+  // Build course data from API response
+  const buildCourseData = () => {
+    // If we have API data, use it
+    if (courseDetails && courseDetails.course) {
+      const apiCourse = courseDetails.course;
+      const topics = courseDetails.topics || [];
+
+      // Build syllabus from topics
+      const syllabus = topics.map(topic => ({
+        title: topic.title || 'Untitled Topic',
+        duration: `${topic.subtopics?.length || 0} lessons`,
+        lessons: topic.subtopics?.length || 0,
+      }));
+
+      // Build objectives from topics and subtopics
+      const objectives = [];
+      topics.forEach(topic => {
+        objectives.push(`Understand ${topic.title}`);
+        (topic.subtopics || []).forEach(sub => {
+          objectives.push(`- ${sub.title}`);
+        });
+      });
+
+      // Use actual enrollment count from API
+      const students = enrollmentCount || 0;
+
+      // Build trainer info from instructor details
+      const trainer = instructorDetails ? {
+        name: instructorDetails.name || apiCourse.instructor || 'Expert Instructor',
+        title: instructorDetails.title || 'Senior Network Engineer & Instructor',
+        bio: instructorDetails.bio || 'Experienced network engineer with years of industry expertise.',
+        experience: instructorDetails.experience || '10+ years',
+        certifications: instructorDetails.certifications || ['CCNA', 'CCNP'],
+        company: instructorDetails.company || 'Cisco Systems',
+        students: instructorDetails.totalStudents || instructorDetails.studentsCount || 45000,
+        courses: instructorDetails.totalCourses || instructorDetails.coursesCount || 12,
+        rating: instructorDetails.rating || 4.9,
+        email: instructorDetails.email || '',
+        avatar: instructorDetails.avatar || instructorDetails.profileImage || '',
+      } : {
+        name: apiCourse.instructor || 'Expert Instructor',
+        title: 'Senior Network Engineer & Instructor',
+        bio: 'Experienced network engineer with years of industry expertise.',
+        experience: '10+ years',
+        certifications: ['CCNA', 'CCNP'],
+        company: 'Cisco Systems',
+        students: 45000,
+        courses: 12,
+        rating: 4.9,
+      };
+
+      return {
+        id: apiCourse.id,
+        title: apiCourse.title || 'Course',
+        subtitle: apiCourse.description?.substring(0, 100) || 'Learn with expert instructors',
+        rating: 4.8,
+        reviews: 1247,
+        students: students,
+        lastUpdate: apiCourse.updatedAt ? new Date(apiCourse.updatedAt).toLocaleDateString() : '06/05/2026',
+        duration: apiCourse.duration || '5 hours 48 minutes',
+        level: apiCourse.level || 'Intermediate',
+        language: 'English',
+        certificate: 'Yes',
+        price: apiCourse.price || 49.99,
+        image: apiCourse.imageUrl || '',
+        description: apiCourse.description || 'Master networking fundamentals with this comprehensive course.',
+        objectives: objectives.length > 0 ? objectives : [
+          'Understand network fundamentals and OSI model',
+          'Configure and troubleshoot IPv4 addressing',
+          'Master Ethernet fundamentals and switching',
+        ],
+        trainer: trainer,
+        syllabus: syllabus.length > 0 ? syllabus : [
+          { title: 'Network Fundamentals', duration: '1h 20m', lessons: 12 },
+          { title: 'Network Access', duration: '1h 15m', lessons: 10 },
+        ],
+        requirements: [
+          'Basic understanding of computer networks',
+          'Familiarity with networking concepts',
+        ],
+        targetAudience: [
+          'Aspiring network engineers',
+          'IT professionals seeking certification',
+        ],
+        topics: topics,
+      };
+    }
+
+    // Fallback to provided course prop
+    return course || {
+      id: 1,
+      title: 'CCNA 200-301',
+      subtitle: 'Cisco Certified Network Associate',
+      rating: 4.8,
+      reviews: 1247,
+      students: enrollmentCount || 0,
+      lastUpdate: '06/05/2026',
+      duration: '5 hours 48 minutes',
+      level: 'Intermediate',
+      language: 'English',
+      certificate: 'Yes',
+      price: 49.99,
+      description: 'Master the fundamentals of networking with this comprehensive CCNA 200-301 course.',
+      objectives: [
+        'Understand network fundamentals and OSI model',
+        'Configure and troubleshoot IPv4 addressing',
+        'Master Ethernet fundamentals and switching',
+      ],
+      trainer: {
+        name: 'John Smith',
+        title: 'Senior Network Engineer & Instructor',
+        bio: 'John is a Cisco Certified Internetwork Expert (CCIE) with over 15 years of experience.',
+        experience: '15+ years',
+        certifications: ['CCIE', 'CCNP', 'CCNA', 'JNCIP'],
+        company: 'Cisco Systems',
+        students: 45000,
+        courses: 12,
+        rating: 4.9,
+      },
+      syllabus: [
+        { title: 'Network Fundamentals', duration: '1h 20m', lessons: 12 },
+        { title: 'Network Access', duration: '1h 15m', lessons: 10 },
+      ],
+      requirements: [
+        'Basic understanding of computer networks',
+        'Familiarity with networking concepts',
+      ],
+      targetAudience: [
+        'Aspiring network engineers',
+        'IT professionals seeking CCNA certification',
+      ],
+    };
+  };
+
+  const courseData = buildCourseData();
 
   // ─── Handlers ──────────────────────────────────────────────────────
   const handleEnroll = async () => {
@@ -517,7 +671,38 @@ export default function CourseEnrollmentPage({
         transform: 'scale(1.05)',
       },
     },
+    loadingContainer: {
+      textAlign: 'center',
+      padding: '40px',
+      color: COLORS.slate,
+    },
+    spinner: {
+      border: `4px solid ${COLORS.line}`,
+      borderTop: `4px solid ${COLORS.accent}`,
+      borderRadius: '50%',
+      width: '40px',
+      height: '40px',
+      animation: 'spin 1s linear infinite',
+      margin: '0 auto 16px',
+    },
   };
+
+  if (loadingDetails || loadingEnrollmentCount || loadingInstructor) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.topStrip}>
+          <button style={styles.backBtn} onClick={onBack}>← Back</button>
+        </div>
+        <div style={styles.container}>
+          <div style={styles.loadingContainer}>
+            <div style={styles.spinner}></div>
+            <p>Loading course details...</p>
+          </div>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   // ─── Tab Content ──────────────────────────────────────────────────
 
@@ -591,13 +776,18 @@ export default function CourseEnrollmentPage({
         <div style={styles.trainerInfo}>
           <div style={styles.trainerName}>{courseData.trainer.name}</div>
           <div style={styles.trainerTitle}>{courseData.trainer.title}</div>
+          {courseData.trainer.email && (
+            <div style={{ fontSize: '12px', color: COLORS.slate, marginBottom: '4px' }}>
+              📧 {courseData.trainer.email}
+            </div>
+          )}
           <div style={styles.trainerStats}>
             <span>⭐ {courseData.trainer.rating}</span>
             <span>👥 {courseData.trainer.students.toLocaleString()} students</span>
             <span>📚 {courseData.trainer.courses} courses</span>
           </div>
           <div style={styles.trainerCerts}>
-            {courseData.trainer.certifications.map((cert, idx) => (
+            {courseData.trainer.certifications && courseData.trainer.certifications.map((cert, idx) => (
               <span key={idx} style={styles.certBadge}>{cert}</span>
             ))}
           </div>
@@ -641,13 +831,7 @@ export default function CourseEnrollmentPage({
     return (
       <div style={styles.page}>
         <div style={styles.topStrip}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button style={styles.backBtn} onClick={onBack}>← Back</button>
-            <span style={{ fontSize: '14px', color: COLORS.slate }}>/</span>
-            <span style={{ fontSize: '14px', fontWeight: 500, color: COLORS.ink }}>
-              {courseData.title}
-            </span>
-          </div>
+          <button style={styles.backBtn} onClick={onBack}>← Back</button>
           <button style={styles.backBtn} onClick={onBack}>← Back to Courses</button>
         </div>
 
@@ -793,7 +977,6 @@ export default function CourseEnrollmentPage({
                   </button>
                 </>
               ) : viewOnly ? (
-                // View-only mode - show message instead of enroll button
                 <div style={styles.viewOnlyMsg}>
                   <p style={{ marginBottom: '12px' }}>👀 You are viewing this course</p>
                   <button 
