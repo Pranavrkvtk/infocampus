@@ -29,7 +29,7 @@ const COLORS = {
   success: '#2E8B57',
 };
 
-// ─── Course Image Mapping ────────────────────────────────────────
+// ─── Course Image Mapping (Fallback images) ────────────────────
 const COURSE_IMAGES = {
   'ccna': 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=250&fit=crop',
   'ccnp': 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=250&fit=crop',
@@ -72,13 +72,78 @@ function MyCoursesPage() {
 
   const isLoggedIn = !!localStorage.getItem('token');
 
-  // ─── Helper: Get course image ──────────────────────────────────────────
-  const getCourseImage = (title) => {
-    const name = title?.toLowerCase() || '';
+  // ─── Helper: Get course image from admin uploads ──────────────────
+// ─── Helper: Get course image from admin uploads ──────────────────
+const getCourseImage = (course) => {
+  if (!course.imageUrl) {
+    // Fallback: Use title-based mapping
+    const name = course.title?.toLowerCase() || '';
     for (const [key, url] of Object.entries(COURSE_IMAGES)) {
       if (name.includes(key)) return url;
     }
     return COURSE_IMAGES.default;
+  }
+
+  const imageUrl = course.imageUrl;
+  
+  // If it's Base64 data
+  if (imageUrl.startsWith('data:image/')) {
+    return imageUrl;
+  }
+  
+  // If it's a full URL
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // If it already has /api/ in the path, use it directly
+  if (imageUrl.startsWith('/api/')) {
+    // Use the base URL without the /api suffix
+    const baseUrl = API_BASE.replace('/api', '');
+    return `${baseUrl}${imageUrl}`;
+  }
+  
+  // If it starts with /
+  if (imageUrl.startsWith('/')) {
+    return `${API_BASE}${imageUrl}`;
+  }
+  
+  // If it starts with uploads/
+  if (imageUrl.startsWith('uploads/')) {
+    return `${API_BASE}/admin/${imageUrl}`;
+  }
+  
+  // Default: assume it's a filename
+  return `${API_BASE}/admin/uploads/${imageUrl}`;
+};
+  // ─── Helper: Get subtopic image from admin uploads ────────────────
+  const getSubtopicImageUrl = (subtopicId, fileName) => {
+    if (!subtopicId || !fileName) return FALLBACK_IMAGE;
+    
+    if (fileName.startsWith('http://') || fileName.startsWith('https://') || fileName.startsWith('data:image/')) {
+      return fileName;
+    }
+    
+    if (fileName.startsWith('/uploads/')) {
+      return `${API_BASE}/admin${fileName}`;
+    }
+    if (fileName.startsWith('uploads/')) {
+      return `${API_BASE}/admin/${fileName}`;
+    }
+    
+    return `${API_BASE}/admin/uploads/${fileName}`;
+  };
+
+  // ─── Helper: Get image for subtopic from the images array ────────
+  const getSubtopicDisplayImage = (subtopicId) => {
+    if (!images || images.length === 0) return null;
+    
+    const image = images.find(img => img.subTopicId === subtopicId || img.subtopicId === subtopicId);
+    if (image) {
+      const fileName = image.fileName || image.imageUrl || image.url;
+      return getSubtopicImageUrl(subtopicId, fileName);
+    }
+    return null;
   };
 
   // ─── API calls ─────────────────────────────────────────────────────────
@@ -91,6 +156,13 @@ function MyCoursesPage() {
     try {
       const data = await getEnrolledCourses();
       setCourses(data);
+      
+      data.forEach(course => {
+        if (course.imageUrl) {
+          const img = new Image();
+          img.src = getCourseImage(course);
+        }
+      });
     } catch (error) {
       console.error('Error fetching enrolled courses:', error);
       Swal.fire('Error', 'Could not load your courses', 'error');
@@ -102,16 +174,38 @@ function MyCoursesPage() {
   const fetchAllCourses = async () => {
     setLoadingAllCourses(true);
     try {
+      console.log('Fetching courses...');
       const data = await getCourses();
+      console.log('Courses response:', data);
+      
+      if (data && data.length > 0) {
+        console.log('First course imageUrl:', data[0].imageUrl);
+        console.log('All image URLs:', data.map(c => ({
+          id: c.id,
+          title: c.title,
+          imageUrl: c.imageUrl ? 
+            (c.imageUrl.startsWith('data:image/') ? 'Base64' : c.imageUrl) : 
+            'No image'
+        })));
+      }
+      
       setAllCourses(data);
+      
+      data.forEach(course => {
+        if (course.imageUrl && !course.imageUrl.startsWith('data:image/')) {
+          const img = new Image();
+          img.src = getCourseImage(course);
+        }
+      });
     } catch (error) {
-      console.error('Error fetching all courses:', error);
+      console.error('Error fetching courses:', error);
       Swal.fire('Error', 'Could not load course catalog', 'error');
     } finally {
       setLoadingAllCourses(false);
     }
   };
 
+  // ─── Enroll Handler ──────────────────────────────────────────────────
   const handleEnroll = async (courseId) => {
     if (!isLoggedIn) {
       Swal.fire({
@@ -168,6 +262,7 @@ function MyCoursesPage() {
             content: sub.content,
             videoUrl: sub.videoUrl,
             videoUrls: sub.videoUrls || [],
+            imageUrl: sub.imageUrl,
             ...sub
           });
         });
@@ -202,6 +297,7 @@ function MyCoursesPage() {
       const data = await getSubtopicImages(subtopicId);
       setImages(data);
     } catch (error) {
+      console.error('Error loading subtopic images:', error);
       setImages([]);
     }
   };
@@ -319,16 +415,18 @@ function MyCoursesPage() {
     return TRACKS.find(t => name.includes(t.match)) || { icon: '📄', tint: '#F2F1F6' };
   };
 
-  const getImageUrl = (subtopicId, fileName) => {
-    if (!subtopicId) return FALLBACK_IMAGE;
-    return `${API_BASE}/admin/subtopic-images/${subtopicId}/${fileName}`;
-  };
-
+  // ─── Image handling functions ────────────────────────────────────────
   const handleImageError = (id) => {
     if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));
   };
 
-  const getImageSrc = (sid, fn, id) => imageErrors[id] ? FALLBACK_IMAGE : getImageUrl(sid, fn);
+  const getImageSrc = (sid, fn, id) => {
+    if (imageErrors[id]) return FALLBACK_IMAGE;
+    if (fn) {
+      return getSubtopicImageUrl(sid, fn);
+    }
+    return FALLBACK_IMAGE;
+  };
 
   // Effects
   useEffect(() => {
@@ -336,7 +434,9 @@ function MyCoursesPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) fetchAllCourses();
+    if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) {
+      fetchAllCourses();
+    }
   }, [activeTab, allCourses.length, loadingAllCourses]);
 
   useEffect(() => {
@@ -507,7 +607,7 @@ function MyCoursesPage() {
       language: selectedCourse.language || 'English',
       certificate: selectedCourse.certificate || 'Yes',
       price: selectedCourse.price || 49.99,
-      image: selectedCourse.image || getCourseImage(selectedCourse.title),
+      image: getCourseImage(selectedCourse),
       description: selectedCourse.description || 'Master networking fundamentals with this comprehensive course.',
       objectives: selectedCourse.objectives || [],
       trainer: selectedCourse.trainer || {
@@ -564,7 +664,7 @@ function MyCoursesPage() {
         resetProgress={resetProgress}
         markSectionComplete={markSectionComplete}
         getImageSrc={getImageSrc}
-        getImageUrl={getImageUrl}
+        getImageUrl={getSubtopicImageUrl}
         handleImageError={handleImageError}
         styles={styles}
       />
@@ -639,7 +739,8 @@ function MyCoursesPage() {
             <div style={styles.grid}>
               {visibleCourses.map((course) => {
                 const track = getTrack(course.title);
-                const imageUrl = getCourseImage(course.title);
+                const imageUrl = getCourseImage(course);
+                
                 return (
                   <div key={course.id} style={styles.card}>
                     <img 
@@ -696,7 +797,8 @@ function MyCoursesPage() {
               {visibleCourses.map((course) => {
                 const track = getTrack(course.title);
                 const isEnrolled = isLoggedIn && courses.some((ec) => ec.id === course.id);
-                const imageUrl = getCourseImage(course.title);
+                const imageUrl = getCourseImage(course);
+                
                 return (
                   <div
                     key={course.id}

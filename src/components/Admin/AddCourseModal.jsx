@@ -17,12 +17,9 @@ export default function AddCourseModal({
     price: "", 
     instructor: "", 
     duration: "", 
-    level: "", 
-    videoUrl: "", 
-    imageUrl: "" 
+    level: ""
   });
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState("");
   const [instructors, setInstructors] = useState([]);
   const [loadingInstructors, setLoadingInstructors] = useState(false);
 
@@ -75,20 +72,6 @@ export default function AddCourseModal({
     setForm({ ...form, [name]: value });
   };
 
-  const handleImage = (e) => {
-    const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/') || file.size > 5*1024*1024) {
-      Swal.fire("Error", "Please upload an image file under 5MB", "error");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => { 
-      setPreview(reader.result); 
-      setForm({ ...form, imageUrl: reader.result }); 
-    };
-    reader.readAsDataURL(file);
-  };
-
   const reset = () => { 
     setForm({ 
       title: "", 
@@ -96,11 +79,8 @@ export default function AddCourseModal({
       price: "", 
       instructor: "", 
       duration: "", 
-      level: "", 
-      videoUrl: "", 
-      imageUrl: "" 
+      level: ""
     }); 
-    setPreview(""); 
   };
   
   const handleClose = () => { 
@@ -118,16 +98,6 @@ export default function AddCourseModal({
       return;
     }
     
-    // For admin, instructor selection is optional
-    // Only validate instructor if you want to require it
-    // Remove this check to allow unassigned courses
-    /*
-    if (!isInstructor && !form.instructor) {
-      Swal.fire("Error", "Please select an instructor", "error");
-      return;
-    }
-    */
-    
     setLoading(true);
     try {
       const courseData = {
@@ -135,8 +105,6 @@ export default function AddCourseModal({
         description: form.description?.trim() || null,
         price: priceValue,
         duration: form.duration || null,
-        videoUrl: form.videoUrl?.trim() || null,
-        imageUrl: form.imageUrl?.trim() || null,
         level: form.level || null,
       };
 
@@ -144,11 +112,7 @@ export default function AddCourseModal({
       if (!isInstructor && form.instructor) {
         courseData.instructor = form.instructor;
       } else if (!isInstructor) {
-        // If no instructor selected, you can either:
-        // 1. Set instructor to null (if backend allows)
-        // 2. Set instructor to a default value
-        // 3. Leave it out of the request
-        courseData.instructor = null; // Or don't include this field
+        courseData.instructor = null;
       }
 
       console.log('Creating course with data:', courseData);
@@ -276,79 +240,78 @@ export default function AddCourseModal({
               maxLength={500}
             />
           </div>
-
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <div style={{ flex: 1 }}>
-              <label style={label}>Price *</label>
-              <input 
-                type="number" 
-                name="price" 
-                value={form.price} 
-                onChange={handleChange} 
-                required 
-                step="0.01" 
-                min="0.01"
-                style={input} 
-                placeholder="0.00"
-              />
-            </div>
+<div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+  <div style={{ flex: 1 }}>
+    <label style={label}>Price *</label>
+    <input 
+      type="number" 
+      name="price" 
+      value={form.price} 
+      onChange={handleChange} 
+      required 
+      step="1" 
+      min="1"
+      style={input} 
+      placeholder="0"
+    />
+  </div>
+  
+  {/* Instructor dropdown - only show for admin */}
+  {!isInstructor && (
+    <div style={{ flex: 1 }}>
+      <label style={label}>Instructor (Optional)</label>
+      <select 
+        name="instructor" 
+        value={form.instructor} 
+        onChange={handleChange} 
+        style={input}
+        disabled={loadingInstructors}
+      >
+        <option value="">Unassigned</option>
+        {Array.isArray(instructors) && instructors.length > 0 ? (
+          instructors.map((instructor) => {
+            const id = getInstructorId(instructor);
+            const displayName = getInstructorName(instructor);
             
-            {/* Instructor dropdown - only show for admin */}
-            {!isInstructor && (
-              <div style={{ flex: 1 }}>
-                <label style={label}>Instructor (Optional)</label>
-                <select 
-                  name="instructor" 
-                  value={form.instructor} 
-                  onChange={handleChange} 
-                  style={input}
-                  disabled={loadingInstructors}
-                >
-                  <option value="">Unassigned</option>
-                  {Array.isArray(instructors) && instructors.length > 0 ? (
-                    instructors.map((instructor) => {
-                      const id = getInstructorId(instructor);
-                      const displayName = getInstructorName(instructor);
-                      
-                      return (
-                        <option key={id} value={id}>
-                          {displayName}
-                        </option>
-                      );
-                    })
-                  ) : (
-                    !loadingInstructors && (
-                      <option value="" disabled>No instructors available</option>
-                    )
-                  )}
-                </select>
-                {!loadingInstructors && instructors.length === 0 && (
-                  <div style={{ fontSize: 10, color: '#e74c3c', marginTop: 4 }}>
-                    No instructors found. Please add instructors first.
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* For instructor mode, show the instructor name as read-only */}
-            {isInstructor && (
-              <div style={{ flex: 1 }}>
-                <label style={label}>Instructor</label>
-                <div style={{ 
-                  ...input, 
-                  background: '#f5f5f5', 
-                  color: '#333',
-                  padding: '6px 10px',
-                  border: `1px solid ${colors.borderLight}`,
-                  borderRadius: 6,
-                  fontSize: 12,
-                  cursor: 'not-allowed'
-                }}>
-                  You (Logged-in instructor)
-                </div>
-              </div>
-            )}
-          </div>
+            return (
+              <option key={id} value={id}>
+                {displayName}
+              </option>
+            );
+          })
+        ) : (
+          !loadingInstructors && (
+            <option value="" disabled>No instructors available</option>
+          )
+        )}
+      </select>
+      {!loadingInstructors && instructors.length === 0 && (
+        <div style={{ fontSize: 10, color: '#e74c3c', marginTop: 4 }}>
+          No instructors found. Please add instructors first.
+        </div>
+      )}
+    </div>
+  )}
+  
+  {/* For instructor mode, show the instructor name as read-only */}
+  {isInstructor && (
+    <div style={{ flex: 1 }}>
+      <label style={label}>Instructor</label>
+      <div style={{ 
+        ...input, 
+        background: '#f5f5f5', 
+        color: '#333',
+        padding: '6px 10px',
+        border: `1px solid ${colors.borderLight}`,
+        borderRadius: 6,
+        fontSize: 12,
+        cursor: 'not-allowed'
+      }}>
+        You (Logged-in instructor)
+      </div>
+    </div>
+  )}
+</div>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
@@ -381,95 +344,6 @@ export default function AddCourseModal({
                 <option value="Advanced">Advanced</option>
               </select>
             </div>
-          </div>
-
-          <div style={{ marginBottom: 10 }}>
-            <label style={label}>Video URL</label>
-            <input 
-              type="url" 
-              name="videoUrl" 
-              value={form.videoUrl} 
-              onChange={handleChange} 
-              placeholder="https://example.com/video.mp4" 
-              style={input} 
-            />
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <label style={label}>Image</label>
-            {preview && (
-              <div style={{ position: "relative", marginBottom: 6 }}>
-                <img 
-                  src={preview} 
-                  alt="Preview" 
-                  style={{ 
-                    width: "100%", 
-                    height: 80, 
-                    objectFit: "cover", 
-                    borderRadius: 6 
-                  }} 
-                />
-                <button 
-                  type="button" 
-                  onClick={() => { 
-                    setPreview(""); 
-                    setForm({ ...form, imageUrl: "" }); 
-                  }} 
-                  style={{ 
-                    position: "absolute", 
-                    top: 2, 
-                    right: 2, 
-                    background: "rgba(0,0,0,0.6)", 
-                    color: "white", 
-                    border: "none", 
-                    borderRadius: "50%", 
-                    width: 20, 
-                    height: 20, 
-                    cursor: "pointer", 
-                    fontSize: 10,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-            <div 
-              style={{ 
-                border: `1px dashed ${colors.borderLight}`, 
-                borderRadius: 6, 
-                padding: "8px", 
-                textAlign: "center", 
-                marginBottom: 6, 
-                cursor: "pointer",
-                transition: "border-color 0.2s"
-              }} 
-              onClick={() => document.getElementById("img").click()}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = colors.primary}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = colors.borderLight}
-            >
-              <input 
-                id="img" 
-                type="file" 
-                accept="image/*" 
-                onChange={handleImage} 
-                style={{ display: "none" }} 
-              />
-              <span style={{ fontSize: 20 }}>📸</span>
-              <div style={{ fontSize: 10 }}>Click to upload image (Max 5MB)</div>
-            </div>
-            <div style={{ textAlign: "center", fontSize: 9, margin: "4px 0" }}>— OR —</div>
-            <input 
-              type="url" 
-              name="imageUrl" 
-              value={form.imageUrl} 
-              onChange={handleChange} 
-              placeholder="https://example.com/image.jpg" 
-              style={input} 
-              disabled={!!preview} 
-            />
           </div>
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>

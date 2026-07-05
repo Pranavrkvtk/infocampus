@@ -1,10 +1,45 @@
 // src/api/UserApi.js
 import api from "./axios";
 
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
 // ========== COURSE CATALOG ==========
 export const getCourses = async () => {
   const response = await api.get("/users/courses");
   return response.data;
+};
+
+// ========== GET COURSES WITH IMAGES (Alias for getCourses) ==========
+export const getCoursesWithImages = async () => {
+  const response = await api.get("/users/courses");
+  return response.data;
+};
+
+// ========== COURSE IMAGE UPLOAD (Admin) ==========
+export const uploadCourseImage = async (courseId, file) => {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  try {
+    const response = await fetch(`${API_BASE}/admin/courses/${courseId}/upload-image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw error;
+  }
 };
 
 // ========== ENROLLMENT ==========
@@ -65,16 +100,18 @@ export const updateProgress = async (courseId, completedLessons) => {
   return response.data;
 };
 
-// ✅ Make sure all named exports are also in the default export
+// ========== DEFAULT EXPORT ==========
 export default {
   getCourses,
+  getCoursesWithImages,
+  uploadCourseImage,
   getEnrolledCourses,
   enrollInCourse,
   getCourseDetails,
   getCourseTopics,
-  getSubtopicInterviewQuestions,   // ✅ added
-  getSubtopicExamQuestions,        // ✅ added
-  getSubtopicLabs,                 // ✅ added
+  getSubtopicInterviewQuestions,
+  getSubtopicExamQuestions,
+  getSubtopicLabs,
   getTopicSubtopics,
   getSubtopic,
   getSubtopicImages,

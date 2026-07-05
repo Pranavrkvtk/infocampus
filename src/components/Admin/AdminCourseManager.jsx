@@ -1,7 +1,7 @@
 // src/components/Admin/AdminCourseManager.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
-import rehypeRaw from 'rehype-raw'; // ← NEW
+import rehypeRaw from 'rehype-raw';
 
 const API_BASE = 'http://localhost:8082/api';
 
@@ -166,15 +166,160 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR (unchanged)
+// COURSE IMAGE UPLOADER
 // ═══════════════════════════════════════════════════════════════════════════════
-function CourseSelector({ selectedCourse, onSelect, toast }) {
+function CourseImageUploader({ course, onImageUploaded, toast }) {
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.show('Please select an image file', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.show('Image size should be less than 5MB', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_BASE}/admin/courses/${course.id}/upload-image`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Upload result:', result);
+
+      if (result.success) {
+        toast.show('Image uploaded successfully! 🎉', 'success');
+        if (onImageUploaded) {
+          onImageUploaded(result.course);
+        }
+        // Refresh preview
+        setPreviewUrl(`${API_BASE}${result.imageUrl}`);
+      } else {
+        throw new Error(result.message || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.show('Failed to upload image: ' + error.message, 'error');
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
+  };
+
+  const getImageSrc = () => {
+    if (course.imageUrl) {
+      if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
+        return course.imageUrl;
+      }
+      if (course.imageUrl.startsWith('/api/')) {
+        return `http://localhost:8082${course.imageUrl}`;
+      }
+      return `${API_BASE}${course.imageUrl}`;
+    }
+    return null;
+  };
+
+  const imageSrc = getImageSrc();
+
+  return (
+    <div style={{ 
+      padding: '16px', 
+      background: clr.faint, 
+      borderRadius: 10,
+      border: `1px solid ${clr.border}`,
+      marginBottom: 16 
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <Lbl>Course Image</Lbl>
+        <Btn size="sm" variant="dashed" onClick={() => document.getElementById(`image-upload-${course.id}`).click()}>
+          {uploading ? '⏳ Uploading...' : '📷 Upload Image'}
+        </Btn>
+      </div>
+      
+      <input
+        id={`image-upload-${course.id}`}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleImageUpload}
+        disabled={uploading}
+      />
+
+      {imageSrc ? (
+        <div style={{ marginTop: 8 }}>
+          <img 
+            src={imageSrc} 
+            alt={course.title}
+            style={{ 
+              maxWidth: '100%', 
+              maxHeight: '200px', 
+              borderRadius: 8,
+              objectFit: 'cover',
+              border: `1px solid ${clr.border}`
+            }}
+            onError={(e) => {
+              e.target.src = '';
+              e.target.alt = 'Image not found';
+            }}
+          />
+          <div style={{ fontSize: 11, color: clr.muted, marginTop: 4 }}>
+            Current image: {course.imageUrl}
+          </div>
+        </div>
+      ) : (
+        <div style={{ 
+          padding: '20px', 
+          textAlign: 'center', 
+          color: clr.muted,
+          border: `2px dashed ${clr.border}`,
+          borderRadius: 8,
+          marginTop: 8
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
+          <div style={{ fontSize: 13 }}>No image uploaded. Click "Upload Image" to add one.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COURSE SELECTOR (with image upload)
+// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// COURSE SELECTOR (with image upload - FIXED)
+// ═══════════════════════════════════════════════════════════════════════════════
+function CourseSelector({ selectedCourse, onSelect, toast, onCourseUpdate }) {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCourse, setNewCourse] = useState({ title: '', description: '', instructor: '', level: 'Beginner', duration: '', price: 0 });
   const [creating, setCreating] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
 
   const loadCourses = async () => {
     setLoading(true);
@@ -210,6 +355,18 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
 
   const filtered = courses.filter(c => c.title?.toLowerCase().includes(search.toLowerCase()));
 
+  const handleImageError = (courseId) => {
+    setImageErrors(prev => ({ ...prev, [courseId]: true }));
+  };
+
+  const getImageUrl = (course) => {
+    if (!course.imageUrl) return null;
+    if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
+      return course.imageUrl;
+    }
+    return `${API_BASE}${course.imageUrl}`;
+  };
+
   return (
     <>
       <div style={{ padding: '20px 24px' }}>
@@ -224,22 +381,49 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
             : filtered.length === 0
               ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>No courses yet.</div>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
-                  {filtered.map(c => (
-                    <div key={c.id} onClick={() => onSelect(c)} style={{
-                      padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
-                      background: selectedCourse?.id === c.id ? clr.accentLight : clr.faint,
-                      border: `1.5px solid ${selectedCourse?.id === c.id ? clr.accent : 'transparent'}`,
-                      display: 'flex', alignItems: 'center', gap: 12,
-                    }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: clr.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
-                        {c.title?.[0]?.toUpperCase() || '?'}
+                  {filtered.map(c => {
+                    const imageUrl = getImageUrl(c);
+                    const hasError = imageErrors[c.id];
+                    
+                    return (
+                      <div key={c.id} onClick={() => onSelect(c)} style={{
+                        padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                        background: selectedCourse?.id === c.id ? clr.accentLight : clr.faint,
+                        border: `1.5px solid ${selectedCourse?.id === c.id ? clr.accent : 'transparent'}`,
+                        display: 'flex', alignItems: 'center', gap: 12,
+                      }}>
+                        <div style={{ 
+                          width: 48, 
+                          height: 48, 
+                          borderRadius: 8, 
+                          background: c.imageUrl && !hasError ? '#f0f0f0' : clr.accent,
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          color: '#fff',
+                          fontSize: 18,
+                          fontWeight: 700,
+                        }}>
+                          {c.imageUrl && !hasError ? (
+                            <img 
+                              src={imageUrl} 
+                              alt={c.title}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={() => handleImageError(c.id)}
+                            />
+                          ) : (
+                            <span>{c.title?.[0]?.toUpperCase() || '?'}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{c.title}</div>
+                          <div style={{ fontSize: 11, color: clr.muted }}>ID: {c.id} {c.imageUrl && !hasError ? '📷' : ''}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{c.title}</div>
-                        <div style={{ fontSize: 11, color: clr.muted }}>ID: {c.id}</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
           }
         </div>
@@ -926,14 +1110,11 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
   };
 
-const highlightText = (text) => {
-  console.log('Search term:', searchTerm);
-  if (!searchTerm.trim()) return text;
-  const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const result = text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark style="background:#fde047;color:#1e293b;padding:0 2px;border-radius:2px;">$1</mark>');
-  console.log('Result contains mark tags?', result.includes('<mark'));
-  return result;
-};
+  const highlightText = (text) => {
+    if (!searchTerm.trim()) return text;
+    const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark style="background:#fde047;color:#1e293b;padding:0 2px;border-radius:2px;">$1</mark>');
+  };
 
   return (
     <Card>
@@ -1250,6 +1431,12 @@ export default function AdminCourseManager() {
     loadTopics(course.id, 0);
   };
 
+  const handleCourseUpdate = (updatedCourse) => {
+    setSelectedCourse(updatedCourse);
+    // Refresh the course list in the sidebar
+    // You can add logic here to update the course in the courses list
+  };
+
   const setSubtopics = (topicId, updater) => {
     setTopics(ts => ts.map(t => t.id === topicId
       ? { ...t, subtopics: typeof updater === 'function' ? updater(t.subtopics || []) : updater }
@@ -1307,9 +1494,16 @@ export default function AdminCourseManager() {
 
       {/* ── Content management view ── */}
       {view === 'manage' && selectedCourse && (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* ── Course Image Upload ── */}
+              <CourseImageUploader 
+                course={selectedCourse} 
+                onImageUploaded={handleCourseUpdate} 
+                toast={toast} 
+              />
+
               {/* ── Global search ── */}
               <div style={{ position: 'relative' }}>
                 <input
