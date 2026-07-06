@@ -2,21 +2,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
-import AddCourseModal from './AddCourseModal'; // ✅ Import AddCourseModal
+import AddCourseModal from './AddCourseModal';
+import api from '../../api/axios'; // ✅ Import the default api instance
 
-const API_BASE = 'http://localhost:8082/api';
-
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
-
-const api = {
-  get: (url) => fetch(`${API_BASE}${url}`, { headers: authHeaders() }).then(r => r.json()),
-  post: (url, body) => fetch(`${API_BASE}${url}`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) }).then(r => r.json()),
-  put: (url, body) => fetch(`${API_BASE}${url}`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) }).then(r => r.json()),
-  delete: (url) => fetch(`${API_BASE}${url}`, { method: 'DELETE', headers: authHeaders() }).then(r => r.json()),
-};
+// ✅ Get base URL from environment (same as axios.js)
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082';
 
 const clr = {
   bg: '#f8f9fb', white: '#ffffff', border: '#e4e7ec', borderActive: '#4f46e5',
@@ -193,19 +183,13 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     formData.append('file', file);
 
     try {
-      const response = await fetch(`${API_BASE}/admin/courses/${course.id}/upload-image`, {
-        method: 'POST',
+      // ✅ Use api instance directly - it handles auth and base URL
+      const response = await api.post(`/admin/courses/${course.id}/upload-image`, formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data',
         },
-        body: formData,
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = response.data;
       console.log('Upload result:', result);
 
       if (result.success) {
@@ -218,7 +202,8 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.show('Failed to upload image: ' + error.message, 'error');
+      const msg = error.response?.data?.message || error.message;
+      toast.show('Failed to upload image: ' + msg, 'error');
     } finally {
       setUploading(false);
       event.target.value = '';
@@ -231,9 +216,9 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
         return course.imageUrl;
       }
       if (course.imageUrl.startsWith('/api/')) {
-        return `http://localhost:8082${course.imageUrl}`;
+        return `${API_BASE_URL}${course.imageUrl}`;
       }
-      return `${API_BASE}${course.imageUrl}`;
+      return `${API_BASE_URL}/api${course.imageUrl}`;
     }
     return null;
   };
@@ -315,9 +300,13 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
   const loadCourses = async () => {
     setLoading(true);
     try {
-      const data = await api.get('/admin/courses');
+      const response = await api.get('/admin/courses');
+      const data = response.data;
       setCourses(Array.isArray(data) ? data : []);
-    } catch (error) { console.error(error); }
+    } catch (error) { 
+      console.error(error);
+      toast.show('Failed to load courses', 'error');
+    }
     finally { setLoading(false); }
   };
 
@@ -339,7 +328,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
       return course.imageUrl;
     }
-    return `${API_BASE}${course.imageUrl}`;
+    return `${API_BASE_URL}/api${course.imageUrl}`;
   };
 
   return (
@@ -406,7 +395,6 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
         </div>
       </div>
 
-      {/* ✅ Use AddCourseModal */}
       <AddCourseModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -452,7 +440,8 @@ function TopicManager({
         setTopics(ts => ts.map(t => t.id === editId ? { ...t, title: form.title } : t));
         toast.show('Topic updated');
       } else {
-        const data = await api.post(`/admin/courses/${courseId}/topics`, { title: form.title });
+        const response = await api.post(`/admin/courses/${courseId}/topics`, { title: form.title });
+        const data = response.data;
         const newTopic = { id: data.topicId || data.topic?.id, title: form.title, subtopics: [] };
         setTopics(ts => [...ts, newTopic]);
         toast.show('Topic created');
@@ -602,7 +591,8 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
         setSubtopics(ss => ss.map(s => s.id === editId ? { ...s, title: form.title } : s));
         toast.show('Subtopic updated');
       } else {
-        const data = await api.post(`/admin/topics/${topic.id}/subtopics`, { title: form.title });
+        const response = await api.post(`/admin/topics/${topic.id}/subtopics`, { title: form.title });
+        const data = response.data;
         const newSub = { id: data.subtopicId || data.subtopic?.id, title: form.title, content: '', videoUrl: '' };
         setSubtopics(ss => [...ss, newSub]);
         toast.show('Subtopic created');
@@ -685,7 +675,12 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
   const loadQuestions = useCallback(() => {
     if (!subtopicId) return;
     api.get(`/admin/subtopics/${subtopicId}/interview-questions`)
-      .then(data => { const arr = Array.isArray(data) ? data : []; setQuestions(arr); onUpdate({ interviewQuestions: arr }); })
+      .then(response => { 
+        const data = response.data;
+        const arr = Array.isArray(data) ? data : []; 
+        setQuestions(arr); 
+        onUpdate({ interviewQuestions: arr }); 
+      })
       .catch(console.error);
   }, [subtopicId, onUpdate]);
 
@@ -697,7 +692,8 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
     if (!addForm.question.trim()) return;
     setAdding(true);
     try {
-      const data = await api.post(`/admin/subtopics/${subtopicId}/interview-questions`, addForm);
+      const response = await api.post(`/admin/subtopics/${subtopicId}/interview-questions`, addForm);
+      const data = response.data;
       const updated = [...questions, { id: data.questionId, ...addForm }];
       setQuestions(updated); onUpdate({ interviewQuestions: updated });
       setAddForm({ question: '', answer: '' }); setShowAdd(false);
@@ -758,7 +754,12 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   const loadQuestions = useCallback(() => {
     if (!subtopicId) return;
     api.get(`/admin/subtopics/${subtopicId}/exam-questions`)
-      .then(data => { const arr = Array.isArray(data) ? data : []; setQuestions(arr); onUpdate({ examQuestions: arr }); })
+      .then(response => { 
+        const data = response.data;
+        const arr = Array.isArray(data) ? data : []; 
+        setQuestions(arr); 
+        onUpdate({ examQuestions: arr }); 
+      })
       .catch(console.error);
   }, [subtopicId, onUpdate]);
 
@@ -770,7 +771,8 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
     if (!addForm.question.trim()) return;
     setAdding(true);
     try {
-      const data = await api.post(`/admin/subtopics/${subtopicId}/exam-questions`, addForm);
+      const response = await api.post(`/admin/subtopics/${subtopicId}/exam-questions`, addForm);
+      const data = response.data;
       const updated = [...questions, { id: data.questionId, ...addForm }];
       setQuestions(updated); onUpdate({ examQuestions: updated });
       setAddForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
@@ -842,7 +844,12 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   const loadLabs = useCallback(() => {
     if (!subtopicId) return;
     api.get(`/admin/subtopics/${subtopicId}/labs`)
-      .then(data => { const arr = Array.isArray(data) ? data : []; setLabs(arr); onUpdate({ labExercises: arr }); })
+      .then(response => { 
+        const data = response.data;
+        const arr = Array.isArray(data) ? data : []; 
+        setLabs(arr); 
+        onUpdate({ labExercises: arr }); 
+      })
       .catch(console.error);
   }, [subtopicId, onUpdate]);
 
@@ -854,7 +861,8 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
     if (!addForm.title.trim()) return;
     setAdding(true);
     try {
-      const data = await api.post(`/admin/subtopics/${subtopicId}/labs`, addForm);
+      const response = await api.post(`/admin/subtopics/${subtopicId}/labs`, addForm);
+      const data = response.data;
       const updated = [...labs, { id: data.labId, ...addForm }];
       setLabs(updated); onUpdate({ labExercises: updated });
       setAddForm({ title: '', instructions: '' }); setShowAdd(false);
@@ -915,11 +923,11 @@ function MarkdownImage({ src, alt }) {
   if (src.startsWith('http://') || src.startsWith('https://')) {
     fullSrc = src;
   } else if (src.startsWith('/api/')) {
-    fullSrc = `http://localhost:8082${src}`;
+    fullSrc = `${API_BASE_URL}${src}`;
   } else if (src.startsWith('/uploads/')) {
-    fullSrc = `${API_BASE}/admin${src}`;
+    fullSrc = `${API_BASE_URL}/api/admin${src}`;
   } else {
-    fullSrc = `${API_BASE}${src}`;
+    fullSrc = `${API_BASE_URL}/api${src}`;
   }
 
   return (
@@ -1042,24 +1050,23 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const response = await fetch(`${API_BASE}/admin/subtopics/${subtopicId}/upload-pdf`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        body: formData,
+      // ✅ Use api instance directly
+      const response = await api.post(`/admin/subtopics/${subtopicId}/upload-pdf`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || `HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
+      const data = response.data;
+      const refreshedResponse = await api.get(`/admin/subtopics/${subtopicId}`);
+      const refreshedSub = refreshedResponse.data;
       setNotes(refreshedSub.content || '');
       setVideoUrl(refreshedSub.videoUrl || '');
       onUpdate(refreshedSub);
       toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
     } catch (err) {
       console.error('Upload error:', err);
-      toast.show(err.message || 'Upload failed', 'error');
+      const msg = err.response?.data?.message || err.response?.data || err.message;
+      toast.show(msg || 'Upload failed', 'error');
     } finally {
       setUploadingDoc(false);
     }
@@ -1362,7 +1369,8 @@ export default function AdminCourseManager() {
     if (!courseId) return;
     setLoading(true);
     try {
-      const data = await api.get(`/admin/courses/${courseId}/topics?page=${page}&size=50&sortBy=displayOrder`);
+      const response = await api.get(`/admin/courses/${courseId}/topics?page=${page}&size=50&sortBy=displayOrder`);
+      const data = response.data;
       if (data.content && Array.isArray(data.content)) {
         setTopics(data.content);
         setPagination({
