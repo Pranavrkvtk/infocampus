@@ -1,7 +1,9 @@
+// src/components/Admin/DashboardTab.jsx
 import React from "react";
 import {
   colors,
-  KpiCard,
+  // ✅ Remove unused import
+  // KpiCard,  
 } from "./AdminStyles";
 
 export default function DashboardTab({

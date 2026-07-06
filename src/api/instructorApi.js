@@ -1,20 +1,9 @@
 // src/api/instructorApi.js
 import api from "./axios";
 
-// ==================== DASHBOARD STATS ====================
-export const getInstructorDashboardStats = async () => {
-  try {
-    const response = await api.get("/instructor/dashboard");
-    return response;
-  } catch (error) {
-    console.error("Error fetching instructor dashboard stats:", error);
-    throw error;
-  }
-};
+// ==================== INSTRUCTOR COURSE MANAGEMENT ====================
 
-// ==================== COURSE MANAGEMENT ====================
-
-// Get instructor's own courses
+// Get instructor's courses
 export const getInstructorCourses = async () => {
   try {
     const response = await api.get("/instructor/courses");
@@ -25,87 +14,51 @@ export const getInstructorCourses = async () => {
   }
 };
 
-// Get ALL courses (including admin-created courses)
-export const getAllInstructorCourses = async () => {
-  try {
-    const response = await api.get("/instructor/courses/all");
-    return response;
-  } catch (error) {
-    console.error("Error fetching all courses:", error);
-    throw error;
-  }
-};
-
-// Get available courses (not assigned to this instructor yet)
-export const getAvailableCourses = async () => {
-  try {
-    const response = await api.get("/instructor/courses/available");
-    return response;
-  } catch (error) {
-    console.error("Error fetching available courses:", error);
-    throw error;
-  }
-};
-
-// Create new course
+// Create new course (for instructor)
 export const createInstructorCourse = async (courseData) => {
   try {
     const response = await api.post("/instructor/courses", courseData);
     return response;
   } catch (error) {
-    console.error("Error creating course:", error);
+    console.error("Error creating instructor course:", error);
     throw error;
   }
 };
 
-// Update course
+// Update instructor's course
 export const updateInstructorCourse = async (courseId, courseData) => {
   try {
     const response = await api.put(`/instructor/courses/${courseId}`, courseData);
     return response;
   } catch (error) {
-    console.error("Error updating course:", error);
+    console.error("Error updating instructor course:", error);
     throw error;
   }
 };
-export const getRecentActivity = async (limit = 10) => {
-  const response = await api.get(`/instructor/activity/recent?limit=${limit}`);
-  return response.data;
-};
-// Delete course
+
+// Delete instructor's course
 export const deleteInstructorCourse = async (courseId) => {
   try {
     const response = await api.delete(`/instructor/courses/${courseId}`);
     return response;
   } catch (error) {
-    console.error("Error deleting course:", error);
+    console.error("Error deleting instructor course:", error);
     throw error;
   }
 };
 
-// Get course details
+// Get instructor course details
 export const getInstructorCourseDetails = async (courseId) => {
   try {
     const response = await api.get(`/instructor/courses/${courseId}`);
     return response;
   } catch (error) {
-    console.error("Error fetching course details:", error);
+    console.error("Error fetching instructor course details:", error);
     throw error;
   }
 };
 
-// Assign a course to instructor (for admin-created courses)
-export const assignCourseToInstructor = async (courseId) => {
-  try {
-    const response = await api.post(`/instructor/courses/${courseId}/assign`);
-    return response;
-  } catch (error) {
-    console.error("Error assigning course:", error);
-    throw error;
-  }
-};
-
-// ==================== STUDENT MANAGEMENT ====================
+// ==================== INSTRUCTOR STUDENT MANAGEMENT ====================
 
 // Get instructor's students
 export const getInstructorStudents = async () => {
@@ -118,31 +71,31 @@ export const getInstructorStudents = async () => {
   }
 };
 
-// Search students by name
+// Search students by name (within instructor's courses)
 export const searchInstructorStudentsByName = async (name) => {
   try {
-    const response = await api.get(`/instructor/students/search`, {
+    const response = await api.get("/instructor/students/search", {
       params: { name }
     });
     return response;
   } catch (error) {
-    console.error("Error searching students:", error);
+    console.error("Error searching instructor students:", error);
     throw error;
   }
 };
 
-// Get student details
+// Get instructor student details
 export const getInstructorStudentDetails = async (studentId) => {
   try {
     const response = await api.get(`/instructor/students/${studentId}`);
     return response;
   } catch (error) {
-    console.error("Error fetching student details:", error);
+    console.error("Error fetching instructor student details:", error);
     throw error;
   }
 };
 
-// ==================== ENROLLMENT MANAGEMENT ====================
+// ==================== INSTRUCTOR ENROLLMENT MANAGEMENT ====================
 
 // Get instructor's enrollments
 export const getInstructorEnrollments = async () => {
@@ -150,47 +103,60 @@ export const getInstructorEnrollments = async () => {
     const response = await api.get("/instructor/enrollments");
     return response;
   } catch (error) {
-    console.error("Error fetching enrollments:", error);
+    console.error("Error fetching instructor enrollments:", error);
     throw error;
   }
 };
 
-// Update enrollment status
+// Update enrollment status (within instructor's courses)
 export const updateInstructorEnrollmentStatus = async (enrollmentId, status) => {
   try {
     const response = await api.patch(`/instructor/enrollments/${enrollmentId}/status`, { status });
     return response;
   } catch (error) {
-    console.error("Error updating enrollment status:", error);
+    console.error("Error updating instructor enrollment status:", error);
     throw error;
   }
 };
 
-// ==================== MEDIA MANAGEMENT ====================
+// ==================== INSTRUCTOR DASHBOARD STATS ====================
 
-// Get home video
+// Get instructor dashboard stats
+export const getInstructorDashboardStats = async () => {
+  try {
+    const response = await api.get("/instructor/dashboard/stats");
+    return response;
+  } catch (error) {
+    console.error("Error fetching instructor dashboard stats:", error);
+    throw error;
+  }
+};
+
+// ==================== INSTRUCTOR MEDIA MANAGEMENT ====================
+
+// Get home video (instructor view)
 export const getInstructorHomeVideo = async () => {
   try {
     const response = await api.get("/instructor/home-video");
     return response;
   } catch (error) {
-    console.error("Error fetching home video:", error);
+    console.error("Error fetching instructor home video:", error);
     throw error;
   }
 };
 
-// Update home video URL
+// Update home video URL (instructor view)
 export const updateInstructorHomeVideoUrl = async (videoUrl) => {
   try {
-    const response = await api.patch("/instructor/home-video", { videoUrl });
+    const response = await api.put("/instructor/home-video", { videoUrl });
     return response;
   } catch (error) {
-    console.error("Error updating video URL:", error);
+    console.error("Error updating instructor home video:", error);
     throw error;
   }
 };
 
-// ==================== PROFILE MANAGEMENT ====================
+// ==================== INSTRUCTOR PROFILE MANAGEMENT ====================
 
 // Get instructor profile
 export const getInstructorProfile = async () => {
@@ -203,7 +169,18 @@ export const getInstructorProfile = async () => {
   }
 };
 
-// ==================== ANALYTICS ====================
+// Update instructor profile
+export const updateInstructorProfile = async (profileData) => {
+  try {
+    const response = await api.put("/instructor/profile", profileData);
+    return response;
+  } catch (error) {
+    console.error("Error updating instructor profile:", error);
+    throw error;
+  }
+};
+
+// ==================== INSTRUCTOR ANALYTICS ====================
 
 // Get instructor analytics
 export const getInstructorAnalytics = async () => {
@@ -211,68 +188,69 @@ export const getInstructorAnalytics = async () => {
     const response = await api.get("/instructor/analytics");
     return response;
   } catch (error) {
-    console.error("Error fetching analytics:", error);
+    console.error("Error fetching instructor analytics:", error);
     throw error;
   }
 };
 
-// Get revenue stats
+// Get instructor revenue stats
 export const getInstructorRevenueStats = async () => {
   try {
     const response = await api.get("/instructor/revenue");
     return response;
   } catch (error) {
-    console.error("Error fetching revenue stats:", error);
+    console.error("Error fetching instructor revenue stats:", error);
     throw error;
   }
 };
 
-// ==================== TEST ENDPOINTS ====================
-
-// Test endpoint
-export const testInstructorApi = async () => {
+// Get instructor course performance
+export const getInstructorCoursePerformance = async (courseId) => {
   try {
-    const response = await api.get("/instructor/test");
+    const response = await api.get(`/instructor/courses/${courseId}/performance`);
     return response;
   } catch (error) {
-    console.error("Error testing instructor API:", error);
-    throw error;
-  }
-};
-
-// Test authentication
-export const testInstructorAuth = async () => {
-  try {
-    const response = await api.get("/instructor/test-auth");
-    return response;
-  } catch (error) {
-    console.error("Error testing instructor auth:", error);
+    console.error("Error fetching instructor course performance:", error);
     throw error;
   }
 };
 
 // ==================== EXPORT ALL ====================
 
-export default {
-  getInstructorDashboardStats,
+// ✅ FIX: Assign to a named variable before exporting
+const instructorApi = {
+  // Course Management
   getInstructorCourses,
-  getAllInstructorCourses,
-  getAvailableCourses,
   createInstructorCourse,
   updateInstructorCourse,
   deleteInstructorCourse,
   getInstructorCourseDetails,
-  assignCourseToInstructor,
+  
+  // Student Management
   getInstructorStudents,
   searchInstructorStudentsByName,
   getInstructorStudentDetails,
+  
+  // Enrollment Management
   getInstructorEnrollments,
   updateInstructorEnrollmentStatus,
+  
+  // Dashboard
+  getInstructorDashboardStats,
+  
+  // Media
   getInstructorHomeVideo,
   updateInstructorHomeVideoUrl,
+  
+  // Profile
   getInstructorProfile,
+  updateInstructorProfile,
+  
+  // Analytics
   getInstructorAnalytics,
   getInstructorRevenueStats,
-  testInstructorApi,
-  testInstructorAuth,
+  getInstructorCoursePerformance,
 };
+
+// ✅ FIX: Export the named variable as default
+export default instructorApi;

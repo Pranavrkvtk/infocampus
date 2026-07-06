@@ -1779,7 +1779,7 @@ export default function CourseDetailView({
       transition: 'left 0.3s ease',
       boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
       display: isMobile ? 'none' : 'block',
-      left: isSidebarCollapsed ? '12px' : '352px',
+  left: isSidebarCollapsed ? '0' : '340px', // Only ONE left property
     },
   };
 
