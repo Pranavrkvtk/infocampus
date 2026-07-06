@@ -1,8 +1,6 @@
 // src/api/UserApi.js
 import api from "./axios";
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
-
 // ========== COURSE CATALOG ==========
 export const getCourses = async () => {
   const response = await api.get("/users/courses");
@@ -17,25 +15,17 @@ export const getCoursesWithImages = async () => {
 
 // ========== COURSE IMAGE UPLOAD (Admin) ==========
 export const uploadCourseImage = async (courseId, file) => {
-  const token = localStorage.getItem('token');
   const formData = new FormData();
   formData.append('file', file);
   
   try {
-    const response = await fetch(`${API_BASE}/admin/courses/${courseId}/upload-image`, {
-      method: 'POST',
+    const response = await api.post(`/admin/courses/${courseId}/upload-image`, formData, {
       headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'multipart/form-data',
       },
-      body: formData,
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `HTTP ${response.status}`);
-    }
-    
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Upload error:', error);
     throw error;
@@ -59,7 +49,7 @@ export const getEnrollmentCount = async (courseId) => {
   return response.data;
 };
 
-// ========== INSTRUCTOR APIs (NEW) ==========
+// ========== INSTRUCTOR APIs ==========
 
 // Get instructor details for a specific course
 export const getCourseInstructor = async (courseId) => {
@@ -133,7 +123,6 @@ export const updateProgress = async (courseId, completedLessons) => {
 };
 
 // ========== DEFAULT EXPORT ==========
-// ✅ FIX: Assign to a named variable before exporting
 const userApi = {
   getCourses,
   getCoursesWithImages,
@@ -158,5 +147,4 @@ const userApi = {
   updateProgress,
 };
 
-// ✅ FIX: Export the named variable as default
 export default userApi;

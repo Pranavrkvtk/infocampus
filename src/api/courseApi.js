@@ -176,11 +176,12 @@ export const deleteLabExercise = (labId) => {
 export const uploadPdf = async (formData) => {
   const token = localStorage.getItem('token');
   
-  // For FormData, we need to use fetch directly because axios can have issues with multipart/form-data
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+  // ✅ FIXED: Use api instance instead of hardcoded URL
+  // Get the base URL from the api instance
+  const baseURL = api.defaults.baseURL || 'http://localhost:8082/api';
   
   try {
-    const response = await fetch(`${API_BASE}/admin/pdfs/upload`, {
+    const response = await fetch(`${baseURL}/admin/pdfs/upload`, {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`
@@ -197,6 +198,26 @@ export const uploadPdf = async (formData) => {
     const data = await response.json();
     console.log('Upload response:', data);
     return { data };
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw error;
+  }
+};
+
+// ─── ALTERNATIVE: Use axios for PDF upload (Recommended) ─────────────────────
+export const uploadPdfWithAxios = async (formData) => {
+  const token = localStorage.getItem('token');
+  
+  try {
+    const response = await api.post('/admin/pdfs/upload', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    console.log('Upload response:', response.data);
+    return response;
   } catch (error) {
     console.error('Upload error:', error);
     throw error;

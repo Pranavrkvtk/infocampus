@@ -1,13 +1,16 @@
-// src/api/pdfApi.js - CLEANED VERSION (Only Required APIs)
+// src/api/pdfApi.js - FIXED VERSION
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+// ✅ Get the base URL from environment with fallback
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082';
 
+// ✅ Create axios instance with proper base URL (including /api)
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api`,  // ← Note the /api is added here
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds timeout for large files
 });
 
 // Add token to requests
@@ -16,8 +19,36 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // Log requests in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📤 ${config.method.toUpperCase()} ${config.baseURL}${config.url}`);
+  }
+  
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
+
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
+      // Optionally redirect to login
+      // window.location.href = '/login';
+    }
+    
+    // Log errors in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('API Error:', error.response?.data || error.message);
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 // ==================== COURSE MANAGEMENT ====================
 
@@ -130,6 +161,7 @@ export const deleteLabExercise = (labId) => {
 
 // ==================== PDF MANAGEMENT ====================
 
+// ✅ FIXED: PDF Upload - Using axios with multipart/form-data
 export const uploadPdf = (file, courseId) => {
   const formData = new FormData();
   formData.append('file', file);
@@ -137,9 +169,55 @@ export const uploadPdf = (file, courseId) => {
     formData.append('courseId', courseId);
   }
   
+  // ✅ Using api instance - base URL is already configured
   return api.post('/admin/pdfs/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 
+      'Content-Type': 'multipart/form-data',
+    },
+    // ✅ Increase timeout for large files
+    timeout: 60000, // 60 seconds
+    // ✅ Track upload progress (optional)
+    onUploadProgress: (progressEvent) => {
+      const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+      console.log(`Upload progress: ${percentCompleted}%`);
+    },
   });
+};
+
+// ✅ Alternative: Fetch version with proper base URL
+export const uploadPdfWithFetch = async (file, courseId) => {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('file', file);
+  if (courseId) {
+    formData.append('courseId', courseId);
+  }
+  
+  // ✅ Get the base URL from environment
+  const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8082';
+  const url = `${baseURL}/api/admin/pdfs/upload`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Upload failed');
+    }
+    
+    const data = await response.json();
+    console.log('Upload success:', data);
+    return { data };
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw error;
+  }
 };
 
 export const generateCourseStructure = (pdfId) => {
@@ -201,4 +279,5 @@ export const getCurrentUserId = () => {
   return '1';
 };
 
+// ✅ Export the api instance for use in other files
 export default api;
