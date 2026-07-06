@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  getSubtopicImages,
   getSubtopicInterviewQuestions,
   getSubtopicExamQuestions,
   getSubtopicLabs,
