@@ -171,7 +171,6 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState(null);
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -214,7 +213,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
         if (onImageUploaded) {
           onImageUploaded(result.course);
         }
-        setPreviewUrl(`${API_BASE}${result.imageUrl}`);
       } else {
         throw new Error(result.message || 'Upload failed');
       }
@@ -684,12 +682,16 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
-  useEffect(() => {
+  const loadQuestions = useCallback(() => {
     if (!subtopicId) return;
     api.get(`/admin/subtopics/${subtopicId}/interview-questions`)
       .then(data => { const arr = Array.isArray(data) ? data : []; setQuestions(arr); onUpdate({ interviewQuestions: arr }); })
       .catch(console.error);
-  }, [subtopicId]);
+  }, [subtopicId, onUpdate]);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
 
   const addQ = async () => {
     if (!addForm.question.trim()) return;
@@ -753,12 +755,16 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
-  useEffect(() => {
+  const loadQuestions = useCallback(() => {
     if (!subtopicId) return;
     api.get(`/admin/subtopics/${subtopicId}/exam-questions`)
       .then(data => { const arr = Array.isArray(data) ? data : []; setQuestions(arr); onUpdate({ examQuestions: arr }); })
       .catch(console.error);
-  }, [subtopicId]);
+  }, [subtopicId, onUpdate]);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
 
   const addQ = async () => {
     if (!addForm.question.trim()) return;
@@ -833,12 +839,16 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
-  useEffect(() => {
+  const loadLabs = useCallback(() => {
     if (!subtopicId) return;
     api.get(`/admin/subtopics/${subtopicId}/labs`)
       .then(data => { const arr = Array.isArray(data) ? data : []; setLabs(arr); onUpdate({ labExercises: arr }); })
       .catch(console.error);
-  }, [subtopicId]);
+  }, [subtopicId, onUpdate]);
+
+  useEffect(() => {
+    loadLabs();
+  }, [loadLabs]);
 
   const addLab = async () => {
     if (!addForm.title.trim()) return;
@@ -1242,6 +1252,7 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
                 width="100%"
                 height="400"
                 src={embedUrl}
+                title="Video Preview"
                 frameBorder="0"
                 allowFullScreen
                 style={{ marginTop: 16, borderRadius: 8 }}
@@ -1370,7 +1381,7 @@ export default function AdminCourseManager() {
       console.error('Failed to load topics:', error);
       toast.show('Failed to load topics', 'error');
     } finally { setLoading(false); }
-  }, [toast]);
+  }, [toast, activeTopicId]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < pagination.totalPages) {

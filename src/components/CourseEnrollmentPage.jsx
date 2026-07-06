@@ -1,14 +1,12 @@
 // src/components/CourseEnrollmentPage.jsx
 // Course enrollment page with course details, stats, and trainer information
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   getCourseDetails, 
   getEnrollmentCount,
   getInstructorById 
 } from '../api/UserApi';
-
-const API_BASE = 'http://localhost:8082/api';
 
 // ─── Design tokens ─────────────────────────────────────────────────────
 const COLORS = {
@@ -53,52 +51,9 @@ export default function CourseEnrollmentPage({
 
   const isMobile = window.innerWidth < 768;
 
-  // Fetch course details when component mounts or course changes
-  useEffect(() => {
-    if (course?.id) {
-      fetchCourseDetails(course.id);
-      fetchEnrollmentCount(course.id);
-    }
-  }, [course?.id]);
+  // ─── Memoized Functions ──────────────────────────────────────────────
 
-  const fetchCourseDetails = async (courseId) => {
-    setLoadingDetails(true);
-    try {
-      const data = await getCourseDetails(courseId);
-      console.log('Course details from API:', data);
-      setCourseDetails(data);
-      
-      // If instructor ID is in course data, fetch instructor details
-      const instructorId = data?.course?.instructorId || data?.course?.instructor;
-      if (instructorId) {
-        await fetchInstructorDetails(instructorId);
-      } else {
-        // If no instructor ID, set default instructor
-        setInstructorDetails(getDefaultInstructor());
-      }
-    } catch (error) {
-      console.error('Error fetching course details:', error);
-      setInstructorDetails(getDefaultInstructor());
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  const fetchEnrollmentCount = async (courseId) => {
-    setLoadingEnrollmentCount(true);
-    try {
-      const data = await getEnrollmentCount(courseId);
-      console.log('Enrollment count from API:', data);
-      setEnrollmentCount(data.total || 0);
-    } catch (error) {
-      console.error('Error fetching enrollment count:', error);
-      setEnrollmentCount(0);
-    } finally {
-      setLoadingEnrollmentCount(false);
-    }
-  };
-
-  const getDefaultInstructor = () => {
+  const getDefaultInstructor = useCallback(() => {
     return {
       id: 0,
       name: 'Expert Instructor',
@@ -113,9 +68,9 @@ export default function CourseEnrollmentPage({
       email: 'instructor@example.com',
       profileImage: '',
     };
-  };
+  }, []);
 
-  const fetchInstructorDetails = async (instructorId) => {
+  const fetchInstructorDetails = useCallback(async (instructorId) => {
     // If instructorId is a name string or not a number, skip API call
     if (!instructorId) {
       setInstructorDetails(getDefaultInstructor());
@@ -169,9 +124,57 @@ export default function CourseEnrollmentPage({
     } finally {
       setLoadingInstructor(false);
     }
-  };
+  }, [getDefaultInstructor]);
 
-  // Build course data from API response
+  const fetchCourseDetails = useCallback(async (courseId) => {
+    setLoadingDetails(true);
+    try {
+      const data = await getCourseDetails(courseId);
+      console.log('Course details from API:', data);
+      setCourseDetails(data);
+      
+      // If instructor ID is in course data, fetch instructor details
+      const instructorId = data?.course?.instructorId || data?.course?.instructor;
+      if (instructorId) {
+        await fetchInstructorDetails(instructorId);
+      } else {
+        // If no instructor ID, set default instructor
+        setInstructorDetails(getDefaultInstructor());
+      }
+    } catch (error) {
+      console.error('Error fetching course details:', error);
+      setInstructorDetails(getDefaultInstructor());
+    } finally {
+      setLoadingDetails(false);
+    }
+  }, [fetchInstructorDetails, getDefaultInstructor]);
+
+  const fetchEnrollmentCount = useCallback(async (courseId) => {
+    setLoadingEnrollmentCount(true);
+    try {
+      const data = await getEnrollmentCount(courseId);
+      console.log('Enrollment count from API:', data);
+      setEnrollmentCount(data.total || 0);
+    } catch (error) {
+      console.error('Error fetching enrollment count:', error);
+      setEnrollmentCount(0);
+    } finally {
+      setLoadingEnrollmentCount(false);
+    }
+  }, []);
+
+  // ─── Effects ──────────────────────────────────────────────────────────
+
+  // Fetch course details when component mounts or course changes
+  useEffect(() => {
+    if (course?.id) {
+      fetchCourseDetails(course.id);
+      fetchEnrollmentCount(course.id);
+    }
+  }, [course?.id, fetchCourseDetails, fetchEnrollmentCount]);
+
+  // ─── Build Course Data ──────────────────────────────────────────────
+
   const buildCourseData = () => {
     // Get instructor data (use API data or default)
     const instructor = instructorDetails || getDefaultInstructor();

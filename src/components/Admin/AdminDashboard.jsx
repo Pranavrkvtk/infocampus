@@ -11,11 +11,11 @@ import {
   hardDeleteInstructor,
   updateInstructorStatus,
   getHomeVideo,
-  uploadHomeVideo,
-  deleteHomeVideo,
+  // uploadHomeVideo, // ❌ Removed - not used
+  // deleteHomeVideo,  // ❌ Removed - not used
   updateHomeVideoUrl,
-  getAllEnrollments, // ✅ ADDED
-  deleteUser,         // 👈 used for permanent student delete
+  getAllEnrollments,
+  deleteUser,
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
@@ -28,7 +28,7 @@ import DashboardTab from "./DashboardTab";
 import CoursesTab from "./CoursesTab";
 import StudentsTab from "./StudentsTab";
 import InstructorsTab from "./InstructorsTab";
-import EnrollmentsTab from "./EnrollmentsTab"; // ✅ ADDED
+import EnrollmentsTab from "./EnrollmentsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
@@ -38,7 +38,7 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
   const [urlInput, setUrlInput] = useState("");
   const [updatingUrl, setUpdatingUrl] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [isValidUrl, setIsValidUrl] = useState(false);
+  // const [isValidUrl, setIsValidUrl] = useState(false); // ❌ Removed - not used
   const [isYoutube, setIsYoutube] = useState(false);
   const [embedUrl, setEmbedUrl] = useState("");
 
@@ -52,7 +52,7 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
 
   const validateAndEmbedUrl = (url) => {
     if (!url || !url.trim()) {
-      setIsValidUrl(false);
+      // setIsValidUrl(false); // ❌ Removed
       setIsYoutube(false);
       setEmbedUrl("");
       return;
@@ -60,7 +60,7 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
 
     try {
       new URL(url);
-      setIsValidUrl(true);
+      // setIsValidUrl(true); // ❌ Removed
       
       // Check if it's a YouTube URL
       const isYoutubeUrl = url.includes('youtube.com') || url.includes('youtu.be');
@@ -98,7 +98,7 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
         setEmbedUrl(url);
       }
     } catch (_) {
-      setIsValidUrl(false);
+      // setIsValidUrl(false); // ❌ Removed
       setIsYoutube(false);
       setEmbedUrl("");
     }
@@ -110,7 +110,7 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
     if (value.trim()) {
       validateAndEmbedUrl(value);
     } else {
-      setIsValidUrl(false);
+      // setIsValidUrl(false); // ❌ Removed
       setIsYoutube(false);
       setEmbedUrl("");
     }
@@ -401,7 +401,7 @@ export default function AdminDashboard() {
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
-  const [isThemeOpen, setIsThemeOpen] = useState(false);
+  // const [isThemeOpen, setIsThemeOpen] = useState(false); // ❌ Removed - not used
 
   // ---------- video state ----------
   const [videoUrl, setVideoUrl] = useState("");
@@ -416,7 +416,7 @@ export default function AdminDashboard() {
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
   const [instructors, setInstructors] = useState([]);
-  const [enrollments, setEnrollments] = useState([]); // ✅ ADDED
+  const [enrollments, setEnrollments] = useState([]);
 
   // Resize listener
   useEffect(() => {
@@ -496,7 +496,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // ✅ Fetch all enrollments
+  // Fetch all enrollments
   const fetchEnrollments = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
@@ -776,10 +776,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // ✅ Permanently delete a student
-  // StudentsTab already shows its own SweetAlert2 confirmation, loading
-  // spinner, and success/error toasts via its `confirmDelete` function,
-  // so this handler just needs to call the API and refresh the list.
+  // Permanently delete a student
   const handleDeleteStudent = async (studentId) => {
     await deleteUser(studentId);
     await fetchAllStudents();
@@ -805,14 +802,11 @@ export default function AdminDashboard() {
     else if (activeTab === "courses") fetchCourses();
     else if (activeTab === "students") fetchAllStudents();
     else if (activeTab === "instructors") fetchAllInstructors();
-    else if (activeTab === "enrollments") fetchEnrollments(); // ✅ ADDED
+    else if (activeTab === "enrollments") fetchEnrollments();
     else if (activeTab === "media") fetchHomeVideo();
   }, [activeTab]);
 
-  const handleUpdateRole = (userId) => {
-    const user = students.find(s => s.id === userId);
-    setSelectedUser(user); setIsEditRoleModalOpen(true);
-  };
+  // ❌ Removed: handleUpdateRole - not used
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -837,7 +831,7 @@ export default function AdminDashboard() {
           if (activeTab === "students") fetchAllStudents();
           else if (activeTab === "courses") fetchCourses();
           else if (activeTab === "instructors") fetchAllInstructors();
-          else if (activeTab === "enrollments") fetchEnrollments(); // ✅ ADDED
+          else if (activeTab === "enrollments") fetchEnrollments();
           else if (activeTab === "media") fetchHomeVideo();
           else fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
@@ -846,13 +840,11 @@ export default function AdminDashboard() {
       </div>
     );
     switch (activeTab) {
-      case "dashboard":   return <DashboardTab kpis={kpis} loading={loading} isMobile={isMobile}
-            onNavigate={setActiveTab} // ✅ Pass navigation function
- />;
+      case "dashboard":   return <DashboardTab kpis={kpis} loading={loading} isMobile={isMobile} onNavigate={setActiveTab} />;
       case "courses":     return <CoursesTab courses={courses} isMobile={isMobile} handleDeleteCourse={handleDeleteCourse} setSelectedCourse={setSelectedCourse} setIsEditCourseModalOpen={setIsEditCourseModalOpen} setIsAddCourseModalOpen={setIsAddCourseModalOpen} fetchCourses={fetchCourses} />;
       case "students":    return <StudentsTab students={students} searchTerm={searchTerm} handleSearchChange={handleSearchChange} handleToggleStatus={handleToggleStatus} handleDeleteStudent={handleDeleteStudent} isMobile={isMobile} />;
       case "instructors": return <InstructorsTab instructors={instructors} isMobile={isMobile} handleDeleteInstructor={handleDeleteInstructor} handleToggleInstructorStatus={handleToggleInstructorStatus} fetchAllInstructors={fetchAllInstructors} />;
-      case "enrollments": return <EnrollmentsTab isMobile={isMobile} />; // ✅ ADDED
+      case "enrollments": return <EnrollmentsTab isMobile={isMobile} />;
       case "media":       return <MediaTab videoUrl={videoUrl} videoLoading={videoLoading} fetchHomeVideo={fetchHomeVideo} setVideoLoading={setVideoLoading} />;
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
@@ -866,7 +858,7 @@ export default function AdminDashboard() {
     { icon: "🌐", label: "Courses",        id: "courses"        },
     { icon: "👨‍🎓", label: "Students",      id: "students"       },
     { icon: "👨‍🏫", label: "Instructors",   id: "instructors"    },
-    { icon: "📋", label: "Enrollments",    id: "enrollments"    }, // ✅ ADDED
+    { icon: "📋", label: "Enrollments",    id: "enrollments"    },
     { icon: "🎬", label: "Media",          id: "media"          },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
   ];
@@ -876,7 +868,7 @@ export default function AdminDashboard() {
     courses:         "Course Catalog",
     students:        "Student Management",
     instructors:     "Instructor Management",
-    enrollments:     "Enrollment Management", // ✅ ADDED
+    enrollments:     "Enrollment Management",
     media:           "Media Manager",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
@@ -886,7 +878,7 @@ export default function AdminDashboard() {
     courses:         "Manage all your courses from one place",
     students:        "View and manage all enrolled students",
     instructors:     "Manage instructors, their status and permissions",
-    enrollments:     "View all student enrollments and progress", // ✅ ADDED
+    enrollments:     "View all student enrollments and progress",
     media:           "Manage the home page video and future image assets",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
@@ -981,7 +973,7 @@ export default function AdminDashboard() {
                   if (item.id === "courses") badge = courses.length;
                   else if (item.id === "students") badge = students.length;
                   else if (item.id === "instructors") badge = instructors.length;
-                  else if (item.id === "enrollments") badge = enrollments.length; // ✅ ADDED
+                  else if (item.id === "enrollments") badge = enrollments.length;
                   return <NavItem key={item.id} icon={item.icon} label={item.label} badge={badge} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} />;
                 })}
 
@@ -1017,11 +1009,6 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button onClick={() => setIsThemeOpen(true)} style={{
-                background: "var(--primary-soft)", border: "1px solid var(--border-light)",
-                borderRadius: 8, padding: "6px 10px", cursor: "pointer",
-                fontSize: 16, color: "var(--primary)",
-              }}>🎨</button>
               <div style={{ fontSize: 11, color: "var(--text-secondary)", textAlign: "right" }}>
                 <div style={{ fontWeight: 600, color: "var(--primary)" }}>{currentTime}</div>
                 <div>{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>

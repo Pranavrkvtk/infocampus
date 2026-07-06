@@ -2,6 +2,7 @@
 import React from "react";
 import { colors } from "./AdminStyles";
 
+// eslint-disable-next-line no-unused-vars
 function KpiCard({ label, value, iconBg, icon, loading }) {
   return (
     <div

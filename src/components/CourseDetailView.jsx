@@ -1426,7 +1426,6 @@ export default function CourseDetailView({
   const [showSidebar, setShowSidebar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [lastVisited, setLastVisited] = useState(null);
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
@@ -1454,16 +1453,6 @@ export default function CourseDetailView({
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [isMobile, showSidebar]);
-
-  useEffect(() => {
-    if (currentSub) {
-      setLastVisited({
-        id: currentSub.id,
-        title: currentSub.title,
-        timestamp: new Date().toLocaleString()
-      });
-    }
-  }, [currentSub]);
 
   const videoUrls = getVideoUrls(currentSub);
 
@@ -1517,7 +1506,7 @@ export default function CourseDetailView({
     if (availableTypes.length > 0 && !availableTypes.includes(activeContentType)) {
       setActiveContentType(availableTypes[0]);
     }
-  }, [loadingData, currentSub]);
+  }, [loadingData, availableTypes, activeContentType]);
 
   const toggleTopic = (topicId) => setExpandedTopics((prev) => ({ ...prev, [topicId]: !prev[topicId] }));
 
