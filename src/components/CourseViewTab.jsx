@@ -1,7 +1,6 @@
 // src/components/Student/CourseDetailView.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  getSubtopicImages,
   getSubtopicInterviewQuestions,
   getSubtopicExamQuestions,
   getSubtopicLabs,

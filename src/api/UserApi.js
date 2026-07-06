@@ -133,7 +133,8 @@ export const updateProgress = async (courseId, completedLessons) => {
 };
 
 // ========== DEFAULT EXPORT ==========
-export default {
+// ✅ FIX: Assign to a named variable before exporting
+const userApi = {
   getCourses,
   getCoursesWithImages,
   uploadCourseImage,
@@ -156,3 +157,6 @@ export default {
   getSubtopicImages,
   updateProgress,
 };
+
+// ✅ FIX: Export the named variable as default
+export default userApi;

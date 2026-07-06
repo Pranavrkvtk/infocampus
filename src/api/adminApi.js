@@ -537,7 +537,8 @@ export const getAdminAuthHeaders = () => {
 
 // ==================== EXPORT ALL ====================
 
-export default {
+// Create the adminApi object
+const adminApi = {
   // Dashboard
   getDashboardKPIs,
   getTopEnrolledCourses,
@@ -641,3 +642,6 @@ export default {
   checkAdminRole,
   getAdminAuthHeaders,
 };
+
+// Export the named object as default
+export default adminApi;
