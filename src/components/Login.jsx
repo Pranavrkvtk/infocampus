@@ -1,7 +1,8 @@
+// src/components/Login.jsx
 import React, { useState } from "react";
 import "./Login.css";
 import { Link } from "react-router-dom";
-import { loginUser } from "../api/authApi";
+import { login } from "../api/authApi"; // ✅ Changed from loginUser to login
 import Swal from "sweetalert2";
 
 function Login() {
@@ -9,131 +10,132 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-const handleLogin = async (e) => {
-  e.preventDefault();
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-  // ✅ Basic validation
-  if (!email || !password) {
-    Swal.fire({
-      icon: "warning",
-      title: "Missing Fields",
-      text: "Please enter both email and password",
-      confirmButtonColor: "#f59e0b",
-    });
-    return;
-  }
-
-  try {
-    const res = await loginUser({ email, password });
-
-    console.log("Login Response:", res.data);
-
-    // ✅ Store all user data including status
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("role", res.data.role);
-    localStorage.setItem("userId", res.data.userId);
-    localStorage.setItem("userName", res.data.name);
-    localStorage.setItem("userEmail", res.data.email || email);
-    localStorage.setItem("userStatus", res.data.status || "ACTIVE"); // ✅ Store status
-
-    // ✅ Show success message
-    await Swal.fire({
-      icon: "success",
-      title: `Welcome ${res.data.name}! 👋`,
-      text: "Login Successful",
-      confirmButtonColor: "#10b981",
-      timer: 2000,
-      timerProgressBar: true,
-      showConfirmButton: false,
-    });
-
-    // ✅ Redirect based on role
-    const role = res.data.role?.toUpperCase();
-    
-    if (role === "ADMIN") {
-      window.location.replace("/admin");
-    } else if (role === "INSTRUCTOR") {
-      window.location.replace("/instructor");
-    } else {
-      window.location.replace("/");
+    // ✅ Basic validation
+    if (!email || !password) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Fields",
+        text: "Please enter both email and password",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
     }
 
-  } catch (error) {
-    console.error("Login Error:", error);
+    try {
+      const res = await login({ email, password }); // ✅ Changed from loginUser to login
 
-    // ✅ Handle different error types
-    let errorMessage = "Invalid email or password";
-    let errorTitle = "Login Failed ❌";
-    let showRetry = false;
+      console.log("Login Response:", res.data);
 
-    if (error.response) {
-      const status = error.response.status;
-      const data = error.response.data;
+      // ✅ Store all user data including status
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.role);
+      localStorage.setItem("userId", res.data.userId);
+      localStorage.setItem("userName", res.data.name);
+      localStorage.setItem("userEmail", res.data.email || email);
+      localStorage.setItem("userStatus", res.data.status || "ACTIVE");
 
-      // ✅ Check for specific error messages
-      if (typeof data === "string") {
-        errorMessage = data;
-      } else if (data?.error) {
-        errorMessage = data.error;
-      } else if (data?.message) {
-        errorMessage = data.message;
-      }
+      // ✅ Show success message
+      await Swal.fire({
+        icon: "success",
+        title: `Welcome ${res.data.name}! 👋`,
+        text: "Login Successful",
+        confirmButtonColor: "#10b981",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
 
-      // ✅ Handle inactive/deleted account (403 Forbidden)
-      if (status === 403) {
-        errorTitle = "Account Inactive ⛔";
-        if (errorMessage.includes("inactive") || errorMessage.includes("deleted")) {
-          errorMessage = "Your account has been deactivated or deleted. Please contact the administrator.";
-          
-          // ✅ Clear any existing tokens
-          localStorage.removeItem("token");
-          localStorage.removeItem("role");
-          localStorage.removeItem("userId");
-          localStorage.removeItem("userName");
-          localStorage.removeItem("userEmail");
-          localStorage.removeItem("userStatus");
-        }
-      }
+      // ✅ Redirect based on role
+      const role = res.data.role?.toUpperCase();
       
-      // ✅ Handle invalid credentials (401 Unauthorized)
-      else if (status === 401) {
-        errorTitle = "Invalid Credentials ❌";
-        if (errorMessage.includes("inactive") || errorMessage.includes("deleted")) {
-          errorMessage = "Your account is inactive. Please contact administrator.";
-        } else {
-          errorMessage = "Invalid email or password. Please try again.";
+      if (role === "ADMIN") {
+        window.location.replace("/admin");
+      } else if (role === "INSTRUCTOR") {
+        window.location.replace("/instructor");
+      } else {
+        window.location.replace("/");
+      }
+
+    } catch (error) {
+      console.error("Login Error:", error);
+
+      // ✅ Handle different error types
+      let errorMessage = "Invalid email or password";
+      let errorTitle = "Login Failed ❌";
+      let showRetry = false;
+
+      if (error.response) {
+        const status = error.response.status;
+        const data = error.response.data;
+
+        // ✅ Check for specific error messages
+        if (typeof data === "string") {
+          errorMessage = data;
+        } else if (data?.error) {
+          errorMessage = data.error;
+        } else if (data?.message) {
+          errorMessage = data.message;
         }
+
+        // ✅ Handle inactive/deleted account (403 Forbidden)
+        if (status === 403) {
+          errorTitle = "Account Inactive ⛔";
+          if (errorMessage.includes("inactive") || errorMessage.includes("deleted")) {
+            errorMessage = "Your account has been deactivated or deleted. Please contact the administrator.";
+            
+            // ✅ Clear any existing tokens
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            localStorage.removeItem("userId");
+            localStorage.removeItem("userName");
+            localStorage.removeItem("userEmail");
+            localStorage.removeItem("userStatus");
+          }
+        }
+        
+        // ✅ Handle invalid credentials (401 Unauthorized)
+        else if (status === 401) {
+          errorTitle = "Invalid Credentials ❌";
+          if (errorMessage.includes("inactive") || errorMessage.includes("deleted")) {
+            errorMessage = "Your account is inactive. Please contact administrator.";
+          } else {
+            errorMessage = "Invalid email or password. Please try again.";
+          }
+        }
+        
+        // ✅ Handle other errors
+        else if (status === 500) {
+          errorTitle = "Server Error ⚠️";
+          errorMessage = "Something went wrong on our end. Please try again later.";
+        }
+      } 
+      // ✅ Handle network errors
+      else if (error.request) {
+        errorTitle = "Network Error 🌐";
+        errorMessage = "Unable to connect to the server. Please check your internet connection.";
       }
+
+      // ✅ Show error with appropriate icon and message
+      const icon = errorTitle.includes("Inactive") ? "warning" : "error";
       
-      // ✅ Handle other errors
-      else if (status === 500) {
-        errorTitle = "Server Error ⚠️";
-        errorMessage = "Something went wrong on our end. Please try again later.";
-      }
-    } 
-    // ✅ Handle network errors
-    else if (error.request) {
-      errorTitle = "Network Error 🌐";
-      errorMessage = "Unable to connect to the server. Please check your internet connection.";
+      Swal.fire({
+        icon: icon,
+        title: errorTitle,
+        text: errorMessage,
+        confirmButtonColor: "#ef4444",
+        confirmButtonText: "Try Again",
+        ...(showRetry && {
+          showCancelButton: true,
+          cancelButtonText: "Contact Support",
+          cancelButtonColor: "#6b7280",
+        }),
+      });
     }
+  };
 
-    // ✅ Show error with appropriate icon and message
-    const icon = errorTitle.includes("Inactive") ? "warning" : "error";
-    
-    Swal.fire({
-      icon: icon,
-      title: errorTitle,
-      text: errorMessage,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Try Again",
-      ...(showRetry && {
-        showCancelButton: true,
-        cancelButtonText: "Contact Support",
-        cancelButtonColor: "#6b7280",
-      }),
-    });
-  }
-};
   return (
     <div className="login-container">
       {/* Background blobs */}
