@@ -17,7 +17,7 @@ export default function AddCourseModal({ isOpen, onClose, onCourseCreated, isIns
     e.preventDefault();
     setSubmitting(true);
     try {
-      const response = await createInstructorCourse(formData);
+      await createInstructorCourse(formData);
       Swal.fire({
         title: "Success!",
         text: "Course created successfully",

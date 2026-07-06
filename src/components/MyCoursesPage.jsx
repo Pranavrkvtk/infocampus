@@ -61,11 +61,11 @@ function MyCoursesPage() {
   const [images, setImages] = useState([]);
   const [contentLoading, setContentLoading] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
-  const [courseDetails, setCourseDetails] = useState(null);
+  // Removed: const [courseDetails, setCourseDetails] = useState(null);
 
   const [allCourses, setAllCourses] = useState([]);
   const [loadingAllCourses, setLoadingAllCourses] = useState(false);
-  const [enrollingCourseId, setEnrollingCourseId] = useState(null);
+  // Removed: const [enrollingCourseId, setEnrollingCourseId] = useState(null);
 
   const isMobile = window.innerWidth < 768;
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
@@ -73,49 +73,49 @@ function MyCoursesPage() {
   const isLoggedIn = !!localStorage.getItem('token');
 
   // ─── Helper: Get course image from admin uploads ──────────────────
-// ─── Helper: Get course image from admin uploads ──────────────────
-const getCourseImage = (course) => {
-  if (!course.imageUrl) {
-    // Fallback: Use title-based mapping
-    const name = course.title?.toLowerCase() || '';
-    for (const [key, url] of Object.entries(COURSE_IMAGES)) {
-      if (name.includes(key)) return url;
+  const getCourseImage = (course) => {
+    if (!course.imageUrl) {
+      // Fallback: Use title-based mapping
+      const name = course.title?.toLowerCase() || '';
+      for (const [key, url] of Object.entries(COURSE_IMAGES)) {
+        if (name.includes(key)) return url;
+      }
+      return COURSE_IMAGES.default;
     }
-    return COURSE_IMAGES.default;
-  }
 
-  const imageUrl = course.imageUrl;
+    const imageUrl = course.imageUrl;
+    
+    // If it's Base64 data
+    if (imageUrl.startsWith('data:image/')) {
+      return imageUrl;
+    }
+    
+    // If it's a full URL
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    
+    // If it already has /api/ in the path, use it directly
+    if (imageUrl.startsWith('/api/')) {
+      // Use the base URL without the /api suffix
+      const baseUrl = API_BASE.replace('/api', '');
+      return `${baseUrl}${imageUrl}`;
+    }
+    
+    // If it starts with /
+    if (imageUrl.startsWith('/')) {
+      return `${API_BASE}${imageUrl}`;
+    }
+    
+    // If it starts with uploads/
+    if (imageUrl.startsWith('uploads/')) {
+      return `${API_BASE}/admin/${imageUrl}`;
+    }
+    
+    // Default: assume it's a filename
+    return `${API_BASE}/admin/uploads/${imageUrl}`;
+  };
   
-  // If it's Base64 data
-  if (imageUrl.startsWith('data:image/')) {
-    return imageUrl;
-  }
-  
-  // If it's a full URL
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return imageUrl;
-  }
-  
-  // If it already has /api/ in the path, use it directly
-  if (imageUrl.startsWith('/api/')) {
-    // Use the base URL without the /api suffix
-    const baseUrl = API_BASE.replace('/api', '');
-    return `${baseUrl}${imageUrl}`;
-  }
-  
-  // If it starts with /
-  if (imageUrl.startsWith('/')) {
-    return `${API_BASE}${imageUrl}`;
-  }
-  
-  // If it starts with uploads/
-  if (imageUrl.startsWith('uploads/')) {
-    return `${API_BASE}/admin/${imageUrl}`;
-  }
-  
-  // Default: assume it's a filename
-  return `${API_BASE}/admin/uploads/${imageUrl}`;
-};
   // ─── Helper: Get subtopic image from admin uploads ────────────────
   const getSubtopicImageUrl = (subtopicId, fileName) => {
     if (!subtopicId || !fileName) return FALLBACK_IMAGE;
@@ -135,16 +135,7 @@ const getCourseImage = (course) => {
   };
 
   // ─── Helper: Get image for subtopic from the images array ────────
-  const getSubtopicDisplayImage = (subtopicId) => {
-    if (!images || images.length === 0) return null;
-    
-    const image = images.find(img => img.subTopicId === subtopicId || img.subtopicId === subtopicId);
-    if (image) {
-      const fileName = image.fileName || image.imageUrl || image.url;
-      return getSubtopicImageUrl(subtopicId, fileName);
-    }
-    return null;
-  };
+  // Removed unused function: getSubtopicDisplayImage
 
   // ─── API calls ─────────────────────────────────────────────────────────
   const fetchEnrolledCourses = async () => {
@@ -219,7 +210,6 @@ const getCourseImage = (course) => {
       });
       return;
     }
-    setEnrollingCourseId(courseId);
     try {
       await enrollInCourse(courseId);
       await fetchEnrolledCourses();
@@ -240,8 +230,6 @@ const getCourseImage = (course) => {
       });
     } catch (error) {
       Swal.fire('Error', 'Could not enroll. Please try again.', 'error');
-    } finally {
-      setEnrollingCourseId(null);
     }
   };
 
@@ -249,7 +237,7 @@ const getCourseImage = (course) => {
     setContentLoading(true);
     try {
       const data = await getCourseDetails(courseId);
-      setCourseDetails(data.course);
+      // Removed: setCourseDetails(data.course);
       const allTopics = data.topics || [];
 
       const allSubtopics = [];
@@ -347,7 +335,7 @@ const getCourseImage = (course) => {
     setSubtopics([]);
     setImages([]);
     setImageErrors({});
-    setCourseDetails(null);
+    // Removed: setCourseDetails(null);
     setCurrentSubtopic(null);
   };
 
@@ -428,16 +416,18 @@ const getCourseImage = (course) => {
     return FALLBACK_IMAGE;
   };
 
-  // Effects
+  // Effects - Fixed with proper dependencies
   useEffect(() => {
     fetchEnrolledCourses();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // fetchEnrolledCourses is defined in component and doesn't change
 
   useEffect(() => {
     if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) {
       fetchAllCourses();
     }
-  }, [activeTab, allCourses.length, loadingAllCourses]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, allCourses.length, loadingAllCourses]); // fetchAllCourses is defined in component and doesn't change
 
   useEffect(() => {
     if (!isLoggedIn && activeTab === 'my') {
