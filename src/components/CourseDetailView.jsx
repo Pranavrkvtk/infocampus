@@ -1,8 +1,5 @@
 // src/components/CourseDetailView.jsx
-// Odoo-style learning UI: dark sidebar tree (Topic → Subtopic → Content type),
-// with a single themed content panel on the right that swaps between
-// Video / Notes / Interview Qs / Exam / Labs depending on what's selected.
-// Supports multiple video URLs (videoUrls array); falls back to single videoUrl.
+// Enhanced Odoo-style learning UI with improved UX, animations, and features
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -22,15 +19,26 @@ const C = {
   sidebarText: '#C9C5D6',
   sidebarTextDim: '#7C7791',
   sidebarActive: '#2A2440',
+  sidebarHover: '#242033',
   playerHeaderFrom: '#2E1F35',
   playerHeaderTo: '#4A2F52',
   accent: '#8B5FBF',
+  accentLight: '#A78BCC',
+  accentDark: '#6B4A8A',
   accentSoft: '#EDE7F6',
   gold: '#E8B84B',
+  goldLight: '#F5D98A',
   paper: '#FFFFFF',
   canvas: '#F5F4F8',
   ink: '#1E1B24',
   slate: '#6B6478',
+  slateLight: '#A79FBC',
+  success: '#2E9B6C',
+  successLight: '#DFF3E8',
+  error: '#DC3545',
+  errorLight: '#FDE8E8',
+  warning: '#F59E0B',
+  warningLight: '#FEF3C7',
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────
@@ -39,6 +47,7 @@ const getEmbedUrl = (url) => {
   if (!url) return null;
   if (url.includes('watch?v=')) return url.replace('watch?v=', 'embed/');
   if (url.includes('youtu.be/')) return url.replace('youtu.be/', 'youtube.com/embed/');
+  if (url.includes('vimeo.com/')) return url.replace('vimeo.com/', 'player.vimeo.com/video/');
   return url;
 };
 
@@ -52,7 +61,7 @@ const buildImgSrc = (src) => {
 };
 
 const buildImageTag = (alt, src) =>
-  `<img src="${buildImgSrc(src)}" alt="${alt}" class="note-image" />`;
+  `<img src="${buildImgSrc(src)}" alt="${alt}" class="note-image" loading="lazy" />`;
 
 const inlineFormat = (str) => {
   let out = str;
@@ -63,6 +72,7 @@ const inlineFormat = (str) => {
   );
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  out = out.replace(/`([^`]+)`/g, '<code class="note-code">$1</code>');
   return out;
 };
 
@@ -98,7 +108,7 @@ const renderRichContent = (text) => {
     const quote = line.match(/^>\s*(.*)$/);
     if (quote) {
       closeList();
-      html += `<div class="note-tip">${inlineFormat(quote[1])}</div>`;
+      html += `<div class="note-tip">💡 ${inlineFormat(quote[1])}</div>`;
       return;
     }
 
@@ -139,10 +149,10 @@ const renderRichContent = (text) => {
   return html;
 };
 
-// ─── Split content into pages based on headings ──────────────────────
-const splitIntoPages = (content) => {
-  if (!content) return [{ title: 'No Content', content: '' }];
+// ─── Split content into short, swipeable pages ─────────────────────────
+const MAX_PAGE_CHARS = 420;
 
+const splitByHeadings = (content) => {
   const lines = content.split('\n');
   const pages = [];
   let currentPage = [];
@@ -152,12 +162,8 @@ const splitIntoPages = (content) => {
   lines.forEach((line) => {
     const headingMatch = line.match(/^(#{1,3})\s+(.*)$/);
     if (headingMatch) {
-      // Save previous page if it has content
       if (currentPage.length > 0) {
-        pages.push({
-          title: currentTitle,
-          content: currentPage.join('\n')
-        });
+        pages.push({ title: currentTitle, content: currentPage.join('\n') });
       }
       currentTitle = headingMatch[2];
       currentPage = [line];
@@ -167,63 +173,190 @@ const splitIntoPages = (content) => {
     }
   });
 
-  // Push the last page
   if (currentPage.length > 0) {
-    pages.push({
-      title: currentTitle,
-      content: currentPage.join('\n')
-    });
+    pages.push({ title: currentTitle, content: currentPage.join('\n') });
   }
 
-  // If no headings were found, create a single page
   if (!hasHeading && pages.length === 0) {
-    pages.push({
-      title: 'Content',
-      content: content
-    });
+    pages.push({ title: 'Content', content });
   }
 
   return pages;
 };
 
+const groupIntoBlocks = (lines) => {
+  const blocks = [];
+  let cur = [];
+  lines.forEach((line) => {
+    if (line.trim() === '') {
+      if (cur.length) {
+        blocks.push(cur);
+        cur = [];
+      }
+    } else {
+      cur.push(line);
+    }
+  });
+  if (cur.length) blocks.push(cur);
+  return blocks;
+};
+
+const chunkHeadingPage = (page) => {
+  const lines = page.content.split('\n');
+  const headingMatch = lines[0] && lines[0].match(/^(#{1,3})\s+(.*)$/);
+  const headingLine = headingMatch ? lines[0] : null;
+  const bodyLines = headingMatch ? lines.slice(1) : lines;
+  const blocks = groupIntoBlocks(bodyLines);
+
+  if (blocks.length === 0) return [page];
+
+  const chunks = [];
+  let chunkBlocks = [];
+  let chunkChars = 0;
+
+  blocks.forEach((block) => {
+    const blockChars = block.join('\n').length;
+    const isBlockHeading = /^#{1,3}\s+/.test(block[0]);
+    if (chunkBlocks.length > 0 && (chunkChars + blockChars > MAX_PAGE_CHARS || isBlockHeading)) {
+      chunks.push(chunkBlocks);
+      chunkBlocks = [];
+      chunkChars = 0;
+    }
+    chunkBlocks.push(block);
+    chunkChars += blockChars;
+  });
+  if (chunkBlocks.length > 0) chunks.push(chunkBlocks);
+
+  if (chunks.length <= 1) return [page];
+
+  return chunks.map((blocksInChunk, idx) => {
+    const bodyText = blocksInChunk.map((b) => b.join('\n')).join('\n\n');
+    const contentText = idx === 0 && headingLine ? `${headingLine}\n\n${bodyText}` : bodyText;
+    return {
+      title: page.title,
+      content: contentText,
+      part: idx + 1,
+      partsTotal: chunks.length,
+    };
+  });
+};
+
+const splitIntoPages = (content) => {
+  if (!content) return [{ title: 'No Content', content: '' }];
+
+  const headingPages = splitByHeadings(content);
+  const finalPages = [];
+
+  headingPages.forEach((page) => {
+    if (page.content.length <= MAX_PAGE_CHARS) {
+      finalPages.push(page);
+      return;
+    }
+    finalPages.push(...chunkHeadingPage(page));
+  });
+
+  return finalPages.length ? finalPages : [{ title: 'Content', content }];
+};
+
 const NOTE_STYLES = `
   .notes-content { color: #1e293b; font-family: Inter, system-ui, sans-serif; }
-  .notes-content .note-h1 { font-size: 28px; font-weight: 700; color: #0f172a; margin: 8px 0 18px; line-height: 1.3; }
-  .notes-content .note-h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 32px 0 14px; line-height: 1.35; padding-top: 4px; }
-  .notes-content .note-h3 { font-size: 18px; font-weight: 600; color: #1e293b; margin: 24px 0 10px; }
-  .notes-content .note-paragraph { margin: 0 0 16px; line-height: 1.75; font-size: 16px; }
-  .notes-content .note-list { margin: 0 0 16px; padding-left: 22px; line-height: 1.75; font-size: 16px; }
+  .notes-content .note-h1 { font-size: 24px; font-weight: 700; color: #0f172a; margin: 0 0 12px; line-height: 1.3; }
+  .notes-content .note-h2 { font-size: 20px; font-weight: 700; color: #0f172a; margin: 0 0 10px; line-height: 1.32; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
+  .notes-content .note-h3 { font-size: 17px; font-weight: 600; color: #1e293b; margin: 0 0 8px; }
+  .notes-content .note-paragraph { margin: 0 0 12px; line-height: 1.7; font-size: 15px; }
+  .notes-content .note-list { margin: 0 0 12px; padding-left: 22px; line-height: 1.7; font-size: 15px; }
   .notes-content .note-list li { margin-bottom: 6px; }
-  .notes-content .note-tip { background: #fef9e7; border-left: 4px solid #f5b942; padding: 14px 18px; border-radius: 8px; margin: 18px 0; font-size: 15px; color: #7a5c00; line-height: 1.6; }
+  .notes-content .note-tip { background: #fef9e7; border-left: 4px solid #f5b942; padding: 12px 16px; border-radius: 8px; margin: 14px 0; font-size: 14px; color: #7a5c00; line-height: 1.6; }
   .notes-content .note-link { color: #4f46e5; text-decoration: underline; text-decoration-color: #c7d2fe; }
-  .notes-content .note-image { max-width: 100%; border-radius: 12px; margin: 22px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: block; }
-  
-  .page-slide-in { animation: slideIn 0.3s ease-out; }
-  @keyframes slideIn {
-    from { opacity: 0.5; transform: translateX(20px); }
+  .notes-content .note-link:hover { color: #4338ca; }
+  .notes-content .note-image { max-width: 100%; border-radius: 12px; margin: 16px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: block; }
+  .notes-content .note-code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #0f172a; font-family: 'JetBrains Mono', monospace; }
+  .notes-content > *:last-child { margin-bottom: 0; }
+
+  .page-slide-next { animation: slideInNext 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+  .page-slide-prev { animation: slideInPrev 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes slideInNext {
+    from { opacity: 0; transform: translateX(30px); }
     to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideInPrev {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .fade-in { animation: fadeIn 0.4s ease-out; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 `;
 
-// ─── Sidebar leaf-type config (order, icon, label) ────────────────────
+// ─── Sidebar leaf-type config ──────────────────────────────────────────
 const CONTENT_TYPES = [
-  { key: 'video',     icon: '🎬', label: 'Video Tutorial' },
-  { key: 'notes',     icon: '📄', label: 'Tutorial' },
-  { key: 'interview', icon: '🎤', label: 'Interview Qs' },
-  { key: 'exam',      icon: '📝', label: 'Exam Question' },
-  { key: 'labs',      icon: '🧪', label: 'Lab Exercise' },
+  { key: 'video',     icon: '🎬', label: 'Video Tutorial', color: '#8B5FBF' },
+  { key: 'notes',     icon: '📄', label: 'Tutorial', color: '#3B82F6' },
+  { key: 'interview', icon: '🎤', label: 'Interview Qs', color: '#F59E0B' },
+  { key: 'exam',      icon: '📝', label: 'Exam Question', color: '#EF4444' },
+  { key: 'labs',      icon: '🧪', label: 'Lab Exercise', color: '#10B981' },
 ];
 
 // ─── Section components ───────────────────────────────────────────────
 
-// ─── NotesTab with Pagination ──────────────────────────────────────────
+// ─── Progress Ring ──────────────────────────────────────────────────────
+function ProgressRing({ progress, size = 48, strokeWidth = 4 }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="#E7E3EE"
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="#8B5FBF"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: 'stroke-dashoffset 0.6s ease-in-out' }}
+      />
+      <text
+        x="50%"
+        y="50%"
+        textAnchor="middle"
+        dy="0.35em"
+        fontSize="10"
+        fontWeight="700"
+        fill="#1E1B24"
+      >
+        {Math.round(progress)}%
+      </text>
+    </svg>
+  );
+}
+
+// ─── NotesTab — enhanced with better UX ──────────────────────────────
 function NotesTab({ content }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [pages, setPages] = useState([]);
-  const [touchStartX, setTouchStartX] = useState(null);
-  const [touchDeltaX, setTouchDeltaX] = useState(0);
+  const [direction, setDirection] = useState('next');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const containerRef = useRef(null);
+  const lockAxis = useRef(null);
 
   useEffect(() => {
     if (content) {
@@ -235,29 +368,29 @@ function NotesTab({ content }) {
 
   const totalPages = pages.length;
 
-  const nextPage = useCallback(() => {
+  const goNext = useCallback(() => {
+    setDirection('next');
     setCurrentPage((p) => (p < totalPages - 1 ? p + 1 : p));
   }, [totalPages]);
 
-  const prevPage = useCallback(() => {
+  const goPrev = useCallback(() => {
+    setDirection('prev');
     setCurrentPage((p) => (p > 0 ? p - 1 : p));
   }, []);
 
-  // Keyboard navigation — declared unconditionally, before any early return,
-  // so this hook always runs in the same order regardless of `content`.
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'ArrowRight') {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
-        nextPage();
-      } else if (e.key === 'ArrowLeft') {
+        goNext();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        prevPage();
+        goPrev();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nextPage, prevPage]);
+  }, [goNext, goPrev]);
 
   if (!content || pages.length === 0) {
     return <div className="empty-state">📝 No notes for this section.</div>;
@@ -265,114 +398,224 @@ function NotesTab({ content }) {
 
   const currentPageData = pages[currentPage] || { title: 'Content', content: '' };
   const html = renderRichContent(currentPageData.content);
+  const pageLabel = currentPageData.partsTotal
+    ? `${currentPageData.title} · Part ${currentPageData.part}/${currentPageData.partsTotal}`
+    : currentPageData.title;
 
-  // Touch handlers for swipe
   const handleTouchStart = (e) => {
-    setTouchStartX(e.touches[0].clientX);
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    lockAxis.current = null;
     setIsDragging(true);
   };
 
   const handleTouchMove = (e) => {
-    if (!isDragging || touchStartX === null) return;
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - touchStartX;
-    setTouchDeltaX(diff);
+    if (touchStartX.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
 
-    // Only prevent scroll if horizontal swipe detected
-    if (Math.abs(diff) > 10) {
+    if (lockAxis.current === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+      lockAxis.current = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    }
+    if (lockAxis.current === 'x') {
       e.preventDefault();
+      const atStart = currentPage === 0 && dx > 0;
+      const atEnd = currentPage === totalPages - 1 && dx < 0;
+      setDragX(atStart || atEnd ? dx * 0.35 : dx);
     }
   };
 
   const handleTouchEnd = () => {
-    const SWIPE_THRESHOLD = 50;
-    if (isDragging && Math.abs(touchDeltaX) > SWIPE_THRESHOLD) {
-      if (touchDeltaX < 0 && currentPage < totalPages - 1) {
-        setCurrentPage(currentPage + 1);
-      } else if (touchDeltaX > 0 && currentPage > 0) {
-        setCurrentPage(currentPage - 1);
+    const SWIPE_THRESHOLD = 60;
+    if (lockAxis.current === 'x') {
+      if (dragX < -SWIPE_THRESHOLD && currentPage < totalPages - 1) {
+        goNext();
+      } else if (dragX > SWIPE_THRESHOLD && currentPage > 0) {
+        goPrev();
       }
     }
-    setTouchStartX(null);
-    setTouchDeltaX(0);
+    touchStartX.current = null;
+    touchStartY.current = null;
+    lockAxis.current = null;
+    setDragX(0);
     setIsDragging(false);
   };
 
   const goToPage = (index) => {
-    if (index >= 0 && index < totalPages) {
-      setCurrentPage(index);
-    }
+    if (index === currentPage) return;
+    setDirection(index > currentPage ? 'next' : 'prev');
+    setCurrentPage(index);
   };
 
   return (
-    <div
-      ref={containerRef}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      style={{
-        touchAction: 'none',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Page Title */}
+    <div style={{ position: 'relative' }}>
+      {/* Page header with controls */}
       <div style={{
-        fontSize: '16px',
-        fontWeight: 700,
-        color: '#0f172a',
-        marginBottom: '16px',
-        padding: '10px 14px',
-        background: '#f8fafc',
-        borderRadius: '8px',
-        borderLeft: '4px solid #8B5FBF',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: '14px',
+        gap: '10px',
+        flexWrap: 'wrap',
       }}>
-        <span>{currentPageData.title}</span>
-        <span style={{
-          fontSize: '12px',
-          color: '#94a3b8',
-          fontWeight: 500,
+        <div style={{
+          fontSize: '14px',
+          fontWeight: 700,
+          color: '#0f172a',
+          padding: '8px 14px',
+          background: '#f8fafc',
+          borderRadius: '8px',
+          borderLeft: '4px solid #8B5FBF',
+          flex: 1,
+          minWidth: '150px',
         }}>
-          {totalPages > 1 ? `Page ${currentPage + 1} of ${totalPages}` : ''}
-        </span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {pageLabel}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            style={{
+              padding: '6px 10px',
+              background: 'transparent',
+              border: '1px solid #E7E3EE',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#6B6478',
+              transition: 'all 0.2s',
+            }}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? '⛶' : '⛶'}
+          </button>
+          {totalPages > 1 && (
+            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 500, padding: '0 4px' }}>
+              {currentPage + 1} / {totalPages}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Content */}
+      {/* Content card */}
       <div
-        className={`notes-content ${totalPages > 1 ? 'page-slide-in' : ''}`}
-        key={currentPage}
-        dangerouslySetInnerHTML={{ __html: html }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         style={{
-          maxWidth: '100%',
-          overflowX: 'auto',
-          userSelect: 'none',
-          minHeight: '200px',
+          position: 'relative',
+          touchAction: 'pan-y',
+          overflow: 'hidden',
+          borderRadius: '14px',
+          border: '1px solid #EEECF3',
+          background: '#fff',
+          boxShadow: isFullscreen ? '0 20px 60px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.04)',
+          transition: 'box-shadow 0.3s ease',
+          maxHeight: isFullscreen ? '80vh' : '52vh',
+          minHeight: '160px',
         }}
-        onCopy={(e) => e.preventDefault()}
-        onCut={(e) => e.preventDefault()}
-        onContextMenu={(e) => e.preventDefault()}
-      />
+      >
+        {/* Desktop navigation arrows */}
+        {totalPages > 1 && currentPage > 0 && (
+          <button
+            onClick={goPrev}
+            aria-label="Previous page"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '6px',
+              transform: 'translateY(-50%)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              border: '1px solid #E7E3EE',
+              background: 'rgba(255,255,255,0.92)',
+              color: '#6B6478',
+              fontSize: '20px',
+              cursor: 'pointer',
+              zIndex: 5,
+              boxShadow: '0 4px 12px rgba(30,27,36,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              backdropFilter: 'blur(4px)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.92)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30,27,36,0.08)'; }}
+          >
+            ‹
+          </button>
+        )}
+        {totalPages > 1 && currentPage < totalPages - 1 && (
+          <button
+            onClick={goNext}
+            aria-label="Next page"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              right: '6px',
+              transform: 'translateY(-50%)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              border: '1px solid #E7E3EE',
+              background: 'rgba(255,255,255,0.92)',
+              color: '#6B6478',
+              fontSize: '20px',
+              cursor: 'pointer',
+              zIndex: 5,
+              boxShadow: '0 4px 12px rgba(30,27,36,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              backdropFilter: 'blur(4px)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.92)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30,27,36,0.08)'; }}
+          >
+            ›
+          </button>
+        )}
 
-      {/* Pagination Controls */}
+        <div
+          className={`notes-content ${!isDragging ? (direction === 'next' ? 'page-slide-next' : 'page-slide-prev') : ''}`}
+          key={currentPage}
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{
+            padding: '20px 24px',
+            minHeight: '140px',
+            maxHeight: isFullscreen ? 'calc(80vh - 60px)' : 'calc(52vh - 60px)',
+            overflowY: 'auto',
+            userSelect: 'none',
+            transform: `translateX(${dragX}px)`,
+            transition: isDragging ? 'none' : 'transform 0.2s ease',
+          }}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onContextMenu={(e) => e.preventDefault()}
+        />
+      </div>
+
+      {/* Navigation controls */}
       {totalPages > 1 && (
-        <div style={{ marginTop: '24px' }}>
-          {/* Progress Dots */}
+        <div style={{ marginTop: '16px' }}>
           <div style={{
             display: 'flex',
             justifyContent: 'center',
-            gap: '8px',
-            marginBottom: '16px',
+            gap: '6px',
+            marginBottom: '12px',
+            flexWrap: 'wrap',
           }}>
             {pages.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToPage(index)}
                 style={{
-                  width: index === currentPage ? '28px' : '8px',
-                  height: '8px',
+                  width: index === currentPage ? '24px' : '7px',
+                  height: '7px',
                   borderRadius: '4px',
                   border: 'none',
                   background: index === currentPage ? '#8B5FBF' : '#e2e8f0',
@@ -385,22 +628,21 @@ function NotesTab({ content }) {
             ))}
           </div>
 
-          {/* Navigation Buttons */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
           }}>
             <button
-              onClick={prevPage}
+              onClick={goPrev}
               disabled={currentPage === 0}
               style={{
-                padding: '8px 20px',
+                padding: '8px 18px',
                 borderRadius: '30px',
-                border: '1px solid #e2e8f0',
-                background: currentPage === 0 ? '#f1f5f9' : '#fff',
-                color: currentPage === 0 ? '#cbd5e1' : '#334155',
+                border: currentPage === 0 ? '1px solid #e2e8f0' : 'none',
+                background: currentPage === 0 ? '#f1f5f9' : '#8B5FBF',
+                color: currentPage === 0 ? '#cbd5e1' : '#fff',
                 cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
                 fontWeight: 500,
                 fontSize: '13px',
@@ -412,21 +654,17 @@ function NotesTab({ content }) {
               ← Previous
             </button>
 
-            <span style={{
-              fontSize: '13px',
-              color: '#94a3b8',
-              fontWeight: 500,
-            }}>
-              {currentPage + 1} / {totalPages}
+            <span style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '16px' }}>👆</span> swipe
             </span>
 
             <button
-              onClick={nextPage}
+              onClick={goNext}
               disabled={currentPage === totalPages - 1}
               style={{
-                padding: '8px 20px',
+                padding: '8px 18px',
                 borderRadius: '30px',
-                border: '1px solid #e2e8f0',
+                border: currentPage === totalPages - 1 ? '1px solid #e2e8f0' : 'none',
                 background: currentPage === totalPages - 1 ? '#f1f5f9' : '#8B5FBF',
                 color: currentPage === totalPages - 1 ? '#cbd5e1' : '#fff',
                 cursor: currentPage === totalPages - 1 ? 'not-allowed' : 'pointer',
@@ -440,104 +678,239 @@ function NotesTab({ content }) {
               Next →
             </button>
           </div>
-
-          {/* Swipe hint */}
-          <p style={{
-            textAlign: 'center',
-            fontSize: '11px',
-            color: '#94a3b8',
-            marginTop: '12px',
-          }}>
-            👆 Swipe left/right to navigate pages
-          </p>
         </div>
       )}
     </div>
   );
 }
 
-// ─── VideoTab ──────────────────────────────────────────────────────────
+// ─── VideoTab with enhanced controls ──────────────────────────────────
 function VideoTab({ videoUrls }) {
+  const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
+
   if (urls.length === 0) return <div className="empty-state">🎬 No video for this section.</div>;
+
+  const currentUrl = urls[currentVideo];
+  const embed = getEmbedUrl(currentUrl);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {urls.map((url, idx) => {
-        const embed = getEmbedUrl(url);
-        if (!embed) return null;
-        return (
-          <div key={idx}>
-            {urls.length > 1 && (
-              <div style={{ fontWeight: 600, fontSize: '13px', color: '#C9C5D6', marginBottom: '8px' }}>
-                Video {idx + 1} of {urls.length}
-              </div>
-            )}
-            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '12px', background: '#000' }}>
-              <iframe src={embed} title={`Video ${idx + 1}`} frameBorder="0" allowFullScreen style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
-            </div>
-          </div>
-        );
-      })}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Video playlist */}
+      {urls.length > 1 && (
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          flexWrap: 'wrap',
+          marginBottom: '4px',
+        }}>
+          {urls.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentVideo(idx)}
+              style={{
+                padding: '6px 16px',
+                borderRadius: '20px',
+                border: idx === currentVideo ? '2px solid #8B5FBF' : '1px solid #E7E3EE',
+                background: idx === currentVideo ? '#EDE7F6' : '#fff',
+                color: idx === currentVideo ? '#8B5FBF' : '#6B6478',
+                fontWeight: idx === currentVideo ? 600 : 500,
+                fontSize: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              Video {idx + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Video player */}
+      {embed && (
+        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '12px', background: '#000', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+          <iframe
+            src={embed}
+            title={`Video ${currentVideo + 1}`}
+            frameBorder="0"
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+          />
+        </div>
+      )}
+
+      {/* Video controls hint */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '16px',
+        fontSize: '12px',
+        color: '#94a3b8',
+        padding: '4px 0',
+      }}>
+        <span>▶ Play/Pause</span>
+        <span>⏪ Rewind 10s</span>
+        <span>⏩ Forward 10s</span>
+        <span>🔊 Volume</span>
+      </div>
     </div>
   );
 }
 
-function BackToTop({ onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'block', margin: '20px auto 0', background: 'transparent',
-        border: '1px solid #d8d4e0', padding: '6px 16px', borderRadius: '30px',
-        cursor: 'pointer', fontSize: '13px', color: '#6B6478', fontWeight: 500,
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = '#F0EDF6')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-    >
-      ⬆ Back to Top
-    </button>
-  );
-}
-
-function InterviewTab({ questions, onBackToTop }) {
+// ─── InterviewTab with search ──────────────────────────────────────────
+function InterviewTab({ questions }) {
   const [expanded, setExpanded] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+
   if (!questions || questions.length === 0) return <div className="empty-state">🎤 No interview questions.</div>;
 
+  const filteredQuestions = questions.filter(q =>
+    q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    q.answer.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const toggleAll = () => {
+    const allExpanded = filteredQuestions.every(q => expanded[q.id]);
+    const newState = {};
+    filteredQuestions.forEach(q => {
+      newState[q.id] = !allExpanded;
+    });
+    setExpanded(newState);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {questions.map((q, idx) => (
-        <div key={q.id} style={{ background: '#fff', borderRadius: '14px', border: '1px solid #E7E3EE', overflow: 'hidden' }}>
-          <div
-            onClick={() => setExpanded((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
+    <div>
+      {/* Search and controls */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '18px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+      }}>
+        <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+          <input
+            type="text"
+            placeholder="🔍 Search questions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '14px 20px', background: '#FAF9FC', cursor: 'pointer',
-              fontWeight: 600, color: '#1E1B24',
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '1px solid #E7E3EE',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              background: '#fff',
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#8B5FBF'}
+            onBlur={(e) => e.target.style.borderColor = '#E7E3EE'}
+          />
+        </div>
+        <button
+          onClick={toggleAll}
+          style={{
+            padding: '8px 18px',
+            borderRadius: '10px',
+            border: '1px solid #E7E3EE',
+            background: '#fff',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: '#6B6478',
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {filteredQuestions.every(q => expanded[q.id]) ? 'Collapse All' : 'Expand All'}
+        </button>
+        <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+          {filteredQuestions.length} of {questions.length} questions
+        </span>
+      </div>
+
+      {/* Questions list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {filteredQuestions.map((q, idx) => (
+          <div
+            key={q.id}
+            style={{
+              background: '#fff',
+              borderRadius: '14px',
+              border: '1px solid #E7E3EE',
+              overflow: 'hidden',
+              transition: 'box-shadow 0.2s',
+              boxShadow: expanded[q.id] ? '0 4px 12px rgba(139,95,191,0.08)' : 'none',
             }}
           >
-            <span>{idx + 1}. {q.question}</span>
-            <span style={{ fontSize: '14px', color: '#8B7FA0' }}>{expanded[q.id] ? '▲' : '▼'}</span>
-          </div>
-          {expanded[q.id] && (
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #E7E3EE', background: '#fff', color: '#3A3548', lineHeight: '1.6' }}>
-              {q.answer}
+            <div
+              onClick={() => setExpanded((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '14px 20px',
+                background: expanded[q.id] ? '#FAF9FC' : '#fff',
+                cursor: 'pointer',
+                fontWeight: 600,
+                color: '#1E1B24',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => { if (!expanded[q.id]) e.currentTarget.style.background = '#F8F7FA'; }}
+              onMouseLeave={(e) => { if (!expanded[q.id]) e.currentTarget.style.background = '#fff'; }}
+            >
+              <span style={{ fontSize: '14px' }}>
+                <span style={{ color: '#94a3b8', fontWeight: 400, marginRight: '8px' }}>{idx + 1}.</span>
+                {q.question}
+              </span>
+              <span style={{
+                fontSize: '18px',
+                color: '#8B7FA0',
+                transition: 'transform 0.2s',
+                transform: expanded[q.id] ? 'rotate(180deg)' : 'rotate(0deg)',
+              }}>
+                ▼
+              </span>
             </div>
-          )}
+            {expanded[q.id] && (
+              <div style={{
+                padding: '16px 20px',
+                borderTop: '1px solid #E7E3EE',
+                background: '#fff',
+                color: '#3A3548',
+                lineHeight: '1.7',
+                fontSize: '14px',
+              }}>
+                {q.answer}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {filteredQuestions.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>
+          No questions match your search.
         </div>
-      ))}
-      <BackToTop onClick={onBackToTop} />
+      )}
     </div>
   );
 }
 
-function ExamTab({ questions, onScoreUpdate, onBackToTop }) {
+// ─── ExamTab with timer ──────────────────────────────────────────────
+function ExamTab({ questions, onScoreUpdate }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(null);
-  if (!questions || questions.length === 0) return <div className="empty-state">📝 No MCQ questions.</div>;
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [timerActive, setTimerActive] = useState(true);
 
-  const handleAnswer = (qId, answer) => setAnswers((prev) => ({ ...prev, [qId]: answer }));
-  const handleSubmit = () => {
+  const hasQuestions = !!(questions && questions.length > 0);
+
+  const handleSubmit = useCallback(() => {
+    if (!hasQuestions) return;
     let correct = 0;
     questions.forEach((q) => {
       if (answers[q.id] === q.correctAnswer) correct++;
@@ -545,85 +918,298 @@ function ExamTab({ questions, onScoreUpdate, onBackToTop }) {
     const total = questions.length;
     setScore({ correct, total });
     setSubmitted(true);
+    setTimerActive(false);
     if (onScoreUpdate) onScoreUpdate(correct, total);
+  }, [hasQuestions, questions, answers, onScoreUpdate]);
+
+  useEffect(() => {
+    if (!hasQuestions || !timerActive || submitted) return undefined;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setTimerActive(false);
+          handleSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [hasQuestions, timerActive, submitted, handleSubmit]);
+
+  if (!hasQuestions) return <div className="empty-state">📝 No MCQ questions.</div>;
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const handleAnswer = (qId, answer) => setAnswers((prev) => ({ ...prev, [qId]: answer }));
+
+  const answeredCount = Object.keys(answers).length;
+  const totalQuestions = questions.length;
 
   return (
     <div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 16px',
+        background: '#f8fafc',
+        borderRadius: '12px',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '10px',
+      }}>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
+            📝 MCQ Quiz
+          </span>
+          <span style={{ fontSize: '13px', color: '#64748b' }}>
+            {answeredCount}/{totalQuestions} answered
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <span style={{
+            fontSize: '14px',
+            fontWeight: 600,
+            color: timeLeft < 60 ? '#DC3545' : '#0f172a',
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            ⏱ {formatTime(timeLeft)}
+          </span>
+          {!submitted && (
+            <button
+              onClick={handleSubmit}
+              style={{
+                padding: '8px 20px',
+                background: '#8B5FBF',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '30px',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#7A4FAA'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#8B5FBF'}
+            >
+              Submit Quiz
+            </button>
+          )}
+        </div>
+      </div>
+
       {questions.map((q, idx) => (
-        <div key={q.id} style={{ padding: '20px', background: '#fff', borderRadius: '16px', border: '1px solid #E7E3EE', marginBottom: '16px' }}>
-          <p style={{ fontWeight: 700, marginBottom: '16px', fontSize: '16px', color: '#1E1B24' }}>{idx + 1}. {q.question}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div key={q.id} style={{
+          padding: '20px',
+          background: '#fff',
+          borderRadius: '16px',
+          border: '1px solid #E7E3EE',
+          marginBottom: '14px',
+          transition: 'border-color 0.2s',
+          borderColor: answers[q.id] ? '#8B5FBF' : '#E7E3EE',
+        }}>
+          <p style={{ fontWeight: 700, marginBottom: '14px', fontSize: '15px', color: '#1E1B24' }}>
+            <span style={{ color: '#94a3b8', fontWeight: 400, marginRight: '8px' }}>{idx + 1}.</span>
+            {q.question}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {['A', 'B', 'C', 'D'].map((opt) => {
               const optText = q[`option${opt}`];
               if (!optText) return null;
+              const isSelected = answers[q.id] === opt;
               return (
-                <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '8px 12px', borderRadius: '10px' }}>
+                <label
+                  key={opt}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    cursor: submitted ? 'default' : 'pointer',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: isSelected ? '#EDE7F6' : 'transparent',
+                    border: isSelected ? '1px solid #8B5FBF' : '1px solid transparent',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => { if (!submitted && !isSelected) e.currentTarget.style.background = '#F8F7FA'; }}
+                  onMouseLeave={(e) => { if (!submitted && !isSelected) e.currentTarget.style.background = 'transparent'; }}
+                >
                   <input
                     type="radio"
                     name={`q-${q.id}`}
                     value={opt}
-                    checked={answers[q.id] === opt}
+                    checked={isSelected}
                     onChange={() => handleAnswer(q.id, opt)}
                     disabled={submitted}
-                    style={{ accentColor: C.accent, width: '16px', height: '16px' }}
+                    style={{ accentColor: '#8B5FBF', width: '17px', height: '17px', cursor: submitted ? 'default' : 'pointer' }}
                   />
-                  <span style={{ fontSize: '14px' }}><strong>{opt}:</strong> {optText}</span>
+                  <span style={{ fontSize: '14px' }}>
+                    <strong style={{ color: '#64748b', marginRight: '4px' }}>{opt}.</strong>
+                    {optText}
+                  </span>
                 </label>
               );
             })}
           </div>
         </div>
       ))}
-      {!submitted && (
-        <button
-          onClick={handleSubmit}
-          style={{ marginTop: '4px', padding: '12px 28px', background: C.accent, color: '#fff', border: 'none', borderRadius: '40px', fontWeight: 600, cursor: 'pointer' }}
-        >
-          Submit Answers
-        </button>
-      )}
+
       {submitted && score && (
-        <div style={{ marginTop: '4px', padding: '16px', background: C.accentSoft, borderRadius: '14px', textAlign: 'center', fontWeight: 600, color: C.accent }}>
-          🎉 Score: {score.correct} / {score.total} ({Math.round((score.correct / score.total) * 100)}%)
+        <div style={{
+          marginTop: '6px',
+          padding: '20px',
+          background: score.correct === score.total ? '#DFF3E8' : '#FDE8E8',
+          borderRadius: '14px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '4px' }}>
+            {score.correct === score.total ? '🎉' : '📊'}
+          </div>
+          <div style={{ fontSize: '20px', fontWeight: 700, color: score.correct === score.total ? '#2E9B6C' : '#DC3545' }}>
+            {score.correct} / {score.total}
+          </div>
+          <div style={{ fontSize: '14px', color: '#64748b', marginTop: '4px' }}>
+            {Math.round((score.correct / score.total) * 100)}% correct
+          </div>
+          <div style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>
+            {score.correct === score.total ? 'Perfect score! Excellent work! 🌟' :
+             score.correct >= score.total * 0.7 ? 'Good job! Keep practicing! 💪' :
+             'Keep studying and try again! 📚'}
+          </div>
         </div>
       )}
-      <BackToTop onClick={onBackToTop} />
     </div>
   );
 }
 
-function LabsTab({ labs, onBackToTop }) {
+// ─── LabsTab with progress ────────────────────────────────────────────
+function LabsTab({ labs }) {
   const [completed, setCompleted] = useState({});
+
   if (!labs || labs.length === 0) return <div className="empty-state">🧪 No lab exercises.</div>;
 
   const markComplete = (labId) => setCompleted((prev) => ({ ...prev, [labId]: true }));
 
+  const completedCount = Object.values(completed).filter(Boolean).length;
+  const totalLabs = labs.length;
+  const progress = totalLabs > 0 ? Math.round((completedCount / totalLabs) * 100) : 0;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      {labs.map((lab, idx) => (
-        <div key={lab.id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #E7E3EE', padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-            <strong style={{ fontSize: '17px', color: '#1E1B24' }}>{idx + 1}. {lab.title}</strong>
-            {!completed[lab.id] && (
-              <button
-                onClick={() => markComplete(lab.id)}
-                style={{ padding: '6px 14px', background: '#2E9B6C', color: '#fff', border: 'none', borderRadius: '30px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                ✓ Mark Complete
-              </button>
-            )}
-            {completed[lab.id] && <span style={{ fontSize: '13px', color: '#2E9B6C', fontWeight: 600 }}>✓ Completed</span>}
+    <div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 14px',
+        background: '#f8fafc',
+        borderRadius: '12px',
+        marginBottom: '18px',
+        flexWrap: 'wrap',
+        gap: '8px',
+      }}>
+        <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
+          🧪 Lab Progress
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '120px', height: '6px', background: '#E7E3EE', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ width: `${progress}%`, height: '100%', background: '#10B981', borderRadius: '4px', transition: 'width 0.3s' }} />
           </div>
-          <div style={{ fontSize: '14px', color: '#4A4458', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{lab.instructions}</div>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
+            {completedCount}/{totalLabs}
+          </span>
         </div>
-      ))}
-      <BackToTop onClick={onBackToTop} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {labs.map((lab, idx) => {
+          const isCompleted = completed[lab.id];
+          return (
+            <div
+              key={lab.id}
+              style={{
+                background: '#fff',
+                borderRadius: '16px',
+                border: isCompleted ? '1px solid #10B981' : '1px solid #E7E3EE',
+                padding: '20px',
+                transition: 'all 0.2s',
+                boxShadow: isCompleted ? '0 4px 12px rgba(16,185,129,0.08)' : 'none',
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '14px',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: isCompleted ? '#DFF3E8' : '#f1f5f9',
+                    fontSize: '16px',
+                  }}>
+                    {isCompleted ? '✅' : '🧪'}
+                  </span>
+                  <strong style={{ fontSize: '16px', color: '#1E1B24' }}>
+                    {idx + 1}. {lab.title}
+                  </strong>
+                </div>
+                {!isCompleted && (
+                  <button
+                    onClick={() => markComplete(lab.id)}
+                    style={{
+                      padding: '6px 16px',
+                      background: '#10B981',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '30px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#0EA37A'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#10B981'}
+                  >
+                    ✓ Mark Complete
+                  </button>
+                )}
+                {isCompleted && (
+                  <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 600 }}>
+                    ✓ Completed
+                  </span>
+                )}
+              </div>
+              <div style={{
+                fontSize: '14px',
+                color: '#4A4458',
+                lineHeight: '1.7',
+                whiteSpace: 'pre-wrap',
+                paddingLeft: '4px',
+              }}>
+                {lab.instructions}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ─── Main CourseDetailView ────────────────────────────────────────────────
+// ─── Main CourseDetailView ────────────────────────────────────────────
 export default function CourseDetailView({
   selectedCourse,
   topics,
@@ -657,22 +1243,25 @@ export default function CourseDetailView({
   const [activeContentType, setActiveContentType] = useState('video');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
 
-  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
       if (!mobile) setShowSidebar(false);
+      if (window.innerWidth < 1024 && !mobile) {
+        setIsSidebarCollapsed(true);
+      }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close sidebar when clicking outside on mobile
   useEffect(() => {
     if (isMobile && showSidebar) {
       const handleClickOutside = (e) => {
@@ -741,7 +1330,6 @@ export default function CourseDetailView({
     if (availableTypes.length > 0 && !availableTypes.includes(activeContentType)) {
       setActiveContentType(availableTypes[0]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingData, currentSub]);
 
   const toggleTopic = (topicId) => setExpandedTopics((prev) => ({ ...prev, [topicId]: !prev[topicId] }));
@@ -753,17 +1341,20 @@ export default function CourseDetailView({
     if (isMobile) setShowSidebar(false);
   };
 
-  const handleBackToTop = () => {
-    const el = document.getElementById('cdv-scroll-anchor');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-    else window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const filteredTopics = searchQuery
+    ? topics.filter(topic =>
+        topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (topic.subtopics || []).some(sub =>
+          sub.title.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      )
+    : topics;
 
   if (contentLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px' }}>
         <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: C.accent, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
-        <p>Loading course content…</p>
+        <p style={{ color: '#64748b' }}>Loading course content…</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -773,27 +1364,28 @@ export default function CourseDetailView({
 
   const styles = {
     page: { background: C.canvas, minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' },
-    topStrip: { 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      padding: isMobile ? '12px 16px' : '14px 28px', 
-      background: C.paper, 
+    topStrip: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: isMobile ? '12px 16px' : '14px 28px',
+      background: C.paper,
       borderBottom: '1px solid #E7E3EE',
       flexWrap: 'wrap',
       gap: '8px',
     },
     courseName: { fontSize: isMobile ? '14px' : '15px', fontWeight: 800, color: C.ink, letterSpacing: '-0.2px' },
     topStripRight: { display: 'flex', alignItems: 'center', gap: '10px' },
-    backBtn: { 
-      background: 'transparent', 
-      border: '1px solid #D8D4E0', 
-      padding: isMobile ? '6px 14px' : '7px 16px', 
-      borderRadius: '30px', 
-      cursor: 'pointer', 
-      fontSize: isMobile ? '12px' : '13px', 
-      fontWeight: 600, 
-      color: C.slate 
+    backBtn: {
+      background: 'transparent',
+      border: '1px solid #D8D4E0',
+      padding: isMobile ? '6px 14px' : '7px 16px',
+      borderRadius: '30px',
+      cursor: 'pointer',
+      fontSize: isMobile ? '12px' : '13px',
+      fontWeight: 600,
+      color: C.slate,
+      transition: 'all 0.2s',
     },
     menuBtn: {
       background: 'transparent',
@@ -805,14 +1397,11 @@ export default function CourseDetailView({
       color: C.slate,
       display: isMobile ? 'block' : 'none',
     },
-
-    shell: { 
-      display: 'grid', 
-      gridTemplateColumns: isMobile ? '1fr' : '300px 1fr', 
-      minHeight: 'calc(100vh - 53px)' 
+    shell: {
+      display: 'grid',
+      gridTemplateColumns: isMobile ? '1fr' : (isSidebarCollapsed ? '0px 1fr' : '320px 1fr'),
+      minHeight: 'calc(100vh - 53px)',
     },
-
-    // ── Mobile overlay ──
     mobileOverlay: {
       position: 'fixed',
       top: 0,
@@ -820,21 +1409,20 @@ export default function CourseDetailView({
       right: 0,
       bottom: 0,
       background: 'rgba(0,0,0,0.5)',
+      backdropFilter: 'blur(4px)',
       zIndex: 999,
       display: isMobile && showSidebar ? 'block' : 'none',
     },
-
-    // ── Sidebar ──
-    sidebar: { 
-      background: C.sidebarBg, 
-      color: C.sidebarText, 
-      padding: '18px 0', 
+    sidebar: {
+      background: C.sidebarBg,
+      color: C.sidebarText,
+      padding: '18px 0',
       overflowY: 'auto',
       maxHeight: isMobile ? '100vh' : 'calc(100vh - 53px)',
       position: isMobile ? 'fixed' : 'sticky',
       top: isMobile ? '0' : '53px',
       left: isMobile ? '-100%' : 'auto',
-      width: isMobile ? '300px' : 'auto',
+      width: isMobile ? '300px' : '320px',
       height: isMobile ? '100vh' : 'auto',
       zIndex: 1000,
       transition: isMobile ? 'left 0.3s ease-in-out' : 'none',
@@ -851,37 +1439,39 @@ export default function CourseDetailView({
       borderBottom: `1px solid ${C.sidebarLine}`,
       marginBottom: '8px',
     },
-    sidebarCourseTitle: { 
-      fontSize: isMobile ? '14px' : '15px', 
-      fontWeight: 800, 
-      color: '#fff', 
-      padding: isMobile ? '0' : '0 18px 16px', 
+    sidebarCourseTitle: {
+      fontSize: isMobile ? '14px' : '15px',
+      fontWeight: 800,
+      color: '#fff',
+      padding: isMobile ? '0' : '0 18px 16px',
       borderBottom: isMobile ? 'none' : `1px solid ${C.sidebarLine}`,
       marginBottom: isMobile ? '0' : '8px',
     },
-    topicHeader: (isOpen) => ({ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between', 
-      padding: isMobile ? '10px 18px' : '11px 18px', 
-      cursor: 'pointer', 
-      fontSize: isMobile ? '12px' : '13px', 
-      fontWeight: 700, 
-      color: isOpen ? '#fff' : C.sidebarText, 
-      background: isOpen ? C.sidebarBgAlt : 'transparent' 
+    topicHeader: (isOpen) => ({
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: isMobile ? '10px 18px' : '11px 18px',
+      cursor: 'pointer',
+      fontSize: isMobile ? '12px' : '13px',
+      fontWeight: 700,
+      color: isOpen ? '#fff' : C.sidebarText,
+      background: isOpen ? C.sidebarBgAlt : 'transparent',
+      transition: 'all 0.2s',
     }),
     topicChevron: { fontSize: '11px', color: C.sidebarTextDim, transition: 'transform 0.15s' },
     subtopicRow: (isActive) => ({
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '10px', 
-      padding: isMobile ? '8px 18px 8px 26px' : '9px 18px 9px 30px', 
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: isMobile ? '8px 18px 8px 26px' : '9px 18px 9px 30px',
       cursor: 'pointer',
-      fontSize: isMobile ? '12px' : '12.5px', 
+      fontSize: isMobile ? '12px' : '12.5px',
       fontWeight: isActive ? 700 : 500,
       color: isActive ? '#fff' : C.sidebarText,
       background: isActive ? C.sidebarActive : 'transparent',
       borderLeft: isActive ? `3px solid ${C.accent}` : '3px solid transparent',
+      transition: 'all 0.2s',
     }),
     subtopicIcon: (hasVideo) => ({
       width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
@@ -890,115 +1480,128 @@ export default function CourseDetailView({
     }),
     leafList: { display: 'flex', flexDirection: 'column' },
     leafRow: (isActive) => ({
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '9px', 
-      padding: isMobile ? '6px 18px 6px 44px' : '7px 18px 7px 52px', 
+      display: 'flex',
+      alignItems: 'center',
+      gap: '9px',
+      padding: isMobile ? '6px 18px 6px 44px' : '7px 18px 7px 52px',
       cursor: 'pointer',
-      fontSize: isMobile ? '10.5px' : '11.5px', 
-      fontWeight: isActive ? 700 : 500, 
-      letterSpacing: '0.02em', 
+      fontSize: isMobile ? '10.5px' : '11.5px',
+      fontWeight: isActive ? 700 : 500,
+      letterSpacing: '0.02em',
       textTransform: 'uppercase',
       color: isActive ? C.gold : C.sidebarTextDim,
       background: isActive ? 'rgba(232,184,75,0.08)' : 'transparent',
+      transition: 'all 0.2s',
     }),
-    leafLoading: { 
-      padding: isMobile ? '6px 18px 6px 44px' : '7px 18px 7px 52px', 
-      fontSize: isMobile ? '10.5px' : '11.5px', 
-      color: C.sidebarTextDim, 
-      fontStyle: 'italic' 
+    leafLoading: {
+      padding: isMobile ? '6px 18px 6px 44px' : '7px 18px 7px 52px',
+      fontSize: isMobile ? '10.5px' : '11.5px',
+      color: C.sidebarTextDim,
+      fontStyle: 'italic',
     },
-
-    // ── Main panel ──
-    main: { 
-      padding: isMobile ? '16px' : '28px 32px', 
-      maxWidth: '980px', 
-      margin: '0 auto', 
-      width: '100%' 
+    main: {
+      padding: isMobile ? '16px' : '28px 32px',
+      maxWidth: '980px',
+      margin: '0 auto',
+      width: '100%',
     },
-    progressRow: { 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '12px', 
-      marginBottom: isMobile ? '14px' : '18px' 
+    progressRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '14px',
+      marginBottom: isMobile ? '14px' : '18px',
     },
     progressBarOuter: { flex: 1, background: '#E7E3EE', borderRadius: '20px', height: '6px', overflow: 'hidden' },
-    progressBarInner: { background: C.accent, height: '100%', width: `${progress}%`, transition: 'width 0.3s' },
+    progressBarInner: { background: C.accent, height: '100%', width: `${progress}%`, transition: 'width 0.6s ease' },
     progressPct: { fontSize: isMobile ? '11px' : '12px', fontWeight: 700, color: C.slate, whiteSpace: 'nowrap' },
-
-    playerFrame: { 
-      borderRadius: isMobile ? '14px' : '18px', 
-      overflow: 'hidden', 
-      background: `linear-gradient(160deg, ${C.playerHeaderFrom}, ${C.playerHeaderTo})`, 
-      boxShadow: '0 20px 40px -20px rgba(46,31,53,0.5)' 
+    playerFrame: {
+      borderRadius: isMobile ? '14px' : '18px',
+      overflow: 'hidden',
+      background: `linear-gradient(160deg, ${C.playerHeaderFrom}, ${C.playerHeaderTo})`,
+      boxShadow: '0 20px 40px -20px rgba(46,31,53,0.5)',
     },
-    playerHeader: { 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      padding: isMobile ? '14px 16px' : '16px 22px', 
+    playerHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: isMobile ? '14px 16px' : '16px 22px',
       color: '#fff',
       flexWrap: 'wrap',
       gap: '8px',
     },
     playerHeaderLeft: { display: 'flex', alignItems: 'center', gap: '12px' },
-    playerHeaderIcon: { 
-      width: isMobile ? '28px' : '32px', 
-      height: isMobile ? '28px' : '32px', 
-      borderRadius: '8px', 
-      background: 'rgba(255,255,255,0.14)', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      fontSize: isMobile ? '14px' : '16px' 
+    playerHeaderIcon: {
+      width: isMobile ? '28px' : '32px',
+      height: isMobile ? '28px' : '32px',
+      borderRadius: '8px',
+      background: 'rgba(255,255,255,0.14)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: isMobile ? '14px' : '16px',
     },
     playerHeaderTitle: { fontSize: isMobile ? '14px' : '15px', fontWeight: 700 },
     playerHeaderSubtitle: { fontSize: isMobile ? '11px' : '12px', opacity: 0.7, marginTop: '2px' },
     playerHeaderIcons: { display: 'flex', gap: '14px', fontSize: '15px', opacity: 0.8, alignItems: 'center' },
-
-    playerBody: { 
-      background: C.paper, 
-      padding: isMobile ? '16px' : '28px 30px', 
-      minHeight: isMobile ? '280px' : '340px' 
+    playerBody: {
+      background: C.paper,
+      padding: isMobile ? '14px' : '22px 24px',
+      minHeight: isMobile ? '240px' : '280px',
     },
-    breadcrumb: { 
-      display: 'flex', 
-      flexWrap: 'wrap', 
-      alignItems: 'center', 
-      gap: '6px', 
-      fontSize: isMobile ? '11px' : '12.5px', 
-      color: '#A79FBC', 
-      marginBottom: isMobile ? '2px' : '4px' 
+    breadcrumb: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: '6px',
+      fontSize: isMobile ? '11px' : '12.5px',
+      color: '#A79FBC',
+      marginBottom: isMobile ? '2px' : '4px',
     },
     breadcrumbSep: { color: '#5A5468' },
-
-    completeButton: { 
-      background: '#2E9B6C', 
-      color: 'white', 
-      border: 'none', 
-      padding: isMobile ? '10px 20px' : '12px 24px', 
-      borderRadius: '40px', 
-      fontSize: isMobile ? '13px' : '14px', 
-      fontWeight: '600', 
-      cursor: 'pointer', 
-      marginTop: '20px', 
-      width: '100%' 
+    completeButton: {
+      background: '#2E9B6C',
+      color: 'white',
+      border: 'none',
+      padding: isMobile ? '10px 20px' : '12px 24px',
+      borderRadius: '40px',
+      fontSize: isMobile ? '13px' : '14px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      marginTop: '20px',
+      width: '100%',
+      transition: 'all 0.2s',
     },
-    completedBadge: { 
-      fontSize: isMobile ? '10px' : '12px', 
-      background: '#DFF3E8', 
-      color: '#1E7A4C', 
-      padding: '4px 10px', 
-      borderRadius: '40px', 
-      whiteSpace: 'nowrap', 
-      fontWeight: 700 
+    completedBadge: {
+      fontSize: isMobile ? '10px' : '12px',
+      background: '#DFF3E8',
+      color: '#1E7A4C',
+      padding: '4px 10px',
+      borderRadius: '40px',
+      whiteSpace: 'nowrap',
+      fontWeight: 700,
     },
-
-    emptyState: { 
-      textAlign: 'center', 
-      padding: isMobile ? '30px 16px' : '50px 20px', 
+    emptyState: {
+      textAlign: 'center',
+      padding: isMobile ? '30px 16px' : '50px 20px',
       color: '#A79FBC',
       fontSize: isMobile ? '14px' : '16px',
+    },
+    sidebarToggle: {
+      position: 'fixed',
+      left: isSidebarCollapsed ? '12px' : '332px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      zIndex: 100,
+      background: C.paper,
+      border: '1px solid #E7E3EE',
+      borderRadius: '30px',
+      padding: '8px 6px',
+      cursor: 'pointer',
+      fontSize: '16px',
+      color: C.slate,
+      transition: 'left 0.3s ease',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+      display: isMobile || !isSidebarCollapsed ? 'none' : 'block',
     },
   };
 
@@ -1012,9 +1615,9 @@ export default function CourseDetailView({
     switch (activeContentType) {
       case 'video': return <VideoTab videoUrls={videoUrls} />;
       case 'notes': return <NotesTab content={currentSub.content} />;
-      case 'interview': return <InterviewTab questions={interviewQuestions} onBackToTop={handleBackToTop} />;
-      case 'exam': return <ExamTab questions={examQuestions} onScoreUpdate={() => {}} onBackToTop={handleBackToTop} />;
-      case 'labs': return <LabsTab labs={labs} onBackToTop={handleBackToTop} />;
+      case 'interview': return <InterviewTab questions={interviewQuestions} />;
+      case 'exam': return <ExamTab questions={examQuestions} onScoreUpdate={() => {}} />;
+      case 'labs': return <LabsTab labs={labs} />;
       default: return null;
     }
   };
@@ -1035,106 +1638,147 @@ export default function CourseDetailView({
 
       {activeView === 'split' && (
         <>
-          {/* Mobile Overlay */}
           {isMobile && showSidebar && (
             <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />
           )}
 
-          <div style={styles.shell}>
-            {/* ─── Sidebar: Topic → Subtopic → Content type ───────────────── */}
-            <aside 
-              id="mobile-sidebar" 
-              style={{ 
-                ...styles.sidebar, 
-                ...(isMobile && showSidebar ? styles.sidebarOpen : {}) 
-              }}
+          {!isMobile && isSidebarCollapsed && (
+            <button
+              style={styles.sidebarToggle}
+              onClick={() => setIsSidebarCollapsed(false)}
+              title="Show sidebar"
             >
-              {isMobile && (
-                <div style={styles.sidebarCloseBtn}>
-                  <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{selectedCourse.title}</span>
-                  <button 
-                    onClick={() => setShowSidebar(false)}
+              ▶
+            </button>
+          )}
+
+          <div style={styles.shell}>
+            {(!isSidebarCollapsed || isMobile) && (
+              <aside
+                id="mobile-sidebar"
+                style={{
+                  ...styles.sidebar,
+                  ...(isMobile && showSidebar ? styles.sidebarOpen : {}),
+                }}
+              >
+                {isMobile && (
+                  <div style={styles.sidebarCloseBtn}>
+                    <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{selectedCourse.title}</span>
+                    <button
+                      onClick={() => setShowSidebar(false)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: C.sidebarText,
+                        fontSize: '20px',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+                {!isMobile && (
+                  <div style={{ padding: '0 18px 16px', borderBottom: `1px solid ${C.sidebarLine}` }}>
+                    <div style={styles.sidebarCourseTitle}>{selectedCourse.title}</div>
+                  </div>
+                )}
+
+                <div style={{ padding: '10px 16px' }}>
+                  <input
+                    type="text"
+                    placeholder="🔍 Search topics..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: C.sidebarText,
-                      fontSize: '20px',
-                      cursor: 'pointer',
-                      padding: '4px 8px',
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${C.sidebarLine}`,
+                      background: C.sidebarBgAlt,
+                      color: '#fff',
+                      fontSize: '12px',
+                      outline: 'none',
                     }}
-                  >
-                    ✕
-                  </button>
+                    onFocus={(e) => e.target.style.borderColor = C.accent}
+                    onBlur={(e) => e.target.style.borderColor = C.sidebarLine}
+                  />
                 </div>
-              )}
-              {!isMobile && <div style={styles.sidebarCourseTitle}>{selectedCourse.title}</div>}
-              <div>
-                {topics.map((topic) => {
-                  const topicSubs = topic.subtopics || [];
-                  const isTopicOpen = !!expandedTopics[topic.id];
-                  return (
-                    <div key={topic.id} style={{ borderBottom: `1px solid ${C.sidebarLine}` }}>
-                      <div style={styles.topicHeader(isTopicOpen)} onClick={() => toggleTopic(topic.id)}>
-                        <span>{topic.title}</span>
-                        <span style={{ ...styles.topicChevron, transform: isTopicOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
-                      </div>
 
-                      {isTopicOpen && (
-                        <div>
-                          {topicSubs.map((sub) => {
-                            const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
-                            if (globalIndex === -1) return null;
-                            const isActiveSub = activeSection === globalIndex;
-                            const hasVideo = Array.isArray(sub.videoUrls) ? sub.videoUrls.length > 0 : !!sub.videoUrl;
-                            const isSecCompleted = completedSections.includes(globalIndex);
-
-                            return (
-                              <div key={sub.id}>
-                                <div style={styles.subtopicRow(isActiveSub)} onClick={() => selectSubtopic(sub, globalIndex)}>
-                                  <span style={styles.subtopicIcon(hasVideo)}>{hasVideo ? '▶' : '●'}</span>
-                                  <span style={{ flex: 1 }}>{sub.title}</span>
-                                  {isSecCompleted && <span style={{ fontSize: '10px', color: '#3FBF7F' }}>✓</span>}
-                                </div>
-
-                                {isActiveSub && (
-                                  <div style={styles.leafList}>
-                                    {loadingData ? (
-                                      <div style={styles.leafLoading}>Loading contents…</div>
-                                    ) : (
-                                      CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
-                                        <div
-                                          key={t.key}
-                                          style={styles.leafRow(activeContentType === t.key)}
-                                          onClick={() => setActiveContentType(t.key)}
-                                        >
-                                          <span>{t.icon}</span>
-                                          <span>{t.label}</span>
-                                        </div>
-                                      ))
-                                    )}
-                                    {!loadingData && availableTypes.length === 0 && (
-                                      <div style={styles.leafLoading}>No content yet</div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                <div>
+                  {filteredTopics.map((topic) => {
+                    const topicSubs = topic.subtopics || [];
+                    const isTopicOpen = !!expandedTopics[topic.id];
+                    return (
+                      <div key={topic.id} style={{ borderBottom: `1px solid ${C.sidebarLine}` }}>
+                        <div style={styles.topicHeader(isTopicOpen)} onClick={() => toggleTopic(topic.id)}>
+                          <span>{topic.title}</span>
+                          <span style={{ ...styles.topicChevron, transform: isTopicOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </aside>
 
-            {/* ─── Main content panel ──────────────────────────────────────── */}
+                        {isTopicOpen && (
+                          <div>
+                            {topicSubs.map((sub) => {
+                              const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
+                              if (globalIndex === -1) return null;
+                              const isActiveSub = activeSection === globalIndex;
+                              const hasVideo = Array.isArray(sub.videoUrls) ? sub.videoUrls.length > 0 : !!sub.videoUrl;
+                              const isSecCompleted = completedSections.includes(globalIndex);
+
+                              return (
+                                <div key={sub.id}>
+                                  <div style={styles.subtopicRow(isActiveSub)} onClick={() => selectSubtopic(sub, globalIndex)}>
+                                    <span style={styles.subtopicIcon(hasVideo)}>{hasVideo ? '▶' : '●'}</span>
+                                    <span style={{ flex: 1 }}>{sub.title}</span>
+                                    {isSecCompleted && <span style={{ fontSize: '10px', color: '#3FBF7F' }}>✓</span>}
+                                  </div>
+
+                                  {isActiveSub && (
+                                    <div style={styles.leafList}>
+                                      {loadingData ? (
+                                        <div style={styles.leafLoading}>Loading contents…</div>
+                                      ) : (
+                                        CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
+                                          <div
+                                            key={t.key}
+                                            style={styles.leafRow(activeContentType === t.key)}
+                                            onClick={() => setActiveContentType(t.key)}
+                                          >
+                                            <span>{t.icon}</span>
+                                            <span>{t.label}</span>
+                                          </div>
+                                        ))
+                                      )}
+                                      {!loadingData && availableTypes.length === 0 && (
+                                        <div style={styles.leafLoading}>No content yet</div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {filteredTopics.length === 0 && (
+                    <div style={{ padding: '20px', textAlign: 'center', color: C.sidebarTextDim, fontSize: '13px' }}>
+                      No topics match your search.
+                    </div>
+                  )}
+                </div>
+              </aside>
+            )}
+
             <main style={styles.main}>
               <div style={styles.progressRow}>
                 <div style={styles.progressBarOuter}>
                   <div style={styles.progressBarInner} />
                 </div>
                 <span style={styles.progressPct}>{Math.round(progress)}% complete</span>
+                <ProgressRing progress={progress} size={36} strokeWidth={3} />
               </div>
 
               {currentSub && (
@@ -1160,13 +1804,23 @@ export default function CourseDetailView({
                     <span>⚙</span>
                   </div>
                 </div>
-                <div style={styles.playerBody}>
+                <div style={styles.playerBody} className="fade-in">
                   {renderPanelContent()}
                 </div>
               </div>
 
               {currentSub && (
-                <button style={styles.completeButton} onClick={() => markSectionComplete(activeSection)} disabled={isCompleted}>
+                <button
+                  style={{
+                    ...styles.completeButton,
+                    opacity: isCompleted ? 0.6 : 1,
+                    cursor: isCompleted ? 'default' : 'pointer',
+                  }}
+                  onClick={() => markSectionComplete(activeSection)}
+                  disabled={isCompleted}
+                  onMouseEnter={(e) => { if (!isCompleted) e.currentTarget.style.background = '#268A5E'; }}
+                  onMouseLeave={(e) => { if (!isCompleted) e.currentTarget.style.background = '#2E9B6C'; }}
+                >
                   {isCompleted ? '✓ Section Completed' : '✓ Mark Complete'}
                 </button>
               )}
@@ -1181,19 +1835,39 @@ export default function CourseDetailView({
           {images.length === 0 ? (
             <p style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No images yet</p>
           ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(240px, 1fr))', 
-              gap: isMobile ? '12px' : '20px' 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(240px, 1fr))',
+              gap: isMobile ? '12px' : '20px',
             }}>
               {images.map((img) => {
                 const safeId = img.subTopicId || img.subtopicId;
                 if (!safeId) return null;
                 const imageUrl = buildImageUrl(safeId, img.fileName);
                 return (
-                  <div key={img.id} style={{ border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => window.open(imageUrl, '_blank')}>
-                    <img src={imageUrl} alt={`Page ${img.pageNumber}`} style={{ width: '100%', height: isMobile ? '120px' : '160px', objectFit: 'cover' }} onError={() => handleImageError(img.id)} />
-                    <div style={{ padding: '10px', fontSize: isMobile ? '11px' : '12px', textAlign: 'center', background: '#f8fafc', color: '#64748b' }}>Page {img.pageNumber} · {img.width}×{img.height}</div>
+                  <div
+                    key={img.id}
+                    style={{
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    onClick={() => window.open(imageUrl, '_blank')}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={`Page ${img.pageNumber}`}
+                      style={{ width: '100%', height: isMobile ? '120px' : '160px', objectFit: 'cover' }}
+                      onError={() => handleImageError(img.id)}
+                      loading="lazy"
+                    />
+                    <div style={{ padding: '10px', fontSize: isMobile ? '11px' : '12px', textAlign: 'center', background: '#f8fafc', color: '#64748b' }}>
+                      Page {img.pageNumber} · {img.width}×{img.height}
+                    </div>
                   </div>
                 );
               })}

@@ -49,6 +49,7 @@ export default function CourseEnrollmentPage({
   const [loadingEnrollmentCount, setLoadingEnrollmentCount] = useState(false);
   const [instructorDetails, setInstructorDetails] = useState(null);
   const [loadingInstructor, setLoadingInstructor] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const isMobile = window.innerWidth < 768;
 
@@ -68,11 +69,16 @@ export default function CourseEnrollmentPage({
       setCourseDetails(data);
       
       // If instructor ID is in course data, fetch instructor details
-      if (data?.course?.instructor) {
-        fetchInstructorDetails(data.course.instructor);
+      const instructorId = data?.course?.instructorId || data?.course?.instructor;
+      if (instructorId) {
+        await fetchInstructorDetails(instructorId);
+      } else {
+        // If no instructor ID, set default instructor
+        setInstructorDetails(getDefaultInstructor());
       }
     } catch (error) {
       console.error('Error fetching course details:', error);
+      setInstructorDetails(getDefaultInstructor());
     } finally {
       setLoadingDetails(false);
     }
@@ -92,10 +98,36 @@ export default function CourseEnrollmentPage({
     }
   };
 
+  const getDefaultInstructor = () => {
+    return {
+      id: 0,
+      name: 'Expert Instructor',
+      title: 'Senior Network Engineer & Instructor',
+      bio: 'Experienced network engineer with years of industry expertise.',
+      experience: '10+ years',
+      certifications: ['CCNA', 'CCNP', 'CCIE'],
+      company: 'Cisco Systems',
+      students: 45000,
+      courses: 12,
+      rating: 4.9,
+      email: 'instructor@example.com',
+      profileImage: '',
+    };
+  };
+
   const fetchInstructorDetails = async (instructorId) => {
-    // If instructorId is a name string, skip API call
-    if (!instructorId || isNaN(instructorId)) {
-      setInstructorDetails({ name: instructorId || 'Expert Instructor' });
+    // If instructorId is a name string or not a number, skip API call
+    if (!instructorId) {
+      setInstructorDetails(getDefaultInstructor());
+      return;
+    }
+
+    // If it's a string that's not a number, use as name
+    if (isNaN(instructorId)) {
+      setInstructorDetails({
+        ...getDefaultInstructor(),
+        name: instructorId,
+      });
       return;
     }
     
@@ -103,10 +135,37 @@ export default function CourseEnrollmentPage({
     try {
       const data = await getInstructorById(parseInt(instructorId));
       console.log('Instructor details from API:', data);
-      setInstructorDetails(data);
+      
+      // If we get valid data, use it
+      if (data && data.name) {
+        setInstructorDetails({
+          id: data.id || parseInt(instructorId),
+          name: data.name || `Instructor ${instructorId}`,
+          title: data.title || 'Senior Network Engineer & Instructor',
+          bio: data.bio || 'Experienced network engineer with years of industry expertise.',
+          experience: data.experience || '10+ years',
+          certifications: data.certifications || ['CCNA', 'CCNP', 'CCIE'],
+          company: data.company || 'Cisco Systems',
+          students: data.totalStudents || data.studentsCount || 45000,
+          courses: data.totalCourses || data.coursesCount || 12,
+          rating: data.rating || 4.9,
+          email: data.email || '',
+          profileImage: data.avatar || data.profileImage || '',
+        });
+      } else {
+        // If no data, use fallback with instructor ID
+        setInstructorDetails({
+          ...getDefaultInstructor(),
+          name: `Instructor ${instructorId}`,
+        });
+      }
     } catch (error) {
       console.error('Error fetching instructor details:', error);
-      setInstructorDetails({ name: `Instructor ${instructorId}` });
+      // Use fallback data on error
+      setInstructorDetails({
+        ...getDefaultInstructor(),
+        name: `Instructor ${instructorId}`,
+      });
     } finally {
       setLoadingInstructor(false);
     }
@@ -114,6 +173,9 @@ export default function CourseEnrollmentPage({
 
   // Build course data from API response
   const buildCourseData = () => {
+    // Get instructor data (use API data or default)
+    const instructor = instructorDetails || getDefaultInstructor();
+
     // If we have API data, use it
     if (courseDetails && courseDetails.course) {
       const apiCourse = courseDetails.course;
@@ -138,37 +200,28 @@ export default function CourseEnrollmentPage({
       // Use actual enrollment count from API
       const students = enrollmentCount || 0;
 
-      // Build trainer info from instructor details
-      const trainer = instructorDetails ? {
-        name: instructorDetails.name || apiCourse.instructor || 'Expert Instructor',
-        title: instructorDetails.title || 'Senior Network Engineer & Instructor',
-        bio: instructorDetails.bio || 'Experienced network engineer with years of industry expertise.',
-        experience: instructorDetails.experience || '10+ years',
-        certifications: instructorDetails.certifications || ['CCNA', 'CCNP'],
-        company: instructorDetails.company || 'Cisco Systems',
-        students: instructorDetails.totalStudents || instructorDetails.studentsCount || 45000,
-        courses: instructorDetails.totalCourses || instructorDetails.coursesCount || 12,
-        rating: instructorDetails.rating || 4.9,
-        email: instructorDetails.email || '',
-        avatar: instructorDetails.avatar || instructorDetails.profileImage || '',
-      } : {
-        name: apiCourse.instructor || 'Expert Instructor',
-        title: 'Senior Network Engineer & Instructor',
-        bio: 'Experienced network engineer with years of industry expertise.',
-        experience: '10+ years',
-        certifications: ['CCNA', 'CCNP'],
-        company: 'Cisco Systems',
-        students: 45000,
-        courses: 12,
-        rating: 4.9,
+      // Build trainer info
+      const trainer = {
+        id: instructor.id || 0,
+        name: instructor.name || apiCourse.instructor || 'Expert Instructor',
+        title: instructor.title || 'Senior Network Engineer & Instructor',
+        bio: instructor.bio || 'Experienced network engineer with years of industry expertise.',
+        experience: instructor.experience || '10+ years',
+        certifications: instructor.certifications || ['CCNA', 'CCNP', 'CCIE'],
+        company: instructor.company || 'Cisco Systems',
+        students: instructor.students || 45000,
+        courses: instructor.courses || 12,
+        rating: instructor.rating || 4.9,
+        email: instructor.email || '',
+        profileImage: instructor.profileImage || '',
       };
 
       return {
         id: apiCourse.id,
         title: apiCourse.title || 'Course',
         subtitle: apiCourse.description?.substring(0, 100) || 'Learn with expert instructors',
-        rating: 4.8,
-        reviews: 1247,
+        rating: apiCourse.rating || 4.8,
+        reviews: apiCourse.reviews || 1247,
         students: students,
         lastUpdate: apiCourse.updatedAt ? new Date(apiCourse.updatedAt).toLocaleDateString() : '06/05/2026',
         duration: apiCourse.duration || '5 hours 48 minutes',
@@ -201,6 +254,21 @@ export default function CourseEnrollmentPage({
     }
 
     // Fallback to provided course prop
+    const trainer = {
+      id: instructor.id || 0,
+      name: instructor.name || course?.instructor || 'Expert Instructor',
+      title: instructor.title || 'Senior Network Engineer & Instructor',
+      bio: instructor.bio || 'Experienced network engineer with years of industry expertise.',
+      experience: instructor.experience || '10+ years',
+      certifications: instructor.certifications || ['CCNA', 'CCNP', 'CCIE'],
+      company: instructor.company || 'Cisco Systems',
+      students: instructor.students || 45000,
+      courses: instructor.courses || 12,
+      rating: instructor.rating || 4.9,
+      email: instructor.email || '',
+      profileImage: instructor.profileImage || '',
+    };
+
     return course || {
       id: 1,
       title: 'CCNA 200-301',
@@ -220,17 +288,7 @@ export default function CourseEnrollmentPage({
         'Configure and troubleshoot IPv4 addressing',
         'Master Ethernet fundamentals and switching',
       ],
-      trainer: {
-        name: 'John Smith',
-        title: 'Senior Network Engineer & Instructor',
-        bio: 'John is a Cisco Certified Internetwork Expert (CCIE) with over 15 years of experience.',
-        experience: '15+ years',
-        certifications: ['CCIE', 'CCNP', 'CCNA', 'JNCIP'],
-        company: 'Cisco Systems',
-        students: 45000,
-        courses: 12,
-        rating: 4.9,
-      },
+      trainer: trainer,
       syllabus: [
         { title: 'Network Fundamentals', duration: '1h 20m', lessons: 12 },
         { title: 'Network Access', duration: '1h 15m', lessons: 10 },
@@ -249,6 +307,14 @@ export default function CourseEnrollmentPage({
   const courseData = buildCourseData();
 
   // ─── Handlers ──────────────────────────────────────────────────────
+  const handleEnrollClick = () => {
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
+    handleEnroll();
+  };
+
   const handleEnroll = async () => {
     if (isEnrolling || loading) return;
     setIsEnrolling(true);
@@ -291,7 +357,12 @@ export default function CourseEnrollmentPage({
   };
 
   const handleLoginRedirect = () => {
+    setShowLoginModal(false);
     window.location.href = '/login';
+  };
+
+  const handleCloseModal = () => {
+    setShowLoginModal(false);
   };
 
   // ─── Styles ──────────────────────────────────────────────────────────
@@ -685,6 +756,98 @@ export default function CourseEnrollmentPage({
       animation: 'spin 1s linear infinite',
       margin: '0 auto 16px',
     },
+    modalOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.5)',
+      backdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '20px',
+    },
+    modal: {
+      background: COLORS.paper,
+      borderRadius: '20px',
+      padding: '40px',
+      maxWidth: '440px',
+      width: '100%',
+      textAlign: 'center',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      position: 'relative',
+    },
+    modalClose: {
+      position: 'absolute',
+      top: '16px',
+      right: '16px',
+      background: 'transparent',
+      border: 'none',
+      fontSize: '24px',
+      cursor: 'pointer',
+      color: COLORS.slate,
+      padding: '4px 8px',
+      borderRadius: '8px',
+      transition: 'background 0.2s',
+      '&:hover': {
+        background: COLORS.canvas,
+      },
+    },
+    modalIcon: {
+      fontSize: '56px',
+      marginBottom: '16px',
+    },
+    modalTitle: {
+      fontSize: '24px',
+      fontWeight: 700,
+      color: COLORS.ink,
+      marginBottom: '8px',
+    },
+    modalText: {
+      color: COLORS.slate,
+      fontSize: '15px',
+      lineHeight: 1.6,
+      marginBottom: '24px',
+    },
+    modalButtons: {
+      display: 'flex',
+      gap: '12px',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+    },
+    modalBtnPrimary: {
+      padding: '12px 32px',
+      background: COLORS.accent,
+      color: '#fff',
+      border: 'none',
+      borderRadius: '12px',
+      fontSize: '16px',
+      fontWeight: 700,
+      cursor: 'pointer',
+      transition: 'transform 0.2s',
+      minWidth: '140px',
+      '&:hover': {
+        transform: 'scale(1.05)',
+      },
+    },
+    modalBtnSecondary: {
+      padding: '12px 32px',
+      background: 'transparent',
+      color: COLORS.slate,
+      border: `1px solid ${COLORS.line}`,
+      borderRadius: '12px',
+      fontSize: '16px',
+      fontWeight: 600,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      minWidth: '140px',
+      '&:hover': {
+        background: COLORS.canvas,
+      },
+    },
   };
 
   if (loadingDetails || loadingEnrollmentCount || loadingInstructor) {
@@ -824,18 +987,49 @@ export default function CourseEnrollmentPage({
     </div>
   );
 
+  // ─── Login Modal ──────────────────────────────────────────────────
+
+  const renderLoginModal = () => (
+    <div style={styles.modalOverlay} onClick={handleCloseModal}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <button style={styles.modalClose} onClick={handleCloseModal}>✕</button>
+        <div style={styles.modalIcon}>🔒</div>
+        <h2 style={styles.modalTitle}>Login Required</h2>
+        <p style={styles.modalText}>
+          You need to be logged in to enroll in this course. 
+          Please login or create an account to continue.
+        </p>
+        <div style={styles.modalButtons}>
+          <button style={styles.modalBtnSecondary} onClick={handleCloseModal}>
+            Cancel
+          </button>
+          <button style={styles.modalBtnPrimary} onClick={handleLoginRedirect}>
+            Login Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ─── Render ──────────────────────────────────────────────────────
 
-  // If not logged in and viewOnly mode, show login prompt
-  if (viewOnly && !isLoggedIn) {
-    return (
+  return (
+    <>
       <div style={styles.page}>
+        {/* ─── Top Bar ───────────────────────────────────────────────── */}
         <div style={styles.topStrip}>
-          <button style={styles.backBtn} onClick={onBack}>← Back</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button style={styles.backBtn} onClick={onBack}>← Back</button>
+            <span style={{ fontSize: '14px', color: COLORS.slate }}>/</span>
+            <span style={{ fontSize: '14px', fontWeight: 500, color: COLORS.ink }}>
+              {courseData.title}
+            </span>
+          </div>
           <button style={styles.backBtn} onClick={onBack}>← Back to Courses</button>
         </div>
 
         <div style={styles.container}>
+          {/* ─── Hero Banner ────────────────────────────────────────── */}
           <div style={styles.hero}>
             <div style={styles.heroContent}>
               <div style={styles.breadcrumb}>
@@ -845,8 +1039,10 @@ export default function CourseEnrollmentPage({
                 <span>/</span>
                 <span style={{ opacity: 1, fontWeight: 600 }}>{courseData.title}</span>
               </div>
+
               <h1 style={styles.heroTitle}>{courseData.title}</h1>
               <div style={styles.heroSubtitle}>{courseData.subtitle}</div>
+
               <div style={styles.heroRating}>
                 <span style={styles.stars}>★★★★★</span>
                 <span style={styles.ratingText}>
@@ -855,6 +1051,7 @@ export default function CourseEnrollmentPage({
                 <span style={styles.heroBadge}>{courseData.level}</span>
                 <span style={styles.heroBadge}>📜 {courseData.certificate}</span>
               </div>
+
               <div style={styles.heroStats}>
                 <span style={styles.heroStat}>📅 Last Update {courseData.lastUpdate}</span>
                 <span style={styles.heroStat}>⏱ Completion {courseData.duration}</span>
@@ -864,188 +1061,131 @@ export default function CourseEnrollmentPage({
             </div>
           </div>
 
-          <div style={styles.loginPrompt}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
-            <h2 style={{ color: COLORS.ink, marginBottom: '8px' }}>Login Required</h2>
-            <p style={{ color: COLORS.slate, marginBottom: '16px' }}>
-              Please login to view course details and enroll.
-            </p>
-            <button style={styles.loginBtn} onClick={handleLoginRedirect}>
-              Login to Continue
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={styles.page}>
-      {/* ─── Top Bar ───────────────────────────────────────────────── */}
-      <div style={styles.topStrip}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button style={styles.backBtn} onClick={onBack}>← Back</button>
-          <span style={{ fontSize: '14px', color: COLORS.slate }}>/</span>
-          <span style={{ fontSize: '14px', fontWeight: 500, color: COLORS.ink }}>
-            {courseData.title}
-          </span>
-        </div>
-        <button style={styles.backBtn} onClick={onBack}>← Back to Courses</button>
-      </div>
-
-      <div style={styles.container}>
-        {/* ─── Hero Banner ────────────────────────────────────────── */}
-        <div style={styles.hero}>
-          <div style={styles.heroContent}>
-            <div style={styles.breadcrumb}>
-              <span>Courses</span>
-              <span>/</span>
-              <span>Getting Started</span>
-              <span>/</span>
-              <span style={{ opacity: 1, fontWeight: 600 }}>{courseData.title}</span>
-            </div>
-
-            <h1 style={styles.heroTitle}>{courseData.title}</h1>
-            <div style={styles.heroSubtitle}>{courseData.subtitle}</div>
-
-            <div style={styles.heroRating}>
-              <span style={styles.stars}>★★★★★</span>
-              <span style={styles.ratingText}>
-                {courseData.rating} ({courseData.reviews.toLocaleString()} reviews)
-              </span>
-              <span style={styles.heroBadge}>{courseData.level}</span>
-              <span style={styles.heroBadge}>📜 {courseData.certificate}</span>
-            </div>
-
-            <div style={styles.heroStats}>
-              <span style={styles.heroStat}>📅 Last Update {courseData.lastUpdate}</span>
-              <span style={styles.heroStat}>⏱ Completion {courseData.duration}</span>
-              <span style={styles.heroStat}>👥 Members {courseData.students.toLocaleString()}</span>
-              <span style={styles.heroStat}>🌐 {courseData.language}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ─── Main Content ────────────────────────────────────────── */}
-        <div style={styles.mainLayout}>
-          <div style={styles.leftColumn}>
-            {/* ─── Tabs ────────────────────────────────────────────── */}
-            <div style={styles.card}>
-              <div style={styles.tabs}>
-                <button
-                  style={styles.tab(activeTab === 'overview')}
-                  onClick={() => setActiveTab('overview')}
-                >
-                  📖 Overview
-                </button>
-                <button
-                  style={styles.tab(activeTab === 'trainer')}
-                  onClick={() => setActiveTab('trainer')}
-                >
-                  👨‍🏫 Trainer
-                </button>
-                <button
-                  style={styles.tab(activeTab === 'reviews')}
-                  onClick={() => setActiveTab('reviews')}
-                >
-                  ⭐ Reviews
-                </button>
-              </div>
-
-              {activeTab === 'overview' && renderOverview()}
-              {activeTab === 'trainer' && renderTrainer()}
-              {activeTab === 'reviews' && renderReviews()}
-            </div>
-          </div>
-
-          {/* ─── Right Sidebar ─────────────────────────────────────── */}
-          <div style={styles.sidebar}>
-            {/* Price / Enroll Card */}
-            <div style={styles.priceCard}>
-              <div style={styles.price}>${courseData.price}</div>
-              <div style={styles.priceSub}>
-                {isEnrolled ? 'You are enrolled! 🎉' : 'One-time payment • Full access'}
-              </div>
-
-              {isEnrolled ? (
-                <>
-                  <button style={styles.startBtn} onClick={handleStartLearning}>
-                    🚀 Start Learning
-                  </button>
-                  <button style={styles.shareBtn} onClick={handleShare}>
-                    📤 Share this course
-                  </button>
-                </>
-              ) : viewOnly ? (
-                <div style={styles.viewOnlyMsg}>
-                  <p style={{ marginBottom: '12px' }}>👀 You are viewing this course</p>
-                  <button 
-                    style={isEnrolling || loading ? styles.enrollBtnDisabled : styles.enrollBtn}
-                    onClick={handleEnroll}
-                    disabled={isEnrolling || loading}
+          {/* ─── Main Content ────────────────────────────────────────── */}
+          <div style={styles.mainLayout}>
+            <div style={styles.leftColumn}>
+              {/* ─── Tabs ────────────────────────────────────────────── */}
+              <div style={styles.card}>
+                <div style={styles.tabs}>
+                  <button
+                    style={styles.tab(activeTab === 'overview')}
+                    onClick={() => setActiveTab('overview')}
                   >
-                    {isEnrolling || loading ? 'Enrolling...' : 'Join this Course to Start Learning'}
+                    📖 Overview
+                  </button>
+                  <button
+                    style={styles.tab(activeTab === 'trainer')}
+                    onClick={() => setActiveTab('trainer')}
+                  >
+                    👨‍🏫 Trainer
+                  </button>
+                  <button
+                    style={styles.tab(activeTab === 'reviews')}
+                    onClick={() => setActiveTab('reviews')}
+                  >
+                    ⭐ Reviews
                   </button>
                 </div>
-              ) : (
-                <button 
-                  style={isEnrolling || loading ? styles.enrollBtnDisabled : styles.enrollBtn}
-                  onClick={handleEnroll}
-                  disabled={isEnrolling || loading}
-                >
-                  {isEnrolling || loading ? 'Enrolling...' : 'Join this Course'}
-                </button>
-              )}
 
-              {isEnrolled && enrollmentDate && (
-                <div style={{ marginTop: '12px', fontSize: '12px', opacity: 0.7 }}>
-                  Enrolled on {new Date(enrollmentDate).toLocaleDateString()}
+                {activeTab === 'overview' && renderOverview()}
+                {activeTab === 'trainer' && renderTrainer()}
+                {activeTab === 'reviews' && renderReviews()}
+              </div>
+            </div>
+
+            {/* ─── Right Sidebar ─────────────────────────────────────── */}
+            <div style={styles.sidebar}>
+              {/* Price / Enroll Card */}
+              <div style={styles.priceCard}>
+                <div style={styles.price}>${courseData.price}</div>
+                <div style={styles.priceSub}>
+                  {isEnrolled ? 'You are enrolled! 🎉' : 'One-time payment • Full access'}
                 </div>
-              )}
-            </div>
 
-            {/* Course Information */}
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Course Information</h3>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Last Update</span>
-                <span style={styles.infoValue}>{courseData.lastUpdate}</span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Completion Time</span>
-                <span style={styles.infoValue}>{courseData.duration}</span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Total Students</span>
-                <span style={styles.infoValue}>{courseData.students.toLocaleString()}</span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Level</span>
-                <span style={styles.infoValue}>{courseData.level}</span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Language</span>
-                <span style={styles.infoValue}>{courseData.language}</span>
-              </div>
-              <div style={styles.infoRow}>
-                <span style={styles.infoLabel}>Certificate</span>
-                <span style={styles.infoValue}>{courseData.certificate}</span>
-              </div>
-            </div>
+                {isEnrolled ? (
+                  <>
+                    <button style={styles.startBtn} onClick={handleStartLearning}>
+                      🚀 Start Learning
+                    </button>
+                    <button style={styles.shareBtn} onClick={handleShare}>
+                      📤 Share this course
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      style={isEnrolling || loading ? styles.enrollBtnDisabled : styles.enrollBtn}
+                      onClick={handleEnrollClick}
+                      disabled={isEnrolling || loading}
+                    >
+                      {isEnrolling || loading ? 'Enrolling...' : 'Enroll Now'}
+                    </button>
+                    {!isLoggedIn && (
+                      <div style={{ 
+                        marginTop: '12px', 
+                        fontSize: '12px', 
+                        opacity: 0.8,
+                        textAlign: 'center'
+                      }}>
+                        🔒 Login required to enroll
+                      </div>
+                    )}
+                    <button style={styles.shareBtn} onClick={handleShare}>
+                      📤 Share this course
+                    </button>
+                  </>
+                )}
 
-            {/* Trainer Quick Info */}
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Your Instructor</h3>
-              <div style={styles.trainerCard}>
-                <div style={styles.trainerAvatar}>👨‍🏫</div>
-                <div style={styles.trainerInfo}>
-                  <div style={styles.trainerName}>{courseData.trainer.name}</div>
-                  <div style={{ fontSize: '12px', color: COLORS.slate }}>
-                    {courseData.trainer.title}
+                {isEnrolled && enrollmentDate && (
+                  <div style={{ marginTop: '12px', fontSize: '12px', opacity: 0.7 }}>
+                    Enrolled on {new Date(enrollmentDate).toLocaleDateString()}
                   </div>
-                  <div style={styles.trainerStats}>
-                    <span>⭐ {courseData.trainer.rating}</span>
-                    <span>{courseData.trainer.students.toLocaleString()} students</span>
+                )}
+              </div>
+
+              {/* Course Information */}
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Course Information</h3>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Last Update</span>
+                  <span style={styles.infoValue}>{courseData.lastUpdate}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Completion Time</span>
+                  <span style={styles.infoValue}>{courseData.duration}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Total Students</span>
+                  <span style={styles.infoValue}>{courseData.students.toLocaleString()}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Level</span>
+                  <span style={styles.infoValue}>{courseData.level}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Language</span>
+                  <span style={styles.infoValue}>{courseData.language}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Certificate</span>
+                  <span style={styles.infoValue}>{courseData.certificate}</span>
+                </div>
+              </div>
+
+              {/* Trainer Quick Info */}
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>Your Instructor</h3>
+                <div style={styles.trainerCard}>
+                  <div style={styles.trainerAvatar}>👨‍🏫</div>
+                  <div style={styles.trainerInfo}>
+                    <div style={styles.trainerName}>{courseData.trainer.name}</div>
+                    <div style={{ fontSize: '12px', color: COLORS.slate }}>
+                      {courseData.trainer.title}
+                    </div>
+                    <div style={styles.trainerStats}>
+                      <span>⭐ {courseData.trainer.rating}</span>
+                      <span>{courseData.trainer.students.toLocaleString()} students</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1053,6 +1193,9 @@ export default function CourseEnrollmentPage({
           </div>
         </div>
       </div>
-    </div>
+
+      {/* ─── Login Modal ────────────────────────────────────────────── */}
+      {showLoginModal && renderLoginModal()}
+    </>
   );
 }
