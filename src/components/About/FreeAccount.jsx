@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import "./FreeAccount.css";
 import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
 
 function FreeAccount() {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -293,6 +295,7 @@ function FreeAccount() {
       const data = await response.json();
 
       if (response.ok) {
+        // ✅ Show success message with auto-redirect
         await Swal.fire({
           icon: "success",
           title: "🎉 Account Created!",
@@ -300,15 +303,16 @@ function FreeAccount() {
             <h3>Welcome, ${name.trim()}!</h3>
             <p>Your account has been created with <strong>${email.trim().toLowerCase()}</strong></p>
             <p style="font-size: 14px; color: #666; margin-top: 8px;">
-              You can now login with your Gmail account.
+              Redirecting you to login page...
             </p>
           `,
           confirmButtonColor: "#10b981",
           timer: 3000,
           timerProgressBar: true,
+          allowOutsideClick: false,
         });
 
-        // Reset form
+        // ✅ Reset form
         setName("");
         setEmail("");
         setPassword("");
@@ -316,6 +320,9 @@ function FreeAccount() {
         setOtp("");
         setShowOtpInput(false);
         setEmailVerified(false);
+
+        // ✅ Redirect to login page
+        navigate("/login");
       } else {
         Swal.fire({
           icon: "error",
