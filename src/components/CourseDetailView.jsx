@@ -45,10 +45,46 @@ const C = {
 
 const getEmbedUrl = (url) => {
   if (!url) return null;
-  if (url.includes('watch?v=')) return url.replace('watch?v=', 'embed/');
-  if (url.includes('youtu.be/')) return url.replace('youtu.be/', 'youtube.com/embed/');
-  if (url.includes('vimeo.com/')) return url.replace('vimeo.com/', 'player.vimeo.com/video/');
+  
+  // Handle playlist URLs - extract the video ID
+  if (url.includes('watch?v=') && url.includes('&list=')) {
+    const videoIdMatch = url.match(/[?&]v=([^&]+)/);
+    if (videoIdMatch && videoIdMatch[1]) {
+      const listMatch = url.match(/[?&]list=([^&]+)/);
+      if (listMatch && listMatch[1]) {
+        return `https://www.youtube.com/embed/${videoIdMatch[1]}?list=${listMatch[1]}`;
+      }
+      return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+    }
+  }
+  
+  if (url.includes('watch?v=')) {
+    return url.replace('watch?v=', 'embed/');
+  }
+  if (url.includes('youtu.be/')) {
+    return url.replace('youtu.be/', 'youtube.com/embed/');
+  }
+  if (url.includes('vimeo.com/')) {
+    return url.replace('vimeo.com/', 'player.vimeo.com/video/');
+  }
   return url;
+};
+
+// Extract video URLs from subtopic
+const getVideoUrls = (subtopic) => {
+  if (!subtopic) return [];
+  
+  // If videoUrls array exists and has items
+  if (subtopic.videoUrls && Array.isArray(subtopic.videoUrls) && subtopic.videoUrls.length > 0) {
+    return subtopic.videoUrls;
+  }
+  
+  // If videoUrl exists and is not empty
+  if (subtopic.videoUrl && subtopic.videoUrl.trim() !== '') {
+    return [subtopic.videoUrl];
+  }
+  
+  return [];
 };
 
 const buildImgSrc = (src) => {
@@ -387,7 +423,7 @@ function ProgressRing({ progress, size = 48, strokeWidth = 4 }) {
   );
 }
 
-// ─── NotesTab — Maximum content, minimal pagination ──────────────────
+// ─── NotesTab ──────────────────────────────────────────────────────────
 function NotesTab({ content }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [pages, setPages] = useState([]);
@@ -488,7 +524,6 @@ function NotesTab({ content }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Page header with controls */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -544,7 +579,6 @@ function NotesTab({ content }) {
         </div>
       </div>
 
-      {/* Content card - large content area */}
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -562,7 +596,6 @@ function NotesTab({ content }) {
           minHeight: '240px',
         }}
       >
-        {/* Desktop navigation arrows - larger */}
         {totalPages > 1 && currentPage > 0 && (
           <button
             onClick={goPrev}
@@ -647,7 +680,6 @@ function NotesTab({ content }) {
         />
       </div>
 
-      {/* Simplified navigation - only shown when more than 2 pages */}
       {totalPages > 2 && (
         <div style={{ marginTop: '22px' }}>
           <div style={{
@@ -733,7 +765,6 @@ function NotesTab({ content }) {
         </div>
       )}
       
-      {/* Reading progress indicator */}
       {totalPages > 1 && (
         <div style={{
           marginTop: '16px',
@@ -768,7 +799,7 @@ function NotesTab({ content }) {
   );
 }
 
-// ─── VideoTab with enhanced controls ──────────────────────────────────
+// ─── VideoTab ──────────────────────────────────────────────────────────
 function VideoTab({ videoUrls }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
@@ -780,7 +811,6 @@ function VideoTab({ videoUrls }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* Video playlist */}
       {urls.length > 1 && (
         <div style={{
           display: 'flex',
@@ -810,7 +840,6 @@ function VideoTab({ videoUrls }) {
         </div>
       )}
 
-      {/* Video player */}
       {embed && (
         <div style={{ 
           position: 'relative', 
@@ -832,7 +861,6 @@ function VideoTab({ videoUrls }) {
         </div>
       )}
 
-      {/* Video controls hint */}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
@@ -852,7 +880,7 @@ function VideoTab({ videoUrls }) {
   );
 }
 
-// ─── InterviewTab with search ──────────────────────────────────────────
+// ─── InterviewTab ──────────────────────────────────────────────────────
 function InterviewTab({ questions }) {
   const [expanded, setExpanded] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -882,7 +910,6 @@ function InterviewTab({ questions }) {
 
   return (
     <div>
-      {/* Search and controls */}
       <div style={{
         display: 'flex',
         gap: '16px',
@@ -950,7 +977,6 @@ function InterviewTab({ questions }) {
         </span>
       </div>
 
-      {/* Questions list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {filteredQuestions.map((q, idx) => (
           <div
@@ -1019,7 +1045,7 @@ function InterviewTab({ questions }) {
   );
 }
 
-// ─── ExamTab with timer ──────────────────────────────────────────────
+// ─── ExamTab ──────────────────────────────────────────────────────────
 function ExamTab({ questions, onScoreUpdate }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -1221,7 +1247,7 @@ function ExamTab({ questions, onScoreUpdate }) {
   );
 }
 
-// ─── LabsTab with progress ────────────────────────────────────────────
+// ─── LabsTab ──────────────────────────────────────────────────────────
 function LabsTab({ labs }) {
   const [completed, setCompleted] = useState({});
   const [activeLab, setActiveLab] = useState(null);
@@ -1411,9 +1437,6 @@ export default function CourseDetailView({
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
       if (!mobile) setShowSidebar(false);
-      if (window.innerWidth < 1024 && !mobile) {
-        setIsSidebarCollapsed(true);
-      }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -1433,7 +1456,6 @@ export default function CourseDetailView({
     }
   }, [isMobile, showSidebar]);
 
-  // Track last visited section
   useEffect(() => {
     if (currentSub) {
       setLastVisited({
@@ -1444,9 +1466,7 @@ export default function CourseDetailView({
     }
   }, [currentSub]);
 
-  const videoUrls = Array.isArray(currentSub?.videoUrls)
-    ? currentSub.videoUrls
-    : (currentSub?.videoUrl ? [currentSub.videoUrl] : []);
+  const videoUrls = getVideoUrls(currentSub);
 
   const currentTopic = topics.find((t) =>
     (t.subtopics || []).some((s) => String(s.id) === String(currentSub?.id))
@@ -1567,7 +1587,7 @@ export default function CourseDetailView({
     },
     shell: {
       display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : (isSidebarCollapsed ? '0px 1fr' : '340px 1fr'),
+      gridTemplateColumns: isMobile ? '1fr' : (isSidebarCollapsed ? '1fr' : '340px 1fr'),
       minHeight: 'calc(100vh - 60px)',
     },
     mobileOverlay: {
@@ -1595,6 +1615,7 @@ export default function CourseDetailView({
       zIndex: 1000,
       transition: isMobile ? 'left 0.3s ease-in-out' : 'none',
       boxShadow: isMobile ? '4px 0 24px rgba(0,0,0,0.4)' : 'none',
+      display: isSidebarCollapsed && !isMobile ? 'none' : 'block',
     },
     sidebarOpen: {
       left: '0',
@@ -1756,7 +1777,7 @@ export default function CourseDetailView({
     },
     sidebarToggle: {
       position: 'fixed',
-      left: isSidebarCollapsed ? '12px' : '352px',
+      left: isSidebarCollapsed ? '0' : '340px',
       top: '50%',
       transform: 'translateY(-50%)',
       zIndex: 100,
@@ -1769,7 +1790,8 @@ export default function CourseDetailView({
       color: C.slate,
       transition: 'left 0.3s ease',
       boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-      display: isMobile || !isSidebarCollapsed ? 'none' : 'block',
+      display: isMobile ? 'none' : 'block',
+      left: isSidebarCollapsed ? '12px' : '352px',
     },
   };
 
@@ -1790,6 +1812,10 @@ export default function CourseDetailView({
     }
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
   return (
     <div style={styles.page}>
       <style>{NOTE_STYLES}</style>
@@ -1798,8 +1824,14 @@ export default function CourseDetailView({
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes slideIn {
+          from { transform: translateX(-20px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
       `}</style>
       <div id="cdv-scroll-anchor" />
+      
+      {/* ─── Top Bar ────────────────────────────────────────────────────── */}
       <div style={styles.topStrip}>
         <div style={styles.courseName}>{selectedCourse.title}</div>
         <div style={styles.topStripRight}>
@@ -1816,17 +1848,37 @@ export default function CourseDetailView({
             <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />
           )}
 
-          {!isMobile && isSidebarCollapsed && (
+          {/* ─── Sidebar Toggle Button ─────────────────────────────────── */}
+          {!isMobile && (
             <button
-              style={styles.sidebarToggle}
-              onClick={() => setIsSidebarCollapsed(false)}
-              title="Show sidebar"
+              onClick={toggleSidebar}
+              style={{
+                position: 'fixed',
+                left: isSidebarCollapsed ? '12px' : '352px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 100,
+                background: C.paper,
+                border: '1px solid #E7E3EE',
+                borderRadius: '30px',
+                padding: '10px 8px',
+                cursor: 'pointer',
+                fontSize: '18px',
+                color: C.slate,
+                transition: 'left 0.3s ease',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title={isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
             >
-              ▶
+              {isSidebarCollapsed ? '▶' : '◀'}
             </button>
           )}
 
           <div style={styles.shell}>
+            {/* ─── Sidebar ───────────────────────────────────────────────── */}
             {(!isSidebarCollapsed || isMobile) && (
               <aside
                 id="mobile-sidebar"
@@ -1897,7 +1949,8 @@ export default function CourseDetailView({
                               const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
                               if (globalIndex === -1) return null;
                               const isActiveSub = activeSection === globalIndex;
-                              const hasVideo = Array.isArray(sub.videoUrls) ? sub.videoUrls.length > 0 : !!sub.videoUrl;
+                              const subVideoUrls = getVideoUrls(sub);
+                              const hasVideo = subVideoUrls.length > 0;
                               const isSecCompleted = completedSections.includes(globalIndex);
 
                               return (
@@ -1946,6 +1999,7 @@ export default function CourseDetailView({
               </aside>
             )}
 
+            {/* ─── Main Content ─────────────────────────────────────────── */}
             <main style={styles.main}>
               <div style={styles.progressRow}>
                 <div style={styles.progressBarOuter}>
