@@ -14,6 +14,28 @@ export const getInstructorCourses = async () => {
   }
 };
 
+// Get ALL courses (admin view)
+export const getAllCourses = async () => {
+  try {
+    const response = await api.get("/instructor/courses/all");
+    return response;
+  } catch (error) {
+    console.error("Error fetching all courses:", error);
+    throw error;
+  }
+};
+
+// ✅ Get available courses (not assigned to this instructor)
+export const getAvailableCourses = async () => {
+  try {
+    const response = await api.get("/instructor/courses/available");
+    return response;
+  } catch (error) {
+    console.error("Error fetching available courses:", error);
+    throw error;
+  }
+};
+
 // Create new course (for instructor)
 export const createInstructorCourse = async (courseData) => {
   try {
@@ -54,6 +76,17 @@ export const getInstructorCourseDetails = async (courseId) => {
     return response;
   } catch (error) {
     console.error("Error fetching instructor course details:", error);
+    throw error;
+  }
+};
+
+// ✅ Assign a course to instructor
+export const assignCourseToInstructor = async (courseId) => {
+  try {
+    const response = await api.post(`/instructor/courses/${courseId}/assign`);
+    return response;
+  } catch (error) {
+    console.error("Error assigning course:", error);
     throw error;
   }
 };
@@ -124,7 +157,7 @@ export const updateInstructorEnrollmentStatus = async (enrollmentId, status) => 
 // Get instructor dashboard stats
 export const getInstructorDashboardStats = async () => {
   try {
-    const response = await api.get("/instructor/dashboard/stats");
+    const response = await api.get("/instructor/dashboard");
     return response;
   } catch (error) {
     console.error("Error fetching instructor dashboard stats:", error);
@@ -132,7 +165,7 @@ export const getInstructorDashboardStats = async () => {
   }
 };
 
-// ✅ ADD THIS - Get recent activity
+// ✅ Get recent activity
 export const getRecentActivity = async (limit = 10) => {
   try {
     const response = await api.get(`/instructor/activity/recent?limit=${limit}`);
@@ -159,7 +192,7 @@ export const getInstructorHomeVideo = async () => {
 // Update home video URL (instructor view)
 export const updateInstructorHomeVideoUrl = async (videoUrl) => {
   try {
-    const response = await api.put("/instructor/home-video", { videoUrl });
+    const response = await api.patch("/instructor/home-video", { videoUrl });
     return response;
   } catch (error) {
     console.error("Error updating instructor home video:", error);
@@ -226,16 +259,42 @@ export const getInstructorCoursePerformance = async (courseId) => {
   }
 };
 
+// ==================== TEST ENDPOINTS ====================
+
+// Test endpoint
+export const testInstructorApi = async () => {
+  try {
+    const response = await api.get("/instructor/test");
+    return response;
+  } catch (error) {
+    console.error("Error testing instructor API:", error);
+    throw error;
+  }
+};
+
+// Test authentication
+export const testInstructorAuth = async () => {
+  try {
+    const response = await api.get("/instructor/test-auth");
+    return response;
+  } catch (error) {
+    console.error("Error testing instructor auth:", error);
+    throw error;
+  }
+};
+
 // ==================== EXPORT ALL ====================
 
-// ✅ FIX: Assign to a named variable before exporting
 const instructorApi = {
   // Course Management
   getInstructorCourses,
+  getAllCourses,
+  getAvailableCourses, // ✅ Added
   createInstructorCourse,
   updateInstructorCourse,
   deleteInstructorCourse,
   getInstructorCourseDetails,
+  assignCourseToInstructor, // ✅ Added
   
   // Student Management
   getInstructorStudents,
@@ -248,7 +307,7 @@ const instructorApi = {
   
   // Dashboard
   getInstructorDashboardStats,
-  getRecentActivity, // ✅ Add this to the export
+  getRecentActivity, // ✅ Added
   
   // Media
   getInstructorHomeVideo,
@@ -262,7 +321,10 @@ const instructorApi = {
   getInstructorAnalytics,
   getInstructorRevenueStats,
   getInstructorCoursePerformance,
+  
+  // Test
+  testInstructorApi,
+  testInstructorAuth,
 };
 
-// ✅ FIX: Export the named variable as default
 export default instructorApi;

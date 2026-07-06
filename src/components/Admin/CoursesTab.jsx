@@ -1,5 +1,5 @@
 // src/components/Admin/CoursesTab.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Swal from "sweetalert2";
 import { colors, Badge } from "./AdminStyles";
 import { 
@@ -40,42 +40,17 @@ export default function CoursesTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
-  // Fetch available courses for instructor
-  useEffect(() => {
-    if (isInstructor) {
-      fetchAvailableCourses();
-    }
-  }, [isInstructor]);
-
-  // Fetch instructors for dropdown (only for admin)
-  useEffect(() => {
-    if (!isInstructor) {
-      fetchInstructors();
-    }
-  }, [isInstructor]);
-
-  // Reset selection when courses change
-  useEffect(() => {
-    setSelectedCourses([]);
-    setSelectAll(false);
-    setCurrentPage(1);
-  }, [courses]);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filterInstructor]);
-
-  const fetchAvailableCourses = async () => {
+  // ✅ Use useCallback to prevent unnecessary re-renders
+  const fetchAvailableCourses = useCallback(async () => {
     try {
       const response = await getAvailableCourses();
       setAvailableCourses(response.data || []);
     } catch (error) {
       console.error('Error fetching available courses:', error);
     }
-  };
+  }, []);
 
-  const fetchInstructors = async () => {
+  const fetchInstructors = useCallback(async () => {
     setLoadingInstructors(true);
     try {
       const response = await getAllInstructors();
@@ -115,7 +90,33 @@ export default function CoursesTab({
     } finally {
       setLoadingInstructors(false);
     }
-  };
+  }, []);
+
+  // Fetch available courses for instructor
+  useEffect(() => {
+    if (isInstructor) {
+      fetchAvailableCourses();
+    }
+  }, [isInstructor, fetchAvailableCourses]);
+
+  // Fetch instructors for dropdown (only for admin)
+  useEffect(() => {
+    if (!isInstructor) {
+      fetchInstructors();
+    }
+  }, [isInstructor, fetchInstructors]);
+
+  // Reset selection when courses change
+  useEffect(() => {
+    setSelectedCourses([]);
+    setSelectAll(false);
+    setCurrentPage(1);
+  }, [courses]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterInstructor]);
 
   const handleSelectCourse = (courseId) => {
     setSelectedCourses(prev => {
