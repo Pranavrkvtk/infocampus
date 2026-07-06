@@ -1,16 +1,18 @@
+// src/components/Instructor/InstructorDashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Swal from "sweetalert2";
 import {
   getInstructorDashboardStats,
   getInstructorCourses,
   getInstructorStudents,
-  createInstructorCourse,
+  // ✅ Remove unused imports:
+  // createInstructorCourse,
   deleteInstructorCourse,
-  updateInstructorCourse,
+  // updateInstructorCourse,
   searchInstructorStudentsByName,
-  getAllInstructorCourses,
-  getAvailableCourses,
-  assignCourseToInstructor,
+  // getAllInstructorCourses,
+  // getAvailableCourses,
+  // assignCourseToInstructor,
   getRecentActivity,
 } from "../../api/instructorApi";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
