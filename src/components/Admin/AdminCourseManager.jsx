@@ -290,6 +290,9 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // COURSE SELECTOR (with AddCourseModal)
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// COURSE SELECTOR (with AddCourseModal)
+// ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -297,7 +300,8 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [imageErrors, setImageErrors] = useState({});
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const loadCourses = async () => {
+  // ✅ Wrapped in useCallback to fix ESLint warning
+  const loadCourses = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get('/admin/courses');
@@ -308,9 +312,12 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
       toast.show('Failed to load courses', 'error');
     }
     finally { setLoading(false); }
-  };
+  }, [toast]); // ✅ toast is a dependency
 
-  useEffect(() => { loadCourses(); }, []);
+  // ✅ Now includes loadCourses in dependency array
+  useEffect(() => { 
+    loadCourses(); 
+  }, [loadCourses]);
 
   const handleCourseCreated = async () => {
     await loadCourses();
@@ -404,7 +411,6 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     </>
   );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOPIC MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════
