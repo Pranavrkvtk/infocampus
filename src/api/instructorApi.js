@@ -132,6 +132,17 @@ export const getInstructorDashboardStats = async () => {
   }
 };
 
+// ✅ ADD THIS - Get recent activity
+export const getRecentActivity = async (limit = 10) => {
+  try {
+    const response = await api.get(`/instructor/activity/recent?limit=${limit}`);
+    return response;
+  } catch (error) {
+    console.error("Error fetching recent activity:", error);
+    throw error;
+  }
+};
+
 // ==================== INSTRUCTOR MEDIA MANAGEMENT ====================
 
 // Get home video (instructor view)
@@ -237,6 +248,7 @@ const instructorApi = {
   
   // Dashboard
   getInstructorDashboardStats,
+  getRecentActivity, // ✅ Add this to the export
   
   // Media
   getInstructorHomeVideo,
