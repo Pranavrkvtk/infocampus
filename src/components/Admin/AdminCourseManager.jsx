@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
-import api from '../../api/axios'; // ✅ Import the default api instance
+import api from '../../api/axios';
 
 // ✅ Get base URL from environment (same as axios.js)
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082';
@@ -123,7 +123,7 @@ const SectionHead = ({ icon, title, count, action }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DOCUMENT UPLOAD BUTTON (supports PDF, DOC, DOCX)
+// DOCUMENT UPLOAD BUTTON
 // ═══════════════════════════════════════════════════════════════════════════════
 function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
   const inputId = `doc-upload-${subtopicId}`;
@@ -183,7 +183,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     formData.append('file', file);
 
     try {
-      // ✅ Use api instance directly - it handles auth and base URL
       const response = await api.post(`/admin/courses/${course.id}/upload-image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -288,10 +287,7 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR (with AddCourseModal)
-// ═══════════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR (with AddCourseModal)
+// COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
@@ -300,7 +296,6 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [imageErrors, setImageErrors] = useState({});
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // ✅ Wrapped in useCallback to fix ESLint warning
   const loadCourses = useCallback(async () => {
     setLoading(true);
     try {
@@ -308,13 +303,13 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
       const data = response.data;
       setCourses(Array.isArray(data) ? data : []);
     } catch (error) { 
-      console.error(error);
+      console.error('Error loading courses:', error);
       toast.show('Failed to load courses', 'error');
+    } finally { 
+      setLoading(false); 
     }
-    finally { setLoading(false); }
-  }, [toast]); // ✅ toast is a dependency
+  }, [toast]);
 
-  // ✅ Now includes loadCourses in dependency array
   useEffect(() => { 
     loadCourses(); 
   }, [loadCourses]);
@@ -411,6 +406,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     </>
   );
 }
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOPIC MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1056,7 +1052,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     const formData = new FormData();
     formData.append('file', file);
     try {
-      // ✅ Use api instance directly
       const response = await api.post(`/admin/subtopics/${subtopicId}/upload-pdf`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -1436,7 +1431,6 @@ export default function AdminCourseManager() {
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
       <style>{`* { box-sizing: border-box; } button { font-family: inherit; }`}</style>
 
-      {/* ── Header ── */}
       <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
         {selectedCourse && (
@@ -1460,7 +1454,6 @@ export default function AdminCourseManager() {
         </div>
       </div>
 
-      {/* ── Course selector view ── */}
       {view === 'course' && (
         <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 24px' }}>
           <Card>
@@ -1470,19 +1463,16 @@ export default function AdminCourseManager() {
         </div>
       )}
 
-      {/* ── Content management view ── */}
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* ── Course Image Upload ── */}
               <CourseImageUploader 
                 course={selectedCourse} 
                 onImageUploaded={handleCourseUpdate} 
                 toast={toast} 
               />
 
-              {/* ── Global search ── */}
               <div style={{ position: 'relative' }}>
                 <input
                   type="text"
