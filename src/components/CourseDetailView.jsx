@@ -61,7 +61,7 @@ const buildImgSrc = (src) => {
 };
 
 const buildImageTag = (alt, src) =>
-  `<img src="${buildImgSrc(src)}" alt="${alt}" class="note-image" loading="lazy" style="max-width:100%;border-radius:12px;margin:20px 0;box-shadow:0 4px 16px rgba(0,0,0,0.1);" />`;
+  `<img src="${buildImgSrc(src)}" alt="${alt}" class="note-image" loading="lazy" style="max-width:100%;border-radius:14px;margin:24px 0;box-shadow:0 6px 24px rgba(0,0,0,0.1);" />`;
 
 const inlineFormat = (str) => {
   let out = str;
@@ -149,10 +149,10 @@ const renderRichContent = (text) => {
   return html;
 };
 
-// ─── Split content by paragraphs for better readability ──────────────
-const MAX_PAGE_CHARS = 1200; // Increased from 420 for larger content
+// ─── Split content by sections - MAXIMUM CONTENT PER PAGE ──────────────
+const MAX_PAGE_CHARS = 4000;
 
-const splitByParagraphs = (content) => {
+const splitBySections = (content) => {
   if (!content) return [{ title: 'Content', content: '' }];
   
   const lines = content.split('\n');
@@ -167,8 +167,7 @@ const splitByParagraphs = (content) => {
     const headingMatch = trimmed.match(/^(#{1,3})\s+(.*)$/);
     
     if (headingMatch) {
-      // Save previous page if it has content
-      if (currentPage.length > 0) {
+      if (currentPage.length > 0 && charCount > 400) {
         pages.push({ 
           title: currentTitle, 
           content: currentPage.join('\n'),
@@ -182,7 +181,6 @@ const splitByParagraphs = (content) => {
       charCount = line.length;
       hasHeading = true;
     } else if (trimmed === '') {
-      // Empty line - check if we should start a new page
       if (currentPage.length > 0 && charCount > MAX_PAGE_CHARS) {
         pages.push({ 
           title: currentTitle, 
@@ -198,8 +196,7 @@ const splitByParagraphs = (content) => {
       currentPage.push(line);
       charCount += line.length;
       
-      // If we exceed max chars, start a new page
-      if (charCount > MAX_PAGE_CHARS && currentPage.length > 3) {
+      if (charCount > MAX_PAGE_CHARS && currentPage.length > 8) {
         pages.push({ 
           title: currentTitle, 
           content: currentPage.join('\n'),
@@ -211,7 +208,6 @@ const splitByParagraphs = (content) => {
     }
   });
 
-  // Push the last page
   if (currentPage.length > 0) {
     pages.push({ 
       title: currentTitle, 
@@ -220,7 +216,6 @@ const splitByParagraphs = (content) => {
     });
   }
 
-  // If no pages were created, create a single page
   if (pages.length === 0) {
     pages.push({ title: 'Content', content });
   }
@@ -230,87 +225,88 @@ const splitByParagraphs = (content) => {
 
 const splitIntoPages = (content) => {
   if (!content) return [{ title: 'No Content', content: '' }];
-  return splitByParagraphs(content);
+  return splitBySections(content);
 };
 
 const NOTE_STYLES = `
   .notes-content { 
     color: #1e293b; 
     font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-    font-size: 17px;
-    line-height: 1.9;
+    font-size: 19px;
+    line-height: 2.1;
   }
   .notes-content .note-h1 { 
-    font-size: 32px; 
+    font-size: 38px; 
     font-weight: 800; 
     color: #0f172a; 
-    margin: 0 0 16px; 
+    margin: 0 0 24px; 
     line-height: 1.3; 
     letter-spacing: -0.5px;
   }
   .notes-content .note-h2 { 
-    font-size: 26px; 
+    font-size: 30px; 
     font-weight: 700; 
     color: #0f172a; 
-    margin: 0 0 14px; 
+    margin: 0 0 18px; 
     line-height: 1.35; 
     border-bottom: 3px solid #f1f5f9; 
-    padding-bottom: 8px; 
+    padding-bottom: 12px; 
     letter-spacing: -0.3px;
   }
   .notes-content .note-h3 { 
-    font-size: 21px; 
+    font-size: 24px; 
     font-weight: 600; 
     color: #1e293b; 
-    margin: 0 0 12px; 
+    margin: 0 0 16px; 
     letter-spacing: -0.2px;
   }
   .notes-content .note-paragraph { 
-    margin: 0 0 18px; 
-    line-height: 1.9; 
-    font-size: 17px; 
+    margin: 0 0 22px; 
+    line-height: 2.1; 
+    font-size: 19px; 
     color: #1e293b;
   }
   .notes-content .note-list { 
-    margin: 0 0 18px; 
-    padding-left: 28px; 
-    line-height: 1.9; 
-    font-size: 17px; 
+    margin: 0 0 22px; 
+    padding-left: 36px; 
+    line-height: 2.1; 
+    font-size: 19px; 
   }
   .notes-content .note-list li { 
-    margin-bottom: 8px; 
+    margin-bottom: 12px; 
   }
   .notes-content .note-tip { 
     background: #fef9e7; 
     border-left: 5px solid #f5b942; 
-    padding: 16px 20px; 
-    border-radius: 10px; 
-    margin: 18px 0; 
-    font-size: 16px; 
+    padding: 20px 28px; 
+    border-radius: 12px; 
+    margin: 24px 0; 
+    font-size: 18px; 
     color: #7a5c00; 
-    line-height: 1.7; 
+    line-height: 1.8; 
   }
   .notes-content .note-link { 
     color: #4f46e5; 
     text-decoration: underline; 
     text-decoration-color: #c7d2fe; 
-    text-underline-offset: 2px;
+    text-underline-offset: 3px;
+    font-weight: 500;
   }
   .notes-content .note-link:hover { 
     color: #4338ca; 
   }
   .notes-content .note-image { 
     max-width: 100%; 
-    border-radius: 14px; 
-    margin: 24px 0; 
-    box-shadow: 0 6px 20px rgba(0,0,0,0.1); 
+    border-radius: 16px; 
+    margin: 30px 0; 
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1); 
     display: block; 
   }
   .notes-content .note-code { 
     background: #f1f5f9; 
-    padding: 3px 8px; 
-    border-radius: 6px; 
-    font-size: 15px; 
+    padding: 4px 12px; 
+    border-radius: 8px; 
+    font-size: 17px; 
     color: #0f172a; 
     font-family: 'JetBrains Mono', 'Fira Code', monospace; 
   }
@@ -318,20 +314,20 @@ const NOTE_STYLES = `
     margin-bottom: 0; 
   }
 
-  .page-slide-next { animation: slideInNext 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
-  .page-slide-prev { animation: slideInPrev 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+  .page-slide-next { animation: slideInNext 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+  .page-slide-prev { animation: slideInPrev 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
   @keyframes slideInNext {
-    from { opacity: 0; transform: translateX(40px); }
+    from { opacity: 0; transform: translateX(50px); }
     to { opacity: 1; transform: translateX(0); }
   }
   @keyframes slideInPrev {
-    from { opacity: 0; transform: translateX(-40px); }
+    from { opacity: 0; transform: translateX(-50px); }
     to { opacity: 1; transform: translateX(0); }
   }
 
-  .fade-in { animation: fadeIn 0.5s ease-out; }
+  .fade-in { animation: fadeIn 0.6s ease-out; }
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
 `;
@@ -391,7 +387,7 @@ function ProgressRing({ progress, size = 48, strokeWidth = 4 }) {
   );
 }
 
-// ─── NotesTab — enhanced with larger content and less pagination ─────
+// ─── NotesTab — Maximum content, minimal pagination ──────────────────
 function NotesTab({ content }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [pages, setPages] = useState([]);
@@ -469,7 +465,7 @@ function NotesTab({ content }) {
   };
 
   const handleTouchEnd = () => {
-    const SWIPE_THRESHOLD = 60;
+    const SWIPE_THRESHOLD = 70;
     if (lockAxis.current === 'x') {
       if (dragX < -SWIPE_THRESHOLD && currentPage < totalPages - 1) {
         goNext();
@@ -497,35 +493,35 @@ function NotesTab({ content }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '18px',
-        gap: '12px',
+        marginBottom: '20px',
+        gap: '14px',
         flexWrap: 'wrap',
       }}>
         <div style={{
-          fontSize: '16px',
+          fontSize: '17px',
           fontWeight: 700,
           color: '#0f172a',
-          padding: '10px 16px',
+          padding: '12px 20px',
           background: '#f8fafc',
-          borderRadius: '10px',
+          borderRadius: '12px',
           borderLeft: '5px solid #8B5FBF',
           flex: 1,
-          minWidth: '150px',
+          minWidth: '180px',
         }}>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             📖 {pageLabel}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             style={{
-              padding: '8px 12px',
+              padding: '10px 14px',
               background: 'transparent',
               border: '1px solid #E7E3EE',
-              borderRadius: '8px',
+              borderRadius: '10px',
               cursor: 'pointer',
-              fontSize: '16px',
+              fontSize: '18px',
               color: '#6B6478',
               transition: 'all 0.2s',
             }}
@@ -535,12 +531,12 @@ function NotesTab({ content }) {
           </button>
           {totalPages > 1 && (
             <span style={{ 
-              fontSize: '13px', 
+              fontSize: '14px', 
               color: '#94a3b8', 
               fontWeight: 500, 
-              padding: '4px 12px',
+              padding: '6px 14px',
               background: '#f8fafc',
-              borderRadius: '6px',
+              borderRadius: '8px',
             }}>
               {currentPage + 1} / {totalPages}
             </span>
@@ -548,7 +544,7 @@ function NotesTab({ content }) {
         </div>
       </div>
 
-      {/* Content card - larger with less pagination */}
+      {/* Content card - large content area */}
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -557,13 +553,13 @@ function NotesTab({ content }) {
           position: 'relative',
           touchAction: 'pan-y',
           overflow: 'hidden',
-          borderRadius: '16px',
+          borderRadius: '18px',
           border: '1px solid #EEECF3',
           background: '#fff',
-          boxShadow: isFullscreen ? '0 24px 80px rgba(0,0,0,0.15)' : '0 4px 16px rgba(0,0,0,0.05)',
+          boxShadow: isFullscreen ? '0 24px 80px rgba(0,0,0,0.15)' : '0 4px 20px rgba(0,0,0,0.05)',
           transition: 'box-shadow 0.3s ease',
-          maxHeight: isFullscreen ? '85vh' : '65vh',
-          minHeight: '200px',
+          maxHeight: isFullscreen ? '88vh' : '76vh',
+          minHeight: '240px',
         }}
       >
         {/* Desktop navigation arrows - larger */}
@@ -574,26 +570,26 @@ function NotesTab({ content }) {
             style={{
               position: 'absolute',
               top: '50%',
-              left: '10px',
+              left: '14px',
               transform: 'translateY(-50%)',
-              width: '44px',
-              height: '44px',
+              width: '52px',
+              height: '52px',
               borderRadius: '50%',
               border: '1px solid #E7E3EE',
               background: 'rgba(255,255,255,0.95)',
               color: '#6B6478',
-              fontSize: '22px',
+              fontSize: '26px',
               cursor: 'pointer',
               zIndex: 5,
-              boxShadow: '0 4px 16px rgba(30,27,36,0.1)',
+              boxShadow: '0 4px 20px rgba(30,27,36,0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.2s',
               backdropFilter: 'blur(8px)',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.95)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(30,27,36,0.1)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.18)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.95)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(30,27,36,0.12)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
           >
             ‹
           </button>
@@ -605,26 +601,26 @@ function NotesTab({ content }) {
             style={{
               position: 'absolute',
               top: '50%',
-              right: '10px',
+              right: '14px',
               transform: 'translateY(-50%)',
-              width: '44px',
-              height: '44px',
+              width: '52px',
+              height: '52px',
               borderRadius: '50%',
               border: '1px solid #E7E3EE',
               background: 'rgba(255,255,255,0.95)',
               color: '#6B6478',
-              fontSize: '22px',
+              fontSize: '26px',
               cursor: 'pointer',
               zIndex: 5,
-              boxShadow: '0 4px 16px rgba(30,27,36,0.1)',
+              boxShadow: '0 4px 20px rgba(30,27,36,0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.2s',
               backdropFilter: 'blur(8px)',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.95)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(30,27,36,0.1)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.18)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.95)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(30,27,36,0.12)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
           >
             ›
           </button>
@@ -635,15 +631,15 @@ function NotesTab({ content }) {
           key={currentPage}
           dangerouslySetInnerHTML={{ __html: html }}
           style={{
-            padding: '28px 32px',
-            minHeight: '180px',
-            maxHeight: isFullscreen ? 'calc(85vh - 80px)' : 'calc(65vh - 80px)',
+            padding: '36px 42px',
+            minHeight: '200px',
+            maxHeight: isFullscreen ? 'calc(88vh - 80px)' : 'calc(76vh - 80px)',
             overflowY: 'auto',
             userSelect: 'none',
             transform: `translateX(${dragX}px)`,
             transition: isDragging ? 'none' : 'transform 0.25s ease',
-            fontSize: '17px',
-            lineHeight: '1.9',
+            fontSize: '19px',
+            lineHeight: '2.1',
           }}
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
@@ -651,9 +647,9 @@ function NotesTab({ content }) {
         />
       </div>
 
-      {/* Simplified navigation controls */}
-      {totalPages > 1 && (
-        <div style={{ marginTop: '20px' }}>
+      {/* Simplified navigation - only shown when more than 2 pages */}
+      {totalPages > 2 && (
+        <div style={{ marginTop: '22px' }}>
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -666,8 +662,8 @@ function NotesTab({ content }) {
                 key={index}
                 onClick={() => goToPage(index)}
                 style={{
-                  width: index === currentPage ? '32px' : '9px',
-                  height: '9px',
+                  width: index === currentPage ? '40px' : '10px',
+                  height: '10px',
                   borderRadius: '5px',
                   border: 'none',
                   background: index === currentPage ? '#8B5FBF' : '#e2e8f0',
@@ -682,15 +678,15 @@ function NotesTab({ content }) {
 
           <div style={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
             alignItems: 'center',
-            gap: '12px',
+            gap: '16px',
           }}>
             <button
               onClick={goPrev}
               disabled={currentPage === 0}
               style={{
-                padding: '10px 22px',
+                padding: '10px 24px',
                 borderRadius: '30px',
                 border: currentPage === 0 ? '1px solid #e2e8f0' : 'none',
                 background: currentPage === 0 ? '#f1f5f9' : '#8B5FBF',
@@ -699,8 +695,7 @@ function NotesTab({ content }) {
                 fontWeight: 600,
                 fontSize: '14px',
                 transition: 'all 0.2s',
-                flex: 1,
-                maxWidth: '160px',
+                minWidth: '120px',
               }}
             >
               ← Previous
@@ -713,14 +708,14 @@ function NotesTab({ content }) {
               alignItems: 'center', 
               gap: '8px' 
             }}>
-              <span style={{ fontSize: '18px' }}>👆</span> swipe to navigate
+              <span style={{ fontSize: '20px' }}>👆</span> swipe
             </span>
 
             <button
               onClick={goNext}
               disabled={currentPage === totalPages - 1}
               style={{
-                padding: '10px 22px',
+                padding: '10px 24px',
                 borderRadius: '30px',
                 border: currentPage === totalPages - 1 ? '1px solid #e2e8f0' : 'none',
                 background: currentPage === totalPages - 1 ? '#f1f5f9' : '#8B5FBF',
@@ -729,13 +724,44 @@ function NotesTab({ content }) {
                 fontWeight: 600,
                 fontSize: '14px',
                 transition: 'all 0.2s',
-                flex: 1,
-                maxWidth: '160px',
+                minWidth: '120px',
               }}
             >
               Next →
             </button>
           </div>
+        </div>
+      )}
+      
+      {/* Reading progress indicator */}
+      {totalPages > 1 && (
+        <div style={{
+          marginTop: '16px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '12px',
+          color: '#94a3b8',
+        }}>
+          <span>📊 Reading progress</span>
+          <div style={{
+            flex: 1,
+            maxWidth: '200px',
+            height: '4px',
+            background: '#e2e8f0',
+            borderRadius: '2px',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              width: `${((currentPage + 1) / totalPages) * 100}%`,
+              height: '100%',
+              background: '#8B5FBF',
+              borderRadius: '2px',
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+          <span>{Math.round(((currentPage + 1) / totalPages) * 100)}%</span>
         </div>
       )}
     </div>
@@ -753,27 +779,27 @@ function VideoTab({ videoUrls }) {
   const embed = getEmbedUrl(currentUrl);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       {/* Video playlist */}
       {urls.length > 1 && (
         <div style={{
           display: 'flex',
-          gap: '10px',
+          gap: '12px',
           flexWrap: 'wrap',
-          marginBottom: '6px',
+          marginBottom: '8px',
         }}>
           {urls.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentVideo(idx)}
               style={{
-                padding: '8px 20px',
+                padding: '10px 24px',
                 borderRadius: '24px',
                 border: idx === currentVideo ? '2px solid #8B5FBF' : '1px solid #E7E3EE',
                 background: idx === currentVideo ? '#EDE7F6' : '#fff',
                 color: idx === currentVideo ? '#8B5FBF' : '#6B6478',
                 fontWeight: idx === currentVideo ? 600 : 500,
-                fontSize: '13px',
+                fontSize: '14px',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
@@ -791,7 +817,7 @@ function VideoTab({ videoUrls }) {
           paddingBottom: '56.25%', 
           height: 0, 
           overflow: 'hidden', 
-          borderRadius: '14px', 
+          borderRadius: '16px', 
           background: '#000', 
           boxShadow: '0 8px 32px rgba(0,0,0,0.15)' 
         }}>
@@ -810,10 +836,10 @@ function VideoTab({ videoUrls }) {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        gap: '20px',
-        fontSize: '13px',
+        gap: '24px',
+        fontSize: '14px',
         color: '#94a3b8',
-        padding: '6px 0',
+        padding: '8px 0',
         flexWrap: 'wrap',
       }}>
         <span>▶ Play/Pause</span>
@@ -830,13 +856,20 @@ function VideoTab({ videoUrls }) {
 function InterviewTab({ questions }) {
   const [expanded, setExpanded] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
 
   if (!questions || questions.length === 0) return <div className="empty-state">🎤 No interview questions.</div>;
 
-  const filteredQuestions = questions.filter(q =>
-    q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    q.answer.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredQuestions = questions.filter(q => {
+    const matchesSearch = q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.answer.toLowerCase().includes(searchTerm.toLowerCase());
+    if (filterType === 'answered') {
+      return matchesSearch && expanded[q.id];
+    } else if (filterType === 'unanswered') {
+      return matchesSearch && !expanded[q.id];
+    }
+    return matchesSearch;
+  });
 
   const toggleAll = () => {
     const allExpanded = filteredQuestions.every(q => expanded[q.id]);
@@ -852,12 +885,12 @@ function InterviewTab({ questions }) {
       {/* Search and controls */}
       <div style={{
         display: 'flex',
-        gap: '14px',
-        marginBottom: '20px',
+        gap: '16px',
+        marginBottom: '24px',
         flexWrap: 'wrap',
         alignItems: 'center',
       }}>
-        <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+        <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
           <input
             type="text"
             placeholder="🔍 Search questions..."
@@ -865,10 +898,10 @@ function InterviewTab({ questions }) {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
               width: '100%',
-              padding: '12px 16px',
-              borderRadius: '12px',
+              padding: '14px 18px',
+              borderRadius: '14px',
               border: '1px solid #E7E3EE',
-              fontSize: '15px',
+              fontSize: '16px',
               outline: 'none',
               transition: 'border-color 0.2s',
               background: '#fff',
@@ -877,15 +910,33 @@ function InterviewTab({ questions }) {
             onBlur={(e) => e.target.style.borderColor = '#E7E3EE'}
           />
         </div>
+        <select
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+          style={{
+            padding: '12px 18px',
+            borderRadius: '14px',
+            border: '1px solid #E7E3EE',
+            background: '#fff',
+            fontSize: '14px',
+            color: '#6B6478',
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+        >
+          <option value="all">All Questions</option>
+          <option value="answered">Answered</option>
+          <option value="unanswered">Unanswered</option>
+        </select>
         <button
           onClick={toggleAll}
           style={{
-            padding: '10px 20px',
-            borderRadius: '12px',
+            padding: '12px 24px',
+            borderRadius: '14px',
             border: '1px solid #E7E3EE',
             background: '#fff',
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: 500,
             color: '#6B6478',
             transition: 'all 0.2s',
@@ -894,23 +945,23 @@ function InterviewTab({ questions }) {
         >
           {filteredQuestions.every(q => expanded[q.id]) ? 'Collapse All' : 'Expand All'}
         </button>
-        <span style={{ fontSize: '13px', color: '#94a3b8' }}>
+        <span style={{ fontSize: '14px', color: '#94a3b8' }}>
           {filteredQuestions.length} of {questions.length} questions
         </span>
       </div>
 
       {/* Questions list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {filteredQuestions.map((q, idx) => (
           <div
             key={q.id}
             style={{
               background: '#fff',
-              borderRadius: '16px',
+              borderRadius: '18px',
               border: '1px solid #E7E3EE',
               overflow: 'hidden',
               transition: 'box-shadow 0.2s',
-              boxShadow: expanded[q.id] ? '0 4px 16px rgba(139,95,191,0.1)' : 'none',
+              boxShadow: expanded[q.id] ? '0 4px 20px rgba(139,95,191,0.1)' : 'none',
             }}
           >
             <div
@@ -919,23 +970,23 @@ function InterviewTab({ questions }) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '16px 22px',
+                padding: '18px 24px',
                 background: expanded[q.id] ? '#FAF9FC' : '#fff',
                 cursor: 'pointer',
                 fontWeight: 600,
                 color: '#1E1B24',
                 transition: 'background 0.2s',
-                fontSize: '15px',
+                fontSize: '16px',
               }}
               onMouseEnter={(e) => { if (!expanded[q.id]) e.currentTarget.style.background = '#F8F7FA'; }}
               onMouseLeave={(e) => { if (!expanded[q.id]) e.currentTarget.style.background = '#fff'; }}
             >
               <span>
-                <span style={{ color: '#94a3b8', fontWeight: 400, marginRight: '10px' }}>{idx + 1}.</span>
+                <span style={{ color: '#94a3b8', fontWeight: 400, marginRight: '12px' }}>{idx + 1}.</span>
                 {q.question}
               </span>
               <span style={{
-                fontSize: '20px',
+                fontSize: '22px',
                 color: '#8B7FA0',
                 transition: 'transform 0.2s',
                 transform: expanded[q.id] ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -945,12 +996,12 @@ function InterviewTab({ questions }) {
             </div>
             {expanded[q.id] && (
               <div style={{
-                padding: '18px 22px',
+                padding: '20px 24px',
                 borderTop: '1px solid #E7E3EE',
                 background: '#fff',
                 color: '#3A3548',
-                lineHeight: '1.8',
-                fontSize: '15px',
+                lineHeight: '1.9',
+                fontSize: '16px',
               }}>
                 {q.answer}
               </div>
@@ -960,7 +1011,7 @@ function InterviewTab({ questions }) {
       </div>
 
       {filteredQuestions.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '15px' }}>
+        <div style={{ textAlign: 'center', padding: '50px', color: '#94a3b8', fontSize: '16px' }}>
           No questions match your search.
         </div>
       )}
@@ -1026,24 +1077,24 @@ function ExamTab({ questions, onScoreUpdate }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '14px 20px',
+        padding: '16px 24px',
         background: '#f8fafc',
-        borderRadius: '14px',
-        marginBottom: '24px',
+        borderRadius: '16px',
+        marginBottom: '28px',
         flexWrap: 'wrap',
-        gap: '12px',
+        gap: '14px',
       }}>
-        <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+        <div style={{ display: 'flex', gap: '28px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>
             📝 MCQ Quiz
           </span>
-          <span style={{ fontSize: '14px', color: '#64748b' }}>
+          <span style={{ fontSize: '15px', color: '#64748b' }}>
             {answeredCount}/{totalQuestions} answered
           </span>
         </div>
-        <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <span style={{
-            fontSize: '16px',
+            fontSize: '17px',
             fontWeight: 700,
             color: timeLeft < 60 ? '#DC3545' : '#0f172a',
             fontVariantNumeric: 'tabular-nums',
@@ -1054,13 +1105,13 @@ function ExamTab({ questions, onScoreUpdate }) {
             <button
               onClick={handleSubmit}
               style={{
-                padding: '10px 24px',
+                padding: '12px 28px',
                 background: '#8B5FBF',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '30px',
                 fontWeight: 600,
-                fontSize: '14px',
+                fontSize: '15px',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
@@ -1075,19 +1126,19 @@ function ExamTab({ questions, onScoreUpdate }) {
 
       {questions.map((q, idx) => (
         <div key={q.id} style={{
-          padding: '24px',
+          padding: '28px',
           background: '#fff',
-          borderRadius: '18px',
+          borderRadius: '20px',
           border: '1px solid #E7E3EE',
-          marginBottom: '16px',
+          marginBottom: '18px',
           transition: 'border-color 0.2s',
           borderColor: answers[q.id] ? '#8B5FBF' : '#E7E3EE',
         }}>
-          <p style={{ fontWeight: 700, marginBottom: '16px', fontSize: '16px', color: '#1E1B24' }}>
-            <span style={{ color: '#94a3b8', fontWeight: 400, marginRight: '10px' }}>{idx + 1}.</span>
+          <p style={{ fontWeight: 700, marginBottom: '18px', fontSize: '17px', color: '#1E1B24' }}>
+            <span style={{ color: '#94a3b8', fontWeight: 400, marginRight: '12px' }}>{idx + 1}.</span>
             {q.question}
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {['A', 'B', 'C', 'D'].map((opt) => {
               const optText = q[`option${opt}`];
               if (!optText) return null;
@@ -1098,10 +1149,10 @@ function ExamTab({ questions, onScoreUpdate }) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '14px',
+                    gap: '16px',
                     cursor: submitted ? 'default' : 'pointer',
-                    padding: '12px 18px',
-                    borderRadius: '12px',
+                    padding: '14px 20px',
+                    borderRadius: '14px',
                     background: isSelected ? '#EDE7F6' : 'transparent',
                     border: isSelected ? '1px solid #8B5FBF' : '1px solid transparent',
                     transition: 'all 0.2s',
@@ -1116,37 +1167,50 @@ function ExamTab({ questions, onScoreUpdate }) {
                     checked={isSelected}
                     onChange={() => handleAnswer(q.id, opt)}
                     disabled={submitted}
-                    style={{ accentColor: '#8B5FBF', width: '18px', height: '18px', cursor: submitted ? 'default' : 'pointer' }}
+                    style={{ accentColor: '#8B5FBF', width: '20px', height: '20px', cursor: submitted ? 'default' : 'pointer' }}
                   />
-                  <span style={{ fontSize: '15px' }}>
-                    <strong style={{ color: '#64748b', marginRight: '6px' }}>{opt}.</strong>
+                  <span style={{ fontSize: '16px' }}>
+                    <strong style={{ color: '#64748b', marginRight: '8px' }}>{opt}.</strong>
                     {optText}
                   </span>
                 </label>
               );
             })}
           </div>
+          {submitted && q.explanation && (
+            <div style={{
+              marginTop: '16px',
+              padding: '16px 20px',
+              background: answers[q.id] === q.correctAnswer ? '#DFF3E8' : '#FDE8E8',
+              borderRadius: '12px',
+              fontSize: '15px',
+              color: answers[q.id] === q.correctAnswer ? '#1E7A4C' : '#DC3545',
+            }}>
+              <strong>{answers[q.id] === q.correctAnswer ? '✅ Correct!' : '❌ Incorrect'}</strong>
+              <div style={{ marginTop: '4px', color: '#4A4458' }}>{q.explanation}</div>
+            </div>
+          )}
         </div>
       ))}
 
       {submitted && score && (
         <div style={{
-          marginTop: '8px',
-          padding: '24px',
+          marginTop: '10px',
+          padding: '28px',
           background: score.correct === score.total ? '#DFF3E8' : '#FDE8E8',
-          borderRadius: '16px',
+          borderRadius: '18px',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: '36px', marginBottom: '6px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '8px' }}>
             {score.correct === score.total ? '🎉' : '📊'}
           </div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: score.correct === score.total ? '#2E9B6C' : '#DC3545' }}>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: score.correct === score.total ? '#2E9B6C' : '#DC3545' }}>
             {score.correct} / {score.total}
           </div>
-          <div style={{ fontSize: '15px', color: '#64748b', marginTop: '6px' }}>
+          <div style={{ fontSize: '16px', color: '#64748b', marginTop: '8px' }}>
             {Math.round((score.correct / score.total) * 100)}% correct
           </div>
-          <div style={{ fontSize: '14px', color: '#64748b', marginTop: '10px' }}>
+          <div style={{ fontSize: '15px', color: '#64748b', marginTop: '12px' }}>
             {score.correct === score.total ? '🌟 Perfect score! Excellent work!' :
              score.correct >= score.total * 0.7 ? '💪 Good job! Keep practicing!' :
              '📚 Keep studying and try again!'}
@@ -1160,6 +1224,7 @@ function ExamTab({ questions, onScoreUpdate }) {
 // ─── LabsTab with progress ────────────────────────────────────────────
 function LabsTab({ labs }) {
   const [completed, setCompleted] = useState({});
+  const [activeLab, setActiveLab] = useState(null);
 
   if (!labs || labs.length === 0) return <div className="empty-state">🧪 No lab exercises.</div>;
 
@@ -1175,101 +1240,123 @@ function LabsTab({ labs }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '12px 16px',
+        padding: '14px 20px',
         background: '#f8fafc',
-        borderRadius: '14px',
-        marginBottom: '20px',
+        borderRadius: '16px',
+        marginBottom: '24px',
         flexWrap: 'wrap',
-        gap: '10px',
+        gap: '12px',
       }}>
-        <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
+        <span style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
           🧪 Lab Progress
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '140px', height: '8px', background: '#E7E3EE', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ width: `${progress}%`, height: '100%', background: '#10B981', borderRadius: '4px', transition: 'width 0.3s' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '160px', height: '10px', background: '#E7E3EE', borderRadius: '5px', overflow: 'hidden' }}>
+            <div style={{ width: `${progress}%`, height: '100%', background: '#10B981', borderRadius: '5px', transition: 'width 0.3s' }} />
           </div>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+          <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
             {completedCount}/{totalLabs}
           </span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {labs.map((lab, idx) => {
           const isCompleted = completed[lab.id];
+          const isActive = activeLab === lab.id;
           return (
             <div
               key={lab.id}
               style={{
                 background: '#fff',
-                borderRadius: '18px',
+                borderRadius: '20px',
                 border: isCompleted ? '1px solid #10B981' : '1px solid #E7E3EE',
-                padding: '24px',
+                padding: '28px',
                 transition: 'all 0.2s',
-                boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.1)' : 'none',
+                boxShadow: isCompleted ? '0 4px 20px rgba(16,185,129,0.1)' : 'none',
+                cursor: 'pointer',
               }}
+              onClick={() => setActiveLab(isActive ? null : lab.id)}
             >
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '16px',
+                marginBottom: isActive ? '18px' : '0',
                 flexWrap: 'wrap',
-                gap: '12px',
+                gap: '14px',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <span style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '12px',
                     background: isCompleted ? '#DFF3E8' : '#f1f5f9',
-                    fontSize: '18px',
+                    fontSize: '20px',
                   }}>
                     {isCompleted ? '✅' : '🧪'}
                   </span>
-                  <strong style={{ fontSize: '17px', color: '#1E1B24' }}>
+                  <strong style={{ fontSize: '18px', color: '#1E1B24' }}>
                     {idx + 1}. {lab.title}
                   </strong>
                 </div>
-                {!isCompleted && (
-                  <button
-                    onClick={() => markComplete(lab.id)}
-                    style={{
-                      padding: '8px 20px',
-                      background: '#10B981',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '30px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#0EA37A'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = '#10B981'}
-                  >
-                    ✓ Mark Complete
-                  </button>
-                )}
-                {isCompleted && (
-                  <span style={{ fontSize: '14px', color: '#10B981', fontWeight: 700 }}>
-                    ✓ Completed
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span style={{
+                    fontSize: '13px',
+                    color: '#94a3b8',
+                    transition: 'transform 0.2s',
+                    transform: isActive ? 'rotate(180deg)' : 'rotate(0deg)',
+                  }}>
+                    {isActive ? '▲' : '▼'}
                   </span>
-                )}
+                  {!isCompleted && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markComplete(lab.id);
+                      }}
+                      style={{
+                        padding: '10px 24px',
+                        background: '#10B981',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '30px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#0EA37A'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = '#10B981'}
+                    >
+                      ✓ Mark Complete
+                    </button>
+                  )}
+                  {isCompleted && (
+                    <span style={{ fontSize: '15px', color: '#10B981', fontWeight: 700 }}>
+                      ✓ Completed
+                    </span>
+                  )}
+                </div>
               </div>
-              <div style={{
-                fontSize: '15px',
-                color: '#4A4458',
-                lineHeight: '1.8',
-                whiteSpace: 'pre-wrap',
-                paddingLeft: '4px',
-              }}>
-                {lab.instructions}
-              </div>
+              {isActive && (
+                <div style={{
+                  fontSize: '16px',
+                  color: '#4A4458',
+                  lineHeight: '1.9',
+                  whiteSpace: 'pre-wrap',
+                  paddingLeft: '4px',
+                  paddingTop: '18px',
+                  borderTop: '1px solid #E7E3EE',
+                  marginTop: '18px',
+                  animation: 'fadeIn 0.3s ease-out',
+                }}>
+                  {lab.instructions}
+                </div>
+              )}
             </div>
           );
         })}
@@ -1314,6 +1401,7 @@ export default function CourseDetailView({
   const [showSidebar, setShowSidebar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [lastVisited, setLastVisited] = useState(null);
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
@@ -1344,6 +1432,17 @@ export default function CourseDetailView({
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [isMobile, showSidebar]);
+
+  // Track last visited section
+  useEffect(() => {
+    if (currentSub) {
+      setLastVisited({
+        id: currentSub.id,
+        title: currentSub.title,
+        timestamp: new Date().toLocaleString()
+      });
+    }
+  }, [currentSub]);
 
   const videoUrls = Array.isArray(currentSub?.videoUrls)
     ? currentSub.videoUrls
@@ -1694,6 +1793,12 @@ export default function CourseDetailView({
   return (
     <div style={styles.page}>
       <style>{NOTE_STYLES}</style>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       <div id="cdv-scroll-anchor" />
       <div style={styles.topStrip}>
         <div style={styles.courseName}>{selectedCourse.title}</div>
