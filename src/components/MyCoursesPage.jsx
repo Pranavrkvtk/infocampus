@@ -13,6 +13,77 @@ import {
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
+// ─── Get My Courses Configuration from localStorage ────────────────────
+const getMyCoursesConfig = () => {
+  const saved = localStorage.getItem('myCoursesConfig');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+// ─── Default My Courses Configuration ──────────────────────────────────
+const DEFAULT_MY_COURSES_CONFIG = {
+  heroEyebrow: "Networking & Security Academy",
+  heroTitle: "Knowledge is a superpower",
+  heroText: "Level up your networking and security skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
+  heroButtonText: "Pick a course →",
+  heroBgStart: "#3B2340",
+  heroBgMid: "#5B3A63",
+  heroBgEnd: "#83698A",
+  heroDecor: "🎓",
+  sectionTitleMy: "My Courses",
+  sectionTitleAll: "All Courses",
+  myCoursesTabText: "My Courses",
+  allCoursesTabText: "All Courses",
+  searchPlaceholder: "Search courses...",
+  cardDurationLabel: "⏱",
+  cardStepsLabel: "📋",
+  cardStepsText: "steps",
+  enrolledBadgeText: "Enrolled",
+  viewCourseButtonText: "View Course",
+  continueLearningButtonText: "Continue Learning",
+  emptyStateLoginTitle: "Login required",
+  emptyStateLoginText: "Please log in to see your enrolled courses.",
+  emptyStateLoginButton: "Go to Login",
+  emptyStateNoCoursesTitle: "No courses yet",
+  emptyStateNoCoursesText: "Enroll in a course to start learning.",
+  emptyStateNoCoursesButton: "Browse All Courses",
+  emptyStateNoAvailableTitle: "No courses available",
+  emptyStateNoAvailableText: "Check back later for new courses.",
+  footerText: "Click any course to view details — enrolled courses can be resumed anytime.",
+  trackIcons: {
+    ccna: "🌐",
+    ccnp: "🚀",
+    ccie: "🔐",
+    security: "🛡️",
+    linux: "🐧",
+    python: "🐍",
+    fortinet: "🧱",
+    aws: "☁️",
+    azure: "💠",
+    devops: "⚡",
+    default: "📄"
+  },
+  trackColors: {
+    ccna: "#EAF6F1",
+    ccnp: "#FDF3E7",
+    ccie: "#FBEAEA",
+    security: "#F1EAFB",
+    linux: "#E7F6FA",
+    python: "#EAF6EF",
+    fortinet: "#EFF1FB",
+    aws: "#E8F4FD",
+    azure: "#E3F2FD",
+    devops: "#FFF3E0",
+    default: "#F2F1F6"
+  }
+};
+
 // ─── Design tokens ───────────────────────────────────────────────
 const COLORS = {
   plumDark: '#3B2340',
@@ -46,6 +117,17 @@ const COURSE_IMAGES = {
 
 function MyCoursesPage() {
   const navigate = useNavigate();
+  
+  // ✅ Get config from localStorage
+  const myCoursesConfig = getMyCoursesConfig() || DEFAULT_MY_COURSES_CONFIG;
+  
+  // ✅ Build TRACKS from config
+  const TRACKS = Object.entries(myCoursesConfig.trackIcons).map(([key, icon]) => ({
+    match: key,
+    icon: icon,
+    tint: myCoursesConfig.trackColors[key] || myCoursesConfig.trackColors.default || '#F2F1F6'
+  }));
+  
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -61,11 +143,9 @@ function MyCoursesPage() {
   const [images, setImages] = useState([]);
   const [contentLoading, setContentLoading] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
-  // Removed: const [courseDetails, setCourseDetails] = useState(null);
 
   const [allCourses, setAllCourses] = useState([]);
   const [loadingAllCourses, setLoadingAllCourses] = useState(false);
-  // Removed: const [enrollingCourseId, setEnrollingCourseId] = useState(null);
 
   const isMobile = window.innerWidth < 768;
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
@@ -73,25 +153,20 @@ function MyCoursesPage() {
   const isLoggedIn = !!localStorage.getItem('token');
 
   // ─── HIDE NAVBAR WHEN VIEWING COURSE DETAILS ──────────────────────────
-  // ✅ ADD THIS useEffect to hide navbar when viewing course details
   useEffect(() => {
-    // When viewing course details (split view or enrollment view), hide the navbar
     if (activeView === 'split' || activeView === 'enrollment') {
       document.body.classList.add('hide-main-navbar');
     } else {
       document.body.classList.remove('hide-main-navbar');
     }
-    
-    // Cleanup when component unmounts or activeView changes
     return () => {
       document.body.classList.remove('hide-main-navbar');
     };
-  }, [activeView]); // Runs whenever activeView changes
+  }, [activeView]);
 
   // ─── Helper: Get course image from admin uploads ──────────────────
   const getCourseImage = (course) => {
     if (!course.imageUrl) {
-      // Fallback: Use title-based mapping
       const name = course.title?.toLowerCase() || '';
       for (const [key, url] of Object.entries(COURSE_IMAGES)) {
         if (name.includes(key)) return url;
@@ -101,34 +176,27 @@ function MyCoursesPage() {
 
     const imageUrl = course.imageUrl;
     
-    // If it's Base64 data
     if (imageUrl.startsWith('data:image/')) {
       return imageUrl;
     }
     
-    // If it's a full URL
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
     }
     
-    // If it already has /api/ in the path, use it directly
     if (imageUrl.startsWith('/api/')) {
-      // Use the base URL without the /api suffix
       const baseUrl = API_BASE.replace('/api', '');
       return `${baseUrl}${imageUrl}`;
     }
     
-    // If it starts with /
     if (imageUrl.startsWith('/')) {
       return `${API_BASE}${imageUrl}`;
     }
     
-    // If it starts with uploads/
     if (imageUrl.startsWith('uploads/')) {
       return `${API_BASE}/admin/${imageUrl}`;
     }
     
-    // Default: assume it's a filename
     return `${API_BASE}/admin/uploads/${imageUrl}`;
   };
   
@@ -149,9 +217,6 @@ function MyCoursesPage() {
     
     return `${API_BASE}/admin/uploads/${fileName}`;
   };
-
-  // ─── Helper: Get image for subtopic from the images array ────────
-  // Removed unused function: getSubtopicDisplayImage
 
   // ─── API calls ─────────────────────────────────────────────────────────
   const fetchEnrolledCourses = async () => {
@@ -181,21 +246,7 @@ function MyCoursesPage() {
   const fetchAllCourses = async () => {
     setLoadingAllCourses(true);
     try {
-      console.log('Fetching courses...');
       const data = await getCourses();
-      console.log('Courses response:', data);
-      
-      if (data && data.length > 0) {
-        console.log('First course imageUrl:', data[0].imageUrl);
-        console.log('All image URLs:', data.map(c => ({
-          id: c.id,
-          title: c.title,
-          imageUrl: c.imageUrl ? 
-            (c.imageUrl.startsWith('data:image/') ? 'Base64' : c.imageUrl) : 
-            'No image'
-        })));
-      }
-      
       setAllCourses(data);
       
       data.forEach(course => {
@@ -253,7 +304,6 @@ function MyCoursesPage() {
     setContentLoading(true);
     try {
       const data = await getCourseDetails(courseId);
-      // Removed: setCourseDetails(data.course);
       const allTopics = data.topics || [];
 
       const allSubtopics = [];
@@ -351,7 +401,6 @@ function MyCoursesPage() {
     setSubtopics([]);
     setImages([]);
     setImageErrors({});
-    // Removed: setCourseDetails(null);
     setCurrentSubtopic(null);
   };
 
@@ -400,23 +449,16 @@ function MyCoursesPage() {
     return courses.some((ec) => ec.id === courseId);
   };
 
-  // Each course gets a stable, deterministic accent + icon
-  const TRACKS = [
-    { match: 'ccna', icon: '🌐', tint: '#EAF6F1' },
-    { match: 'ccnp', icon: '🚀', tint: '#FDF3E7' },
-    { match: 'ccie', icon: '🔐', tint: '#FBEAEA' },
-    { match: 'security', icon: '🛡️', tint: '#F1EAFB' },
-    { match: 'linux', icon: '🐧', tint: '#E7F6FA' },
-    { match: 'python', icon: '🐍', tint: '#EAF6EF' },
-    { match: 'fortinet', icon: '🧱', tint: '#EFF1FB' },
-    { match: 'aws', icon: '☁️', tint: '#E8F4FD' },
-    { match: 'azure', icon: '💠', tint: '#E3F2FD' },
-    { match: 'devops', icon: '⚡', tint: '#FFF3E0' },
-  ];
-
+  // ✅ Updated: Get track from config
   const getTrack = (title) => {
     const name = title?.toLowerCase() || '';
-    return TRACKS.find(t => name.includes(t.match)) || { icon: '📄', tint: '#F2F1F6' };
+    for (const track of TRACKS) {
+      if (name.includes(track.match)) return track;
+    }
+    return { 
+      icon: myCoursesConfig.trackIcons.default || '📄', 
+      tint: myCoursesConfig.trackColors.default || '#F2F1F6' 
+    };
   };
 
   // ─── Image handling functions ────────────────────────────────────────
@@ -432,18 +474,18 @@ function MyCoursesPage() {
     return FALLBACK_IMAGE;
   };
 
-  // Effects - Fixed with proper dependencies
+  // Effects
   useEffect(() => {
     fetchEnrolledCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // fetchEnrolledCourses is defined in component and doesn't change
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) {
       fetchAllCourses();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, allCourses.length, loadingAllCourses]); // fetchAllCourses is defined in component and doesn't change
+  }, [activeTab, allCourses.length, loadingAllCourses]);
 
   useEffect(() => {
     if (!isLoggedIn && activeTab === 'my') {
@@ -463,7 +505,14 @@ function MyCoursesPage() {
     navGhostBtn: { background: 'transparent', border: 'none', color: COLORS.ink, fontWeight: 600, fontSize: '14px', cursor: 'pointer', padding: '8px 4px' },
     navPrimaryBtn: { background: COLORS.accent, color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 18px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' },
 
-    hero: { position: 'relative', overflow: 'hidden', background: `linear-gradient(120deg, ${COLORS.plumDark} 0%, ${COLORS.plumMid} 55%, ${COLORS.plumLight} 100%)`, padding: isMobile ? '44px 24px' : '64px 60px', color: '#fff' },
+    // ✅ Hero - Using config
+    hero: { 
+      position: 'relative', 
+      overflow: 'hidden', 
+      background: `linear-gradient(120deg, ${myCoursesConfig.heroBgStart} 0%, ${myCoursesConfig.heroBgMid} 55%, ${myCoursesConfig.heroBgEnd} 100%)`, 
+      padding: isMobile ? '44px 24px' : '64px 60px', 
+      color: '#fff' 
+    },
     heroInner: { maxWidth: '760px' },
     heroEyebrow: { fontSize: '13px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', opacity: 0.75, marginBottom: '14px' },
     heroTitle: { fontSize: isMobile ? '32px' : '48px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.5px', marginBottom: '18px' },
@@ -489,10 +538,6 @@ function MyCoursesPage() {
       display: 'flex', 
       flexDirection: 'column',
       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-      ':hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.10)',
-      }
     },
     cardImage: {
       width: '100%',
@@ -539,11 +584,6 @@ function MyCoursesPage() {
       fontWeight: 700, 
       fontSize: '13.5px', 
       cursor: 'pointer',
-      transition: 'all 0.2s',
-      ':hover': {
-        background: '#5B3A63',
-        transform: 'scale(1.01)',
-      }
     },
     viewBtn: { 
       width: '100%', 
@@ -555,11 +595,6 @@ function MyCoursesPage() {
       fontWeight: 700, 
       fontSize: '13.5px', 
       cursor: 'pointer',
-      transition: 'all 0.2s',
-      ':hover': {
-        background: COLORS.accent,
-        color: '#fff',
-      }
     },
     continueBtn: { 
       width: '100%', 
@@ -571,10 +606,6 @@ function MyCoursesPage() {
       fontWeight: 700, 
       fontSize: '13.5px', 
       cursor: 'pointer',
-      transition: 'all 0.2s',
-      ':hover': {
-        background: '#5B3A63',
-      }
     },
 
     emptyState: { textAlign: 'center', padding: '70px 20px', background: COLORS.paper, border: `1px solid ${COLORS.line}`, borderRadius: '16px', maxWidth: '480px', margin: '40px auto' },
@@ -685,38 +716,35 @@ function MyCoursesPage() {
     <div style={styles.page}>
       {/* ─── Hero ────────────────────────────────────────────────────── */}
       <div style={styles.hero}>
-        <span style={styles.heroDecor}>🎓</span>
+        <span style={styles.heroDecor}>{myCoursesConfig.heroDecor}</span>
         <div style={styles.heroInner}>
-          <div style={styles.heroEyebrow}>Networking &amp; Security Academy</div>
-          <h1 style={styles.heroTitle}>Knowledge is a superpower</h1>
-          <p style={styles.heroText}>
-            Level up your networking and security skills — from CCNA fundamentals
-            to CCIE expert tracks. Your next certification starts here.
-          </p>
-          <button style={styles.heroBtn} onClick={() => setActiveTab('all')}>Pick a course →</button>
+          <div style={styles.heroEyebrow}>{myCoursesConfig.heroEyebrow}</div>
+          <h1 style={styles.heroTitle}>{myCoursesConfig.heroTitle}</h1>
+          <p style={styles.heroText}>{myCoursesConfig.heroText}</p>
+          <button style={styles.heroBtn} onClick={() => setActiveTab('all')}>{myCoursesConfig.heroButtonText}</button>
         </div>
       </div>
 
       {/* ─── Section bar: title, tabs, search ───────────────────────────── */}
       <div style={styles.sectionBar}>
         <div style={styles.sectionTitle}>
-          {activeTab === 'my' ? 'My Courses' : 'All Courses'}
+          {activeTab === 'my' ? myCoursesConfig.sectionTitleMy : myCoursesConfig.sectionTitleAll}
         </div>
         <div style={styles.tabRow}>
           {isLoggedIn && (
             <button style={styles.tabPill(activeTab === 'my')} onClick={() => setActiveTab('my')}>
-              My Courses
+              {myCoursesConfig.myCoursesTabText}
             </button>
           )}
           <button style={styles.tabPill(activeTab === 'all')} onClick={() => setActiveTab('all')}>
-            All Courses
+            {myCoursesConfig.allCoursesTabText}
           </button>
         </div>
         <div style={styles.searchWrap}>
           <span style={styles.searchIcon}>🔍</span>
           <input
             type="text"
-            placeholder="Search courses..."
+            placeholder={myCoursesConfig.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}
@@ -730,16 +758,16 @@ function MyCoursesPage() {
           {!isLoggedIn ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>🔐</div>
-              <h3 style={styles.emptyTitle}>Login required</h3>
-              <p style={styles.emptyText}>Please log in to see your enrolled courses.</p>
-              <button onClick={() => navigate('/login')} style={styles.enrollBtn}>Go to Login</button>
+              <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateLoginTitle}</h3>
+              <p style={styles.emptyText}>{myCoursesConfig.emptyStateLoginText}</p>
+              <button onClick={() => navigate('/login')} style={styles.enrollBtn}>{myCoursesConfig.emptyStateLoginButton}</button>
             </div>
           ) : courses.length === 0 ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>📚</div>
-              <h3 style={styles.emptyTitle}>No courses yet</h3>
-              <p style={styles.emptyText}>Enroll in a course to start learning.</p>
-              <button onClick={() => setActiveTab('all')} style={styles.enrollBtn}>Browse All Courses</button>
+              <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateNoCoursesTitle}</h3>
+              <p style={styles.emptyText}>{myCoursesConfig.emptyStateNoCoursesText}</p>
+              <button onClick={() => setActiveTab('all')} style={styles.enrollBtn}>{myCoursesConfig.emptyStateNoCoursesButton}</button>
             </div>
           ) : (
             <div style={styles.grid}>
@@ -760,8 +788,8 @@ function MyCoursesPage() {
                     <div style={styles.cardBody}>
                       <div style={styles.cardTitle}>{course.title}</div>
                       <div style={styles.cardMetaRow}>
-                        <span>⏱ {course.duration || '—'}</span>
-                        <span>📋 {course.steps || course.subtopicCount || '—'} steps</span>
+                        <span>{myCoursesConfig.cardDurationLabel} {course.duration || '—'}</span>
+                        <span>{myCoursesConfig.cardStepsLabel} {course.steps || course.subtopicCount || '—'} {myCoursesConfig.cardStepsText}</span>
                         <span>{track.icon}</span>
                       </div>
                     </div>
@@ -773,7 +801,7 @@ function MyCoursesPage() {
                           handleContinueLearning(course); 
                         }}
                       >
-                        Continue Learning
+                        {myCoursesConfig.continueLearningButtonText}
                       </button>
                     </div>
                   </div>
@@ -795,8 +823,8 @@ function MyCoursesPage() {
           ) : allCourses.length === 0 ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>📭</div>
-              <h3 style={styles.emptyTitle}>No courses available</h3>
-              <p style={styles.emptyText}>Check back later for new courses.</p>
+              <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateNoAvailableTitle}</h3>
+              <p style={styles.emptyText}>{myCoursesConfig.emptyStateNoAvailableText}</p>
             </div>
           ) : (
             <div style={styles.grid}>
@@ -832,15 +860,15 @@ function MyCoursesPage() {
                           borderRadius: '999px',
                           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                         }}>
-                          Enrolled
+                          {myCoursesConfig.enrolledBadgeText}
                         </span>
                       )}
                     </div>
                     <div style={styles.cardBody}>
                       <div style={styles.cardTitle}>{course.title}</div>
                       <div style={styles.cardMetaRow}>
-                        <span>⏱ {course.duration || '—'}</span>
-                        <span>📋 {course.steps || course.subtopicCount || '—'} steps</span>
+                        <span>{myCoursesConfig.cardDurationLabel} {course.duration || '—'}</span>
+                        <span>{myCoursesConfig.cardStepsLabel} {course.steps || course.subtopicCount || '—'} {myCoursesConfig.cardStepsText}</span>
                         <span>{track.icon}</span>
                       </div>
                     </div>
@@ -853,7 +881,7 @@ function MyCoursesPage() {
                             handleContinueLearning(course); 
                           }}
                         >
-                          Continue Learning
+                          {myCoursesConfig.continueLearningButtonText}
                         </button>
                       ) : (
                         <button
@@ -863,7 +891,7 @@ function MyCoursesPage() {
                             handleViewCourse(course); 
                           }}
                         >
-                          View Course
+                          {myCoursesConfig.viewCourseButtonText}
                         </button>
                       )}
                     </div>
@@ -876,7 +904,7 @@ function MyCoursesPage() {
       )}
 
       <div style={styles.footer}>
-        <p>Click any course to view details — enrolled courses can be resumed anytime.</p>
+        <p>{myCoursesConfig.footerText}</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
