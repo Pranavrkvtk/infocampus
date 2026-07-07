@@ -1,3 +1,4 @@
+// src/components/Admin/AdminDashboard.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   getDashboardStats,
@@ -11,8 +12,6 @@ import {
   hardDeleteInstructor,
   updateInstructorStatus,
   getHomeVideo,
-  // uploadHomeVideo, // ❌ Removed - not used
-  // deleteHomeVideo,  // ❌ Removed - not used
   updateHomeVideoUrl,
   getAllEnrollments,
   deleteUser,
@@ -32,13 +31,13 @@ import EnrollmentsTab from "./EnrollmentsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
+import HomeEditorTab from "./HomeEditorTab"; // ✅ Import HomeEditorTab
 
 // ===================== MEDIA TAB =====================
 function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
   const [urlInput, setUrlInput] = useState("");
   const [updatingUrl, setUpdatingUrl] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
-  // const [isValidUrl, setIsValidUrl] = useState(false); // ❌ Removed - not used
   const [isYoutube, setIsYoutube] = useState(false);
   const [embedUrl, setEmbedUrl] = useState("");
 
@@ -52,7 +51,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
 
   const validateAndEmbedUrl = (url) => {
     if (!url || !url.trim()) {
-      // setIsValidUrl(false); // ❌ Removed
       setIsYoutube(false);
       setEmbedUrl("");
       return;
@@ -60,18 +58,14 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
 
     try {
       new URL(url);
-      // setIsValidUrl(true); // ❌ Removed
       
-      // Check if it's a YouTube URL
       const isYoutubeUrl = url.includes('youtube.com') || url.includes('youtu.be');
       setIsYoutube(isYoutubeUrl);
       
       if (isYoutubeUrl) {
-        // Extract video ID and create embed URL
         let videoId = null;
         let embed = url;
         
-        // Handle various YouTube URL formats
         if (url.includes('watch?v=')) {
           const videoIdMatch = url.match(/[?&]v=([^&]+)/);
           if (videoIdMatch && videoIdMatch[1]) {
@@ -85,7 +79,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
         }
         
         if (videoId) {
-          // Check if it's a playlist
           const listMatch = url.match(/[?&]list=([^&]+)/);
           if (listMatch && listMatch[1]) {
             embed = `https://www.youtube.com/embed/${videoId}?list=${listMatch[1]}`;
@@ -98,7 +91,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
         setEmbedUrl(url);
       }
     } catch (_) {
-      // setIsValidUrl(false); // ❌ Removed
       setIsYoutube(false);
       setEmbedUrl("");
     }
@@ -110,7 +102,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
     if (value.trim()) {
       validateAndEmbedUrl(value);
     } else {
-      // setIsValidUrl(false); // ❌ Removed
       setIsYoutube(false);
       setEmbedUrl("");
     }
@@ -152,7 +143,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
     }
   };
 
-  // Extract YouTube video ID for thumbnail
   const getYoutubeThumbnail = (url) => {
     if (!url) return null;
     let videoId = null;
@@ -186,7 +176,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
           Paste a direct video URL or a YouTube link. This will be shown on the public home page.
         </p>
 
-        {/* URL Input */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "200px" }}>
             <input
@@ -236,7 +225,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
           </button>
         </div>
 
-        {/* Current Video Preview */}
         {previewUrl && (
           <div style={{ marginTop: 24 }}>
             <div style={{
@@ -278,7 +266,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
               )}
             </div>
 
-            {/* Video Player or Thumbnail */}
             {isYoutube && embedUrl ? (
               <div style={{
                 position: "relative",
@@ -330,7 +317,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
               </div>
             ) : null}
 
-            {/* Video Info */}
             <div style={{
               marginTop: 12,
               display: "flex",
@@ -362,7 +348,6 @@ function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
           </div>
         )}
 
-        {/* Empty State */}
         {!previewUrl && (
           <div style={{
             marginTop: 24,
@@ -401,12 +386,9 @@ export default function AdminDashboard() {
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
-  // const [isThemeOpen, setIsThemeOpen] = useState(false); // ❌ Removed - not used
 
-  // ---------- video state ----------
   const [videoUrl, setVideoUrl] = useState("");
   const [videoLoading, setVideoLoading] = useState(false);
-  // ---------------------------------
 
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -439,7 +421,7 @@ export default function AdminDashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // ---------- fetch home video ----------
+  // fetch home video
   const fetchHomeVideo = async () => {
     setVideoLoading(true);
     try {
@@ -452,7 +434,6 @@ export default function AdminDashboard() {
       setVideoLoading(false);
     }
   };
-  // --------------------------------------
 
   // Fetch all students
   const fetchAllStudents = async () => {
@@ -776,7 +757,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Permanently delete a student
   const handleDeleteStudent = async (studentId) => {
     await deleteUser(studentId);
     await fetchAllStudents();
@@ -805,8 +785,6 @@ export default function AdminDashboard() {
     else if (activeTab === "enrollments") fetchEnrollments();
     else if (activeTab === "media") fetchHomeVideo();
   }, [activeTab]);
-
-  // ❌ Removed: handleUpdateRole - not used
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -849,10 +827,12 @@ export default function AdminDashboard() {
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
+      case "home-editor": return <HomeEditorTab />; // ✅ Added Home Editor
       default: return null;
     }
   };
 
+  // ✅ Updated navItems with Home Editor
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
@@ -861,8 +841,10 @@ export default function AdminDashboard() {
     { icon: "📋", label: "Enrollments",    id: "enrollments"    },
     { icon: "🎬", label: "Media",          id: "media"          },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
+    { icon: "🏠", label: "Home Editor",    id: "home-editor"    }, // ✅ Added
   ];
 
+  // ✅ Updated PAGE_TITLES
   const PAGE_TITLES = {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
@@ -872,7 +854,10 @@ export default function AdminDashboard() {
     media:           "Media Manager",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
+    "home-editor":   "Home Page Editor", // ✅ Added
   };
+
+  // ✅ Updated PAGE_SUBS
   const PAGE_SUBS = {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
@@ -882,6 +867,7 @@ export default function AdminDashboard() {
     media:           "Manage the home page video and future image assets",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
+    "home-editor":   "Customize all text, colors, and content on the public home page", // ✅ Added
   };
 
   return (

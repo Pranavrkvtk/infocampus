@@ -2,6 +2,103 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
+// ✅ Function to get home page configuration from localStorage
+const getHomeConfig = () => {
+  const saved = localStorage.getItem('homePageConfig');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+// ✅ Default config if nothing is saved
+const DEFAULT_CONFIG = {
+  bannerText: "Unlock Free Cisco Lessons – No Credit Card Needed!",
+  bannerButtonText: "Sign up for Free",
+  bannerButtonColor: "#3abf94",
+  bannerBgColor: "#f5c842",
+  welcomeNewUserMessage: "🎉 Welcome to Infocampus! Your account is ready — let's start your first lesson.",
+  welcomeReturningNoCourses: "🌟 Ready to begin your journey? Explore our courses and start learning today!",
+  welcomeReturningWithCourses: "👋 Welcome back! Continue learning from where you left off.",
+  welcomeNewUserBg: "linear-gradient(135deg, #e5a800 0%, #f5c842 100%)",
+  welcomeNoCoursesBg: "linear-gradient(135deg, #714B67 0%, #5B3A63 100%)",
+  welcomeWithCoursesBg: "linear-gradient(135deg, #3abf94 0%, #2e9d7a 100%)",
+  ctaButtonText: "Browse Courses →",
+  ctaButtonBg: "#e5a800",
+  ctaButtonTextColor: "#fff",
+  taglineLine1: "Complex networking topics explained in the simplest way possible...",
+  taglineLine2: "Including Cisco CCNA, CCNP and CCIE Enterprise Infrastructure.",
+  featuresBgColor: "#5b8dbf",
+  features: [
+    {
+      icon: "🏅",
+      title: "Exclusive Content",
+      desc: "809 lessons and I am constantly adding new lessons, videos and reference material. Everything is explained in the simplest way possible."
+    },
+    {
+      icon: "❤️",
+      title: "Start for Free",
+      desc: "Create your free account and start learning right away. Explore 328 free lessons, experience our teaching style, and learn at your own pace."
+    },
+    {
+      icon: "📢",
+      title: "Community Forum",
+      desc: "Do you still have questions after viewing some of the lessons? We have a community forum where we help out members with answers."
+    }
+  ],
+  trainingTopics: [
+    ["Subnetting", "Switching", "Spanning-Tree", "Frame-Relay"],
+    ["RIP", "EIGRP", "OSPF", "BGP"],
+    ["Multicast", "IPv6", "QoS", "MPLS"],
+    ["Security", "IP Routing", "Network Services", "Linux"],
+    ["GRE", "IOS", "DMVPN", "PIM"],
+    ["NAT", "ACL", "VPN", "IPSec"]
+  ],
+  trainingTopicColor: "#3a7fc1",
+  trainingTopicHoverColor: "#e5a800",
+  instructorTitle: "Stop Struggling & Start Learning",
+  instructorText: "My name is Rene, and I am here to help you to achieve your goals. Do you want to upgrade your skills? Want to start a career in networking? Become a CCIE in Enterprise Infrastructure? Let me help you! After teaching Cisco classroom courses for several years I decided to share my knowledge online on Infocampus.com.",
+  instructorName: "Rene Molenaar",
+  instructorTitle2: "CCIE #41726, founder of Infocampus.com (and primary course author)",
+  instructorBgStart: "#4a7fb5",
+  instructorBgEnd: "#6fa3d0",
+  testimonialsBg: "#f0f2f5",
+  testimonials: [
+    {
+      name: "ETHAN MORISSETTE",
+      role: "Network Analyst",
+      date: "March 18, 2025",
+      title: "Beyond Expectations",
+      text: "What can I say... infocampus.com is such a well put together site. The content helped me build my knowledge, link certain topics together, and deepen my understanding of networking. I really love that they included additional resources about note taking and building a home lab. Something I had never seen before is an instructor of a site reaching out (and actually replying) when you subscribe. Thank you for your hard work!",
+      initials: "EM",
+      color: "#7aa3c8"
+    },
+    {
+      name: "MURAT BILGIN",
+      role: "Senior Systems Analyst",
+      date: "December 17, 2024",
+      title: "Clear and Concise",
+      text: "Preparing for my ENRSI, I am a visual learner and learn best from examples. I like that I can follow along using CML/GNS3 to understand the basics and mechanics, then try to build a more difficult lab. Everything so far has been clear and concise.",
+      initials: "MB",
+      color: "#6b9abf"
+    },
+    {
+      name: "FARRAKH GILANI",
+      role: "Network Engineer",
+      date: "March 19, 2025",
+      title: "Ideal for Certification",
+      text: "infocampus.com is simply the best trainer. Topics are explained in a way that makes them easy to understand. The content's quality and clear explanations make it ideal for certification or increasing your knowledge on a topic. Highly recommended!",
+      initials: "FG",
+      color: "#5b8dbf"
+    }
+  ],
+  testimonialsSignupText: "3414 people signed up the last 30 days!"
+};
+
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
@@ -11,6 +108,9 @@ export default function Home() {
   const [hasEnrolledCourses, setHasEnrolledCourses] = useState(false);
   const [checkingEnrollments, setCheckingEnrollments] = useState(true);
   const navigate = useNavigate();
+
+  // ✅ Get home config
+  const homeConfig = getHomeConfig() || DEFAULT_CONFIG;
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -35,14 +135,12 @@ export default function Home() {
         localStorage.setItem(seenKey, "true");
       }
 
-      // Check if user has enrolled courses
       checkEnrolledCourses(token);
     } else {
       setCheckingEnrollments(false);
     }
   }, []);
 
-  // Check if user has any enrolled courses
   const checkEnrolledCourses = async (token) => {
     try {
       const response = await api.get("/users/has-enrolled-courses", {
@@ -50,7 +148,6 @@ export default function Home() {
       });
       
       setHasEnrolledCourses(response.data.hasEnrolledCourses);
-      console.log("Has enrolled courses:", response.data.hasEnrolledCourses);
     } catch (error) {
       console.error("Error checking enrolled courses:", error);
       setHasEnrolledCourses(false);
@@ -59,7 +156,6 @@ export default function Home() {
     }
   };
 
-  // Helper to turn relative URLs into absolute ones
   const getAbsoluteUrl = (url) => {
     if (!url) return url;
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
@@ -68,12 +164,9 @@ export default function Home() {
   };
 
   useEffect(() => {
-    console.log("🔍 Fetching home video from /api/public/home-video via axios");
-
     api
       .get("/public/home-video")
       .then((res) => {
-        console.log("✅ Video data received:", res.data);
         const url = res.data.videoUrl || "";
         setVideoUrl(getAbsoluteUrl(url));
         setLoading(false);
@@ -144,7 +237,6 @@ export default function Home() {
 
     if (isYouTubeUrl(videoUrl)) {
       const embedUrl = getYouTubeEmbedUrl(videoUrl);
-      console.log("🎬 YouTube embed URL:", embedUrl);
       if (!embedUrl) {
         return (
           <div style={{ padding: "40px", textAlign: "center", color: "#ff6b6b" }}>
@@ -197,41 +289,46 @@ export default function Home() {
     );
   };
 
-  // Determine welcome message based on user state
+  // ✅ Updated: Use config for welcome messages
   const getWelcomeMessage = () => {
     if (!isLoggedIn) return null;
     
     if (isNewUser) {
       return {
-        message: "🎉 Welcome to Infocampus! Your account is ready — let's start your first lesson.",
-        bgColor: "linear-gradient(135deg, #e5a800 0%, #f5c842 100%)",
+        message: homeConfig.welcomeNewUserMessage,
+        bgColor: homeConfig.welcomeNewUserBg,
         textColor: "#1a1a1a",
         btnText: "Start Learning →"
       };
     }
     
-    // For returning users
     if (!hasEnrolledCourses) {
       return {
-        message: "🌟 Ready to begin your journey? Explore our courses and start learning today!",
-        bgColor: "linear-gradient(135deg, #714B67 0%, #5B3A63 100%)",
+        message: homeConfig.welcomeReturningNoCourses,
+        bgColor: homeConfig.welcomeNoCoursesBg,
         textColor: "#fff",
         btnText: "Explore Courses →"
       };
     }
     
     return {
-      message: "👋 Welcome back! Continue learning from where you left off.",
-      bgColor: "linear-gradient(135deg, #3abf94 0%, #2e9d7a 100%)",
+      message: homeConfig.welcomeReturningWithCourses,
+      bgColor: homeConfig.welcomeWithCoursesBg,
       textColor: "#fff",
       btnText: "Continue Learning →"
     };
   };
 
   const welcome = getWelcomeMessage();
-
-  // Don't show welcome message while checking enrollments
   const showWelcome = !checkingEnrollments && isLoggedIn && welcome;
+
+  // ✅ Updated: CTA button text based on user state
+  const getCtaText = () => {
+    if (!isLoggedIn) return "Browse Courses →";
+    if (isNewUser) return "Start Learning →";
+    if (!hasEnrolledCourses) return "Explore Courses →";
+    return "Continue Learning →";
+  };
 
   return (
     <div
@@ -241,11 +338,11 @@ export default function Home() {
         background: "#f8f8f6",
       }}
     >
-      {/* Top Banner - Hide when logged in */}
+      {/* ✅ Top Banner - Using config */}
       {!isLoggedIn && (
         <div
           style={{
-            background: "#f5c842",
+            background: homeConfig.bannerBgColor,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -263,12 +360,12 @@ export default function Home() {
               color: "#1a1a1a",
             }}
           >
-            Unlock Free Cisco Lessons – No Credit Card Needed!
+            {homeConfig.bannerText}
           </span>
           <Link to="/free-account" style={{ textDecoration: "none" }}>
             <button
               style={{
-                background: "#3abf94",
+                background: homeConfig.bannerButtonColor,
                 color: "#fff",
                 border: "none",
                 borderRadius: "6px",
@@ -280,7 +377,7 @@ export default function Home() {
                 whiteSpace: "nowrap",
               }}
             >
-              Sign up for Free
+              {homeConfig.bannerButtonText}
             </button>
           </Link>
         </div>
@@ -331,7 +428,7 @@ export default function Home() {
           {renderVideo()}
         </div>
 
-        {/* CTA buttons */}
+        {/* ✅ CTA buttons - Using config */}
         <div
           style={{
             display: "flex",
@@ -344,8 +441,8 @@ export default function Home() {
             onClick={() => navigate("/my-courses")}
             style={{
               marginTop: isMobile ? "24px" : "36px",
-              background: "#e5a800",
-              color: "#fff",
+              background: homeConfig.ctaButtonBg,
+              color: homeConfig.ctaButtonTextColor,
               border: "none",
               borderRadius: "7px",
               padding: isMobile ? "13px 28px" : "16px 48px",
@@ -353,21 +450,15 @@ export default function Home() {
               fontWeight: 700,
               fontSize: isMobile ? "15px" : "18px",
               cursor: "pointer",
-              boxShadow: "0 4px 18px rgba(229,168,0,0.3)",
+              boxShadow: `0 4px 18px ${homeConfig.ctaButtonBg}4D`,
               width: isMobile ? "100%" : "auto",
             }}
           >
-            {!isLoggedIn 
-              ? "Browse Courses →" 
-              : isNewUser 
-                ? "Start Learning →" 
-                : !hasEnrolledCourses 
-                  ? "Explore Courses →" 
-                  : "Continue Learning →"}
+            {getCtaText()}
           </button>
         </div>
 
-        {/* Tagline */}
+        {/* ✅ Tagline - Using config */}
         <div
           style={{
             marginTop: "24px",
@@ -384,7 +475,7 @@ export default function Home() {
               fontFamily: "'Trebuchet MS', sans-serif",
             }}
           >
-            Complex networking topics explained in the simplest way possible...
+            {homeConfig.taglineLine1}
           </p>
           <p
             style={{
@@ -394,43 +485,51 @@ export default function Home() {
               fontFamily: "'Trebuchet MS', sans-serif",
             }}
           >
-            Including Cisco CCNA, CCNP and CCIE Enterprise Infrastructure.
+            {homeConfig.taglineLine2}
           </p>
         </div>
       </main>
 
-      <FeaturesSection isMobile={isMobile} />
-      <TrainingSection isMobile={isMobile} />
-      <TestimonialsSection isMobile={isMobile} />
-      <InstructorSection isMobile={isMobile} />
+      {/* ✅ FeaturesSection - Using config */}
+      <FeaturesSection isMobile={isMobile} config={homeConfig} />
+      
+      {/* ✅ TrainingSection - Using config */}
+      <TrainingSection isMobile={isMobile} config={homeConfig} />
+      
+      {/* ✅ TestimonialsSection - Using config */}
+      <TestimonialsSection isMobile={isMobile} config={homeConfig} />
+      
+      {/* ✅ InstructorSection - Using config */}
+      <InstructorSection isMobile={isMobile} config={homeConfig} />
     </div>
   );
 }
 
-// ============ FEATURES SECTION ============
-function FeaturesSection({ isMobile }) {
-  const features = [
+// ============ FEATURES SECTION - UPDATED ============
+function FeaturesSection({ isMobile, config }) {
+  // Use config features or fallback to defaults
+  const features = config?.features || [
     {
-      icon: <MedalIcon />,
+      icon: "🏅",
       title: "Exclusive Content",
-      desc: "809 lessons and I am constantly adding new lessons, videos and reference material. Everything is explained in the simplest way possible.",
+      desc: "809 lessons and I am constantly adding new lessons, videos and reference material. Everything is explained in the simplest way possible."
     },
     {
-      icon: <HeartIcon />,
+      icon: "❤️",
       title: "Start for Free",
-      desc: "Create your free account and start learning right away. Explore 328 free lessons, experience our teaching style, and learn at your own pace.",
+      desc: "Create your free account and start learning right away. Explore 328 free lessons, experience our teaching style, and learn at your own pace."
     },
     {
-      icon: <MegaphoneIcon />,
+      icon: "📢",
       title: "Community Forum",
-      desc: "Do you still have questions after viewing some of the lessons? We have a community forum where we help out members with answers.",
-    },
+      desc: "Do you still have questions after viewing some of the lessons? We have a community forum where we help out members with answers."
+    }
   ];
 
   return (
     <section
       style={{
-        background: "#5b8dbf",
+        background: config?.featuresBgColor || "#5b8dbf",
         padding: isMobile ? "48px 20px" : "64px 40px",
       }}
     >
@@ -454,7 +553,9 @@ function FeaturesSection({ isMobile }) {
               padding: "0 16px",
             }}
           >
-            <div style={{ marginBottom: "20px", opacity: 0.95 }}>{f.icon}</div>
+            <div style={{ marginBottom: "20px", opacity: 0.95, fontSize: "48px" }}>
+              {f.icon || "⭐"}
+            </div>
             <h3
               style={{
                 color: "#fff",
@@ -486,9 +587,9 @@ function FeaturesSection({ isMobile }) {
   );
 }
 
-// ============ TRAINING SECTION ============
-function TrainingSection({ isMobile }) {
-  const topics = [
+// ============ TRAINING SECTION - UPDATED ============
+function TrainingSection({ isMobile, config }) {
+  const topics = config?.trainingTopics || [
     ["Subnetting", "Switching", "Spanning-Tree", "Frame-Relay"],
     ["RIP", "EIGRP", "OSPF", "BGP"],
     ["Multicast", "IPv6", "QoS", "MPLS"],
@@ -496,6 +597,9 @@ function TrainingSection({ isMobile }) {
     ["GRE", "IOS", "DMVPN", "PIM"],
     ["NAT", "ACL", "VPN", "IPSec"],
   ];
+
+  const topicColor = config?.trainingTopicColor || "#3a7fc1";
+  const topicHoverColor = config?.trainingTopicHoverColor || "#e5a800";
 
   return (
     <section
@@ -522,7 +626,7 @@ function TrainingSection({ isMobile }) {
                   to="/my-courses"
                   state={{ topic }}
                   style={{
-                    color: "#3a7fc1",
+                    color: topicColor,
                     fontFamily: "'Trebuchet MS', sans-serif",
                     fontWeight: 700,
                     fontSize: isMobile ? "13px" : "14.5px",
@@ -531,8 +635,8 @@ function TrainingSection({ isMobile }) {
                     display: "block",
                     transition: "color 0.15s",
                   }}
-                  onMouseEnter={(e) => (e.target.style.color = "#e5a800")}
-                  onMouseLeave={(e) => (e.target.style.color = "#3a7fc1")}
+                  onMouseEnter={(e) => (e.target.style.color = topicHoverColor)}
+                  onMouseLeave={(e) => (e.target.style.color = topicColor)}
                 >
                   {topic}
                 </Link>
@@ -545,15 +649,12 @@ function TrainingSection({ isMobile }) {
   );
 }
 
-// ============ BADGES (REMOVED UNUSED COMPONENTS) ============
-// CiscoBadge and CCIEBadge removed as they were not being used
-
-// ============ INSTRUCTOR SECTION ============
-function InstructorSection({ isMobile }) {
+// ============ INSTRUCTOR SECTION - UPDATED ============
+function InstructorSection({ isMobile, config }) {
   return (
     <section
       style={{
-        background: "linear-gradient(120deg, #4a7fb5 60%, #6fa3d0 100%)",
+        background: `linear-gradient(120deg, ${config?.instructorBgStart || "#4a7fb5"} 60%, ${config?.instructorBgEnd || "#6fa3d0"} 100%)`,
         position: "relative",
         overflow: "hidden",
         minHeight: isMobile ? "auto" : "380px",
@@ -598,7 +699,7 @@ function InstructorSection({ isMobile }) {
               letterSpacing: "-0.2px",
             }}
           >
-            Stop Struggling &amp; Start Learning
+            {config?.instructorTitle || "Stop Struggling & Start Learning"}
           </h2>
           <p
             style={{
@@ -609,11 +710,7 @@ function InstructorSection({ isMobile }) {
               margin: "0 0 22px",
             }}
           >
-            "My name is Rene , and I am here to help you to achieve your goals. Do you
-            want to upgrade your skills? Want to start a career in networking? Become a
-            CCIE in Enterprise Infrastructure? Let me help you! After teaching Cisco
-            classroom courses for several years I decided to share my knowledge online
-            on Infocampus.com."
+            {config?.instructorText || "My name is Rene, and I am here to help you to achieve your goals. Do you want to upgrade your skills? Want to start a career in networking? Become a CCIE in Enterprise Infrastructure? Let me help you! After teaching Cisco classroom courses for several years I decided to share my knowledge online on Infocampus.com."}
           </p>
           <p
             style={{
@@ -623,8 +720,7 @@ function InstructorSection({ isMobile }) {
               margin: 0,
             }}
           >
-            <strong style={{ color: "#fff" }}>Rene Molenaar</strong> CCIE #41726,
-            founder of Infocampus.com (and primary course author)
+            <strong style={{ color: "#fff" }}>{config?.instructorName || "Rene Molenaar"}</strong> {config?.instructorTitle2 || "CCIE #41726, founder of Infocampus.com (and primary course author)"}
           </p>
         </div>
         <div
@@ -714,9 +810,9 @@ function InstructorIllustration({ isMobile }) {
   );
 }
 
-// ============ TESTIMONIALS ============
-function TestimonialsSection({ isMobile }) {
-  const reviews = [
+// ============ TESTIMONIALS SECTION - UPDATED ============
+function TestimonialsSection({ isMobile, config }) {
+  const testimonials = config?.testimonials || [
     {
       name: "ETHAN MORISSETTE",
       role: "Network Analyst",
@@ -724,7 +820,7 @@ function TestimonialsSection({ isMobile }) {
       title: "Beyond Expectations",
       text: "What can I say... infocampus.com is such a well put together site. The content helped me build my knowledge, link certain topics together, and deepen my understanding of networking. I really love that they included additional resources about note taking and building a home lab. Something I had never seen before is an instructor of a site reaching out (and actually replying) when you subscribe. Thank you for your hard work!",
       initials: "EM",
-      color: "#7aa3c8",
+      color: "#7aa3c8"
     },
     {
       name: "MURAT BILGIN",
@@ -733,7 +829,7 @@ function TestimonialsSection({ isMobile }) {
       title: "Clear and Concise",
       text: "Preparing for my ENRSI, I am a visual learner and learn best from examples. I like that I can follow along using CML/GNS3 to understand the basics and mechanics, then try to build a more difficult lab. Everything so far has been clear and concise.",
       initials: "MB",
-      color: "#6b9abf",
+      color: "#6b9abf"
     },
     {
       name: "FARRAKH GILANI",
@@ -742,14 +838,14 @@ function TestimonialsSection({ isMobile }) {
       title: "Ideal for Certification",
       text: "infocampus.com is simply the best trainer. Topics are explained in a way that makes them easy to understand. The content's quality and clear explanations make it ideal for certification or increasing your knowledge on a topic. Highly recommended!",
       initials: "FG",
-      color: "#5b8dbf",
-    },
+      color: "#5b8dbf"
+    }
   ];
 
   return (
     <section
       style={{
-        background: "#f0f2f5",
+        background: config?.testimonialsBg || "#f0f2f5",
         padding: isMobile ? "48px 16px 40px" : "60px 40px 48px",
       }}
     >
@@ -762,11 +858,11 @@ function TestimonialsSection({ isMobile }) {
             marginBottom: "36px",
           }}
         >
-          {reviews.map((r, i) => (
+          {testimonials.map((r, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", marginTop: "28px" }}>
               <div
                 style={{
-                  background: "#5b8dbf",
+                  background: r.color || "#5b8dbf",
                   borderRadius: "6px 6px 0 0",
                   padding: "14px 18px 18px",
                   display: "flex",
@@ -799,7 +895,7 @@ function TestimonialsSection({ isMobile }) {
                     boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
                   }}
                 >
-                  <AvatarSVG initials={r.initials} color={r.color} />
+                  <AvatarSVG initials={r.initials || "AB"} color={r.color || "#5b8dbf"} />
                 </div>
                 <div style={{ display: "flex", gap: "2px" }}>
                   {[...Array(5)].map((_, si) => (
@@ -870,7 +966,7 @@ function TestimonialsSection({ isMobile }) {
         <div style={{ textAlign: "center" }}>
           <p style={{ fontFamily: "'Trebuchet MS', sans-serif", fontSize: "16px", color: "#333" }}>
             <span style={{ color: "#e5a800", fontWeight: 700, marginRight: "4px" }}>★</span>
-            <strong>3414 people</strong> signed up the last 30 days!
+            <strong>{config?.testimonialsSignupText || "3414 people signed up the last 30 days!"}</strong>
           </p>
         </div>
       </div>
@@ -878,7 +974,7 @@ function TestimonialsSection({ isMobile }) {
   );
 }
 
-// ============ ICON COMPONENTS ============
+// ============ ICON COMPONENTS (unchanged) ============
 function StarIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="#f5c842">
@@ -904,43 +1000,6 @@ function AvatarSVG({ initials, color }) {
       >
         {initials}
       </text>
-    </svg>
-  );
-}
-
-function MedalIcon() {
-  return (
-    <svg width="60" height="70" viewBox="0 0 60 70" fill="none">
-      <circle cx="30" cy="42" r="20" stroke="white" strokeWidth="3.5" fill="none" />
-      <circle cx="30" cy="42" r="13" stroke="white" strokeWidth="2" fill="none" />
-      <path
-        d="M22 8 L30 2 L38 8 L36 20 L24 20 Z"
-        stroke="white"
-        strokeWidth="3"
-        fill="none"
-        strokeLinejoin="round"
-      />
-      <line x1="24" y1="20" x2="22" y2="28" stroke="white" strokeWidth="3" strokeLinecap="round" />
-      <line x1="36" y1="20" x2="38" y2="28" stroke="white" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <svg width="62" height="58" viewBox="0 0 62 58" fill="white">
-      <path d="M31 52 C31 52 4 34 4 17 C4 9 10 3 18 3 C23 3 28 6 31 11 C34 6 39 3 44 3 C52 3 58 9 58 17 C58 34 31 52 31 52Z" />
-    </svg>
-  );
-}
-
-function MegaphoneIcon() {
-  return (
-    <svg width="64" height="60" viewBox="0 0 64 60" fill="none">
-      <path d="M10 22 L10 38 L20 38 L20 22 Z" fill="white" />
-      <path d="M20 22 L50 8 L50 52 L20 38 Z" fill="white" />
-      <rect x="10" y="38" width="10" height="14" rx="3" fill="white" />
-      <circle cx="54" cy="30" r="5" fill="white" opacity="0.7" />
     </svg>
   );
 }
