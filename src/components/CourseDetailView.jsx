@@ -98,29 +98,48 @@ const getVideoUrls = (subtopic) => {
   return [];
 };
 
-// ✅ Updated: Build image src with authentication token
+const fetchImageWithAuth = async (url) => {
+  try {
+    const token = localStorage.getItem('token');
+    // Clean the URL first
+    const cleanUrl = url.replace(/([^:]\/)\/+/g, "$1");
+    const response = await fetch(cleanUrl, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch image');
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    return null;
+  }
+};
+
 const buildImgSrc = (src) => {
   if (!src) return '';
   if (src.startsWith('http://') || src.startsWith('https://')) return src;
   
   let url;
-  // If the path already starts with /api, don't add it again
-  if (src.startsWith('/api/')) {
-    url = `${API_BASE}${src}`;
-  } else {
-    const cleanPath = cleanImagePath(src);
-    url = `${API_BASE}${cleanPath}`;
+  // Remove /api prefix from src if it exists since API_BASE already has it
+  let cleanSrc = src;
+  if (cleanSrc.startsWith('/api/')) {
+    cleanSrc = cleanSrc.substring(4);
+  }
+  if (cleanSrc.startsWith('api/')) {
+    cleanSrc = cleanSrc.substring(4);
+  }
+  if (!cleanSrc.startsWith('/')) {
+    cleanSrc = '/' + cleanSrc;
   }
   
-  // Add token for authentication
-  const token = localStorage.getItem('token');
-  if (token) {
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}token=${token}`;
-  }
+  url = `${API_BASE}${cleanSrc}`;
+  // Remove duplicate slashes
+  url = url.replace(/([^:]\/)\/+/g, "$1");
+  
   return url;
 };
-
 // ✅ Updated: Build image tag with authenticated src
 const buildImageTag = (alt, src) => {
   const imgSrc = buildImgSrc(src);
@@ -1065,6 +1084,9 @@ export default function CourseDetailView({
   const [showSidebar, setShowSidebar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  // ✅ State for authenticated image URLs (for gallery)
+  const [authImageUrls, setAuthImageUrls] = useState({});
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
@@ -1130,6 +1152,36 @@ export default function CourseDetailView({
       document.body.style.paddingTop = '';
     };
   }, []);
+
+  // ✅ Load images with authentication
+  useEffect(() => {
+    const loadImagesWithAuth = async () => {
+      const newAuthUrls = {};
+      for (const img of images) {
+        const safeId = img.subTopicId || img.subtopicId;
+        if (!safeId) continue;
+        const url = buildImageUrl(safeId, img.fileName);
+        const blobUrl = await fetchImageWithAuth(url);
+        if (blobUrl) {
+          newAuthUrls[img.id] = blobUrl;
+        }
+      }
+      setAuthImageUrls(newAuthUrls);
+    };
+    
+    if (images.length > 0) {
+      loadImagesWithAuth();
+    }
+    
+    // Cleanup blob URLs
+    return () => {
+      Object.values(authImageUrls).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [images]);
 
   const videoUrls = getVideoUrls(currentSub);
 
@@ -1223,17 +1275,12 @@ export default function CourseDetailView({
     );
   }
 
-  // ✅ Updated: Build image URL with authentication token
+  // ✅ Updated: Build image URL without token in query (token will be in header via fetch)
   const buildImageUrl = (subId, fileName) => {
     const cleanPath = cleanImagePath(`/subtopic-images/${subId}/${fileName}`);
     let url = `${API_BASE}${cleanPath}`;
-    
-    // Add token for authentication
-    const token = localStorage.getItem('token');
-    if (token) {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}token=${token}`;
-    }
+    // Remove duplicate /api in URL
+    url = url.replace(/([^:]\/)\/+/g, "$1");
     return url;
   };
 
@@ -1733,7 +1780,7 @@ export default function CourseDetailView({
               {images.map((img) => {
                 const safeId = img.subTopicId || img.subtopicId;
                 if (!safeId) return null;
-                const imageUrl = buildImageUrl(safeId, img.fileName);
+                const imageUrl = authImageUrls[img.id] || buildImageUrl(safeId, img.fileName);
                 return (
                   <div
                     key={img.id}
