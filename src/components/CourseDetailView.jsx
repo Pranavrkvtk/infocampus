@@ -1,7 +1,7 @@
 // src/components/CourseDetailView.jsx
 // Enhanced Odoo-style learning UI - Clean, minimal, no progress bar or complete button
 
-import React, { useState, useEffect, useCallback } from 'react';  // ✅ Removed useRef
+import React, { useState, useEffect, useCallback, useRef } from 'react';  // ✅ Added useRef
 import {
   getSubtopicInterviewQuestions,
   getSubtopicExamQuestions,
@@ -353,23 +353,126 @@ const CONTENT_TYPES = [
 // ─── Section components ───────────────────────────────────────────────
 
 // ─── NotesTab ──────────────────────────────────────────────────────────
-// ✅ Clean, continuous scrolling - no paging, no progress bar
+// ✅ Clean, continuous scrolling with fullscreen support
 function NotesTab({ content }) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef(null);
+
+  // ✅ HOOKS MUST BE CALLED BEFORE CONDITIONAL RETURN
+  // Handle ESC key to exit fullscreen
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else if (document.webkitFullscreenElement) {
+          document.webkitExitFullscreen();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isFullscreen]);
+
+  // Handle fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // ✅ Now conditional return after all hooks
   if (!content) {
     return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>📝 No notes for this section.</div>;
   }
 
   const html = renderRichContent(content);
 
+  const toggleFullscreen = () => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    if (!isFullscreen) {
+      if (el.requestFullscreen) {
+        el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+      }
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+      setIsFullscreen(false);
+    }
+  };
+
   return (
     <div style={{ position: 'relative', height: '100%' }}>
+      {/* Fullscreen toggle button */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        marginBottom: '12px',
+        position: 'relative',
+        zIndex: 10,
+      }}>
+        <button
+          onClick={toggleFullscreen}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            background: isFullscreen ? 'rgba(139,95,191,0.15)' : '#f8fafc',
+            border: isFullscreen ? '2px solid #8B5FBF' : '1px solid #E7E3EE',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: isFullscreen ? '#8B5FBF' : '#6B6478',
+            transition: 'all 0.2s ease',
+            boxShadow: isFullscreen ? '0 0 20px rgba(139,95,191,0.15)' : 'none',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#8B5FBF';
+            e.currentTarget.style.color = '#8B5FBF';
+          }}
+          onMouseLeave={(e) => {
+            if (!isFullscreen) {
+              e.currentTarget.style.borderColor = '#E7E3EE';
+              e.currentTarget.style.color = '#6B6478';
+            }
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>⛶</span>
+          <span>{isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'}</span>
+        </button>
+      </div>
+
       <div
+        ref={containerRef}
         className="notes-content fade-in"
         dangerouslySetInnerHTML={{ __html: html }}
         style={{
-          padding: '32px 36px',
-          maxHeight: '65vh',
-          minHeight: '300px',
+          padding: isFullscreen ? '48px 64px' : '32px 36px',
+          maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '65vh',
+          minHeight: isFullscreen ? 'calc(100vh - 180px)' : '300px',
           overflowY: 'auto',
           overflowX: 'hidden',
           userSelect: 'none',
@@ -377,21 +480,82 @@ function NotesTab({ content }) {
           MozUserSelect: 'none',
           msUserSelect: 'none',
           background: '#fff',
-          borderRadius: '14px',
-          border: '1px solid #EEECF3',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+          borderRadius: isFullscreen ? '0' : '14px',
+          border: isFullscreen ? 'none' : '1px solid #EEECF3',
+          boxShadow: isFullscreen 
+            ? '0 0 60px rgba(0,0,0,0.08)' 
+            : '0 2px 12px rgba(0,0,0,0.04)',
           overscrollBehavior: 'contain',
           touchAction: 'pan-y',
           scrollBehavior: 'smooth',
           WebkitOverflowScrolling: 'touch',
-          fontSize: '18px',
-          lineHeight: '2.0',
+          fontSize: isFullscreen ? '20px' : '18px',
+          lineHeight: isFullscreen ? '2.2' : '2.0',
+          transition: 'all 0.3s ease',
         }}
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
         onContextMenu={(e) => e.preventDefault()}
         onSelect={(e) => e.preventDefault()}
       />
+
+      {/* Fullscreen hint - shows briefly when entering fullscreen */}
+      {isFullscreen && (
+        <div style={{
+          position: 'fixed',
+          bottom: '30px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.7)',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: '30px',
+          fontSize: '14px',
+          fontWeight: 500,
+          backdropFilter: 'blur(10px)',
+          animation: 'fadeInOut 3s ease forwards',
+          pointerEvents: 'none',
+          zIndex: 1000,
+        }}>
+          Press <kbd style={{
+            background: 'rgba(255,255,255,0.2)',
+            padding: '2px 10px',
+            borderRadius: '6px',
+            margin: '0 6px',
+            fontSize: '13px',
+          }}>ESC</kbd> to exit fullscreen
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+          15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+          85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+          100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+        .notes-content {
+          transition: all 0.3s ease;
+        }
+        .notes-content:-webkit-full-screen {
+          padding: 60px 80px !important;
+          max-height: 100vh !important;
+          min-height: 100vh !important;
+          border-radius: 0 !important;
+        }
+        .notes-content:-moz-full-screen {
+          padding: 60px 80px !important;
+          max-height: 100vh !important;
+          min-height: 100vh !important;
+          border-radius: 0 !important;
+        }
+        .notes-content:fullscreen {
+          padding: 60px 80px !important;
+          max-height: 100vh !important;
+          min-height: 100vh !important;
+          border-radius: 0 !important;
+        }
+      `}</style>
     </div>
   );
 }
