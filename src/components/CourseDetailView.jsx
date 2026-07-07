@@ -29,17 +29,7 @@ const cleanImagePath = (path) => {
   return cleanPath;
 };
 
-// ✅ Fixed: Build full image URL
-const buildFullImageUrl = (src) => {
-  if (!src) return '';
-  if (src.startsWith('http://') || src.startsWith('https://')) return src;
-  // If the path already starts with /api, don't add it again
-  if (src.startsWith('/api/')) {
-    return `${API_BASE}${src}`;
-  }
-  const cleanPath = cleanImagePath(src);
-  return `${API_BASE}${cleanPath}`;
-};
+
 
 // ─── Design tokens ─────────────────────────────────────────────────────
 const C = {
