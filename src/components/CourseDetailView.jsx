@@ -353,10 +353,20 @@ const CONTENT_TYPES = [
 // ─── Section components ───────────────────────────────────────────────
 
 // ─── NotesTab ──────────────────────────────────────────────────────────
-// ✅ Clean, continuous scrolling with fullscreen support
+// ✅ Clean, continuous scrolling with fullscreen support (mobile-friendly)
 function NotesTab({ content }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Check for mobile on resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // ✅ HOOKS MUST BE CALLED BEFORE CONDITIONAL RETURN
   // Handle ESC key to exit fullscreen
@@ -402,29 +412,57 @@ function NotesTab({ content }) {
     if (!el) return;
 
     if (!isFullscreen) {
-      if (el.requestFullscreen) {
-        el.requestFullscreen();
-      } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen();
-      } else if (el.msRequestFullscreen) {
-        el.msRequestFullscreen();
+      // Enter fullscreen - mobile friendly
+      try {
+        if (el.requestFullscreen) {
+          el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        } else if (el.msRequestFullscreen) {
+          el.msRequestFullscreen();
+        } else {
+          // Fallback for older mobile browsers
+          // Use native fullscreen API with element
+          const elem = el;
+          if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+          }
+        }
+        setIsFullscreen(true);
+      } catch (err) {
+        console.warn('Fullscreen not supported:', err);
+        // Try alternative approach for mobile
+        try {
+          const elem = el;
+          if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+            setIsFullscreen(true);
+          }
+        } catch (err2) {
+          console.warn('Alternative fullscreen also failed:', err2);
+        }
       }
-      setIsFullscreen(true);
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
+      // Exit fullscreen
+      try {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+        setIsFullscreen(false);
+      } catch (err) {
+        console.warn('Exit fullscreen failed:', err);
+        setIsFullscreen(false);
       }
-      setIsFullscreen(false);
     }
   };
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
-      {/* Fullscreen toggle button */}
+      {/* Fullscreen toggle button - mobile friendly */}
       <div style={{
         display: 'flex',
         justifyContent: 'flex-end',
@@ -437,31 +475,38 @@ function NotesTab({ content }) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
+            gap: isMobile ? '4px' : '8px',
+            padding: isMobile ? '6px 12px' : '8px 16px',
             background: isFullscreen ? 'rgba(139,95,191,0.15)' : '#f8fafc',
             border: isFullscreen ? '2px solid #8B5FBF' : '1px solid #E7E3EE',
             borderRadius: '20px',
             cursor: 'pointer',
-            fontSize: '13px',
+            fontSize: isMobile ? '11px' : '13px',
             fontWeight: 600,
             color: isFullscreen ? '#8B5FBF' : '#6B6478',
             transition: 'all 0.2s ease',
             boxShadow: isFullscreen ? '0 0 20px rgba(139,95,191,0.15)' : 'none',
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#8B5FBF';
-            e.currentTarget.style.color = '#8B5FBF';
+            if (!isMobile) {
+              e.currentTarget.style.borderColor = '#8B5FBF';
+              e.currentTarget.style.color = '#8B5FBF';
+            }
           }}
           onMouseLeave={(e) => {
-            if (!isFullscreen) {
+            if (!isMobile && !isFullscreen) {
               e.currentTarget.style.borderColor = '#E7E3EE';
               e.currentTarget.style.color = '#6B6478';
             }
           }}
         >
-          <span style={{ fontSize: '18px' }}>⛶</span>
-          <span>{isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'}</span>
+          <span style={{ fontSize: isMobile ? '16px' : '18px' }}>⛶</span>
+          <span>{isFullscreen ? (isMobile ? 'Exit' : 'Exit Fullscreen') : (isMobile ? 'Full' : 'Fullscreen')}</span>
+          {isFullscreen && isMobile && (
+            <span style={{ fontSize: '10px', opacity: 0.6, marginLeft: '2px' }}>ESC</span>
+          )}
         </button>
       </div>
 
@@ -470,9 +515,9 @@ function NotesTab({ content }) {
         className="notes-content fade-in"
         dangerouslySetInnerHTML={{ __html: html }}
         style={{
-          padding: isFullscreen ? '48px 64px' : '32px 36px',
-          maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '65vh',
-          minHeight: isFullscreen ? 'calc(100vh - 180px)' : '300px',
+          padding: isFullscreen ? (isMobile ? '24px 20px' : '48px 64px') : (isMobile ? '20px 16px' : '32px 36px'),
+          maxHeight: isFullscreen ? 'calc(100vh - 100px)' : (isMobile ? '55vh' : '65vh'),
+          minHeight: isFullscreen ? 'calc(100vh - 150px)' : (isMobile ? '200px' : '300px'),
           overflowY: 'auto',
           overflowX: 'hidden',
           userSelect: 'none',
@@ -480,7 +525,7 @@ function NotesTab({ content }) {
           MozUserSelect: 'none',
           msUserSelect: 'none',
           background: '#fff',
-          borderRadius: isFullscreen ? '0' : '14px',
+          borderRadius: isFullscreen ? '0' : (isMobile ? '12px' : '14px'),
           border: isFullscreen ? 'none' : '1px solid #EEECF3',
           boxShadow: isFullscreen 
             ? '0 0 60px rgba(0,0,0,0.08)' 
@@ -489,9 +534,11 @@ function NotesTab({ content }) {
           touchAction: 'pan-y',
           scrollBehavior: 'smooth',
           WebkitOverflowScrolling: 'touch',
-          fontSize: isFullscreen ? '20px' : '18px',
-          lineHeight: isFullscreen ? '2.2' : '2.0',
+          fontSize: isFullscreen ? (isMobile ? '17px' : '20px') : (isMobile ? '15px' : '18px'),
+          lineHeight: isFullscreen ? (isMobile ? '2.0' : '2.2') : (isMobile ? '1.9' : '2.0'),
           transition: 'all 0.3s ease',
+          // Mobile touch improvements
+          paddingBottom: isFullscreen && isMobile ? '80px' : undefined,
         }}
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
@@ -499,31 +546,49 @@ function NotesTab({ content }) {
         onSelect={(e) => e.preventDefault()}
       />
 
-      {/* Fullscreen hint - shows briefly when entering fullscreen */}
+      {/* Fullscreen hint - mobile friendly */}
       {isFullscreen && (
         <div style={{
           position: 'fixed',
-          bottom: '30px',
+          bottom: isMobile ? '20px' : '30px',
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.7)',
+          background: 'rgba(0,0,0,0.75)',
           color: '#fff',
-          padding: '12px 24px',
+          padding: isMobile ? '10px 18px' : '12px 24px',
           borderRadius: '30px',
-          fontSize: '14px',
+          fontSize: isMobile ? '12px' : '14px',
           fontWeight: 500,
           backdropFilter: 'blur(10px)',
           animation: 'fadeInOut 3s ease forwards',
           pointerEvents: 'none',
           zIndex: 1000,
+          whiteSpace: 'nowrap',
+          maxWidth: '90%',
         }}>
-          Press <kbd style={{
-            background: 'rgba(255,255,255,0.2)',
-            padding: '2px 10px',
-            borderRadius: '6px',
-            margin: '0 6px',
-            fontSize: '13px',
-          }}>ESC</kbd> to exit fullscreen
+          {isMobile ? (
+            <>Tap <kbd style={{
+              background: 'rgba(255,255,255,0.2)',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              margin: '0 4px',
+              fontSize: '11px',
+            }}>⛶</kbd> or press <kbd style={{
+              background: 'rgba(255,255,255,0.2)',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              margin: '0 4px',
+              fontSize: '11px',
+            }}>ESC</kbd> to exit</>
+          ) : (
+            <>Press <kbd style={{
+              background: 'rgba(255,255,255,0.2)',
+              padding: '2px 10px',
+              borderRadius: '6px',
+              margin: '0 6px',
+              fontSize: '13px',
+            }}>ESC</kbd> to exit fullscreen</>
+          )}
         </div>
       )}
 
@@ -554,6 +619,15 @@ function NotesTab({ content }) {
           max-height: 100vh !important;
           min-height: 100vh !important;
           border-radius: 0 !important;
+        }
+        /* Mobile touch improvements */
+        @media (max-width: 768px) {
+          .notes-content {
+            -webkit-overflow-scrolling: touch;
+          }
+          .notes-content:fullscreen {
+            padding: 20px !important;
+          }
         }
       `}</style>
     </div>
