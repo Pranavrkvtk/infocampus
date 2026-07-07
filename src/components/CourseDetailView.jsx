@@ -140,6 +140,7 @@ const buildImgSrc = (src) => {
   
   return url;
 };
+
 // ✅ Updated: Build image tag with authenticated src
 const buildImageTag = (alt, src) => {
   const imgSrc = buildImgSrc(src);
@@ -1087,6 +1088,8 @@ export default function CourseDetailView({
   
   // ✅ State for authenticated image URLs (for gallery)
   const [authImageUrls, setAuthImageUrls] = useState({});
+  // ✅ Ref to track blob URLs for cleanup (fixes ESLint warning)
+  const authImageUrlsRef = useRef({});
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
@@ -1153,7 +1156,7 @@ export default function CourseDetailView({
     };
   }, []);
 
-  // ✅ Load images with authentication
+  // ✅ Load images with authentication - Fixed ESLint warning
   useEffect(() => {
     const loadImagesWithAuth = async () => {
       const newAuthUrls = {};
@@ -1167,21 +1170,22 @@ export default function CourseDetailView({
         }
       }
       setAuthImageUrls(newAuthUrls);
+      authImageUrlsRef.current = newAuthUrls; // Update ref for cleanup
     };
     
     if (images.length > 0) {
       loadImagesWithAuth();
     }
     
-    // Cleanup blob URLs
+    // Cleanup blob URLs using the ref (fixes the ESLint warning)
     return () => {
-      Object.values(authImageUrls).forEach(url => {
+      Object.values(authImageUrlsRef.current).forEach(url => {
         if (url && url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
         }
       });
     };
-  }, [images]);
+  }, [images]); // ✅ Only depends on images, not authImageUrls
 
   const videoUrls = getVideoUrls(currentSub);
 
@@ -1277,9 +1281,10 @@ export default function CourseDetailView({
 
   // ✅ Updated: Build image URL without token in query (token will be in header via fetch)
   const buildImageUrl = (subId, fileName) => {
-    const cleanPath = cleanImagePath(`/subtopic-images/${subId}/${fileName}`);
-    let url = `${API_BASE}${cleanPath}`;
-    // Remove duplicate /api in URL
+    // Build the path without the /api prefix since API_BASE already has it
+    const path = `/admin/uploads/subtopic_${subId}/images/${fileName}`;
+    let url = `${API_BASE}${path}`;
+    // Remove duplicate slashes
     url = url.replace(/([^:]\/)\/+/g, "$1");
     return url;
   };
