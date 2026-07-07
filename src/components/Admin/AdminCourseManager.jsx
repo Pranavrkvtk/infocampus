@@ -5,7 +5,7 @@ import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
 import api from '../../api/axios';
 
-// ✅ Get base URL from environment (same as axios.js)
+// ✅ Get base URL from environment
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
 // ✅ Helper function to clean image paths
@@ -29,7 +29,8 @@ const getFullImageUrl = (imagePath) => {
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
-  return `${API_BASE_URL}${cleanImagePath(imagePath)}`;
+  const cleanPath = cleanImagePath(imagePath);
+  return `${API_BASE_URL}${cleanPath}`;
 };
 
 const clr = {
@@ -207,6 +208,7 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     formData.append('file', file);
 
     try {
+      // ✅ FIXED: Remove /api prefix (already in baseURL)
       const response = await api.post(`/admin/courses/${course.id}/upload-image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -233,7 +235,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     }
   };
 
-  // ✅ Fixed: Use getFullImageUrl helper
   const imageSrc = getFullImageUrl(course.imageUrl);
 
   return (
@@ -273,12 +274,16 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
               border: `1px solid ${clr.border}`
             }}
             onError={(e) => {
-              e.target.src = '';
-              e.target.alt = 'Image not found';
+              e.target.style.display = 'none';
+              const parent = e.target.parentElement;
+              const fallback = document.createElement('div');
+              fallback.style.cssText = 'padding: 20px; text-align: center; color: #64748b; border: 2px dashed #e4e7ec; border-radius: 8px;';
+              fallback.innerHTML = '🖼️<br/><span style="font-size:13px;">Image not found</span>';
+              parent.appendChild(fallback);
             }}
           />
-          <div style={{ fontSize: 11, color: clr.muted, marginTop: 4 }}>
-            Current image: {course.imageUrl}
+          <div style={{ fontSize: 11, color: clr.muted, marginTop: 4, wordBreak: 'break-all' }}>
+            Image path: {course.imageUrl}
           </div>
         </div>
       ) : (
@@ -301,6 +306,9 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// COURSE SELECTOR (FIXED - Calls API only once)
+// ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -308,27 +316,41 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [imageErrors, setImageErrors] = useState({});
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const loadCourses = useCallback(async () => {
+  // ✅ Load courses only once when component mounts
+  useEffect(() => {
+    const loadCourses = async () => {
+      setLoading(true);
+      try {
+        const response = await api.get('/admin/courses');
+        const data = response.data;
+        setCourses(Array.isArray(data) ? data : []);
+        console.log('✅ Courses loaded once:', data.length);
+      } catch (error) { 
+        console.error('Error loading courses:', error);
+        toast.show(error.response?.data?.message || 'Failed to load courses', 'error');
+        setCourses([]);
+      } finally { 
+        setLoading(false); 
+      }
+    };
+    
+    loadCourses();
+  }, []); // ✅ Empty dependency array = runs only once
+
+  const handleCourseCreated = async () => {
+    // ✅ Reload courses after creating a new one
     setLoading(true);
     try {
       const response = await api.get('/admin/courses');
       const data = response.data;
       setCourses(Array.isArray(data) ? data : []);
+      toast.show('Course created successfully!', 'success');
     } catch (error) { 
       console.error('Error loading courses:', error);
       toast.show('Failed to load courses', 'error');
     } finally { 
       setLoading(false); 
     }
-  }, [toast]);
-
-  useEffect(() => { 
-    loadCourses(); 
-  }, [loadCourses]);
-
-  const handleCourseCreated = async () => {
-    await loadCourses();
-    toast.show('Course created successfully!', 'success');
   };
 
   const filtered = courses.filter(c => c.title?.toLowerCase().includes(search.toLowerCase()));
@@ -337,7 +359,6 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     setImageErrors(prev => ({ ...prev, [courseId]: true }));
   };
 
-  // ✅ Fixed: Use getFullImageUrl helper
   const getImageUrl = (course) => {
     return getFullImageUrl(course.imageUrl);
   };
@@ -389,6 +410,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
                               alt={c.title}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               onError={() => handleImageError(c.id)}
+                              loading="lazy"
                             />
                           ) : (
                             <span>{c.title?.[0]?.toUpperCase() || '?'}</span>
@@ -415,7 +437,6 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     </>
   );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOPIC MANAGER
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -447,10 +468,12 @@ function TopicManager({
     setSaving(true);
     try {
       if (editId) {
+        // ✅ FIXED: Remove /api prefix
         await api.put(`/admin/topics/${editId}`, { title: form.title });
         setTopics(ts => ts.map(t => t.id === editId ? { ...t, title: form.title } : t));
         toast.show('Topic updated');
       } else {
+        // ✅ FIXED: Remove /api prefix
         const response = await api.post(`/admin/courses/${courseId}/topics`, { title: form.title });
         const data = response.data;
         const newTopic = { id: data.topicId || data.topic?.id, title: form.title, subtopics: [] };
@@ -459,21 +482,28 @@ function TopicManager({
         onPageChange(pagination.currentPage);
       }
       setModal(null);
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setSaving(false); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to save topic', 'error'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const del = async (id) => {
     if (!window.confirm('Delete this topic and all its subtopics?')) return;
     setDeletingId(id);
     try {
+      // ✅ FIXED: Remove /api prefix
       await api.delete(`/admin/topics/${id}`);
       setTopics(ts => ts.filter(t => t.id !== id));
       if (activeTopicId === id) setActiveTopicId(null);
       toast.show('Topic deleted');
       onPageChange(pagination.currentPage);
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setDeletingId(null); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to delete topic', 'error'); 
+    } finally { 
+      setDeletingId(null); 
+    }
   };
 
   return (
@@ -598,10 +628,12 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
     setSaving(true);
     try {
       if (editId) {
+        // ✅ FIXED: Remove /api prefix
         await api.put(`/admin/subtopics/${editId}`, { title: form.title });
         setSubtopics(ss => ss.map(s => s.id === editId ? { ...s, title: form.title } : s));
         toast.show('Subtopic updated');
       } else {
+        // ✅ FIXED: Remove /api prefix
         const response = await api.post(`/admin/topics/${topic.id}/subtopics`, { title: form.title });
         const data = response.data;
         const newSub = { id: data.subtopicId || data.subtopic?.id, title: form.title, content: '', videoUrl: '' };
@@ -609,20 +641,27 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
         toast.show('Subtopic created');
       }
       setModal(null);
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setSaving(false); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to save subtopic', 'error'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const del = async (id) => {
     if (!window.confirm('Delete this subtopic?')) return;
     setDeletingId(id);
     try {
+      // ✅ FIXED: Remove /api prefix
       await api.delete(`/admin/subtopics/${id}`);
       setSubtopics(ss => ss.filter(s => s.id !== id));
       if (activeSubId === id) setActiveSubId(null);
       toast.show('Subtopic deleted');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setDeletingId(null); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to delete subtopic', 'error'); 
+    } finally { 
+      setDeletingId(null); 
+    }
   };
 
   return (
@@ -685,6 +724,7 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
 
   const loadQuestions = useCallback(() => {
     if (!subtopicId) return;
+    // ✅ FIXED: Remove /api prefix
     api.get(`/admin/subtopics/${subtopicId}/interview-questions`)
       .then(response => { 
         const data = response.data;
@@ -703,24 +743,31 @@ function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
     if (!addForm.question.trim()) return;
     setAdding(true);
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.post(`/admin/subtopics/${subtopicId}/interview-questions`, addForm);
       const data = response.data;
       const updated = [...questions, { id: data.questionId, ...addForm }];
       setQuestions(updated); onUpdate({ interviewQuestions: updated });
       setAddForm({ question: '', answer: '' }); setShowAdd(false);
       toast.show('Interview question added');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setAdding(false); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to add question', 'error'); 
+    } finally { 
+      setAdding(false); 
+    }
   };
 
   const delQ = async (id) => {
     if (!window.confirm('Delete this question?')) return;
     try {
+      // ✅ FIXED: Remove /api prefix
       await api.delete(`/admin/interview-questions/${id}`);
       const updated = questions.filter(q => q.id !== id);
       setQuestions(updated); onUpdate({ interviewQuestions: updated });
       toast.show('Question deleted');
-    } catch (e) { toast.show(e.message, 'error'); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to delete question', 'error'); 
+    }
   };
 
   return (
@@ -764,6 +811,7 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
 
   const loadQuestions = useCallback(() => {
     if (!subtopicId) return;
+    // ✅ FIXED: Remove /api prefix
     api.get(`/admin/subtopics/${subtopicId}/exam-questions`)
       .then(response => { 
         const data = response.data;
@@ -782,24 +830,31 @@ function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
     if (!addForm.question.trim()) return;
     setAdding(true);
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.post(`/admin/subtopics/${subtopicId}/exam-questions`, addForm);
       const data = response.data;
       const updated = [...questions, { id: data.questionId, ...addForm }];
       setQuestions(updated); onUpdate({ examQuestions: updated });
       setAddForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
       setShowAdd(false); toast.show('MCQ added');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setAdding(false); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to add MCQ', 'error'); 
+    } finally { 
+      setAdding(false); 
+    }
   };
 
   const delQ = async (id) => {
     if (!window.confirm('Delete this MCQ?')) return;
     try {
+      // ✅ FIXED: Remove /api prefix
       await api.delete(`/admin/exam-questions/${id}`);
       const updated = questions.filter(q => q.id !== id);
       setQuestions(updated); onUpdate({ examQuestions: updated });
       toast.show('MCQ deleted');
-    } catch (e) { toast.show(e.message, 'error'); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to delete MCQ', 'error'); 
+    }
   };
 
   return (
@@ -854,6 +909,7 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 
   const loadLabs = useCallback(() => {
     if (!subtopicId) return;
+    // ✅ FIXED: Remove /api prefix
     api.get(`/admin/subtopics/${subtopicId}/labs`)
       .then(response => { 
         const data = response.data;
@@ -872,24 +928,31 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
     if (!addForm.title.trim()) return;
     setAdding(true);
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.post(`/admin/subtopics/${subtopicId}/labs`, addForm);
       const data = response.data;
       const updated = [...labs, { id: data.labId, ...addForm }];
       setLabs(updated); onUpdate({ labExercises: updated });
       setAddForm({ title: '', instructions: '' }); setShowAdd(false);
       toast.show('Lab step added');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setAdding(false); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to add lab', 'error'); 
+    } finally { 
+      setAdding(false); 
+    }
   };
 
   const delLab = async (id) => {
     if (!window.confirm('Delete this lab step?')) return;
     try {
+      // ✅ FIXED: Remove /api prefix
       await api.delete(`/admin/labs/${id}`);
       const updated = labs.filter(l => l.id !== id);
       setLabs(updated); onUpdate({ labExercises: updated });
       toast.show('Lab step deleted');
-    } catch (e) { toast.show(e.message, 'error'); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to delete lab', 'error'); 
+    }
   };
 
   return (
@@ -925,12 +988,11 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE RENDERER (FIXED)
+// MARKDOWN IMAGE RENDERER
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   if (!src) return null;
 
-  // ✅ Use getFullImageUrl helper for consistent URL building
   const fullSrc = getFullImageUrl(src);
 
   return (
@@ -1014,21 +1076,29 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
   const saveNotes = async () => {
     setSaving(true);
     try {
+      // ✅ FIXED: Remove /api prefix
       await api.put(`/admin/subtopics/${subtopicId}`, { content: notes });
       onUpdate({ content: notes });
       toast.show('Notes saved');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setSaving(false); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to save notes', 'error'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const saveVideo = async () => {
     setSaving(true);
     try {
+      // ✅ FIXED: Remove /api prefix
       await api.put(`/admin/subtopics/${subtopicId}/video`, { videoUrl });
       onUpdate({ videoUrl });
       toast.show('Video URL saved');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setSaving(false); }
+    } catch (e) { 
+      toast.show(e.response?.data?.message || e.message || 'Failed to save video', 'error'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const handleTabUpdate = (patch) => {
@@ -1053,12 +1123,14 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     const formData = new FormData();
     formData.append('file', file);
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.post(`/admin/subtopics/${subtopicId}/upload-pdf`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       const data = response.data;
+      // ✅ FIXED: Remove /api prefix
       const refreshedResponse = await api.get(`/admin/subtopics/${subtopicId}`);
       const refreshedSub = refreshedResponse.data;
       setNotes(refreshedSub.content || '');
@@ -1371,6 +1443,7 @@ export default function AdminCourseManager() {
     if (!courseId) return;
     setLoading(true);
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get(`/admin/courses/${courseId}/topics?page=${page}&size=50&sortBy=displayOrder`);
       const data = response.data;
       if (data.content && Array.isArray(data.content)) {
@@ -1386,11 +1459,18 @@ export default function AdminCourseManager() {
         const expanded = {};
         data.content.forEach(t => { expanded[t.id] = true; });
         setExpandedTopics(expanded);
+      } else {
+        setTopics([]);
+        setPagination(prev => ({ ...prev, totalItems: 0, totalPages: 0 }));
       }
     } catch (error) {
       console.error('Failed to load topics:', error);
-      toast.show('Failed to load topics', 'error');
-    } finally { setLoading(false); }
+      toast.show(error.response?.data?.message || 'Failed to load topics', 'error');
+      setTopics([]);
+      setPagination(prev => ({ ...prev, totalItems: 0, totalPages: 0 }));
+    } finally { 
+      setLoading(false); 
+    }
   }, [toast, activeTopicId]);
 
   const handlePageChange = (newPage) => {
