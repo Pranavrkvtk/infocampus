@@ -2,17 +2,36 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
-import AddCourseModal from './AddCourseModal'; // ✅ Import AddCourseModal
+import AddCourseModal from './AddCourseModal';
 import axiosInstance, { API_ROOT_URL } from '../../api/axios';
 
-// Root API path (e.g. https://backendrender-3-3pdg.onrender.com/api).
-// Comes from the shared axios instance so this file never hardcodes an
-// environment-specific host again.
+// Root API path - comes from the shared axios instance
 const API_BASE = `${API_ROOT_URL}/api`;
 
-// Thin wrapper so every existing `api.get/post/put/delete(...)` call site
-// below keeps working unchanged, but now goes through the shared axios
-// instance (auth header, baseURL, 401 handling all come for free).
+// Helper function to build image URLs correctly
+const getFullImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  
+  // If it's already a full URL (absolute)
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // If it already starts with /api/, just prepend the API_ROOT_URL
+  if (imageUrl.startsWith('/api/')) {
+    return `${API_ROOT_URL}${imageUrl}`;
+  }
+  
+  // If it starts with /uploads/, construct properly
+  if (imageUrl.startsWith('/uploads/')) {
+    return `${API_ROOT_URL}${imageUrl}`;
+  }
+  
+  // Otherwise, assume it's a relative path from /api/
+  return `${API_BASE}/${imageUrl}`;
+};
+
+// Thin wrapper for axios
 const api = {
   get: (url) => axiosInstance.get(url).then(r => r.data),
   post: (url, body) => axiosInstance.post(url, body).then(r => r.data),
@@ -135,7 +154,7 @@ const SectionHead = ({ icon, title, count, action }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DOCUMENT UPLOAD BUTTON (supports PDF, DOC, DOCX)
+// DOCUMENT UPLOAD BUTTON
 // ═══════════════════════════════════════════════════════════════════════════════
 function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
   const inputId = `doc-upload-${subtopicId}`;
@@ -169,7 +188,7 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE IMAGE UPLOADER
+// COURSE IMAGE UPLOADER - FIXED
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
@@ -195,10 +214,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     formData.append('file', file);
 
     try {
-      // axios auto-detects FormData and sets the correct
-      // multipart/form-data header (with boundary) itself — don't set it
-      // manually, and don't worry about the auth header, the shared
-      // instance's interceptor already attaches it.
       const response = await axiosInstance.post(`/admin/courses/${course.id}/upload-image`, formData);
       const result = response.data;
       console.log('Upload result:', result);
@@ -221,20 +236,8 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     }
   };
 
-  const getImageSrc = () => {
-    if (course.imageUrl) {
-      if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
-        return course.imageUrl;
-      }
-      if (course.imageUrl.startsWith('/api/')) {
-        return `${API_ROOT_URL}${course.imageUrl}`;
-      }
-      return `${API_BASE}${course.imageUrl}`;
-    }
-    return null;
-  };
-
-  const imageSrc = getImageSrc();
+  // FIXED: Use the helper function
+  const imageSrc = getFullImageUrl(course.imageUrl);
 
   return (
     <div style={{ 
@@ -299,7 +302,7 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR (with AddCourseModal)
+// COURSE SELECTOR - FIXED
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
@@ -330,12 +333,9 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     setImageErrors(prev => ({ ...prev, [courseId]: true }));
   };
 
+  // FIXED: Use the helper function
   const getImageUrl = (course) => {
-    if (!course.imageUrl) return null;
-    if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
-      return course.imageUrl;
-    }
-    return `${API_BASE}${course.imageUrl}`;
+    return getFullImageUrl(course.imageUrl);
   };
 
   return (
@@ -402,7 +402,6 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
         </div>
       </div>
 
-      {/* ✅ Use AddCourseModal */}
       <AddCourseModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -902,7 +901,7 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE RENDERER
+// MARKDOWN IMAGE RENDERER - FIXED
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   if (!src) return null;
@@ -913,9 +912,9 @@ function MarkdownImage({ src, alt }) {
   } else if (src.startsWith('/api/')) {
     fullSrc = `${API_ROOT_URL}${src}`;
   } else if (src.startsWith('/uploads/')) {
-    fullSrc = `${API_BASE}/admin${src}`;
+    fullSrc = `${API_ROOT_URL}${src}`;
   } else {
-    fullSrc = `${API_BASE}${src}`;
+    fullSrc = `${API_ROOT_URL}/api${src}`;
   }
 
   return (
@@ -1038,9 +1037,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     const formData = new FormData();
     formData.append('file', file);
     try {
-      // Same as the image uploader: let axios detect the FormData body and
-      // set the multipart header + boundary itself; the auth header comes
-      // from the shared instance's interceptor.
       const response = await axiosInstance.post(`/admin/subtopics/${subtopicId}/upload-pdf`, formData);
       const data = response.data;
       const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
