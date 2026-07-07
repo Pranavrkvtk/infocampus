@@ -6,7 +6,31 @@ import AddCourseModal from './AddCourseModal';
 import api from '../../api/axios';
 
 // ✅ Get base URL from environment (same as axios.js)
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
+// ✅ Helper function to clean image paths
+const cleanImagePath = (path) => {
+  if (!path) return path;
+  let cleanPath = path;
+  // Remove duplicate /api prefix
+  if (cleanPath.startsWith('/api/')) {
+    cleanPath = cleanPath.substring(4);
+  }
+  // Ensure it starts with /
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = '/' + cleanPath;
+  }
+  return cleanPath;
+};
+
+// ✅ Helper function to get full image URL
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  return `${API_BASE_URL}${cleanImagePath(imagePath)}`;
+};
 
 const clr = {
   bg: '#f8f9fb', white: '#ffffff', border: '#e4e7ec', borderActive: '#4f46e5',
@@ -209,20 +233,8 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     }
   };
 
-  const getImageSrc = () => {
-    if (course.imageUrl) {
-      if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
-        return course.imageUrl;
-      }
-      if (course.imageUrl.startsWith('/api/')) {
-        return `${API_BASE_URL}${course.imageUrl}`;
-      }
-      return `${API_BASE_URL}/api${course.imageUrl}`;
-    }
-    return null;
-  };
-
-  const imageSrc = getImageSrc();
+  // ✅ Fixed: Use getFullImageUrl helper
+  const imageSrc = getFullImageUrl(course.imageUrl);
 
   return (
     <div style={{ 
@@ -325,14 +337,11 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     setImageErrors(prev => ({ ...prev, [courseId]: true }));
   };
 
-const getImageUrl = (course) => {
-  if (!course.imageUrl) return null;
-  if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
-    return course.imageUrl;
-  }
-  // ✅ Remove /api - API_BASE_URL already includes it
-  return `${API_BASE_URL}${course.imageUrl}`;
-};
+  // ✅ Fixed: Use getFullImageUrl helper
+  const getImageUrl = (course) => {
+    return getFullImageUrl(course.imageUrl);
+  };
+
   return (
     <>
       <div style={{ padding: '20px 24px' }}>
@@ -916,21 +925,13 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE RENDERER
+// MARKDOWN IMAGE RENDERER (FIXED)
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   if (!src) return null;
 
-  let fullSrc;
-  if (src.startsWith('http://') || src.startsWith('https://')) {
-    fullSrc = src;
-  } else if (src.startsWith('/api/')) {
-    fullSrc = `${API_BASE_URL}${src}`;
-  } else if (src.startsWith('/uploads/')) {
-    fullSrc = `${API_BASE_URL}/api/admin${src}`;
-  } else {
-    fullSrc = `${API_BASE_URL}/api${src}`;
-  }
+  // ✅ Use getFullImageUrl helper for consistent URL building
+  const fullSrc = getFullImageUrl(src);
 
   return (
     <img

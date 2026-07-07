@@ -1,5 +1,5 @@
 // src/utils/imageUtils.js
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082/api';
 
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
