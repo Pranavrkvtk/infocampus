@@ -29,8 +29,6 @@ const cleanImagePath = (path) => {
   return cleanPath;
 };
 
-
-
 // ─── Design tokens ─────────────────────────────────────────────────────
 const C = {
   sidebarBg: '#15131C',
@@ -100,19 +98,34 @@ const getVideoUrls = (subtopic) => {
   return [];
 };
 
+// ✅ Updated: Build image src with authentication token
 const buildImgSrc = (src) => {
   if (!src) return '';
   if (src.startsWith('http://') || src.startsWith('https://')) return src;
+  
+  let url;
   // If the path already starts with /api, don't add it again
   if (src.startsWith('/api/')) {
-    return `${API_BASE}${src}`;
+    url = `${API_BASE}${src}`;
+  } else {
+    const cleanPath = cleanImagePath(src);
+    url = `${API_BASE}${cleanPath}`;
   }
-  const cleanPath = cleanImagePath(src);
-  return `${API_BASE}${cleanPath}`;
+  
+  // Add token for authentication
+  const token = localStorage.getItem('token');
+  if (token) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}token=${token}`;
+  }
+  return url;
 };
 
-const buildImageTag = (alt, src) =>
-  `<img src="${buildImgSrc(src)}" alt="${alt}" class="note-image" loading="lazy" style="max-width:100%;border-radius:14px;margin:24px 0;box-shadow:0 6px 24px rgba(0,0,0,0.1);display:block;height:auto;" />`;
+// ✅ Updated: Build image tag with authenticated src
+const buildImageTag = (alt, src) => {
+  const imgSrc = buildImgSrc(src);
+  return `<img src="${imgSrc}" alt="${alt}" class="note-image" loading="lazy" style="max-width:100%;border-radius:14px;margin:24px 0;box-shadow:0 6px 24px rgba(0,0,0,0.1);display:block;height:auto;" />`;
+};
 
 const inlineFormat = (str) => {
   let out = str;
@@ -383,7 +396,7 @@ function NotesTab({ content }) {
         className="notes-content fade-in"
         dangerouslySetInnerHTML={{ __html: html }}
         style={{
-          padding: isMobile ? '20px 16px' : '32px 36px',  // ⬅️ CHANGE THIS LINE
+          padding: isMobile ? '20px 16px 80px 16px' : '32px 36px 100px 36px',
           maxHeight: isMobile ? '55vh' : '65vh',
           minHeight: isMobile ? '200px' : '300px',
           overflowY: 'auto',
@@ -1210,9 +1223,18 @@ export default function CourseDetailView({
     );
   }
 
+  // ✅ Updated: Build image URL with authentication token
   const buildImageUrl = (subId, fileName) => {
     const cleanPath = cleanImagePath(`/subtopic-images/${subId}/${fileName}`);
-    return `${API_BASE}${cleanPath}`;
+    let url = `${API_BASE}${cleanPath}`;
+    
+    // Add token for authentication
+    const token = localStorage.getItem('token');
+    if (token) {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}token=${token}`;
+    }
+    return url;
   };
 
   const isMobileDevice = window.innerWidth < 768;
