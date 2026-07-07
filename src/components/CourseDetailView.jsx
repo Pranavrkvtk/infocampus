@@ -1,7 +1,7 @@
 // src/components/CourseDetailView.jsx
 // Enhanced Odoo-style learning UI - Clean, minimal, no progress bar or complete button
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';  // ✅ Added useRef
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   getSubtopicInterviewQuestions,
   getSubtopicExamQuestions,
@@ -15,12 +15,14 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 const cleanImagePath = (path) => {
   if (!path) return path;
   let cleanPath = path;
+  // Remove duplicate /api prefix
   while (cleanPath.startsWith('/api/')) {
     cleanPath = cleanPath.substring(4);
   }
   while (cleanPath.startsWith('api/')) {
     cleanPath = cleanPath.substring(4);
   }
+  // Ensure it starts with /
   if (!cleanPath.startsWith('/')) {
     cleanPath = '/' + cleanPath;
   }
@@ -31,6 +33,10 @@ const cleanImagePath = (path) => {
 const buildFullImageUrl = (src) => {
   if (!src) return '';
   if (src.startsWith('http://') || src.startsWith('https://')) return src;
+  // If the path already starts with /api, don't add it again
+  if (src.startsWith('/api/')) {
+    return `${API_BASE}${src}`;
+  }
   const cleanPath = cleanImagePath(src);
   return `${API_BASE}${cleanPath}`;
 };
@@ -105,11 +111,18 @@ const getVideoUrls = (subtopic) => {
 };
 
 const buildImgSrc = (src) => {
-  return buildFullImageUrl(src);
+  if (!src) return '';
+  if (src.startsWith('http://') || src.startsWith('https://')) return src;
+  // If the path already starts with /api, don't add it again
+  if (src.startsWith('/api/')) {
+    return `${API_BASE}${src}`;
+  }
+  const cleanPath = cleanImagePath(src);
+  return `${API_BASE}${cleanPath}`;
 };
 
 const buildImageTag = (alt, src) =>
-  `<img src="${buildImgSrc(src)}" alt="${alt}" class="note-image" loading="lazy" style="max-width:100%;border-radius:14px;margin:24px 0;box-shadow:0 6px 24px rgba(0,0,0,0.1);" />`;
+  `<img src="${buildImgSrc(src)}" alt="${alt}" class="note-image" loading="lazy" style="max-width:100%;border-radius:14px;margin:24px 0;box-shadow:0 6px 24px rgba(0,0,0,0.1);display:block;height:auto;" />`;
 
 const inlineFormat = (str) => {
   let out = str;
@@ -353,9 +366,8 @@ const CONTENT_TYPES = [
 // ─── Section components ───────────────────────────────────────────────
 
 // ─── NotesTab ──────────────────────────────────────────────────────────
-// ✅ Clean, continuous scrolling with fullscreen support (mobile-friendly)
+// Clean, continuous scrolling with mobile-friendly design
 function NotesTab({ content }) {
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -368,156 +380,22 @@ function NotesTab({ content }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ✅ HOOKS MUST BE CALLED BEFORE CONDITIONAL RETURN
-  // Handle ESC key to exit fullscreen
-  useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false);
-        if (document.fullscreenElement) {
-          document.exitFullscreen();
-        } else if (document.webkitFullscreenElement) {
-          document.webkitExitFullscreen();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isFullscreen]);
-
-  // Handle fullscreen change events
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        setIsFullscreen(false);
-      }
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
-  // ✅ Now conditional return after all hooks
   if (!content) {
     return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>📝 No notes for this section.</div>;
   }
 
   const html = renderRichContent(content);
 
-  const toggleFullscreen = () => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    if (!isFullscreen) {
-      // Enter fullscreen - mobile friendly
-      try {
-        if (el.requestFullscreen) {
-          el.requestFullscreen();
-        } else if (el.webkitRequestFullscreen) {
-          el.webkitRequestFullscreen();
-        } else if (el.msRequestFullscreen) {
-          el.msRequestFullscreen();
-        } else {
-          // Fallback for older mobile browsers
-          // Use native fullscreen API with element
-          const elem = el;
-          if (elem.webkitRequestFullscreen) {
-            elem.webkitRequestFullscreen();
-          }
-        }
-        setIsFullscreen(true);
-      } catch (err) {
-        console.warn('Fullscreen not supported:', err);
-        // Try alternative approach for mobile
-        try {
-          const elem = el;
-          if (elem.webkitRequestFullscreen) {
-            elem.webkitRequestFullscreen();
-            setIsFullscreen(true);
-          }
-        } catch (err2) {
-          console.warn('Alternative fullscreen also failed:', err2);
-        }
-      }
-    } else {
-      // Exit fullscreen
-      try {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
-        }
-        setIsFullscreen(false);
-      } catch (err) {
-        console.warn('Exit fullscreen failed:', err);
-        setIsFullscreen(false);
-      }
-    }
-  };
-
   return (
     <div style={{ position: 'relative', height: '100%' }}>
-      {/* Fullscreen toggle button - mobile friendly */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        marginBottom: '12px',
-        position: 'relative',
-        zIndex: 10,
-      }}>
-        <button
-          onClick={toggleFullscreen}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: isMobile ? '4px' : '8px',
-            padding: isMobile ? '6px 12px' : '8px 16px',
-            background: isFullscreen ? 'rgba(139,95,191,0.15)' : '#f8fafc',
-            border: isFullscreen ? '2px solid #8B5FBF' : '1px solid #E7E3EE',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            fontSize: isMobile ? '11px' : '13px',
-            fontWeight: 600,
-            color: isFullscreen ? '#8B5FBF' : '#6B6478',
-            transition: 'all 0.2s ease',
-            boxShadow: isFullscreen ? '0 0 20px rgba(139,95,191,0.15)' : 'none',
-            touchAction: 'manipulation',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-          onMouseEnter={(e) => {
-            if (!isMobile) {
-              e.currentTarget.style.borderColor = '#8B5FBF';
-              e.currentTarget.style.color = '#8B5FBF';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isMobile && !isFullscreen) {
-              e.currentTarget.style.borderColor = '#E7E3EE';
-              e.currentTarget.style.color = '#6B6478';
-            }
-          }}
-        >
-          <span style={{ fontSize: isMobile ? '16px' : '18px' }}>⛶</span>
-          <span>{isFullscreen ? (isMobile ? 'Exit' : 'Exit Fullscreen') : (isMobile ? 'Full' : 'Fullscreen')}</span>
-          {isFullscreen && isMobile && (
-            <span style={{ fontSize: '10px', opacity: 0.6, marginLeft: '2px' }}>ESC</span>
-          )}
-        </button>
-      </div>
-
       <div
         ref={containerRef}
         className="notes-content fade-in"
         dangerouslySetInnerHTML={{ __html: html }}
         style={{
-          padding: isFullscreen ? (isMobile ? '24px 20px' : '48px 64px') : (isMobile ? '20px 16px' : '32px 36px'),
-          maxHeight: isFullscreen ? 'calc(100vh - 100px)' : (isMobile ? '55vh' : '65vh'),
-          minHeight: isFullscreen ? 'calc(100vh - 150px)' : (isMobile ? '200px' : '300px'),
+          padding: isMobile ? '20px 16px' : '32px 36px',
+          maxHeight: isMobile ? '55vh' : '65vh',
+          minHeight: isMobile ? '200px' : '300px',
           overflowY: 'auto',
           overflowX: 'hidden',
           userSelect: 'none',
@@ -525,20 +403,16 @@ function NotesTab({ content }) {
           MozUserSelect: 'none',
           msUserSelect: 'none',
           background: '#fff',
-          borderRadius: isFullscreen ? '0' : (isMobile ? '12px' : '14px'),
-          border: isFullscreen ? 'none' : '1px solid #EEECF3',
-          boxShadow: isFullscreen 
-            ? '0 0 60px rgba(0,0,0,0.08)' 
-            : '0 2px 12px rgba(0,0,0,0.04)',
+          borderRadius: isMobile ? '12px' : '14px',
+          border: '1px solid #EEECF3',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
           overscrollBehavior: 'contain',
           touchAction: 'pan-y',
           scrollBehavior: 'smooth',
           WebkitOverflowScrolling: 'touch',
-          fontSize: isFullscreen ? (isMobile ? '17px' : '20px') : (isMobile ? '15px' : '18px'),
-          lineHeight: isFullscreen ? (isMobile ? '2.0' : '2.2') : (isMobile ? '1.9' : '2.0'),
+          fontSize: isMobile ? '15px' : '18px',
+          lineHeight: isMobile ? '1.9' : '2.0',
           transition: 'all 0.3s ease',
-          // Mobile touch improvements
-          paddingBottom: isFullscreen && isMobile ? '80px' : undefined,
         }}
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
@@ -546,87 +420,14 @@ function NotesTab({ content }) {
         onSelect={(e) => e.preventDefault()}
       />
 
-      {/* Fullscreen hint - mobile friendly */}
-      {isFullscreen && (
-        <div style={{
-          position: 'fixed',
-          bottom: isMobile ? '20px' : '30px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.75)',
-          color: '#fff',
-          padding: isMobile ? '10px 18px' : '12px 24px',
-          borderRadius: '30px',
-          fontSize: isMobile ? '12px' : '14px',
-          fontWeight: 500,
-          backdropFilter: 'blur(10px)',
-          animation: 'fadeInOut 3s ease forwards',
-          pointerEvents: 'none',
-          zIndex: 1000,
-          whiteSpace: 'nowrap',
-          maxWidth: '90%',
-        }}>
-          {isMobile ? (
-            <>Tap <kbd style={{
-              background: 'rgba(255,255,255,0.2)',
-              padding: '2px 8px',
-              borderRadius: '6px',
-              margin: '0 4px',
-              fontSize: '11px',
-            }}>⛶</kbd> or press <kbd style={{
-              background: 'rgba(255,255,255,0.2)',
-              padding: '2px 8px',
-              borderRadius: '6px',
-              margin: '0 4px',
-              fontSize: '11px',
-            }}>ESC</kbd> to exit</>
-          ) : (
-            <>Press <kbd style={{
-              background: 'rgba(255,255,255,0.2)',
-              padding: '2px 10px',
-              borderRadius: '6px',
-              margin: '0 6px',
-              fontSize: '13px',
-            }}>ESC</kbd> to exit fullscreen</>
-          )}
-        </div>
-      )}
-
       <style>{`
-        @keyframes fadeInOut {
-          0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          15% { opacity: 1; transform: translateX(-50%) translateY(0); }
-          85% { opacity: 1; transform: translateX(-50%) translateY(0); }
-          100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-        }
         .notes-content {
           transition: all 0.3s ease;
-        }
-        .notes-content:-webkit-full-screen {
-          padding: 60px 80px !important;
-          max-height: 100vh !important;
-          min-height: 100vh !important;
-          border-radius: 0 !important;
-        }
-        .notes-content:-moz-full-screen {
-          padding: 60px 80px !important;
-          max-height: 100vh !important;
-          min-height: 100vh !important;
-          border-radius: 0 !important;
-        }
-        .notes-content:fullscreen {
-          padding: 60px 80px !important;
-          max-height: 100vh !important;
-          min-height: 100vh !important;
-          border-radius: 0 !important;
         }
         /* Mobile touch improvements */
         @media (max-width: 768px) {
           .notes-content {
             -webkit-overflow-scrolling: touch;
-          }
-          .notes-content:fullscreen {
-            padding: 20px !important;
           }
         }
       `}</style>
