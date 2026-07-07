@@ -72,6 +72,22 @@ function MyCoursesPage() {
 
   const isLoggedIn = !!localStorage.getItem('token');
 
+  // ─── HIDE NAVBAR WHEN VIEWING COURSE DETAILS ──────────────────────────
+  // ✅ ADD THIS useEffect to hide navbar when viewing course details
+  useEffect(() => {
+    // When viewing course details (split view or enrollment view), hide the navbar
+    if (activeView === 'split' || activeView === 'enrollment') {
+      document.body.classList.add('hide-main-navbar');
+    } else {
+      document.body.classList.remove('hide-main-navbar');
+    }
+    
+    // Cleanup when component unmounts or activeView changes
+    return () => {
+      document.body.classList.remove('hide-main-navbar');
+    };
+  }, [activeView]); // Runs whenever activeView changes
+
   // ─── Helper: Get course image from admin uploads ──────────────────
   const getCourseImage = (course) => {
     if (!course.imageUrl) {

@@ -393,7 +393,7 @@ function NotesTab({ content }) {
         className="notes-content fade-in"
         dangerouslySetInnerHTML={{ __html: html }}
         style={{
-          padding: isMobile ? '20px 16px' : '32px 36px',
+          padding: isMobile ? '20px 16px' : '32px 36px',  // ⬅️ CHANGE THIS LINE
           maxHeight: isMobile ? '55vh' : '65vh',
           minHeight: isMobile ? '200px' : '300px',
           overflowY: 'auto',
@@ -1107,6 +1107,27 @@ export default function CourseDetailView({
     }
   }, [isMobile, showSidebar]);
 
+  // ─── HIDE NAVBAR IN COURSE DETAIL VIEW ───────────────────────────────
+  useEffect(() => {
+    // Hide the navbar when this component mounts
+    const navbar = document.querySelector('nav');
+    if (navbar) {
+      navbar.style.display = 'none';
+    }
+    
+    // Also remove any padding that might be on the body
+    document.body.style.paddingTop = '0';
+    
+    // Cleanup: show navbar when component unmounts
+    return () => {
+      const navbar = document.querySelector('nav');
+      if (navbar) {
+        navbar.style.display = '';
+      }
+      document.body.style.paddingTop = '';
+    };
+  }, []);
+
   const videoUrls = getVideoUrls(currentSub);
 
   const currentTopic = topics.find((t) =>
@@ -1207,44 +1228,16 @@ export default function CourseDetailView({
   const isMobileDevice = window.innerWidth < 768;
 
   const styles = {
-    page: { background: C.canvas, minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' },
-    topStrip: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: isMobileDevice ? '10px 14px' : '14px 28px',
-      background: C.paper,
-      borderBottom: '1px solid #E7E3EE',
-      flexWrap: 'wrap',
-      gap: '6px',
-    },
-    courseName: { fontSize: isMobileDevice ? '14px' : '16px', fontWeight: 800, color: C.ink, letterSpacing: '-0.3px' },
-    topStripRight: { display: 'flex', alignItems: 'center', gap: '10px' },
-    backBtn: {
-      background: 'transparent',
-      border: '1px solid #D8D4E0',
-      padding: isMobileDevice ? '5px 12px' : '6px 16px',
-      borderRadius: '24px',
-      cursor: 'pointer',
-      fontSize: isMobileDevice ? '12px' : '13px',
-      fontWeight: 600,
-      color: C.slate,
-      transition: 'all 0.2s',
-    },
-    menuBtn: {
-      background: 'transparent',
-      border: '1px solid #D8D4E0',
-      padding: isMobileDevice ? '5px 10px' : '6px 14px',
-      borderRadius: '24px',
-      cursor: 'pointer',
-      fontSize: isMobileDevice ? '18px' : '16px',
-      color: C.slate,
-      display: isMobileDevice ? 'block' : 'none',
+    page: { 
+      background: C.canvas, 
+      minHeight: '100vh', 
+      fontFamily: 'Inter, system-ui, sans-serif',
+      paddingTop: '0',
     },
     shell: {
       display: 'grid',
       gridTemplateColumns: isMobileDevice ? '1fr' : (isSidebarCollapsed ? '1fr' : '320px 1fr'),
-      minHeight: 'calc(100vh - 52px)',
+      minHeight: 'calc(100vh)',
     },
     mobileOverlay: {
       position: 'fixed',
@@ -1262,9 +1255,9 @@ export default function CourseDetailView({
       color: C.sidebarText,
       padding: '16px 0',
       overflowY: 'auto',
-      maxHeight: isMobileDevice ? '100vh' : 'calc(100vh - 52px)',
+      maxHeight: isMobileDevice ? '100vh' : 'calc(100vh)',
       position: isMobileDevice ? 'fixed' : 'sticky',
-      top: isMobileDevice ? '0' : '52px',
+      top: isMobileDevice ? '0' : '0',
       left: isMobileDevice ? '-100%' : 'auto',
       width: isMobileDevice ? '300px' : '320px',
       height: isMobileDevice ? '100vh' : 'auto',
@@ -1350,7 +1343,7 @@ export default function CourseDetailView({
       margin: '0 auto',
       width: '100%',
       overflowY: 'auto',
-      maxHeight: 'calc(100vh - 52px)',
+      maxHeight: 'calc(100vh)',
       overscrollBehavior: 'contain',
     },
     playerFrame: {
@@ -1494,17 +1487,6 @@ export default function CourseDetailView({
         }
       `}</style>
       <div id="cdv-scroll-anchor" />
-      
-      {/* ─── Top Bar ────────────────────────────────────────────────────── */}
-      <div style={styles.topStrip}>
-        <div style={styles.courseName}>{selectedCourse.title}</div>
-        <div style={styles.topStripRight}>
-          <button id="menu-btn" style={styles.menuBtn} onClick={() => setShowSidebar(!showSidebar)}>
-            ☰
-          </button>
-          <button style={styles.backBtn} onClick={handleBack}>← Back</button>
-        </div>
-      </div>
 
       {activeView === 'split' && (
         <>
@@ -1677,6 +1659,35 @@ export default function CourseDetailView({
               <div style={styles.playerFrame}>
                 <div style={styles.playerHeader}>
                   <div style={styles.playerHeaderLeft}>
+                    {/* ─── BACK BUTTON ─────────────────────────────────── */}
+                    <button
+                      onClick={handleBack}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(255,255,255,0.15)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: isMobileDevice ? '6px 12px' : '8px 16px',
+                        color: '#fff',
+                        fontSize: isMobileDevice ? '12px' : '14px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        marginRight: '4px',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                      }}
+                    >
+                      <span style={{ fontSize: isMobileDevice ? '14px' : '16px' }}>←</span>
+                      <span>Back</span>
+                    </button>
+
                     <div style={styles.playerHeaderIcon}>{typeMeta.icon}</div>
                     <div>
                       <div style={styles.playerHeaderTitle}>{currentSub ? currentSub.title : 'Select a section'}</div>

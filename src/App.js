@@ -29,13 +29,18 @@ import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import ProtectedInstructorRoute from './components/ProtectedInstructorRoute';
 import { TestApiConnection } from './components/TestApiConnection';
 
+// ✅ Routes where Navbar should be hidden
 const HIDE_NAVBAR = [
   '/free-account',
   '/login',
   '/admin',
   '/instructor',
   '/logout',
-  '/test-api' // Hide navbar on test page
+  '/test-api',
+  // ✅ Course detail routes - Navbar will be hidden on these pages
+  '/ccna200',
+  '/ccnp-encor',
+  '/ccnp-enarsi',
 ];
 
 function AppRoutes() {
@@ -81,7 +86,6 @@ function AppRoutes() {
       <Route path="/ccnp-enarsi" element={<CCNA300 />} />
       <Route path="/upgrade" element={<UpgradePage />} />
       
-      {/* ✅ TEST API ROUTE - Remove this after testing */}
       <Route path="/test-api" element={<TestApiConnection />} />
       
       <Route
@@ -117,7 +121,17 @@ function AppRoutes() {
 
 function Layout() {
   const location = useLocation();
-  const showNavbar = !HIDE_NAVBAR.includes(location.pathname);
+  
+  // Check if current path should hide navbar
+  const showNavbar = !HIDE_NAVBAR.some(path => {
+    // For dynamic routes (like /course/:id), check if path starts with base
+    if (path.includes(':')) {
+      const basePath = path.split(':')[0];
+      return location.pathname.startsWith(basePath);
+    }
+    // For exact matches
+    return location.pathname === path;
+  });
 
   return (
     <>
