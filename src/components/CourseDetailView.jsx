@@ -11,23 +11,7 @@ import {
 // ✅ Fixed: Use environment variable with /api
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-// ✅ Helper: Clean image path (remove duplicate /api)
-const cleanImagePath = (path) => {
-  if (!path) return path;
-  let cleanPath = path;
-  // Remove duplicate /api prefix
-  while (cleanPath.startsWith('/api/')) {
-    cleanPath = cleanPath.substring(4);
-  }
-  while (cleanPath.startsWith('api/')) {
-    cleanPath = cleanPath.substring(4);
-  }
-  // Ensure it starts with /
-  if (!cleanPath.startsWith('/')) {
-    cleanPath = '/' + cleanPath;
-  }
-  return cleanPath;
-};
+
 
 // ─── Design tokens ─────────────────────────────────────────────────────
 const C = {
