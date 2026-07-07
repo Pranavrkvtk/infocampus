@@ -1,7 +1,7 @@
 // src/components/CourseDetailView.jsx
 // Enhanced Odoo-style learning UI - Clean, minimal, no progress bar or complete button
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';  // ✅ Removed useRef
 import {
   getSubtopicInterviewQuestions,
   getSubtopicExamQuestions,
