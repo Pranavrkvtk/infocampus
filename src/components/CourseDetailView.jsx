@@ -287,6 +287,19 @@ const splitIntoPages = (content) => {
 };
 
 const NOTE_STYLES = `
+  /* Prevent text selection and copying */
+  .notes-content, 
+  .notes-content *,
+  .player-body,
+  .player-body *,
+  .empty-state,
+  .empty-state * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+  }
+  
   .notes-content { 
     color: #1e293b; 
     font-family: 'Inter', system-ui, -apple-system, sans-serif; 
@@ -492,7 +505,7 @@ function NotesTab({ content }) {
   }, [goNext, goPrev]);
 
   if (!content || pages.length === 0) {
-    return <div className="empty-state">📝 No notes for this section.</div>;
+    return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>📝 No notes for this section.</div>;
   }
 
   const currentPageData = pages[currentPage] || { title: 'Content', content: '' };
@@ -691,6 +704,9 @@ function NotesTab({ content }) {
             maxHeight: isFullscreen ? 'calc(88vh - 80px)' : 'calc(76vh - 80px)',
             overflowY: 'auto',
             userSelect: 'none',
+            WebkitUserSelect: 'none',
+            MozUserSelect: 'none',
+            msUserSelect: 'none',
             transform: `translateX(${dragX}px)`,
             transition: isDragging ? 'none' : 'transform 0.25s ease',
             fontSize: '19px',
@@ -699,6 +715,7 @@ function NotesTab({ content }) {
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
           onContextMenu={(e) => e.preventDefault()}
+          onSelect={(e) => e.preventDefault()}
         />
       </div>
 
@@ -735,6 +752,7 @@ function NotesTab({ content }) {
             justifyContent: 'center',
             alignItems: 'center',
             gap: '16px',
+            flexWrap: 'wrap',
           }}>
             <button
               onClick={goPrev}
@@ -826,13 +844,13 @@ function VideoTab({ videoUrls }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
 
-  if (urls.length === 0) return <div className="empty-state">🎬 No video for this section.</div>;
+  if (urls.length === 0) return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>🎬 No video for this section.</div>;
 
   const currentUrl = urls[currentVideo];
   const embed = getEmbedUrl(currentUrl);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', userSelect: 'none', WebkitUserSelect: 'none' }}>
       {urls.length > 1 && (
         <div style={{
           display: 'flex',
@@ -908,7 +926,7 @@ function InterviewTab({ questions }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
 
-  if (!questions || questions.length === 0) return <div className="empty-state">🎤 No interview questions.</div>;
+  if (!questions || questions.length === 0) return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>🎤 No interview questions.</div>;
 
   const filteredQuestions = questions.filter(q => {
     const matchesSearch = q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -931,7 +949,7 @@ function InterviewTab({ questions }) {
   };
 
   return (
-    <div>
+    <div style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
       <div style={{
         display: 'flex',
         gap: '16px',
@@ -1050,6 +1068,8 @@ function InterviewTab({ questions }) {
                 color: '#3A3548',
                 lineHeight: '1.9',
                 fontSize: '16px',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
               }}>
                 {q.answer}
               </div>
@@ -1106,7 +1126,7 @@ function ExamTab({ questions, onScoreUpdate }) {
     return () => clearInterval(interval);
   }, [hasQuestions, timerActive, submitted, handleSubmit]);
 
-  if (!hasQuestions) return <div className="empty-state">📝 No MCQ questions.</div>;
+  if (!hasQuestions) return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>📝 No MCQ questions.</div>;
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -1120,7 +1140,7 @@ function ExamTab({ questions, onScoreUpdate }) {
   const totalQuestions = questions.length;
 
   return (
-    <div>
+    <div style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -1274,7 +1294,7 @@ function LabsTab({ labs }) {
   const [completed, setCompleted] = useState({});
   const [activeLab, setActiveLab] = useState(null);
 
-  if (!labs || labs.length === 0) return <div className="empty-state">🧪 No lab exercises.</div>;
+  if (!labs || labs.length === 0) return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>🧪 No lab exercises.</div>;
 
   const markComplete = (labId) => setCompleted((prev) => ({ ...prev, [labId]: true }));
 
@@ -1283,7 +1303,7 @@ function LabsTab({ labs }) {
   const progress = totalLabs > 0 ? Math.round((completedCount / totalLabs) * 100) : 0;
 
   return (
-    <div>
+    <div style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -1401,6 +1421,8 @@ function LabsTab({ labs }) {
                   borderTop: '1px solid #E7E3EE',
                   marginTop: '18px',
                   animation: 'fadeIn 0.3s ease-out',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
                 }}>
                   {lab.instructions}
                 </div>
@@ -1452,6 +1474,23 @@ export default function CourseDetailView({
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
+
+  // ✅ Global copy protection for mobile - MOVED BEFORE early return
+  useEffect(() => {
+    const preventLongPress = (e) => {
+      if (e.target.closest('.notes-content') || e.target.closest('.player-body')) {
+        e.preventDefault();
+      }
+    };
+    
+    document.addEventListener('contextmenu', preventLongPress);
+    document.addEventListener('selectstart', preventLongPress);
+    
+    return () => {
+      document.removeEventListener('contextmenu', preventLongPress);
+      document.removeEventListener('selectstart', preventLongPress);
+    };
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1549,6 +1588,7 @@ export default function CourseDetailView({
       )
     : topics;
 
+  // ✅ Early return AFTER all hooks
   if (contentLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px' }}>
@@ -1565,27 +1605,30 @@ export default function CourseDetailView({
     return `${API_BASE}${cleanPath}`;
   };
 
+  // Mobile responsive styles
+  const isMobileDevice = window.innerWidth < 768;
+
   const styles = {
     page: { background: C.canvas, minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' },
     topStrip: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: isMobile ? '12px 16px' : '16px 32px',
+      padding: isMobileDevice ? '12px 16px' : '16px 32px',
       background: C.paper,
       borderBottom: '1px solid #E7E3EE',
       flexWrap: 'wrap',
       gap: '8px',
     },
-    courseName: { fontSize: isMobile ? '14px' : '16px', fontWeight: 800, color: C.ink, letterSpacing: '-0.3px' },
+    courseName: { fontSize: isMobileDevice ? '14px' : '16px', fontWeight: 800, color: C.ink, letterSpacing: '-0.3px' },
     topStripRight: { display: 'flex', alignItems: 'center', gap: '12px' },
     backBtn: {
       background: 'transparent',
       border: '1px solid #D8D4E0',
-      padding: isMobile ? '6px 14px' : '8px 18px',
+      padding: isMobileDevice ? '6px 14px' : '8px 18px',
       borderRadius: '30px',
       cursor: 'pointer',
-      fontSize: isMobile ? '12px' : '13px',
+      fontSize: isMobileDevice ? '12px' : '13px',
       fontWeight: 600,
       color: C.slate,
       transition: 'all 0.2s',
@@ -1593,16 +1636,16 @@ export default function CourseDetailView({
     menuBtn: {
       background: 'transparent',
       border: '1px solid #D8D4E0',
-      padding: isMobile ? '6px 12px' : '8px 16px',
+      padding: isMobileDevice ? '6px 12px' : '8px 16px',
       borderRadius: '30px',
       cursor: 'pointer',
-      fontSize: isMobile ? '18px' : '16px',
+      fontSize: isMobileDevice ? '18px' : '16px',
       color: C.slate,
-      display: isMobile ? 'block' : 'none',
+      display: isMobileDevice ? 'block' : 'none',
     },
     shell: {
       display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : (isSidebarCollapsed ? '1fr' : '340px 1fr'),
+      gridTemplateColumns: isMobileDevice ? '1fr' : (isSidebarCollapsed ? '1fr' : '340px 1fr'),
       minHeight: 'calc(100vh - 60px)',
     },
     mobileOverlay: {
@@ -1614,29 +1657,29 @@ export default function CourseDetailView({
       background: 'rgba(0,0,0,0.5)',
       backdropFilter: 'blur(4px)',
       zIndex: 999,
-      display: isMobile && showSidebar ? 'block' : 'none',
+      display: isMobileDevice && showSidebar ? 'block' : 'none',
     },
     sidebar: {
       background: C.sidebarBg,
       color: C.sidebarText,
       padding: '20px 0',
       overflowY: 'auto',
-      maxHeight: isMobile ? '100vh' : 'calc(100vh - 60px)',
-      position: isMobile ? 'fixed' : 'sticky',
-      top: isMobile ? '0' : '60px',
-      left: isMobile ? '-100%' : 'auto',
-      width: isMobile ? '320px' : '340px',
-      height: isMobile ? '100vh' : 'auto',
+      maxHeight: isMobileDevice ? '100vh' : 'calc(100vh - 60px)',
+      position: isMobileDevice ? 'fixed' : 'sticky',
+      top: isMobileDevice ? '0' : '60px',
+      left: isMobileDevice ? '-100%' : 'auto',
+      width: isMobileDevice ? '320px' : '340px',
+      height: isMobileDevice ? '100vh' : 'auto',
       zIndex: 1000,
-      transition: isMobile ? 'left 0.3s ease-in-out' : 'none',
-      boxShadow: isMobile ? '4px 0 24px rgba(0,0,0,0.4)' : 'none',
-      display: isSidebarCollapsed && !isMobile ? 'none' : 'block',
+      transition: isMobileDevice ? 'left 0.3s ease-in-out' : 'none',
+      boxShadow: isMobileDevice ? '4px 0 24px rgba(0,0,0,0.4)' : 'none',
+      display: isSidebarCollapsed && !isMobileDevice ? 'none' : 'block',
     },
     sidebarOpen: {
       left: '0',
     },
     sidebarCloseBtn: {
-      display: isMobile ? 'flex' : 'none',
+      display: isMobileDevice ? 'flex' : 'none',
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '16px 20px 12px',
@@ -1644,20 +1687,20 @@ export default function CourseDetailView({
       marginBottom: '8px',
     },
     sidebarCourseTitle: {
-      fontSize: isMobile ? '14px' : '16px',
+      fontSize: isMobileDevice ? '14px' : '16px',
       fontWeight: 800,
       color: '#fff',
-      padding: isMobile ? '0' : '0 20px 18px',
-      borderBottom: isMobile ? 'none' : `1px solid ${C.sidebarLine}`,
-      marginBottom: isMobile ? '0' : '10px',
+      padding: isMobileDevice ? '0' : '0 20px 18px',
+      borderBottom: isMobileDevice ? 'none' : `1px solid ${C.sidebarLine}`,
+      marginBottom: isMobileDevice ? '0' : '10px',
     },
     topicHeader: (isOpen) => ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: isMobile ? '12px 20px' : '13px 20px',
+      padding: isMobileDevice ? '12px 20px' : '13px 20px',
       cursor: 'pointer',
-      fontSize: isMobile ? '12px' : '13px',
+      fontSize: isMobileDevice ? '12px' : '13px',
       fontWeight: 700,
       color: isOpen ? '#fff' : C.sidebarText,
       background: isOpen ? C.sidebarBgAlt : 'transparent',
@@ -1668,9 +1711,9 @@ export default function CourseDetailView({
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      padding: isMobile ? '10px 20px 10px 28px' : '11px 20px 11px 32px',
+      padding: isMobileDevice ? '10px 20px 10px 28px' : '11px 20px 11px 32px',
       cursor: 'pointer',
-      fontSize: isMobile ? '12px' : '13px',
+      fontSize: isMobileDevice ? '12px' : '13px',
       fontWeight: isActive ? 700 : 500,
       color: isActive ? '#fff' : C.sidebarText,
       background: isActive ? C.sidebarActive : 'transparent',
@@ -1687,9 +1730,9 @@ export default function CourseDetailView({
       display: 'flex',
       alignItems: 'center',
       gap: '10px',
-      padding: isMobile ? '8px 20px 8px 48px' : '9px 20px 9px 56px',
+      padding: isMobileDevice ? '8px 20px 8px 48px' : '9px 20px 9px 56px',
       cursor: 'pointer',
-      fontSize: isMobile ? '11px' : '12px',
+      fontSize: isMobileDevice ? '11px' : '12px',
       fontWeight: isActive ? 700 : 500,
       letterSpacing: '0.03em',
       textTransform: 'uppercase',
@@ -1698,13 +1741,13 @@ export default function CourseDetailView({
       transition: 'all 0.2s',
     }),
     leafLoading: {
-      padding: isMobile ? '8px 20px 8px 48px' : '9px 20px 9px 56px',
-      fontSize: isMobile ? '11px' : '12px',
+      padding: isMobileDevice ? '8px 20px 8px 48px' : '9px 20px 9px 56px',
+      fontSize: isMobileDevice ? '11px' : '12px',
       color: C.sidebarTextDim,
       fontStyle: 'italic',
     },
     main: {
-      padding: isMobile ? '16px' : '32px 36px',
+      padding: isMobileDevice ? '16px' : '32px 36px',
       maxWidth: '1020px',
       margin: '0 auto',
       width: '100%',
@@ -1713,13 +1756,13 @@ export default function CourseDetailView({
       display: 'flex',
       alignItems: 'center',
       gap: '16px',
-      marginBottom: isMobile ? '16px' : '20px',
+      marginBottom: isMobileDevice ? '16px' : '20px',
     },
     progressBarOuter: { flex: 1, background: '#E7E3EE', borderRadius: '20px', height: '8px', overflow: 'hidden' },
     progressBarInner: { background: C.accent, height: '100%', width: `${progress}%`, transition: 'width 0.6s ease' },
-    progressPct: { fontSize: isMobile ? '12px' : '13px', fontWeight: 700, color: C.slate, whiteSpace: 'nowrap' },
+    progressPct: { fontSize: isMobileDevice ? '12px' : '13px', fontWeight: 700, color: C.slate, whiteSpace: 'nowrap' },
     playerFrame: {
-      borderRadius: isMobile ? '16px' : '20px',
+      borderRadius: isMobileDevice ? '16px' : '20px',
       overflow: 'hidden',
       background: `linear-gradient(160deg, ${C.playerHeaderFrom}, ${C.playerHeaderTo})`,
       boxShadow: '0 24px 48px -20px rgba(46,31,53,0.5)',
@@ -1728,47 +1771,49 @@ export default function CourseDetailView({
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: isMobile ? '16px 18px' : '18px 24px',
+      padding: isMobileDevice ? '16px 18px' : '18px 24px',
       color: '#fff',
       flexWrap: 'wrap',
       gap: '8px',
     },
     playerHeaderLeft: { display: 'flex', alignItems: 'center', gap: '14px' },
     playerHeaderIcon: {
-      width: isMobile ? '32px' : '36px',
-      height: isMobile ? '32px' : '36px',
+      width: isMobileDevice ? '32px' : '36px',
+      height: isMobileDevice ? '32px' : '36px',
       borderRadius: '10px',
       background: 'rgba(255,255,255,0.15)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: isMobile ? '16px' : '18px',
+      fontSize: isMobileDevice ? '16px' : '18px',
     },
-    playerHeaderTitle: { fontSize: isMobile ? '15px' : '17px', fontWeight: 700 },
-    playerHeaderSubtitle: { fontSize: isMobile ? '12px' : '13px', opacity: 0.7, marginTop: '2px' },
+    playerHeaderTitle: { fontSize: isMobileDevice ? '15px' : '17px', fontWeight: 700 },
+    playerHeaderSubtitle: { fontSize: isMobileDevice ? '12px' : '13px', opacity: 0.7, marginTop: '2px' },
     playerHeaderIcons: { display: 'flex', gap: '16px', fontSize: '16px', opacity: 0.8, alignItems: 'center' },
     playerBody: {
       background: C.paper,
-      padding: isMobile ? '18px' : '28px 32px',
-      minHeight: isMobile ? '280px' : '340px',
+      padding: isMobileDevice ? '18px' : '28px 32px',
+      minHeight: isMobileDevice ? '280px' : '340px',
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
     },
     breadcrumb: {
       display: 'flex',
       flexWrap: 'wrap',
       alignItems: 'center',
       gap: '8px',
-      fontSize: isMobile ? '12px' : '14px',
+      fontSize: isMobileDevice ? '12px' : '14px',
       color: '#A79FBC',
-      marginBottom: isMobile ? '4px' : '6px',
+      marginBottom: isMobileDevice ? '4px' : '6px',
     },
     breadcrumbSep: { color: '#5A5468' },
     completeButton: {
       background: '#2E9B6C',
       color: 'white',
       border: 'none',
-      padding: isMobile ? '12px 24px' : '14px 28px',
+      padding: isMobileDevice ? '12px 24px' : '14px 28px',
       borderRadius: '40px',
-      fontSize: isMobile ? '14px' : '15px',
+      fontSize: isMobileDevice ? '14px' : '15px',
       fontWeight: '700',
       cursor: 'pointer',
       marginTop: '24px',
@@ -1776,7 +1821,7 @@ export default function CourseDetailView({
       transition: 'all 0.2s',
     },
     completedBadge: {
-      fontSize: isMobile ? '11px' : '13px',
+      fontSize: isMobileDevice ? '11px' : '13px',
       background: '#DFF3E8',
       color: '#1E7A4C',
       padding: '5px 12px',
@@ -1786,9 +1831,9 @@ export default function CourseDetailView({
     },
     emptyState: {
       textAlign: 'center',
-      padding: isMobile ? '40px 20px' : '60px 24px',
+      padding: isMobileDevice ? '40px 20px' : '60px 24px',
       color: '#A79FBC',
-      fontSize: isMobile ? '15px' : '17px',
+      fontSize: isMobileDevice ? '15px' : '17px',
     },
     sidebarToggle: {
       position: 'fixed',
@@ -1805,7 +1850,7 @@ export default function CourseDetailView({
       color: C.slate,
       transition: 'left 0.3s ease',
       boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-      display: isMobile ? 'none' : 'block',
+      display: isMobileDevice ? 'none' : 'block',
     },
   };
 
@@ -1841,6 +1886,48 @@ export default function CourseDetailView({
         @keyframes slideIn {
           from { transform: translateX(-20px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
+        }
+        /* Mobile copy protection */
+        * {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+        }
+        input, textarea, select {
+          -webkit-user-select: auto !important;
+          user-select: auto !important;
+        }
+        .notes-content, .notes-content *,
+        .player-body, .player-body * {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+          pointer-events: auto !important;
+        }
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+          .notes-content {
+            font-size: 16px !important;
+            padding: 20px 24px !important;
+          }
+          .notes-content .note-h1 {
+            font-size: 28px !important;
+          }
+          .notes-content .note-h2 {
+            font-size: 22px !important;
+          }
+          .notes-content .note-h3 {
+            font-size: 18px !important;
+          }
+          .notes-content .note-paragraph {
+            font-size: 16px !important;
+          }
+          .notes-content .note-list {
+            font-size: 16px !important;
+          }
+          .page-slide-next, .page-slide-prev {
+            animation-duration: 0.3s !important;
+          }
         }
       `}</style>
       <div id="cdv-scroll-anchor" />
