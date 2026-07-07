@@ -1,11 +1,12 @@
 // src/components/Login.jsx
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom"; // ✅ Add useNavigate
 import "./Login.css";
-import { Link } from "react-router-dom";
 import { login } from "../api/authApi";
 import Swal from "sweetalert2";
 
 function Login() {
+  const navigate = useNavigate(); // ✅ Add this
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,9 +28,8 @@ function Login() {
     setLoading(true);
 
     try {
-      // ✅ login() returns the full Axios response
       const response = await login({ email, password });
-      const data = response.data; // ✅ Access data from response
+      const data = response.data;
 
       console.log("Login Response:", data);
 
@@ -53,12 +53,13 @@ function Login() {
 
       const role = data.role?.toUpperCase();
       
+      // ✅ Use navigate instead of window.location.replace
       if (role === "ADMIN") {
-        window.location.replace("/admin");
+        navigate("/admin");
       } else if (role === "INSTRUCTOR") {
-        window.location.replace("/instructor");
+        navigate("/instructor");
       } else {
-        window.location.replace("/");
+        navigate("/");
       }
 
     } catch (error) {
