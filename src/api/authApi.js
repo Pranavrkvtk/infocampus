@@ -74,7 +74,6 @@ export const getUserId = () => {
 
 // ==================== EXPORT ALL ====================
 
-// ✅ FIX: Assign to a named variable before exporting
 const authApi = {
   register,
   login,
@@ -91,5 +90,4 @@ const authApi = {
   getUserId,
 };
 
-// ✅ FIX: Export the named variable as default
 export default authApi;

@@ -1,10 +1,9 @@
 // src/api/axios.js
 import axios from "axios";
 
-// ✅ Use Vite's import.meta.env consistently
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082';
+// ✅ Use process.env for Create React App (NOT import.meta.env)
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-// ✅ Don't add /api here - we'll add it in the requests
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -22,7 +21,7 @@ api.interceptors.request.use(
     }
     
     // Log requests in development
-    if (import.meta.env.DEV) {
+    if (process.env.NODE_ENV === 'development') {
       console.log(`📤 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     }
     
@@ -34,7 +33,7 @@ api.interceptors.request.use(
 // Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
-    if (import.meta.env.DEV) {
+    if (process.env.NODE_ENV === 'development') {
       console.log(`📥 ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
     }
     return response;
