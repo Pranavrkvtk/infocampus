@@ -335,7 +335,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     };
     
     loadCourses();
-  }, []); // ✅ Empty dependency array = runs only once
+}, [toast]); // ✅ Added 'toast' dependency
 
   const handleCourseCreated = async () => {
     // ✅ Reload courses after creating a new one
