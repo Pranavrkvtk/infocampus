@@ -325,14 +325,14 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     setImageErrors(prev => ({ ...prev, [courseId]: true }));
   };
 
-  const getImageUrl = (course) => {
-    if (!course.imageUrl) return null;
-    if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
-      return course.imageUrl;
-    }
-    return `${API_BASE_URL}/api${course.imageUrl}`;
-  };
-
+const getImageUrl = (course) => {
+  if (!course.imageUrl) return null;
+  if (course.imageUrl.startsWith('http://') || course.imageUrl.startsWith('https://')) {
+    return course.imageUrl;
+  }
+  // ✅ Remove /api - API_BASE_URL already includes it
+  return `${API_BASE_URL}${course.imageUrl}`;
+};
   return (
     <>
       <div style={{ padding: '20px 24px' }}>
