@@ -1,12 +1,12 @@
 // src/api/axios.js
 import axios from "axios";
 
-// ✅ For Vite - use import.meta.env
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082';
+// ✅ Use Vite's import.meta.env consistently
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082';
 
-// Create axios instance with base URL
+// ✅ Don't add /api here - we'll add it in the requests
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -23,7 +23,7 @@ api.interceptors.request.use(
     
     // Log requests in development
     if (import.meta.env.DEV) {
-      console.log(`📤 ${config.method.toUpperCase()} ${config.baseURL}${config.url}`);
+      console.log(`📤 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     }
     
     return config;
@@ -34,13 +34,14 @@ api.interceptors.request.use(
 // Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
-    // Log responses in development
     if (import.meta.env.DEV) {
-      console.log(`📥 ${response.config.method.toUpperCase()} ${response.config.url}`, response.data);
+      console.log(`📥 ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
     }
     return response;
   },
   (error) => {
+    console.error('API Error:', error.response?.data || error.message);
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('userId');

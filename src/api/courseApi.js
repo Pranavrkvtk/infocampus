@@ -1,70 +1,74 @@
 // src/api/courseApi.js
 import api from "./axios";
 
-// Course APIs
+// ═══════════════════════════════════════════════════════════════════════════════
+// COURSE APIs
+// ═══════════════════════════════════════════════════════════════════════════════
 export const getCourses = () => {
-  return api.get("/courses");
+  return api.get("/api/courses");  // ✅ Added /api prefix
 };
 
 export const getCourseById = (id) => {
-  return api.get(`/courses/${id}`);
+  return api.get(`/api/courses/${id}`);  // ✅ Added /api prefix
 };
 
 export const deleteCourse = (id) => {
-  return api.delete(`/courses/${id}`);
+  return api.delete(`/api/courses/${id}`);  // ✅ Added /api prefix
 };
 
 export const createCourse = (data) => {
-  return api.post("/courses", data);
+  return api.post("/api/courses", data);  // ✅ Added /api prefix
 };
 
 export const updateCourse = (id, data) => {
-  return api.put(`/courses/${id}`, data);
+  return api.put(`/api/courses/${id}`, data);  // ✅ Added /api prefix
 };
 
-// Enrollment APIs
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENROLLMENT APIs
+// ═══════════════════════════════════════════════════════════════════════════════
 export const enrollInCourse = (courseId) => {
   const userId = localStorage.getItem("userId");
   
   console.log("=== DEBUG ENROLLMENT ===");
   console.log("Course ID:", courseId);
   console.log("User ID from localStorage:", userId);
-  console.log("Full URL:", `/enrollments/enroll/${courseId}/${userId}`);
+  console.log("Full URL:", `/api/enrollments/enroll/${courseId}/${userId}`);
   console.log("========================");
   
   if (!userId) {
     throw new Error("User not logged in. Please create a user first.");
   }
 
-  return api.post(`/enrollments/enroll/${courseId}/${userId}`);
+  return api.post(`/api/enrollments/enroll/${courseId}/${userId}`);  // ✅ Added /api prefix
 };
 
 export const getUserEnrollments = (userId) => {
   const id = parseInt(userId);
   console.log("Calling API with userId:", id);
-  return api.get(`/enrollments/user/${id}`);
+  return api.get(`/api/enrollments/user/${id}`);  // ✅ Added /api prefix
 };
 
 export const getAllEnrollments = () => {
-  return api.get("/enrollments");
+  return api.get("/api/enrollments");  // ✅ Added /api prefix
 };
 
 export const watchCourse = (courseId) => {
-  return api.get(`/enrollments/${courseId}/watch`);
+  return api.get(`/api/enrollments/${courseId}/watch`);  // ✅ Added /api prefix
 };
 
 export const deleteEnrollment = async (enrollmentId) => {
   try {
     console.log("=== DEBUG DELETE ENROLLMENT ===");
     console.log("Enrollment ID:", enrollmentId);
-    console.log("Full URL:", `/enrollments/${enrollmentId}`);
+    console.log("Full URL:", `/api/enrollments/${enrollmentId}`);
     console.log("========================");
     
     if (!enrollmentId) {
       throw new Error("No enrollment ID provided");
     }
     
-    const response = await api.delete(`/enrollments/${enrollmentId}`);
+    const response = await api.delete(`/api/enrollments/${enrollmentId}`);  // ✅ Added /api prefix
     console.log("Delete successful:", response);
     return response;
   } catch (error) {
@@ -81,111 +85,108 @@ export const deleteEnrollmentById = async (enrollmentId) => {
 // ADMIN COURSE MANAGEMENT APIs
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Get admin courses list
 export const getAdminCourses = () => {
-  return api.get('/admin/courses');
+  return api.get('/api/admin/courses');  // ✅ Added /api prefix
 };
 
 // ─── TOPIC APIs ───────────────────────────────────────────────────────────────
 export const getCourseTopics = (courseId) => {
-  return api.get(`/admin/courses/${courseId}/topics`);
+  return api.get(`/api/admin/courses/${courseId}/topics`);  // ✅ Added /api prefix
 };
 
 export const createTopic = (courseId, topicData) => {
-  return api.post(`/admin/courses/${courseId}/topics`, topicData);
+  return api.post(`/api/admin/courses/${courseId}/topics`, topicData);  // ✅ Added /api prefix
 };
 
 export const updateTopic = (topicId, topicData) => {
-  return api.put(`/admin/topics/${topicId}`, topicData);
+  return api.put(`/api/admin/topics/${topicId}`, topicData);  // ✅ Added /api prefix
 };
 
 export const deleteTopic = (topicId) => {
-  return api.delete(`/admin/topics/${topicId}`);
+  return api.delete(`/api/admin/topics/${topicId}`);  // ✅ Added /api prefix
 };
 
 // ─── SUBTOPIC APIs ────────────────────────────────────────────────────────────
 export const createSubtopic = (topicId, subtopicData) => {
-  return api.post(`/admin/topics/${topicId}/subtopics`, subtopicData);
+  return api.post(`/api/admin/topics/${topicId}/subtopics`, subtopicData);  // ✅ Added /api prefix
 };
 
 export const updateSubtopic = (subtopicId, subtopicData) => {
-  return api.put(`/admin/subtopics/${subtopicId}`, subtopicData);
+  return api.put(`/api/admin/subtopics/${subtopicId}`, subtopicData);  // ✅ Added /api prefix
 };
 
 export const updateSubtopicNotes = (subtopicId, notes) => {
-  return api.put(`/admin/subtopics/${subtopicId}/notes`, { notes });
+  return api.put(`/api/admin/subtopics/${subtopicId}/notes`, { notes });  // ✅ Added /api prefix
 };
 
 export const updateSubtopicVideo = (subtopicId, videoUrl) => {
-  return api.put(`/admin/subtopics/${subtopicId}/video`, { videoUrl });
+  return api.put(`/api/admin/subtopics/${subtopicId}/video`, { videoUrl });  // ✅ Added /api prefix
 };
 
 export const deleteSubtopic = (subtopicId) => {
-  return api.delete(`/admin/subtopics/${subtopicId}`);
+  return api.delete(`/api/admin/subtopics/${subtopicId}`);  // ✅ Added /api prefix
 };
 
 // ─── IMAGE APIs ───────────────────────────────────────────────────────────────
 export const getSubtopicImages = (subtopicId) => {
-  return api.get(`/admin/subtopic-images/subtopic/${subtopicId}`);
+  return api.get(`/api/admin/subtopic-images/subtopic/${subtopicId}`);  // ✅ Added /api prefix
 };
 
 export const deleteImage = (imageId) => {
-  return api.delete(`/admin/subtopic-images/${imageId}`);
+  return api.delete(`/api/admin/subtopic-images/${imageId}`);  // ✅ Added /api prefix
 };
 
 // ─── INTERVIEW QUESTION APIs ──────────────────────────────────────────────────
 export const createInterviewQuestion = (subtopicId, questionData) => {
-  return api.post(`/admin/subtopics/${subtopicId}/interview-questions`, questionData);
+  return api.post(`/api/admin/subtopics/${subtopicId}/interview-questions`, questionData);  // ✅ Added /api prefix
 };
 
 export const updateInterviewQuestion = (questionId, questionData) => {
-  return api.put(`/admin/interview-questions/${questionId}`, questionData);
+  return api.put(`/api/admin/interview-questions/${questionId}`, questionData);  // ✅ Added /api prefix
 };
 
 export const deleteInterviewQuestion = (questionId) => {
-  return api.delete(`/admin/interview-questions/${questionId}`);
+  return api.delete(`/api/admin/interview-questions/${questionId}`);  // ✅ Added /api prefix
 };
 
 // ─── EXAM QUESTION APIs ────────────────────────────────────────────────────────
 export const createExamQuestion = (subtopicId, questionData) => {
-  return api.post(`/admin/subtopics/${subtopicId}/exam-questions`, questionData);
+  return api.post(`/api/admin/subtopics/${subtopicId}/exam-questions`, questionData);  // ✅ Added /api prefix
 };
 
 export const updateExamQuestion = (questionId, questionData) => {
-  return api.put(`/admin/exam-questions/${questionId}`, questionData);
+  return api.put(`/api/admin/exam-questions/${questionId}`, questionData);  // ✅ Added /api prefix
 };
 
 export const deleteExamQuestion = (questionId) => {
-  return api.delete(`/admin/exam-questions/${questionId}`);
+  return api.delete(`/api/admin/exam-questions/${questionId}`);  // ✅ Added /api prefix
 };
 
 // ─── LAB EXERCISE APIs ─────────────────────────────────────────────────────────
 export const createLabExercise = (subtopicId, labData) => {
-  return api.post(`/admin/subtopics/${subtopicId}/labs`, labData);
+  return api.post(`/api/admin/subtopics/${subtopicId}/labs`, labData);  // ✅ Added /api prefix
 };
 
 export const updateLabExercise = (labId, labData) => {
-  return api.put(`/admin/labs/${labId}`, labData);
+  return api.put(`/api/admin/labs/${labId}`, labData);  // ✅ Added /api prefix
 };
 
 export const deleteLabExercise = (labId) => {
-  return api.delete(`/admin/labs/${labId}`);
+  return api.delete(`/api/admin/labs/${labId}`);  // ✅ Added /api prefix
 };
 
 // ─── PDF Upload APIs ───────────────────────────────────────────────────────────
 export const uploadPdf = async (formData) => {
   const token = localStorage.getItem('token');
   
-  // ✅ FIXED: Use api instance instead of hardcoded URL
-  // Get the base URL from the api instance
-  const baseURL = api.defaults.baseURL || 'http://localhost:8082/api';
+  // ✅ Get base URL from env
+  const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8082';
   
   try {
-    const response = await fetch(`${baseURL}/admin/pdfs/upload`, {
+    const response = await fetch(`${baseURL}/api/admin/pdfs/upload`, {  // ✅ Added /api prefix
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`
-        // Don't set Content-Type - let browser set it with boundary
       },
       body: formData,
     });
@@ -209,7 +210,7 @@ export const uploadPdfWithAxios = async (formData) => {
   const token = localStorage.getItem('token');
   
   try {
-    const response = await api.post('/admin/pdfs/upload', formData, {
+    const response = await api.post('/api/admin/pdfs/upload', formData, {  // ✅ Added /api prefix
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
@@ -226,7 +227,7 @@ export const uploadPdfWithAxios = async (formData) => {
 
 export const generateCourseStructure = async (pdfId) => {
   try {
-    const response = await api.post(`/admin/pdfs/${pdfId}/generate-structure`, {});
+    const response = await api.post(`/api/admin/pdfs/${pdfId}/generate-structure`, {});  // ✅ Added /api prefix
     console.log('Generate structure response:', response.data);
     return response;
   } catch (error) {
@@ -238,7 +239,7 @@ export const generateCourseStructure = async (pdfId) => {
 // ─── PDF IMAGE APIs ────────────────────────────────────────────────────────────
 export const getPdfImages = async (pdfId) => {
   try {
-    const response = await api.get(`/admin/pdfs/${pdfId}/images`);
+    const response = await api.get(`/api/admin/pdfs/${pdfId}/images`);  // ✅ Added /api prefix
     return response;
   } catch (error) {
     console.error('Get PDF images error:', error);
@@ -249,7 +250,7 @@ export const getPdfImages = async (pdfId) => {
 // ─── COMPLETE SUBTOPIC API ─────────────────────────────────────────────────────
 export const getCompleteSubtopic = async (subtopicId) => {
   try {
-    const response = await api.get(`/admin/subtopics/${subtopicId}`);
+    const response = await api.get(`/api/admin/subtopics/${subtopicId}`);  // ✅ Added /api prefix
     return response;
   } catch (error) {
     console.error('Get complete subtopic error:', error);
@@ -257,68 +258,22 @@ export const getCompleteSubtopic = async (subtopicId) => {
   }
 };
 
-// ─── ADD SAMPLE DATA HELPERS ───────────────────────────────────────────────────
-export const addSampleInterviewQuestions = async (subtopicId) => {
-  const sampleQuestions = [
-    {
-      question: "What is the OSI model and why is it important?",
-      answer: "The OSI (Open Systems Interconnection) model is a conceptual framework that standardizes the functions of a telecommunication or computing system into seven layers. It's important because it helps network professionals understand how different network protocols interact and work together."
-    },
-    {
-      question: "Explain the difference between TCP and UDP.",
-      answer: "TCP is connection-oriented, reliable, and guarantees delivery with sequence numbers and acknowledgments. UDP is connectionless, faster, but does not guarantee delivery. TCP is used for HTTP, FTP, email. UDP is used for streaming, DNS, VoIP."
-    }
-  ];
+// ─── COURSE IMAGE UPLOAD ──────────────────────────────────────────────────────
+export const uploadCourseImage = async (courseId, formData) => {
+  const token = localStorage.getItem('token');
   
-  for (const q of sampleQuestions) {
-    await createInterviewQuestion(subtopicId, q);
+  try {
+    const response = await api.post(`/api/admin/courses/${courseId}/upload-image`, formData, {  // ✅ Added /api prefix
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    console.log('Course image upload response:', response.data);
+    return response;
+  } catch (error) {
+    console.error('Course image upload error:', error);
+    throw error;
   }
-};
-
-export const addSampleExamQuestions = async (subtopicId) => {
-  const sampleQuestions = [
-    {
-      question: "Which layer of the OSI model is responsible for routing?",
-      optionA: "Layer 1 - Physical",
-      optionB: "Layer 2 - Data Link",
-      optionC: "Layer 3 - Network",
-      optionD: "Layer 4 - Transport",
-      correctAnswer: "C"
-    },
-    {
-      question: "What does the acronym TCP stand for?",
-      optionA: "Transmission Control Protocol",
-      optionB: "Transfer Control Protocol",
-      optionC: "Transport Communication Protocol",
-      optionD: "Transmission Connection Protocol",
-      correctAnswer: "A"
-    }
-  ];
-  
-  for (const q of sampleQuestions) {
-    await createExamQuestion(subtopicId, q);
-  }
-};
-
-export const addSampleLabExercises = async (subtopicId) => {
-  const sampleLabs = [
-    {
-      title: "OSI Model Layer Identification Lab",
-      instructions: "1. Open a web browser\n2. Navigate to any website\n3. Open Developer Tools (F12)\n4. Identify which OSI layers are involved in the process\n5. Document each layer's role in the network communication\n6. Submit your findings"
-    },
-    {
-      title: "Protocol Analysis with Wireshark",
-      instructions: "1. Install Wireshark on your computer\n2. Start a packet capture\n3. Visit a website\n4. Stop the capture\n5. Identify TCP and UDP packets\n6. Analyze the three-way handshake\n7. Write a report on your findings"
-    }
-  ];
-  
-  for (const lab of sampleLabs) {
-    await createLabExercise(subtopicId, lab);
-  }
-};
-
-export const addAllSampleData = async (subtopicId) => {
-  await addSampleInterviewQuestions(subtopicId);
-  await addSampleExamQuestions(subtopicId);
-  await addSampleLabExercises(subtopicId);
 };

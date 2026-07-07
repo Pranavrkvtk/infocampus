@@ -27,13 +27,15 @@ import InstructorDashboard from './components/Instructor/InstructorDashboard';
 import Logout from './components/Logout';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import ProtectedInstructorRoute from './components/ProtectedInstructorRoute';
+import { TestApiConnection } from './components/TestApiConnection';
 
 const HIDE_NAVBAR = [
   '/free-account',
   '/login',
   '/admin',
   '/instructor',
-  '/logout'
+  '/logout',
+  '/test-api' // Hide navbar on test page
 ];
 
 function AppRoutes() {
@@ -78,6 +80,10 @@ function AppRoutes() {
       <Route path="/ccnp-encor" element={<CCNA350 />} />
       <Route path="/ccnp-enarsi" element={<CCNA300 />} />
       <Route path="/upgrade" element={<UpgradePage />} />
+      
+      {/* ✅ TEST API ROUTE - Remove this after testing */}
+      <Route path="/test-api" element={<TestApiConnection />} />
+      
       <Route
         path="/admin"
         element={
