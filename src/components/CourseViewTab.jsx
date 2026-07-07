@@ -6,7 +6,34 @@ import {
   getSubtopicLabs,
 } from '../api/UserApi';
 
-const API_BASE = 'http://localhost:8082';
+// ✅ Fixed: Use environment variable with /api
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
+// ✅ Helper: Clean image path (remove duplicate /api)
+const cleanImagePath = (path) => {
+  if (!path) return path;
+  let cleanPath = path;
+  // Remove duplicate /api prefix
+  while (cleanPath.startsWith('/api/')) {
+    cleanPath = cleanPath.substring(4);
+  }
+  while (cleanPath.startsWith('api/')) {
+    cleanPath = cleanPath.substring(4);
+  }
+  // Ensure it starts with /
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = '/' + cleanPath;
+  }
+  return cleanPath;
+};
+
+// ✅ Fixed: Build full image URL
+const buildFullImageUrl = (src) => {
+  if (!src) return '';
+  if (src.startsWith('http://') || src.startsWith('https://')) return src;
+  const cleanPath = cleanImagePath(src);
+  return `${API_BASE}${cleanPath}`;
+};
 
 // Helper: convert YouTube URL to embed URL
 const getEmbedUrl = (url) => {
@@ -22,16 +49,8 @@ const renderMarkdownImages = (text) => {
 
   // 1. Process images: ![alt](src)
   let html = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
-    let fullSrc;
-    if (src.startsWith('http://') || src.startsWith('https://')) {
-      fullSrc = src;                           // already absolute
-    } else if (src.startsWith('/api/')) {
-      fullSrc = `${API_BASE}${src}`;           // /api/admin/uploads/...
-    } else if (src.startsWith('/uploads/')) {
-      fullSrc = `${API_BASE}/api/admin${src}`; // legacy PDF path
-    } else {
-      fullSrc = `${API_BASE}${src}`;           // fallback
-    }
+    // ✅ Use the fixed helper
+    const fullSrc = buildFullImageUrl(src);
     return `<img src="${fullSrc}" alt="${alt}" 
       style="max-width:100%; border-radius:12px; margin:16px 0; box-shadow:0 4px 12px rgba(0,0,0,0.1); display:block;" 
       onerror="this.style.border='2px dashed #dc2626'; this.alt='Failed: ${fullSrc}';"

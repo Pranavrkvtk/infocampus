@@ -8,7 +8,34 @@ import {
   getSubtopicLabs,
 } from '../api/UserApi';
 
-const API_BASE = 'http://localhost:8082/api';
+// ✅ Fixed: Use environment variable with /api
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
+// ✅ Helper: Clean image path (remove duplicate /api)
+const cleanImagePath = (path) => {
+  if (!path) return path;
+  let cleanPath = path;
+  // Remove duplicate /api prefix
+  while (cleanPath.startsWith('/api/')) {
+    cleanPath = cleanPath.substring(4);
+  }
+  while (cleanPath.startsWith('api/')) {
+    cleanPath = cleanPath.substring(4);
+  }
+  // Ensure it starts with /
+  if (!cleanPath.startsWith('/')) {
+    cleanPath = '/' + cleanPath;
+  }
+  return cleanPath;
+};
+
+// ✅ Fixed: Build full image URL
+const buildFullImageUrl = (src) => {
+  if (!src) return '';
+  if (src.startsWith('http://') || src.startsWith('https://')) return src;
+  const cleanPath = cleanImagePath(src);
+  return `${API_BASE}${cleanPath}`;
+};
 
 // ─── Design tokens ─────────────────────────────────────────────────────
 const C = {
@@ -86,13 +113,9 @@ const getVideoUrls = (subtopic) => {
   return [];
 };
 
+// ✅ Fixed: Build image src using the helper
 const buildImgSrc = (src) => {
-  if (!src) return '';
-  if (src.startsWith('http://') || src.startsWith('https://')) return src;
-  if (src.startsWith('/api/admin/')) return `http://localhost:8082${src}`;
-  if (src.startsWith('/api/')) return `http://localhost:8082${src}`;
-  if (src.startsWith('/uploads/')) return `http://localhost:8082/api/admin${src}`;
-  return `${API_BASE}${src}`;
+  return buildFullImageUrl(src);
 };
 
 const buildImageTag = (alt, src) =>
@@ -1536,7 +1559,11 @@ export default function CourseDetailView({
     );
   }
 
-  const buildImageUrl = (subId, fileName) => `${API_BASE}/subtopic-images/${subId}/${fileName}`;
+  // ✅ Fixed: Build image URL using helper
+  const buildImageUrl = (subId, fileName) => {
+    const cleanPath = cleanImagePath(`/subtopic-images/${subId}/${fileName}`);
+    return `${API_BASE}${cleanPath}`;
+  };
 
   const styles = {
     page: { background: C.canvas, minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' },
@@ -1763,23 +1790,23 @@ export default function CourseDetailView({
       color: '#A79FBC',
       fontSize: isMobile ? '15px' : '17px',
     },
-sidebarToggle: {
-  position: 'fixed',
-  left: isSidebarCollapsed ? '0' : '340px',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  zIndex: 100,
-  background: C.paper,
-  border: '1px solid #E7E3EE',
-  borderRadius: '30px',
-  padding: '10px 8px',
-  cursor: 'pointer',
-  fontSize: '18px',
-  color: C.slate,
-  transition: 'left 0.3s ease',
-  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-  display: isMobile ? 'none' : 'block',
-},
+    sidebarToggle: {
+      position: 'fixed',
+      left: isSidebarCollapsed ? '0' : '340px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      zIndex: 100,
+      background: C.paper,
+      border: '1px solid #E7E3EE',
+      borderRadius: '30px',
+      padding: '10px 8px',
+      cursor: 'pointer',
+      fontSize: '18px',
+      color: C.slate,
+      transition: 'left 0.3s ease',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+      display: isMobile ? 'none' : 'block',
+    },
   };
 
   const typeMeta = CONTENT_TYPES.find((t) => t.key === activeContentType) || CONTENT_TYPES[0];
