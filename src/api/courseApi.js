@@ -5,23 +5,23 @@ import api from "./axios";
 // COURSE APIs
 // ═══════════════════════════════════════════════════════════════════════════════
 export const getCourses = () => {
-  return api.get("/api/courses");  // ✅ Added /api prefix
+  return api.get("/courses");  // ✅ Removed /api prefix
 };
 
 export const getCourseById = (id) => {
-  return api.get(`/api/courses/${id}`);  // ✅ Added /api prefix
+  return api.get(`/courses/${id}`);  // ✅ Removed /api prefix
 };
 
 export const deleteCourse = (id) => {
-  return api.delete(`/api/courses/${id}`);  // ✅ Added /api prefix
+  return api.delete(`/courses/${id}`);  // ✅ Removed /api prefix
 };
 
 export const createCourse = (data) => {
-  return api.post("/api/courses", data);  // ✅ Added /api prefix
+  return api.post("/courses", data);  // ✅ Removed /api prefix
 };
 
 export const updateCourse = (id, data) => {
-  return api.put(`/api/courses/${id}`, data);  // ✅ Added /api prefix
+  return api.put(`/courses/${id}`, data);  // ✅ Removed /api prefix
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -33,42 +33,42 @@ export const enrollInCourse = (courseId) => {
   console.log("=== DEBUG ENROLLMENT ===");
   console.log("Course ID:", courseId);
   console.log("User ID from localStorage:", userId);
-  console.log("Full URL:", `/api/enrollments/enroll/${courseId}/${userId}`);
+  console.log("Full URL:", `/enrollments/enroll/${courseId}/${userId}`);
   console.log("========================");
   
   if (!userId) {
     throw new Error("User not logged in. Please create a user first.");
   }
 
-  return api.post(`/api/enrollments/enroll/${courseId}/${userId}`);  // ✅ Added /api prefix
+  return api.post(`/enrollments/enroll/${courseId}/${userId}`);  // ✅ Removed /api prefix
 };
 
 export const getUserEnrollments = (userId) => {
   const id = parseInt(userId);
   console.log("Calling API with userId:", id);
-  return api.get(`/api/enrollments/user/${id}`);  // ✅ Added /api prefix
+  return api.get(`/enrollments/user/${id}`);  // ✅ Removed /api prefix
 };
 
 export const getAllEnrollments = () => {
-  return api.get("/api/enrollments");  // ✅ Added /api prefix
+  return api.get("/enrollments");  // ✅ Removed /api prefix
 };
 
 export const watchCourse = (courseId) => {
-  return api.get(`/api/enrollments/${courseId}/watch`);  // ✅ Added /api prefix
+  return api.get(`/enrollments/${courseId}/watch`);  // ✅ Removed /api prefix
 };
 
 export const deleteEnrollment = async (enrollmentId) => {
   try {
     console.log("=== DEBUG DELETE ENROLLMENT ===");
     console.log("Enrollment ID:", enrollmentId);
-    console.log("Full URL:", `/api/enrollments/${enrollmentId}`);
+    console.log("Full URL:", `/enrollments/${enrollmentId}`);
     console.log("========================");
     
     if (!enrollmentId) {
       throw new Error("No enrollment ID provided");
     }
     
-    const response = await api.delete(`/api/enrollments/${enrollmentId}`);  // ✅ Added /api prefix
+    const response = await api.delete(`/enrollments/${enrollmentId}`);  // ✅ Removed /api prefix
     console.log("Delete successful:", response);
     return response;
   } catch (error) {
@@ -86,93 +86,93 @@ export const deleteEnrollmentById = async (enrollmentId) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const getAdminCourses = () => {
-  return api.get('/api/admin/courses');  // ✅ Added /api prefix
+  return api.get('/admin/courses');  // ✅ Removed /api prefix
 };
 
 // ─── TOPIC APIs ───────────────────────────────────────────────────────────────
 export const getCourseTopics = (courseId) => {
-  return api.get(`/api/admin/courses/${courseId}/topics`);  // ✅ Added /api prefix
+  return api.get(`/admin/courses/${courseId}/topics`);  // ✅ Removed /api prefix
 };
 
 export const createTopic = (courseId, topicData) => {
-  return api.post(`/api/admin/courses/${courseId}/topics`, topicData);  // ✅ Added /api prefix
+  return api.post(`/admin/courses/${courseId}/topics`, topicData);  // ✅ Removed /api prefix
 };
 
 export const updateTopic = (topicId, topicData) => {
-  return api.put(`/api/admin/topics/${topicId}`, topicData);  // ✅ Added /api prefix
+  return api.put(`/admin/topics/${topicId}`, topicData);  // ✅ Removed /api prefix
 };
 
 export const deleteTopic = (topicId) => {
-  return api.delete(`/api/admin/topics/${topicId}`);  // ✅ Added /api prefix
+  return api.delete(`/admin/topics/${topicId}`);  // ✅ Removed /api prefix
 };
 
 // ─── SUBTOPIC APIs ────────────────────────────────────────────────────────────
 export const createSubtopic = (topicId, subtopicData) => {
-  return api.post(`/api/admin/topics/${topicId}/subtopics`, subtopicData);  // ✅ Added /api prefix
+  return api.post(`/admin/topics/${topicId}/subtopics`, subtopicData);  // ✅ Removed /api prefix
 };
 
 export const updateSubtopic = (subtopicId, subtopicData) => {
-  return api.put(`/api/admin/subtopics/${subtopicId}`, subtopicData);  // ✅ Added /api prefix
+  return api.put(`/admin/subtopics/${subtopicId}`, subtopicData);  // ✅ Removed /api prefix
 };
 
 export const updateSubtopicNotes = (subtopicId, notes) => {
-  return api.put(`/api/admin/subtopics/${subtopicId}/notes`, { notes });  // ✅ Added /api prefix
+  return api.put(`/admin/subtopics/${subtopicId}/notes`, { notes });  // ✅ Removed /api prefix
 };
 
 export const updateSubtopicVideo = (subtopicId, videoUrl) => {
-  return api.put(`/api/admin/subtopics/${subtopicId}/video`, { videoUrl });  // ✅ Added /api prefix
+  return api.put(`/admin/subtopics/${subtopicId}/video`, { videoUrl });  // ✅ Removed /api prefix
 };
 
 export const deleteSubtopic = (subtopicId) => {
-  return api.delete(`/api/admin/subtopics/${subtopicId}`);  // ✅ Added /api prefix
+  return api.delete(`/admin/subtopics/${subtopicId}`);  // ✅ Removed /api prefix
 };
 
 // ─── IMAGE APIs ───────────────────────────────────────────────────────────────
 export const getSubtopicImages = (subtopicId) => {
-  return api.get(`/api/admin/subtopic-images/subtopic/${subtopicId}`);  // ✅ Added /api prefix
+  return api.get(`/admin/subtopic-images/subtopic/${subtopicId}`);  // ✅ Removed /api prefix
 };
 
 export const deleteImage = (imageId) => {
-  return api.delete(`/api/admin/subtopic-images/${imageId}`);  // ✅ Added /api prefix
+  return api.delete(`/admin/subtopic-images/${imageId}`);  // ✅ Removed /api prefix
 };
 
 // ─── INTERVIEW QUESTION APIs ──────────────────────────────────────────────────
 export const createInterviewQuestion = (subtopicId, questionData) => {
-  return api.post(`/api/admin/subtopics/${subtopicId}/interview-questions`, questionData);  // ✅ Added /api prefix
+  return api.post(`/admin/subtopics/${subtopicId}/interview-questions`, questionData);  // ✅ Removed /api prefix
 };
 
 export const updateInterviewQuestion = (questionId, questionData) => {
-  return api.put(`/api/admin/interview-questions/${questionId}`, questionData);  // ✅ Added /api prefix
+  return api.put(`/admin/interview-questions/${questionId}`, questionData);  // ✅ Removed /api prefix
 };
 
 export const deleteInterviewQuestion = (questionId) => {
-  return api.delete(`/api/admin/interview-questions/${questionId}`);  // ✅ Added /api prefix
+  return api.delete(`/admin/interview-questions/${questionId}`);  // ✅ Removed /api prefix
 };
 
 // ─── EXAM QUESTION APIs ────────────────────────────────────────────────────────
 export const createExamQuestion = (subtopicId, questionData) => {
-  return api.post(`/api/admin/subtopics/${subtopicId}/exam-questions`, questionData);  // ✅ Added /api prefix
+  return api.post(`/admin/subtopics/${subtopicId}/exam-questions`, questionData);  // ✅ Removed /api prefix
 };
 
 export const updateExamQuestion = (questionId, questionData) => {
-  return api.put(`/api/admin/exam-questions/${questionId}`, questionData);  // ✅ Added /api prefix
+  return api.put(`/admin/exam-questions/${questionId}`, questionData);  // ✅ Removed /api prefix
 };
 
 export const deleteExamQuestion = (questionId) => {
-  return api.delete(`/api/admin/exam-questions/${questionId}`);  // ✅ Added /api prefix
+  return api.delete(`/admin/exam-questions/${questionId}`);  // ✅ Removed /api prefix
 };
 
 // ─── LAB EXERCISE APIs ─────────────────────────────────────────────────────────
 export const createLabExercise = (subtopicId, labData) => {
-  return api.post(`/api/admin/subtopics/${subtopicId}/labs`, labData);  // ✅ Added /api prefix
+  return api.post(`/admin/subtopics/${subtopicId}/labs`, labData);  // ✅ Removed /api prefix
 };
 
 export const updateLabExercise = (labId, labData) => {
-  return api.put(`/api/admin/labs/${labId}`, labData);  // ✅ Added /api prefix
+  return api.put(`/admin/labs/${labId}`, labData);  // ✅ Removed /api prefix
 };
 
 export const deleteLabExercise = (labId) => {
-  return api.delete(`/api/admin/labs/${labId}`);  // ✅ Added /api prefix
+  return api.delete(`/admin/labs/${labId}`);  // ✅ Removed /api prefix
 };
 
 // ─── PDF Upload APIs ───────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ export const uploadPdf = async (formData) => {
   const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8082';
   
   try {
-    const response = await fetch(`${baseURL}/api/admin/pdfs/upload`, {  // ✅ Added /api prefix
+    const response = await fetch(`${baseURL}/api/admin/pdfs/upload`, {  // ✅ Keep /api for fetch
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`
@@ -210,7 +210,7 @@ export const uploadPdfWithAxios = async (formData) => {
   const token = localStorage.getItem('token');
   
   try {
-    const response = await api.post('/api/admin/pdfs/upload', formData, {  // ✅ Added /api prefix
+    const response = await api.post('/admin/pdfs/upload', formData, {  // ✅ Removed /api prefix
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
@@ -227,7 +227,7 @@ export const uploadPdfWithAxios = async (formData) => {
 
 export const generateCourseStructure = async (pdfId) => {
   try {
-    const response = await api.post(`/api/admin/pdfs/${pdfId}/generate-structure`, {});  // ✅ Added /api prefix
+    const response = await api.post(`/admin/pdfs/${pdfId}/generate-structure`, {});  // ✅ Removed /api prefix
     console.log('Generate structure response:', response.data);
     return response;
   } catch (error) {
@@ -239,7 +239,7 @@ export const generateCourseStructure = async (pdfId) => {
 // ─── PDF IMAGE APIs ────────────────────────────────────────────────────────────
 export const getPdfImages = async (pdfId) => {
   try {
-    const response = await api.get(`/api/admin/pdfs/${pdfId}/images`);  // ✅ Added /api prefix
+    const response = await api.get(`/admin/pdfs/${pdfId}/images`);  // ✅ Removed /api prefix
     return response;
   } catch (error) {
     console.error('Get PDF images error:', error);
@@ -250,7 +250,7 @@ export const getPdfImages = async (pdfId) => {
 // ─── COMPLETE SUBTOPIC API ─────────────────────────────────────────────────────
 export const getCompleteSubtopic = async (subtopicId) => {
   try {
-    const response = await api.get(`/api/admin/subtopics/${subtopicId}`);  // ✅ Added /api prefix
+    const response = await api.get(`/admin/subtopics/${subtopicId}`);  // ✅ Removed /api prefix
     return response;
   } catch (error) {
     console.error('Get complete subtopic error:', error);
@@ -263,7 +263,7 @@ export const uploadCourseImage = async (courseId, formData) => {
   const token = localStorage.getItem('token');
   
   try {
-    const response = await api.post(`/api/admin/courses/${courseId}/upload-image`, formData, {  // ✅ Added /api prefix
+    const response = await api.post(`/admin/courses/${courseId}/upload-image`, formData, {  // ✅ Removed /api prefix
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',

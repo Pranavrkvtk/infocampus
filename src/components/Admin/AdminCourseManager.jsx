@@ -8,24 +8,36 @@ import api from '../../api/axios';
 // ✅ Get base URL from environment
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-// ✅ Helper function to clean image paths
+// ✅ Helper function to clean image paths - HANDLES ALL CASES
 const cleanImagePath = (path) => {
   if (!path) return path;
   let cleanPath = path;
-  // Remove duplicate /api prefix
+  
+  // Remove any /api/ prefix (including /api/admin/uploads/)
   if (cleanPath.startsWith('/api/')) {
     cleanPath = cleanPath.substring(4);
   }
+  if (cleanPath.startsWith('api/')) {
+    cleanPath = cleanPath.substring(4);
+  }
+  
+  // Remove duplicate /admin/admin/ if exists
+  while (cleanPath.includes('/admin/admin/')) {
+    cleanPath = cleanPath.replace('/admin/admin/', '/admin/');
+  }
+  
   // Ensure it starts with /
   if (!cleanPath.startsWith('/')) {
     cleanPath = '/' + cleanPath;
   }
+  
   return cleanPath;
 };
 
 // ✅ Helper function to get full image URL
 const getFullImageUrl = (imagePath) => {
   if (!imagePath) return null;
+  // If it's already a full URL, return as-is
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
