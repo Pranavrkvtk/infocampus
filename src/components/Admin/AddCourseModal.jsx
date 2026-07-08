@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import { colors } from "./AdminStyles";
 import { createAdminCourse, getAllInstructors } from "../../api/adminApi";
 import { createInstructorCourse } from "../../api/instructorApi";
+import axiosInstance from "../../api/axios"; // ✅ Import axiosInstance
 
 // Cache for instructors data - persists across component re-renders
 let instructorsCache = null;
@@ -134,7 +135,7 @@ export default function AddCourseModal({
     } catch (error) {
       // Error already handled in the promise
     }
-  }, []); // ✅ Empty dependency array - fetchInstructorsOnce is stable
+  }, []);
 
   // ✅ FIXED: useEffect with all dependencies properly included
   useEffect(() => {
@@ -228,7 +229,7 @@ export default function AddCourseModal({
       fetchInstructorsOnce();
       hasLoadedRef.current = true;
     }
-  }, [isOpen, isInstructor, fetchInstructorsOnce, onClose]); // ✅ All dependencies included
+  }, [isOpen, isInstructor, fetchInstructorsOnce, onClose]);
 
   // Reset mounted state when modal closes
   useEffect(() => {
@@ -301,6 +302,7 @@ export default function AddCourseModal({
     onClose(); 
   };
 
+  // ✅ FIXED: handleSubmit with axiosInstance instead of fetch
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -351,32 +353,33 @@ export default function AddCourseModal({
       console.log('✅ Course created with ID:', courseId);
       setUploadProgress(60);
       
+      // ✅ FIXED: Use axiosInstance for image upload
       if (imageFile) {
         console.log('📤 STEP 2: Uploading image for course:', courseId);
         
         const imageFormData = new FormData();
         imageFormData.append('file', imageFile);
         
-        const token = localStorage.getItem('token');
-        
-        let uploadUrl;
-        if (isInstructor) {
-          uploadUrl = `http://localhost:8082/api/admin/instructor/courses/${courseId}/upload-image`;
-        } else {
-          uploadUrl = `http://localhost:8082/api/admin/courses/${courseId}/upload-image`;
-        }
-        
-        const uploadResponse = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: imageFormData,
-        });
-        
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          console.warn('⚠️ Image upload failed:', errorText);
+        try {
+          // Use axiosInstance with relative URL - this will work in both dev and production
+          const uploadResponse = await axiosInstance.post(
+            `/admin/courses/${courseId}/upload-image`,
+            imageFormData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            }
+          );
+          
+          if (uploadResponse.data.success) {
+            console.log('✅ Image uploaded successfully:', uploadResponse.data);
+            setUploadProgress(90);
+          } else {
+            throw new Error(uploadResponse.data.message || 'Upload failed');
+          }
+        } catch (uploadError) {
+          console.warn('⚠️ Image upload failed:', uploadError);
           Swal.fire({
             title: "Course Created",
             text: "Course created successfully, but image upload failed. You can add image later.",
@@ -384,10 +387,6 @@ export default function AddCourseModal({
             timer: 2000,
             showConfirmButton: true,
           });
-        } else {
-          const uploadResult = await uploadResponse.json();
-          console.log('✅ Image uploaded successfully:', uploadResult);
-          setUploadProgress(90);
         }
       }
       
