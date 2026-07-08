@@ -18,7 +18,6 @@ import {
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
-import NavItem from "./NavItem";
 import MobileBottomNav from "./MobileBottomNav";
 import AddCourseModal from "./AddCourseModal";
 import EditCourseModal from "./EditCourseModal";
@@ -33,7 +32,8 @@ import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
 import HomeEditorTab from "./HomeEditorTab";
 import MyCoursesEditorTab from "./MyCoursesEditorTab";
-import NavbarEditorTab from "./NavbarEditorTab"; // ✅ Import Navbar Editor
+import NavbarEditorTab from "./NavbarEditorTab";
+import CourseDetailEditorTab from "./CourseDetailEditorTab";
 
 // ===================== MEDIA TAB =====================
 function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
@@ -831,12 +831,12 @@ export default function AdminDashboard() {
       case "course-manager": return <AdminCourseManager />;
       case "home-editor": return <HomeEditorTab />;
       case "my-courses-editor": return <MyCoursesEditorTab />;
-      case "navbar-editor": return <NavbarEditorTab />; // ✅ Added Navbar Editor
+      case "navbar-editor": return <NavbarEditorTab />;
+      case "course-detail-editor": return <CourseDetailEditorTab />;
       default: return null;
     }
   };
 
-  // ✅ Updated navItems with Navbar Editor
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
@@ -847,10 +847,10 @@ export default function AdminDashboard() {
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
     { icon: "🏠", label: "Home Editor",    id: "home-editor"    },
     { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" },
-    { icon: "🎨", label: "Navbar Editor",  id: "navbar-editor" }, // ✅ Added
+    { icon: "🎨", label: "Navbar Editor",  id: "navbar-editor" },
+    { icon: "📄", label: "Course Detail Editor", id: "course-detail-editor" },
   ];
 
-  // ✅ Updated PAGE_TITLES
   const PAGE_TITLES = {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
@@ -862,10 +862,10 @@ export default function AdminDashboard() {
     "course-manager":"Course Manager",
     "home-editor":   "Home Page Editor",
     "my-courses-editor": "My Courses Editor",
-    "navbar-editor": "Navbar Editor", // ✅ Added
+    "navbar-editor": "Navbar Editor",
+    "course-detail-editor": "Course Detail Editor",
   };
 
-  // ✅ Updated PAGE_SUBS
   const PAGE_SUBS = {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
@@ -877,8 +877,56 @@ export default function AdminDashboard() {
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
     "home-editor":   "Customize all text, colors, and content on the public home page",
     "my-courses-editor": "Customize all text, icons, and content on the My Courses page",
-    "navbar-editor": "Customize the navigation bar appearance, colors, and content", // ✅ Added
+    "navbar-editor": "Customize the navigation bar appearance, colors, and content",
+    "course-detail-editor": "Customize the course detail page layout, colors, and content",
   };
+
+  // ===================== SIDEBAR NAV ITEM (dark theme) =====================
+  const SidebarNavItem = ({ icon, label, badge, active, onClick }) => (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        width: "100%",
+        padding: "10px 16px",
+        borderRadius: "10px",
+        background: active ? "#4f46e5" : "transparent",
+        color: active ? "#ffffff" : "#e2e8f0",
+        border: "none",
+        cursor: "pointer",
+        fontSize: "14px",
+        fontWeight: active ? 600 : 400,
+        transition: "all 0.2s",
+        marginBottom: "2px",
+        position: "relative",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.background = "#1e293b";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.background = "transparent";
+      }}
+    >
+      <span style={{ fontSize: "18px", width: "24px", textAlign: "center" }}>{icon}</span>
+      <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
+      {badge > 0 && (
+        <span style={{
+          background: active ? "#ffffff" : "#4f46e5",
+          color: active ? "#4f46e5" : "#ffffff",
+          fontSize: "11px",
+          fontWeight: 700,
+          padding: "2px 8px",
+          borderRadius: "12px",
+          minWidth: "20px",
+          textAlign: "center",
+        }}>
+          {badge}
+        </span>
+      )}
+    </button>
+  );
 
   return (
     <>
@@ -940,28 +988,29 @@ export default function AdminDashboard() {
           }}>☰</button>
         )}
 
-        {/* Desktop Sidebar */}
+        {/* Desktop Sidebar — dark theme */}
         {!isMobile && (
           <nav style={{
             width: sidebarOpen ? 260 : 0,
-            background: "var(--surface)",
-            borderRight: sidebarOpen ? "1px solid var(--border-light)" : "none",
+            background: "#0f172a",                  // dark slate
+            borderRight: sidebarOpen ? "1px solid #1e293b" : "none",
             display: "flex", flexDirection: "column",
             padding: sidebarOpen ? "28px 0" : "0",
             position: "sticky", top: 0, height: "100vh",
             overflowY: "auto", overflowX: "hidden",
             transition: "width 0.3s ease",
             whiteSpace: "nowrap", flexShrink: 0,
+            color: "#e2e8f0",                        // light text
           }}>
             {sidebarOpen && (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 20px", marginBottom: 32 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 12, background: "var(--grad-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: "#fff", flexShrink: 0 }}>⚡</div>
                   <div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>INFOCAMPUS</div>
-                    <div style={{ fontSize: 10, color: "var(--text-secondary)", letterSpacing: "1px" }}>ADMIN</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>INFOCAMPUS</div>
+                    <div style={{ fontSize: 10, color: "#94a3b8", letterSpacing: "1px" }}>ADMIN</div>
                   </div>
-                  <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--text-secondary)" }}>✕</button>
+                  <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#94a3b8" }}>✕</button>
                 </div>
 
                 {navItems.map((item) => {
@@ -970,7 +1019,16 @@ export default function AdminDashboard() {
                   else if (item.id === "students") badge = students.length;
                   else if (item.id === "instructors") badge = instructors.length;
                   else if (item.id === "enrollments") badge = enrollments.length;
-                  return <NavItem key={item.id} icon={item.icon} label={item.label} badge={badge} active={activeTab === item.id} onClick={() => setActiveTab(item.id)} />;
+                  return (
+                    <SidebarNavItem
+                      key={item.id}
+                      icon={item.icon}
+                      label={item.label}
+                      badge={badge}
+                      active={activeTab === item.id}
+                      onClick={() => setActiveTab(item.id)}
+                    />
+                  );
                 })}
 
                 <div style={{ flex: 1 }} />
@@ -978,8 +1036,11 @@ export default function AdminDashboard() {
                   <button onClick={handleLogout} style={{
                     display: "flex", alignItems: "center", gap: 12,
                     width: "100%", padding: "12px 16px", borderRadius: 12,
-                    fontSize: 14, fontWeight: 600, color: "var(--error)",
-                    background: "var(--surface)", border: "1px solid var(--border-light)", cursor: "pointer",
+                    fontSize: 14, fontWeight: 600,
+                    background: "transparent",
+                    border: "1px solid #1e293b",
+                    cursor: "pointer",
+                    color: "#f87171",
                   }}>
                     <span style={{ fontSize: 18 }}>🚪</span><span>Logout</span>
                   </button>
@@ -1049,8 +1110,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Modals */}
-        <AddCourseModal isOpen={isAddCourseModalOpen} onClose={() => setIsAddCourseModalOpen(false)} onCourseCreated={fetchCourses}  isInstructor={false}  // 👈 Explicitly set to false for admin
- />
+        <AddCourseModal isOpen={isAddCourseModalOpen} onClose={() => setIsAddCourseModalOpen(false)} onCourseCreated={fetchCourses} isInstructor={false} />
         <EditCourseModal isOpen={isEditCourseModalOpen} onClose={() => { setIsEditCourseModalOpen(false); setSelectedCourse(null); }} course={selectedCourse} onCourseUpdated={fetchCourses} />
         <EditRoleModal isOpen={isEditRoleModalOpen} onClose={() => { setIsEditRoleModalOpen(false); setSelectedUser(null); }} user={selectedUser} onRoleUpdated={fetchAllStudents} />
       </div>

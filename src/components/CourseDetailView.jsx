@@ -7,41 +7,10 @@ import {
   getSubtopicExamQuestions,
   getSubtopicLabs,
 } from '../api/UserApi';
+import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 
 // ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
-
-// ─── Design tokens ─────────────────────────────────────────────────────
-const C = {
-  sidebarBg: '#FFFFFF',
-  sidebarBgAlt: '#F8FAFC',
-  sidebarLine: '#E2E8F0',
-  sidebarText: '#334155',
-  sidebarTextDim: '#94A3B8',
-  sidebarActive: '#EFF6FF',
-  sidebarHover: '#F8FAFC',
-  accent: '#2563EB',
-  accentLight: '#60A5FA',
-  accentDark: '#1D4ED8',
-  accentSoft: '#EFF6FF',
-  gold: '#E8B84B',
-  goldLight: '#F5D98A',
-  paper: '#FFFFFF',
-  canvas: '#F8FAFC',
-  ink: '#0F172A',
-  slate: '#64748B',
-  slateLight: '#94A3B8',
-  success: '#10B981',
-  successLight: '#D1FAE5',
-  error: '#EF4444',
-  errorLight: '#FEE2E2',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
-  shadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-  shadowHover: '0 10px 40px -12px rgba(0,0,0,0.15)',
-  radius: '12px',
-  radiusLg: '16px',
-};
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
@@ -235,9 +204,9 @@ const renderOdooContent = (text) => {
   return html;
 };
 
-// ─── Odoo Content Styles ─────────────────────────────────────────────
+// ─── Odoo Content Styles (uses config colors) ────────────────────────
 
-const ODOO_STYLES = `
+const buildOdooStyles = (colors) => `
   .odoo-content {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: #0F172A;
@@ -290,7 +259,7 @@ const ODOO_STYLES = `
     content: "●";
     position: absolute;
     left: 4px;
-    color: #2563EB;
+    color: ${colors.accent};
     font-weight: 700;
     font-size: 12px;
   }
@@ -302,7 +271,7 @@ const ODOO_STYLES = `
     padding: 16px 20px;
     background: #F8FAFC;
     border-radius: 12px;
-    border-left: 4px solid #2563EB;
+    border-left: 4px solid ${colors.accent};
   }
   .odoo-question-number {
     font-size: 16px;
@@ -327,7 +296,7 @@ const ODOO_STYLES = `
   }
   .odoo-xp-badge {
     display: inline-block;
-    background: #2563EB;
+    background: ${colors.accent};
     color: #fff;
     font-size: 14px;
     font-weight: 700;
@@ -347,13 +316,13 @@ const ODOO_STYLES = `
     margin: 0 0 18px 0;
   }
   .note-link {
-    color: #2563EB;
+    color: ${colors.accent};
     text-decoration: underline;
     text-underline-offset: 2px;
     font-weight: 500;
   }
   .note-link:hover {
-    color: #1D4ED8;
+    color: ${colors.accentDark};
   }
   .note-code {
     background: #F1F5F9;
@@ -397,19 +366,9 @@ const ODOO_STYLES = `
   }
 `;
 
-// ─── Sidebar config ──────────────────────────────────────────────────
-
-const CONTENT_TYPES = [
-  { key: 'video',     icon: '▶', label: 'Video', color: '#2563EB' },
-  { key: 'notes',     icon: '📄', label: 'Tutorial', color: '#2563EB' },
-  { key: 'interview', icon: '🎤', label: 'Interview', color: '#F59E0B' },
-  { key: 'exam',      icon: '📝', label: 'Quiz', color: '#EF4444' },
-  { key: 'labs',      icon: '🧪', label: 'Lab', color: '#10B981' },
-];
-
 // ─── Tab Components ──────────────────────────────────────────────────
 
-function NotesTab({ content }) {
+function NotesTab({ content, config }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -419,10 +378,11 @@ function NotesTab({ content }) {
   }, []);
 
   if (!content) {
-    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>📝 No notes for this section.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>{config.emptyStates.notes}</div>;
   }
 
   const html = renderOdooContent(content);
+  const styleTag = buildOdooStyles(config.colors);
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
@@ -443,17 +403,17 @@ function NotesTab({ content }) {
         onContextMenu={(e) => e.preventDefault()}
         onSelect={(e) => e.preventDefault()}
       />
-      <style>{ODOO_STYLES}</style>
+      <style>{styleTag}</style>
     </div>
   );
 }
 
-function VideoTab({ videoUrls }) {
+function VideoTab({ videoUrls, config }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
 
   if (urls.length === 0) {
-    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>🎬 No video for this section.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>{config.emptyStates.video}</div>;
   }
 
   const currentUrl = urls[currentVideo];
@@ -470,9 +430,9 @@ function VideoTab({ videoUrls }) {
               style={{
                 padding: '6px 16px',
                 borderRadius: '16px',
-                border: idx === currentVideo ? '2px solid #2563EB' : '1px solid #E2E8F0',
-                background: idx === currentVideo ? '#EFF6FF' : '#fff',
-                color: idx === currentVideo ? '#2563EB' : '#475569',
+                border: idx === currentVideo ? `2px solid ${config.colors.accent}` : '1px solid #E2E8F0',
+                background: idx === currentVideo ? config.colors.accentSoft : '#fff',
+                color: idx === currentVideo ? config.colors.accent : '#475569',
                 fontWeight: idx === currentVideo ? 600 : 500,
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -507,12 +467,12 @@ function VideoTab({ videoUrls }) {
   );
 }
 
-function InterviewTab({ questions }) {
+function InterviewTab({ questions, config }) {
   const [expanded, setExpanded] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
 
   if (!questions || questions.length === 0) {
-    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>🎤 No interview questions.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>{config.emptyStates.interview}</div>;
   }
 
   return (
@@ -520,7 +480,7 @@ function InterviewTab({ questions }) {
       <div style={{ marginBottom: '16px' }}>
         <input
           type="text"
-          placeholder="🔍 Search questions..."
+          placeholder={config.labels.searchQuestionsPlaceholder}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
@@ -585,13 +545,13 @@ function InterviewTab({ questions }) {
   );
 }
 
-function ExamTab({ questions, onScoreUpdate }) {
+function ExamTab({ questions, config, onScoreUpdate }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(null);
 
   if (!questions || questions.length === 0) {
-    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>📝 No MCQ questions.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>{config.emptyStates.exam}</div>;
   }
 
   const handleSubmit = () => {
@@ -618,14 +578,14 @@ function ExamTab({ questions, onScoreUpdate }) {
         gap: '8px',
       }}>
         <span style={{ fontWeight: 700, fontSize: '15px', color: '#0F172A' }}>
-          📝 MCQ Quiz
+          {config.labels.quizTitleText}
         </span>
         {!submitted && (
           <button
             onClick={handleSubmit}
             style={{
               padding: '8px 20px',
-              background: '#2563EB',
+              background: config.colors.accent,
               color: '#fff',
               border: 'none',
               borderRadius: '20px',
@@ -634,7 +594,7 @@ function ExamTab({ questions, onScoreUpdate }) {
               cursor: 'pointer',
             }}
           >
-            Submit Quiz
+            {config.labels.submitQuizText}
           </button>
         )}
       </div>
@@ -665,8 +625,8 @@ function ExamTab({ questions, onScoreUpdate }) {
                     gap: '12px',
                     padding: '8px 14px',
                     borderRadius: '8px',
-                    background: isSelected ? '#EFF6FF' : 'transparent',
-                    border: isSelected ? '1px solid #2563EB' : '1px solid transparent',
+                    background: isSelected ? config.colors.accentSoft : 'transparent',
+                    border: isSelected ? `1px solid ${config.colors.accent}` : '1px solid transparent',
                     cursor: submitted ? 'default' : 'pointer',
                   }}
                 >
@@ -677,7 +637,7 @@ function ExamTab({ questions, onScoreUpdate }) {
                     checked={isSelected}
                     onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
                     disabled={submitted}
-                    style={{ accentColor: '#2563EB' }}
+                    style={{ accentColor: config.colors.accent }}
                   />
                   <span style={{ fontSize: '14px' }}>
                     <strong style={{ color: '#475569', marginRight: '4px' }}>{opt}.</strong>
@@ -695,7 +655,7 @@ function ExamTab({ questions, onScoreUpdate }) {
               background: answers[q.id] === q.correctAnswer ? '#DFF3E8' : '#FDE8E8',
               fontSize: '13px',
             }}>
-              {answers[q.id] === q.correctAnswer ? '✅ Correct!' : '❌ Incorrect'}
+              {answers[q.id] === q.correctAnswer ? config.labels.correctText : config.labels.incorrectText}
             </div>
           )}
         </div>
@@ -721,12 +681,12 @@ function ExamTab({ questions, onScoreUpdate }) {
   );
 }
 
-function LabsTab({ labs }) {
+function LabsTab({ labs, config }) {
   const [completed, setCompleted] = useState({});
   const [activeLab, setActiveLab] = useState(null);
 
   if (!labs || labs.length === 0) {
-    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>🧪 No lab exercises.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>{config.emptyStates.labs}</div>;
   }
 
   return (
@@ -737,7 +697,7 @@ function LabsTab({ labs }) {
           style={{
             background: '#fff',
             borderRadius: '12px',
-            border: completed[lab.id] ? '1px solid #10B981' : '1px solid #E2E8F0',
+            border: completed[lab.id] ? `1px solid ${config.colors.success}` : '1px solid #E2E8F0',
             padding: '16px 20px',
             marginBottom: '10px',
             cursor: 'pointer',
@@ -762,7 +722,7 @@ function LabsTab({ labs }) {
                 }}
                 style={{
                   padding: '4px 14px',
-                  background: '#10B981',
+                  background: config.colors.success,
                   color: '#fff',
                   border: 'none',
                   borderRadius: '16px',
@@ -771,11 +731,11 @@ function LabsTab({ labs }) {
                   cursor: 'pointer',
                 }}
               >
-                ✓ Mark Complete
+                {config.labels.markCompleteText}
               </button>
             )}
             {completed[lab.id] && (
-              <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 600 }}>✅ Done</span>
+              <span style={{ fontSize: '13px', color: config.colors.success, fontWeight: 600 }}>{config.labels.doneBadgeText}</span>
             )}
           </div>
           {activeLab === lab.id && (
@@ -820,6 +780,20 @@ export default function CourseDetailView({
   getImageUrl,
   handleImageError,
 }) {
+  // ─── Load config ─────────────────────────────────────────────────────
+  const config = getCourseDetailConfig();
+
+  // ─── Define the display order of content types ──────────────────────
+  const typeOrder = ['notes', 'video', 'interview', 'exam', 'labs'];
+
+  // ─── Build content types from config in the desired order ──────────
+  const CONTENT_TYPES = typeOrder.map((key) => ({
+    key,
+    icon: config.contentTypes[key]?.icon || key,
+    label: config.contentTypes[key]?.label || key,
+    color: config.contentTypes[key]?.color || '#000',
+  }));
+
   const [expandedTopics, setExpandedTopics] = useState(() => {
     const t = topics.find((tp) => (tp.subtopics || []).some((s, i) => true));
     return t ? { [t.id]: true } : {};
@@ -877,7 +851,7 @@ export default function CourseDetailView({
     };
     if (images.length > 0) loadImagesWithAuth();
     return () => {
-      Object.values(authImageUrlsRef.current).forEach(url => {
+      Object.values(authImageUrlsRef.current).forEach((url) => {
         if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
       });
     };
@@ -917,6 +891,7 @@ export default function CourseDetailView({
     }
   }, [currentTopic]);
 
+  // ─── Determine available types and sort them according to typeOrder ─
   const availableTypes = (() => {
     const out = [];
     if (videoUrls.length > 0) out.push('video');
@@ -924,12 +899,15 @@ export default function CourseDetailView({
     if (interviewQuestions.length > 0) out.push('interview');
     if (examQuestions.length > 0) out.push('exam');
     if (labs.length > 0) out.push('labs');
+    // sort to match typeOrder
+    out.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
     return out;
   })();
 
   useEffect(() => {
     if (loadingData) return;
     if (availableTypes.length > 0) {
+      // prefer notes if available, else first in order
       const preferred = availableTypes.includes('notes') ? 'notes' : availableTypes[0];
       if (!availableTypes.includes(activeContentType)) setActiveContentType(preferred);
     }
@@ -946,25 +924,25 @@ export default function CourseDetailView({
   };
 
   const filteredTopics = searchQuery
-    ? topics.filter(topic =>
+    ? topics.filter((topic) =>
         topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (topic.subtopics || []).some(sub => sub.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        (topic.subtopics || []).some((sub) => sub.title.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : topics;
 
   const typeMeta = CONTENT_TYPES.find((t) => t.key === activeContentType) || CONTENT_TYPES[0];
 
   const renderPanelContent = () => {
-    if (!currentSub) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>Select a section from the sidebar to begin</div>;
-    if (loadingData) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>Loading content…</div>;
-    if (availableTypes.length === 0) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>No content has been added for this section yet.</div>;
+    if (!currentSub) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>{config.labels.selectSectionText}</div>;
+    if (loadingData) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>{config.labels.loadingContentText}</div>;
+    if (availableTypes.length === 0) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>{config.labels.noContentText}</div>;
 
     switch (activeContentType) {
-      case 'video': return <VideoTab videoUrls={videoUrls} />;
-      case 'notes': return <NotesTab content={currentSub.content} />;
-      case 'interview': return <InterviewTab questions={interviewQuestions} />;
-      case 'exam': return <ExamTab questions={examQuestions} onScoreUpdate={() => {}} />;
-      case 'labs': return <LabsTab labs={labs} />;
+      case 'video': return <VideoTab videoUrls={videoUrls} config={config} />;
+      case 'notes': return <NotesTab content={currentSub.content} config={config} />;
+      case 'interview': return <InterviewTab questions={interviewQuestions} config={config} />;
+      case 'exam': return <ExamTab questions={examQuestions} config={config} />;
+      case 'labs': return <LabsTab labs={labs} config={config} />;
       default: return null;
     }
   };
@@ -974,14 +952,14 @@ export default function CourseDetailView({
   if (contentLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
-        <p style={{ color: '#94A3B8', fontSize: '15px' }}>Loading course content…</p>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: config.colors.accent, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+        <p style={{ color: '#94A3B8', fontSize: '15px' }}>{config.labels.loadingCourseText}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // ─── Premium Styles ──────────────────────────────────────────────────
+  // ─── Premium Styles (using config colours) ──────────────────────────
 
   const isMobileDevice = window.innerWidth < 768;
 
@@ -998,7 +976,6 @@ export default function CourseDetailView({
       height: '100%',
       width: '100%',
     },
-    // ─── Premium Sidebar ──────────────────────────────────────────────
     sidebar: {
       width: '320px',
       minWidth: '320px',
@@ -1010,7 +987,6 @@ export default function CourseDetailView({
       boxShadow: '4px 0 20px rgba(0,0,0,0.05)',
     },
     sidebarOpen: { left: '0' },
-    // ─── Sidebar Header ──────────────────────────────────────────────
     sidebarHeader: {
       padding: '20px',
       borderBottom: '1px solid #EEF2F7',
@@ -1027,7 +1003,6 @@ export default function CourseDetailView({
       color: '#64748B',
       marginTop: '6px',
     },
-    // ─── Topic Card ────────────────────────────────────────────────────
     topicItem: {
       margin: '10px',
       borderRadius: '12px',
@@ -1036,7 +1011,6 @@ export default function CourseDetailView({
       background: '#FFFFFF',
       boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
     },
-    // ─── Topic Header ──────────────────────────────────────────────────
     topicHeader: (isOpen) => ({
       display: 'flex',
       alignItems: 'center',
@@ -1045,12 +1019,11 @@ export default function CourseDetailView({
       cursor: 'pointer',
       fontWeight: 600,
       fontSize: '15px',
-      color: isOpen ? '#2563EB' : '#334155',
+      color: isOpen ? config.colors.accent : '#334155',
       background: isOpen ? 'linear-gradient(90deg, #EFF6FF, #DBEAFE)' : '#FFFFFF',
       transition: '0.25s',
       borderBottom: isOpen ? '1px solid #DBEAFE' : 'none',
     }),
-    // ─── Subtopic ──────────────────────────────────────────────────────
     subtopicItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
@@ -1059,12 +1032,11 @@ export default function CourseDetailView({
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: isActive ? '600' : '500',
-      color: isActive ? '#2563EB' : '#475569',
-      background: isActive ? '#EFF6FF' : '#FFFFFF',
-      borderLeft: isActive ? '4px solid #2563EB' : '4px solid transparent',
+      color: isActive ? config.colors.accent : '#475569',
+      background: isActive ? config.colors.accentSoft : '#FFFFFF',
+      borderLeft: isActive ? `4px solid ${config.colors.accent}` : '4px solid transparent',
       transition: '0.2s',
     }),
-    // ─── Leaf Item ─────────────────────────────────────────────────────
     leafItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
@@ -1075,11 +1047,10 @@ export default function CourseDetailView({
       borderRadius: '8px',
       margin: '4px 10px',
       color: isActive ? '#FFFFFF' : '#64748B',
-      background: isActive ? '#2563EB' : 'transparent',
+      background: isActive ? config.colors.accent : 'transparent',
       transition: '0.2s',
       fontWeight: isActive ? 600 : 500,
     }),
-    // ─── Main Content ──────────────────────────────────────────────────
     mainContent: {
       flex: 1,
       display: 'flex',
@@ -1177,14 +1148,14 @@ export default function CourseDetailView({
             <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
               <div style={styles.sidebarHeader}>
                 <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
-                <div style={styles.sidebarSubtitle}>{subtopics.length} Lessons</div>
+                <div style={styles.sidebarSubtitle}>{subtopics.length} {config.labels.lessonsSuffix}</div>
               </div>
 
               {/* ─── Search ──────────────────────────────────────────── */}
               <div style={{ padding: '10px 12px' }}>
                 <input
                   type="text"
-                  placeholder="🔍 Search topics..."
+                  placeholder={config.labels.searchTopicsPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -1198,8 +1169,8 @@ export default function CourseDetailView({
                     transition: 'border-color 0.2s, box-shadow 0.2s',
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#2563EB';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';
+                    e.target.style.borderColor = config.colors.accent;
+                    e.target.style.boxShadow = `0 0 0 3px ${config.colors.accent}33`;
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#CBD5E1';
@@ -1217,7 +1188,7 @@ export default function CourseDetailView({
                     <div key={topic.id} style={styles.topicItem}>
                       <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
                         <span>📚 {topic.title}</span>
-                        <span style={{ fontSize: '12px', color: isOpen ? '#2563EB' : '#94A3B8' }}>
+                        <span style={{ fontSize: '12px', color: isOpen ? config.colors.accent : '#94A3B8' }}>
                           {isOpen ? '▼' : '▶'}
                         </span>
                       </div>
@@ -1239,17 +1210,18 @@ export default function CourseDetailView({
                                 if (!isActive) e.currentTarget.style.background = '#FFFFFF';
                               }}
                             >
-                              <span style={{ fontSize: '12px', color: hasVideo ? '#2563EB' : '#94A3B8' }}>
+                              <span style={{ fontSize: '12px', color: hasVideo ? config.colors.accent : '#94A3B8' }}>
                                 {hasVideo ? '▶' : '●'}
                               </span>
                               <span style={{ flex: 1 }}>{sub.title}</span>
-                              {isDone && <span style={{ fontSize: '12px', color: '#10B981' }}>✓</span>}
+                              {isDone && <span style={{ fontSize: '12px', color: config.colors.success }}>✓</span>}
                             </div>
                             {isActive && (
                               <div>
                                 {loadingData ? (
                                   <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94A3B8' }}>Loading…</div>
                                 ) : (
+                                  // ─── Leaf items are now rendered in typeOrder ───
                                   CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
                                     <div
                                       key={t.key}
@@ -1274,7 +1246,7 @@ export default function CourseDetailView({
                                   ))
                                 )}
                                 {!loadingData && availableTypes.length === 0 && (
-                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94A3B8' }}>No content</div>
+                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94A3B8' }}>{config.labels.noSectionDataText}</div>
                                 )}
                               </div>
                             )}
@@ -1309,14 +1281,14 @@ export default function CourseDetailView({
                   e.currentTarget.style.borderColor = '#E2E8F0';
                 }}
               >
-                ← Back
+                {config.labels.backButtonText}
               </button>
 
               <span style={styles.contentTitle}>
                 {currentSub ? currentSub.title : 'Select a section'}
               </span>
 
-              {isCompleted && <span style={styles.doneBadge}>✅ Done</span>}
+              {isCompleted && <span style={styles.doneBadge}>{config.labels.doneBadgeText}</span>}
 
               {isMobile && (
                 <button
