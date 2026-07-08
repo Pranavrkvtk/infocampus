@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
-import axiosInstance, { API_ROOT_URL } from '../../api/axios';
+import axiosInstance, { API_BASE_URL } from '../../api/axios';
 // ✅ FIXED: Helper function to build image URLs correctly
 const getFullImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
@@ -23,9 +23,6 @@ const getFullImageUrl = (imageUrl) => {
   if (cleanPath.startsWith('api/')) {
     cleanPath = cleanPath.substring(4);
   }
-  
-  // For static assets (images, uploads), use API_ROOT_URL (without /api)
-  // These are served from the root, not from /api endpoint
   return `${API_BASE_URL}/${cleanPath}`;
 };
 
@@ -935,7 +932,6 @@ function MarkdownImage({ src, alt }) {
       cleanSrc = cleanSrc.substring(4);
     }
     
-    // For static assets (images, uploads), use API_ROOT_URL (without /api)
     fullSrc = `${API_BASE_URL}/${cleanSrc}`;
   }
 
