@@ -13,13 +13,14 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
 // ─── Design tokens ─────────────────────────────────────────────────────
 const C = {
-  sidebarBg: '#F8F7FA',
-  sidebarBgAlt: '#F0EEF4',
-  sidebarLine: '#E8E3EE',
-  sidebarText: '#4A4458',
-  sidebarTextDim: '#7C7791',
-  sidebarActive: '#EDE7F6',
-  sidebarHover: '#F3F0F8',
+  // Grey sidebar colors
+  sidebarBg: '#F1F5F9',
+  sidebarBgAlt: '#E8EDF5',
+  sidebarLine: '#E2E8F0',
+  sidebarText: '#475569',
+  sidebarTextDim: '#94A3B8',
+  sidebarActive: '#DBEAFE',
+  sidebarHover: '#E8EDF5',
   accent: '#8B5FBF',
   accentLight: '#A78BCC',
   accentDark: '#6B4A8A',
@@ -504,9 +505,9 @@ function VideoTab({ videoUrls }) {
               style={{
                 padding: '6px 16px',
                 borderRadius: '16px',
-                border: idx === currentVideo ? '2px solid #8B5FBF' : '1px solid #E8E3EE',
+                border: idx === currentVideo ? '2px solid #8B5FBF' : '1px solid #E2E8F0',
                 background: idx === currentVideo ? '#EDE7F6' : '#fff',
-                color: idx === currentVideo ? '#8B5FBF' : '#6B6478',
+                color: idx === currentVideo ? '#8B5FBF' : '#475569',
                 fontWeight: idx === currentVideo ? 600 : 500,
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -561,7 +562,7 @@ function InterviewTab({ questions }) {
             width: '100%',
             padding: '10px 14px',
             borderRadius: '10px',
-            border: '1px solid #E8E3EE',
+            border: '1px solid #E2E8F0',
             fontSize: '14px',
             outline: 'none',
             background: '#fff',
@@ -575,7 +576,7 @@ function InterviewTab({ questions }) {
             style={{
               background: '#fff',
               borderRadius: '12px',
-              border: '1px solid #E8E3EE',
+              border: '1px solid #E2E8F0',
               overflow: 'hidden',
             }}
           >
@@ -603,7 +604,7 @@ function InterviewTab({ questions }) {
             {expanded[q.id] && (
               <div style={{
                 padding: '14px 18px',
-                borderTop: '1px solid #E8E3EE',
+                borderTop: '1px solid #E2E8F0',
                 background: '#FAF9FC',
                 color: '#4A4458',
                 lineHeight: '1.8',
@@ -678,7 +679,7 @@ function ExamTab({ questions, onScoreUpdate }) {
           padding: '18px',
           background: '#fff',
           borderRadius: '12px',
-          border: '1px solid #E8E3EE',
+          border: '1px solid #E2E8F0',
           marginBottom: '12px',
         }}>
           <p style={{ fontWeight: 600, marginBottom: '12px', fontSize: '15px', color: '#0F172A' }}>
@@ -714,7 +715,7 @@ function ExamTab({ questions, onScoreUpdate }) {
                     style={{ accentColor: '#8B5FBF' }}
                   />
                   <span style={{ fontSize: '14px' }}>
-                    <strong style={{ color: '#6B6478', marginRight: '4px' }}>{opt}.</strong>
+                    <strong style={{ color: '#475569', marginRight: '4px' }}>{opt}.</strong>
                     {optText}
                   </span>
                 </label>
@@ -746,7 +747,7 @@ function ExamTab({ questions, onScoreUpdate }) {
           <div style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A' }}>
             {score.correct} / {score.total}
           </div>
-          <div style={{ fontSize: '13px', color: '#6B6478' }}>
+          <div style={{ fontSize: '13px', color: '#475569' }}>
             {Math.round((score.correct / score.total) * 100)}% correct
           </div>
         </div>
@@ -771,7 +772,7 @@ function LabsTab({ labs }) {
           style={{
             background: '#fff',
             borderRadius: '12px',
-            border: completed[lab.id] ? '1px solid #2E9B6C' : '1px solid #E8E3EE',
+            border: completed[lab.id] ? '1px solid #2E9B6C' : '1px solid #E2E8F0',
             padding: '16px 20px',
             marginBottom: '10px',
             cursor: 'pointer',
@@ -816,7 +817,7 @@ function LabsTab({ labs }) {
             <div style={{
               marginTop: '12px',
               paddingTop: '12px',
-              borderTop: '1px solid #E8E3EE',
+              borderTop: '1px solid #E2E8F0',
               fontSize: '14px',
               color: '#4A4458',
               lineHeight: '1.8',
@@ -1008,7 +1009,7 @@ export default function CourseDetailView({
   if (contentLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid #E8E3EE', borderTopColor: '#8B5FBF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#8B5FBF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
         <p style={{ color: '#94a3b8', fontSize: '15px' }}>Loading course content…</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -1022,30 +1023,29 @@ export default function CourseDetailView({
   const styles = {
     page: {
       background: '#F5F4F8',
-      height: '100vh',           // <-- changed from min-height
-      overflow: 'hidden',        // <-- prevent page scroll
+      height: '100vh',
+      overflow: 'hidden',
       fontFamily: 'Inter, system-ui, sans-serif',
       paddingTop: '0',
     },
     shell: {
       display: 'flex',
-      height: '100%',            // fills the viewport
+      height: '100%',
       width: '100%',
     },
     sidebar: {
       width: '320px',
       minWidth: '320px',
-      background: '#F8F7FA',
-      borderRight: '1px solid #E8E3EE',
-      // removed position: sticky and top: 0
-      height: '100vh',           // full height
-      overflowY: 'auto',         // sidebar itself can scroll if needed
+      background: '#F1F5F9', // Grey sidebar
+      borderRight: '1px solid #E2E8F0', // Grey border
+      height: '100vh',
+      overflowY: 'auto',
       flexShrink: 0,
     },
     sidebarOpen: { left: '0' },
     sidebarHeader: {
       padding: '0 16px 12px 16px',
-      borderBottom: '1px solid #E8E3EE',
+      borderBottom: '1px solid #E2E8F0',
       marginBottom: '8px',
     },
     sidebarTitle: {
@@ -1055,11 +1055,11 @@ export default function CourseDetailView({
     },
     sidebarSubtitle: {
       fontSize: '12px',
-      color: '#94a3b8',
+      color: '#475569',
       marginTop: '2px',
     },
     topicItem: {
-      borderBottom: '1px solid #F0EEF4',
+      borderBottom: '1px solid #E2E8F0',
     },
     topicHeader: (isOpen) => ({
       display: 'flex',
@@ -1069,8 +1069,8 @@ export default function CourseDetailView({
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: 600,
-      color: isOpen ? '#0F172A' : '#4A4458',
-      background: isOpen ? '#F0EEF4' : 'transparent',
+      color: isOpen ? '#0F172A' : '#475569',
+      background: isOpen ? '#E8EDF5' : 'transparent',
       transition: 'all 0.15s',
     }),
     subtopicItem: (isActive) => ({
@@ -1081,8 +1081,8 @@ export default function CourseDetailView({
       cursor: 'pointer',
       fontSize: '13px',
       fontWeight: isActive ? 600 : 400,
-      color: isActive ? '#0F172A' : '#6B6478',
-      background: isActive ? '#EDE7F6' : 'transparent',
+      color: isActive ? '#0F172A' : '#475569',
+      background: isActive ? '#DBEAFE' : 'transparent',
       borderLeft: isActive ? '3px solid #8B5FBF' : '3px solid transparent',
       transition: 'all 0.15s',
     }),
@@ -1094,7 +1094,7 @@ export default function CourseDetailView({
       cursor: 'pointer',
       fontSize: '12px',
       fontWeight: isActive ? 600 : 400,
-      color: isActive ? '#8B5FBF' : '#94a3b8',
+      color: isActive ? '#8B5FBF' : '#94A3B8',
       background: isActive ? 'rgba(139,95,191,0.06)' : 'transparent',
       borderLeft: isActive ? '2px solid #8B5FBF' : '2px solid transparent',
       transition: 'all 0.15s',
@@ -1123,12 +1123,12 @@ export default function CourseDetailView({
       alignItems: 'center',
       gap: '6px',
       background: '#fff',
-      border: '1px solid #E8E3EE',
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       padding: '6px 14px',
       fontSize: '13px',
       fontWeight: 600,
-      color: '#4A4458',
+      color: '#475569',
       cursor: 'pointer',
       transition: 'all 0.2s',
     },
@@ -1156,7 +1156,7 @@ export default function CourseDetailView({
     },
     contentBody: {
       flex: 1,
-      overflowY: 'auto',       // this is the only scrollable area
+      overflowY: 'auto',
       padding: '20px',
     },
     mobileOverlay: {
@@ -1203,10 +1203,11 @@ export default function CourseDetailView({
                     width: '100%',
                     padding: '6px 12px',
                     borderRadius: '6px',
-                    border: '1px solid #E8E3EE',
+                    border: '1px solid #E2E8F0',
                     background: '#fff',
                     fontSize: '12px',
                     outline: 'none',
+                    color: '#0F172A',
                   }}
                 />
               </div>
@@ -1220,7 +1221,7 @@ export default function CourseDetailView({
                     <div key={topic.id} style={styles.topicItem}>
                       <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
                         <span>{topic.title}</span>
-                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>{isOpen ? '▼' : '▶'}</span>
+                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>{isOpen ? '▼' : '▶'}</span>
                       </div>
                       {isOpen && topicSubs.map((sub) => {
                         const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
@@ -1231,14 +1232,14 @@ export default function CourseDetailView({
                         return (
                           <div key={sub.id}>
                             <div style={styles.subtopicItem(isActive)} onClick={() => selectSubtopic(sub, globalIndex)}>
-                              <span style={{ fontSize: '10px', color: hasVideo ? '#8B5FBF' : '#94a3b8' }}>{hasVideo ? '▶' : '●'}</span>
+                              <span style={{ fontSize: '10px', color: hasVideo ? '#8B5FBF' : '#94A3B8' }}>{hasVideo ? '▶' : '●'}</span>
                               <span style={{ flex: 1 }}>{sub.title}</span>
                               {isDone && <span style={{ fontSize: '10px', color: '#2E9B6C' }}>✓</span>}
                             </div>
                             {isActive && (
                               <div>
                                 {loadingData ? (
-                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94a3b8' }}>Loading…</div>
+                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94A3B8' }}>Loading…</div>
                                 ) : (
                                   CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
                                     <div
@@ -1252,7 +1253,7 @@ export default function CourseDetailView({
                                   ))
                                 )}
                                 {!loadingData && availableTypes.length === 0 && (
-                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94a3b8' }}>No content</div>
+                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94A3B8' }}>No content</div>
                                 )}
                               </div>
                             )}
@@ -1263,7 +1264,7 @@ export default function CourseDetailView({
                   );
                 })}
                 {filteredTopics.length === 0 && (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
                     No topics match your search.
                   </div>
                 )}
@@ -1278,7 +1279,7 @@ export default function CourseDetailView({
               <button
                 onClick={handleBack}
                 style={styles.backBtn}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#F0EEF4'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#E8EDF5'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
               >
                 ← Back
@@ -1295,12 +1296,12 @@ export default function CourseDetailView({
                   onClick={() => setShowSidebar(!showSidebar)}
                   style={{
                     background: '#fff',
-                    border: '1px solid #E8E3EE',
+                    border: '1px solid #E2E8F0',
                     borderRadius: '6px',
                     padding: '6px 10px',
                     fontSize: '16px',
                     cursor: 'pointer',
-                    color: '#4A4458',
+                    color: '#475569',
                   }}
                 >
                   ☰
@@ -1322,7 +1323,7 @@ export default function CourseDetailView({
         <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', margin: '16px 24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>📸 All Course Images ({images.length})</h2>
           {images.length === 0 ? (
-            <p style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No images yet</p>
+            <p style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>No images yet</p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
               {images.map((img) => {
@@ -1333,7 +1334,7 @@ export default function CourseDetailView({
                   <div
                     key={img.id}
                     style={{
-                      border: '1px solid #E8E3EE',
+                      border: '1px solid #E2E8F0',
                       borderRadius: '12px',
                       overflow: 'hidden',
                       cursor: 'pointer',
@@ -1347,7 +1348,7 @@ export default function CourseDetailView({
                       onError={() => handleImageError?.(img.id)}
                       loading="lazy"
                     />
-                    <div style={{ padding: '8px 12px', fontSize: '12px', textAlign: 'center', background: '#F8F7FA', color: '#6B6478' }}>
+                    <div style={{ padding: '8px 12px', fontSize: '12px', textAlign: 'center', background: '#F8F7FA', color: '#475569' }}>
                       Page {img.pageNumber}
                     </div>
                   </div>

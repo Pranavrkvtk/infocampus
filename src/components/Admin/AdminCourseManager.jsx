@@ -191,9 +191,8 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
     </div>
   );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE IMAGE UPLOADER
+// COURSE IMAGE UPLOADER (FIXED)
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -270,7 +269,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
     </div>
   );
 }
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -98,6 +98,10 @@ const COLORS = {
   tagBg: '#F1E9F0',
   tagText: '#714B67',
   success: '#2E8B57',
+  // Grey sidebar colors
+  sidebarBg: '#F1F5F9',
+  sidebarBorder: '#E2E8F0',
+  sidebarText: '#475569',
 };
 
 // ─── Course Image Mapping (Fallback images) ────────────────────
@@ -497,13 +501,49 @@ function MyCoursesPage() {
   const styles = {
     page: { minHeight: '100vh', background: COLORS.canvas, fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: COLORS.ink },
 
-    nav: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '16px 20px' : '18px 40px', borderBottom: `1px solid ${COLORS.line}`, background: COLORS.paper },
+    // ─── Navbar ──────────────────────────────────────────────────────
+    nav: { 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'space-between', 
+      padding: isMobile ? '16px 20px' : '18px 40px', 
+      borderBottom: `1px solid ${COLORS.line}`, 
+      background: COLORS.paper 
+    },
     navLeft: { display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' },
-    logoMark: { width: '30px', height: '30px', borderRadius: '8px', background: `linear-gradient(135deg, ${COLORS.plumMid}, ${COLORS.accent})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '15px' },
+    logoMark: { 
+      width: '30px', 
+      height: '30px', 
+      borderRadius: '8px', 
+      background: `linear-gradient(135deg, ${COLORS.plumMid}, ${COLORS.accent})`, 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      color: '#fff', 
+      fontWeight: 800, 
+      fontSize: '15px' 
+    },
     logoText: { fontWeight: 800, fontSize: '18px', letterSpacing: '-0.3px', color: COLORS.ink },
     navRight: { display: 'flex', alignItems: 'center', gap: '12px' },
-    navGhostBtn: { background: 'transparent', border: 'none', color: COLORS.ink, fontWeight: 600, fontSize: '14px', cursor: 'pointer', padding: '8px 4px' },
-    navPrimaryBtn: { background: COLORS.accent, color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 18px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' },
+    navGhostBtn: { 
+      background: 'transparent', 
+      border: 'none', 
+      color: COLORS.ink, 
+      fontWeight: 600, 
+      fontSize: '14px', 
+      cursor: 'pointer', 
+      padding: '8px 4px' 
+    },
+    navPrimaryBtn: { 
+      background: COLORS.accent, 
+      color: '#fff', 
+      border: 'none', 
+      borderRadius: '8px', 
+      padding: '10px 18px', 
+      fontWeight: 600, 
+      fontSize: '14px', 
+      cursor: 'pointer' 
+    },
 
     // ✅ Hero - Using config
     hero: { 
@@ -517,18 +557,81 @@ function MyCoursesPage() {
     heroEyebrow: { fontSize: '13px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', opacity: 0.75, marginBottom: '14px' },
     heroTitle: { fontSize: isMobile ? '32px' : '48px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.5px', marginBottom: '18px' },
     heroText: { fontSize: isMobile ? '15px' : '17px', lineHeight: 1.6, opacity: 0.88, maxWidth: '520px', marginBottom: '28px' },
-    heroBtn: { background: '#fff', color: COLORS.accent, border: 'none', borderRadius: '8px', padding: '13px 26px', fontWeight: 700, fontSize: '15px', cursor: 'pointer', boxShadow: '0 10px 25px -8px rgba(0,0,0,0.4)' },
-    heroDecor: { position: 'absolute', right: isMobile ? '-60px' : '20px', top: '50%', transform: 'translateY(-50%)', fontSize: isMobile ? '100px' : '160px', opacity: 0.12, lineHeight: 1 },
+    heroBtn: { 
+      background: '#fff', 
+      color: COLORS.accent, 
+      border: 'none', 
+      borderRadius: '8px', 
+      padding: '13px 26px', 
+      fontWeight: 700, 
+      fontSize: '15px', 
+      cursor: 'pointer', 
+      boxShadow: '0 10px 25px -8px rgba(0,0,0,0.4)' 
+    },
+    heroDecor: { 
+      position: 'absolute', 
+      right: isMobile ? '-60px' : '20px', 
+      top: '50%', 
+      transform: 'translateY(-50%)', 
+      fontSize: isMobile ? '100px' : '160px', 
+      opacity: 0.12, 
+      lineHeight: 1 
+    },
 
-    sectionBar: { display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: '18px', padding: isMobile ? '28px 20px 0' : '40px 60px 0', maxWidth: '1320px', margin: '0 auto' },
+    // ─── Section Bar ─────────────────────────────────────────────────
+    sectionBar: { 
+      display: 'flex', 
+      flexDirection: isMobile ? 'column' : 'row', 
+      alignItems: isMobile ? 'stretch' : 'center', 
+      justifyContent: 'space-between', 
+      gap: '18px', 
+      padding: isMobile ? '28px 20px 0' : '40px 60px 0', 
+      maxWidth: '1320px', 
+      margin: '0 auto' 
+    },
     sectionTitle: { fontSize: '24px', fontWeight: 800, letterSpacing: '-0.3px', color: COLORS.ink },
     tabRow: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-    tabPill: (active) => ({ padding: '9px 18px', borderRadius: '999px', border: `1px solid ${active ? COLORS.accent : COLORS.line}`, background: active ? COLORS.accent : COLORS.paper, color: active ? '#fff' : COLORS.slate, fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }),
+    tabPill: (active) => ({ 
+      padding: '9px 18px', 
+      borderRadius: '999px', 
+      border: `1px solid ${active ? COLORS.accent : COLORS.line}`, 
+      background: active ? COLORS.accent : COLORS.paper, 
+      color: active ? '#fff' : COLORS.slate, 
+      fontSize: '14px', 
+      fontWeight: 600, 
+      cursor: 'pointer', 
+      transition: 'all 0.15s' 
+    }),
     searchWrap: { position: 'relative', width: isMobile ? '100%' : '280px' },
-    searchIcon: { position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '15px', color: COLORS.slate },
-    searchInput: { width: '100%', boxSizing: 'border-box', padding: '10px 14px 10px 38px', border: `1px solid ${COLORS.line}`, borderRadius: '999px', fontSize: '14px', outline: 'none', background: COLORS.paper, color: COLORS.ink },
+    searchIcon: { 
+      position: 'absolute', 
+      left: '14px', 
+      top: '50%', 
+      transform: 'translateY(-50%)', 
+      fontSize: '15px', 
+      color: COLORS.slate 
+    },
+    searchInput: { 
+      width: '100%', 
+      boxSizing: 'border-box', 
+      padding: '10px 14px 10px 38px', 
+      border: `1px solid ${COLORS.line}`, 
+      borderRadius: '999px', 
+      fontSize: '14px', 
+      outline: 'none', 
+      background: COLORS.paper, 
+      color: COLORS.ink 
+    },
 
-    grid: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '28px', padding: isMobile ? '24px 20px 60px' : '28px 60px 80px', maxWidth: '1320px', margin: '0 auto' },
+    // ─── Course Grid ─────────────────────────────────────────────────
+    grid: { 
+      display: 'grid', 
+      gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', 
+      gap: '28px', 
+      padding: isMobile ? '24px 20px 60px' : '28px 60px 80px', 
+      maxWidth: '1320px', 
+      margin: '0 auto' 
+    },
     card: { 
       background: COLORS.paper, 
       borderRadius: '16px', 
@@ -608,15 +711,37 @@ function MyCoursesPage() {
       cursor: 'pointer',
     },
 
-    emptyState: { textAlign: 'center', padding: '70px 20px', background: COLORS.paper, border: `1px solid ${COLORS.line}`, borderRadius: '16px', maxWidth: '480px', margin: '40px auto' },
+    emptyState: { 
+      textAlign: 'center', 
+      padding: '70px 20px', 
+      background: COLORS.paper, 
+      border: `1px solid ${COLORS.line}`, 
+      borderRadius: '16px', 
+      maxWidth: '480px', 
+      margin: '40px auto' 
+    },
     emptyIcon: { fontSize: '56px', marginBottom: '16px' },
     emptyTitle: { fontSize: '20px', fontWeight: 800, color: COLORS.ink, marginBottom: '8px' },
     emptyText: { color: COLORS.slate, marginBottom: '24px', fontSize: '14px' },
 
     loadingContainer: { textAlign: 'center', padding: '90px 20px', color: COLORS.accent },
-    spinner: { width: '46px', height: '46px', border: `4px solid ${COLORS.line}`, borderTopColor: COLORS.accent, borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 18px' },
+    spinner: { 
+      width: '46px', 
+      height: '46px', 
+      border: `4px solid ${COLORS.line}`, 
+      borderTopColor: COLORS.accent, 
+      borderRadius: '50%', 
+      animation: 'spin 0.9s linear infinite', 
+      margin: '0 auto 18px' 
+    },
 
-    footer: { textAlign: 'center', padding: '30px', color: COLORS.slate, fontSize: '13px', borderTop: `1px solid ${COLORS.line}` },
+    footer: { 
+      textAlign: 'center', 
+      padding: '30px', 
+      color: COLORS.slate, 
+      fontSize: '13px', 
+      borderTop: `1px solid ${COLORS.line}` 
+    },
   };
 
   if (loading) {
