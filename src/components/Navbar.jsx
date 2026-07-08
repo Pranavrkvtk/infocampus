@@ -167,29 +167,18 @@ export default function Navbar() {
     setMobileMenu(false);
   };
 
+  // Only destructure what's actually used in this component
   const {
     navBg,
     navHover,
-    dropdownBg,
     dropdownHover,
     ciscoBg,
     accent,
-    green,
-    logoutColor,
-    logoutHover,
     font,
     logoText,
     logoAccent,
     logoAccentColor,
-    searchPlaceholder,
-    loginText,
-    logoutText,
-    courseItems,
-    ciscoCourses,
-    courseRoutes,
-    toolItems,
-    aboutItems,
-    navItems
+    mobileBreakpoint
   } = config;
 
   return (
@@ -263,11 +252,11 @@ export default function Navbar() {
       )}
 
       <style>{`
-        @media (max-width: ${config.mobileBreakpoint}px) {
+        @media (max-width: ${mobileBreakpoint}px) {
           .desktop-nav { display: none !important; }
           .hamburger { display: block !important; }
         }
-        @media (min-width: ${config.mobileBreakpoint + 1}px) {
+        @media (min-width: ${mobileBreakpoint + 1}px) {
           .hamburger { display: none !important; }
         }
         .nav-btn {
@@ -357,11 +346,8 @@ function DesktopMenu({
   isLoggedIn, 
   handleLogout,
 }) {
+  // Only destructure what's actually used in DesktopMenu
   const {
-    navHover,
-    dropdownBg,
-    dropdownHover,
-    ciscoBg,
     accent,
     green,
     logoutColor,
@@ -534,10 +520,10 @@ function MobileMenu({
   isLoggedIn, 
   handleLogout,
 }) {
+  // Only destructure what's actually used in MobileMenu
   const {
     navBg,
     dropdownBg,
-    dropdownHover,
     ciscoBg,
     accent,
     green,

@@ -2059,7 +2059,6 @@ const ColorPicker = ({ label, value, onChange, path, id, showGradient = true }) 
 
   // Enhanced Themes Tab
   const renderThemesTab = () => {
-    const currentPreset = THEME_PRESETS[config.themePreset] || THEME_PRESETS.default;
     
     return (
       <div>

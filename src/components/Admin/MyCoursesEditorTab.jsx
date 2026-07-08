@@ -157,7 +157,6 @@ export default function MyCoursesEditorTab({ onSave, initialConfig }) {
   });
 
   const [activeTab, setActiveTab] = useState('hero');
-  const [showIconPicker, setShowIconPicker] = useState(null);
   const [editingTrack, setEditingTrack] = useState(null);
   const [recentColors, setRecentColors] = useState(() => {
     const saved = localStorage.getItem('recentColors');
