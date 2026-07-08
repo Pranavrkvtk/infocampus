@@ -134,9 +134,9 @@ export default function AddCourseModal({
     } catch (error) {
       // Error already handled in the promise
     }
-  }, []); // Empty dependency array - fetchInstructorsOnce is stable
+  }, []); // ✅ Empty dependency array - fetchInstructorsOnce is stable
 
-  // Check authentication and permissions - only once when modal opens
+  // ✅ FIXED: useEffect with all dependencies properly included
   useEffect(() => {
     // Only run when modal opens
     if (!isOpen) {
@@ -228,7 +228,7 @@ export default function AddCourseModal({
       fetchInstructorsOnce();
       hasLoadedRef.current = true;
     }
-  }, [isOpen]); // Only depends on isOpen
+  }, [isOpen, isInstructor, fetchInstructorsOnce, onClose]); // ✅ All dependencies included
 
   // Reset mounted state when modal closes
   useEffect(() => {
@@ -237,16 +237,6 @@ export default function AddCourseModal({
       resetImageState();
     }
   }, [isOpen]);
-
-  // Refresh instructors cache (unused - removed)
-  // const refreshInstructorsCache = useCallback(() => {
-  //   instructorsCache = null;
-  //   hasFetchedOnce = false;
-  //   hasLoadedRef.current = false;
-  //   if (isOpen && !isInstructor) {
-  //     fetchInstructorsOnce();
-  //   }
-  // }, [isOpen, isInstructor, fetchInstructorsOnce]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
