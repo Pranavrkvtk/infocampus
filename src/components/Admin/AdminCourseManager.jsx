@@ -3,8 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
-import axiosInstance, { API_BASE_URL, API_ROOT_URL } from '../../api/axios';
-
+import axiosInstance, { API_ROOT_URL } from '../../api/axios';
 // ✅ FIXED: Helper function to build image URLs correctly
 const getFullImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
