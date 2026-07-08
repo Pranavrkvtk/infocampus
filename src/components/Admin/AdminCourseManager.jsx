@@ -3,9 +3,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
-import axiosInstance, { API_BASE_URL } from '../../api/axios';
+import axiosInstance, { API_BASE_URL, API_ROOT_URL } from '../../api/axios';
 
-// ✅ FIXED: Helper function to build image URLs correctly - NO DUPLICATE /api/
 // ✅ FIXED: Helper function to build image URLs correctly
 const getFullImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
@@ -26,8 +25,9 @@ const getFullImageUrl = (imageUrl) => {
     cleanPath = cleanPath.substring(4);
   }
   
-  // Use API_BASE_URL which already includes /api
-  return `${API_BASE_URL}/${cleanPath}`;
+  // For static assets (images, uploads), use API_ROOT_URL (without /api)
+  // These are served from the root, not from /api endpoint
+  return `${API_ROOT_URL}/${cleanPath}`;
 };
 
 // Thin wrapper for axios
@@ -187,7 +187,7 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE IMAGE UPLOADER - FIXED (No duplicate /api/)
+// COURSE IMAGE UPLOADER - FIXED
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
@@ -276,7 +276,7 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
               border: `1px solid ${clr.border}`
             }}
             onError={(e) => {
-              console.error('Image load error for URL:', imageSrc);
+              console.error('❌ Image load error for URL:', imageSrc);
               setImageError(true);
               e.target.style.display = 'none';
               const parent = e.target.parentElement;
@@ -313,7 +313,7 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR - FIXED (No duplicate /api/)
+// COURSE SELECTOR - FIXED
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
@@ -327,7 +327,9 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     try {
       const data = await api.get('/admin/courses');
       setCourses(Array.isArray(data) ? data : []);
-    } catch (error) { console.error(error); }
+    } catch (error) { 
+      console.error('Error loading courses:', error);
+    }
     finally { setLoading(false); }
   };
 
@@ -394,7 +396,10 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
                               src={imageUrl} 
                               alt={c.title}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              onError={() => handleImageError(c.id)}
+                              onError={() => {
+                                console.error('❌ Failed to load image for course:', c.id, imageUrl);
+                                handleImageError(c.id);
+                              }}
                             />
                           ) : (
                             <span>{c.title?.[0]?.toUpperCase() || '?'}</span>
@@ -911,7 +916,7 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE RENDERER - FIXED (Use API_BASE_URL)
+// MARKDOWN IMAGE RENDERER - FIXED
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   if (!src) return null;
@@ -931,8 +936,8 @@ function MarkdownImage({ src, alt }) {
       cleanSrc = cleanSrc.substring(4);
     }
     
-    // Use API_BASE_URL which already includes /api
-    fullSrc = `${API_BASE_URL}/${cleanSrc}`;
+    // For static assets (images, uploads), use API_ROOT_URL (without /api)
+    fullSrc = `${API_ROOT_URL}/${cleanSrc}`;
   }
 
   return (
@@ -941,14 +946,29 @@ function MarkdownImage({ src, alt }) {
       alt={alt || 'image'}
       style={{ maxWidth: '100%', height: 'auto', margin: '12px 0', borderRadius: 8, display: 'block' }}
       onError={(e) => {
-        console.error('Markdown image load error:', fullSrc);
-        e.target.style.border = '2px dashed #dc2626';
-        e.target.style.padding = '8px';
-        e.target.alt = `Failed to load: ${fullSrc}`;
+        console.error('❌ Markdown image load error:', fullSrc);
+        // Show error message in the image placeholder
+        const parent = e.target.parentElement;
+        const fallback = document.createElement('div');
+        fallback.style.cssText = `
+          padding: 16px; 
+          text-align: center; 
+          color: #dc2626; 
+          font-size: 13px; 
+          background: #fef2f2; 
+          border-radius: 8px; 
+          border: 2px dashed #dc2626; 
+          margin: 12px 0;
+        `;
+        fallback.textContent = `⚠️ Image not found: ${alt || 'image'}`;
+        if (parent) {
+          parent.replaceChild(fallback, e.target);
+        }
       }}
     />
   );
 }
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SUBTOPIC CONTENT EDITOR
 // ═══════════════════════════════════════════════════════════════════════════════
