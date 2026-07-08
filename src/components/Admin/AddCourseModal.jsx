@@ -37,108 +37,6 @@ export default function AddCourseModal({
   const hasLoadedRef = useRef(false);
   const isMountedRef = useRef(false);
 
-  // Check authentication and permissions - only once when modal opens
-  useEffect(() => {
-    // Only run when modal opens
-    if (!isOpen) {
-      return;
-    }
-
-    // Prevent multiple executions
-    if (isMountedRef.current) {
-      console.log('⏭️ Skipping permission check - already mounted');
-      return;
-    }
-
-    isMountedRef.current = true;
-    console.log('🔍 First-time permission check...');
-
-    const token = localStorage.getItem('token');
-    let user = {};
-    
-    try {
-      user = JSON.parse(localStorage.getItem('user') || '{}');
-    } catch (e) {
-      console.error('Failed to parse user from localStorage:', e);
-    }
-    
-    // Check if user is authenticated
-    if (!token) {
-      Swal.fire({
-        title: "Authentication Required",
-        text: "Please login to create courses",
-        icon: "warning",
-        confirmButtonColor: colors.primary,
-      }).then(() => onClose());
-      return;
-    }
-
-    // Check user role
-    const userRole = user.role || 
-                     user.userRole || 
-                     user.roleName || 
-                     user.authorities?.[0] || 
-                     user.type ||
-                     user.roles?.[0] ||
-                     '';
-
-    const isAdmin = userRole === 'admin' || 
-                    userRole === 'ADMIN' || 
-                    userRole === 'super_admin' || 
-                    userRole === 'SUPER_ADMIN' ||
-                    userRole === 'ROLE_ADMIN' ||
-                    userRole === 'ROLE_SUPER_ADMIN' ||
-                    (typeof userRole === 'string' && userRole.toUpperCase().includes('ADMIN'));
-
-    const isInstructorRole = userRole === 'instructor' || 
-                             userRole === 'INSTRUCTOR' || 
-                             userRole === 'ROLE_INSTRUCTOR' ||
-                             (typeof userRole === 'string' && userRole.toUpperCase().includes('INSTRUCTOR'));
-
-    console.log('🔍 Permission Check:', {
-      userRole,
-      isAdmin,
-      isInstructorRole,
-      isInstructorProp: isInstructor,
-      hasLoadedRef: hasLoadedRef.current,
-      hasFetchedOnce
-    });
-
-    const hasPermission = isInstructor || isAdmin || isInstructorRole;
-    
-    if (!hasPermission) {
-      Swal.fire({
-        title: "Access Denied",
-        html: `
-          <p>Only admins can create courses</p>
-          <p style="font-size: 12px; color: #666; margin-top: 8px;">
-            Debug: Role = "${userRole}"<br>
-            Mode: ${isInstructor ? 'Instructor' : 'Admin'}<br>
-            Please contact support if you think this is an error.
-          </p>
-        `,
-        icon: "error",
-        confirmButtonColor: colors.primary,
-      }).then(() => onClose());
-      return;
-    }
-
-    // Fetch instructors only for admin mode and only if not loaded before
-    if (!isInstructor && !hasLoadedRef.current) {
-      console.log('🚀 Starting instructor fetch...');
-      fetchInstructorsOnce();
-      hasLoadedRef.current = true;
-    }
-  }, [isOpen]); // Only depends on isOpen, not on other variables
-
-  // Reset mounted state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      isMountedRef.current = false;
-      resetImageState();
-    }
-  }, [isOpen]);
-
   // Modified fetch function with caching
   const fetchInstructorsOnce = useCallback(async () => {
     // If we already have cached data, use it
@@ -236,17 +134,119 @@ export default function AddCourseModal({
     } catch (error) {
       // Error already handled in the promise
     }
-  }, []);
+  }, []); // Empty dependency array - fetchInstructorsOnce is stable
 
-  // Refresh instructors cache (call this when a new instructor is added elsewhere)
-  const refreshInstructorsCache = useCallback(() => {
-    instructorsCache = null;
-    hasFetchedOnce = false;
-    hasLoadedRef.current = false;
-    if (isOpen && !isInstructor) {
-      fetchInstructorsOnce();
+  // Check authentication and permissions - only once when modal opens
+  useEffect(() => {
+    // Only run when modal opens
+    if (!isOpen) {
+      return;
     }
-  }, [isOpen, isInstructor, fetchInstructorsOnce]);
+
+    // Prevent multiple executions
+    if (isMountedRef.current) {
+      console.log('⏭️ Skipping permission check - already mounted');
+      return;
+    }
+
+    isMountedRef.current = true;
+    console.log('🔍 First-time permission check...');
+
+    const token = localStorage.getItem('token');
+    let user = {};
+    
+    try {
+      user = JSON.parse(localStorage.getItem('user') || '{}');
+    } catch (e) {
+      console.error('Failed to parse user from localStorage:', e);
+    }
+    
+    // Check if user is authenticated
+    if (!token) {
+      Swal.fire({
+        title: "Authentication Required",
+        text: "Please login to create courses",
+        icon: "warning",
+        confirmButtonColor: colors.primary,
+      }).then(() => onClose());
+      return;
+    }
+
+    // Check user role
+    const userRole = user.role || 
+                     user.userRole || 
+                     user.roleName || 
+                     user.authorities?.[0] || 
+                     user.type ||
+                     user.roles?.[0] ||
+                     '';
+
+    const isAdmin = userRole === 'admin' || 
+                    userRole === 'ADMIN' || 
+                    userRole === 'super_admin' || 
+                    userRole === 'SUPER_ADMIN' ||
+                    userRole === 'ROLE_ADMIN' ||
+                    userRole === 'ROLE_SUPER_ADMIN' ||
+                    (typeof userRole === 'string' && userRole.toUpperCase().includes('ADMIN'));
+
+    const isInstructorRole = userRole === 'instructor' || 
+                             userRole === 'INSTRUCTOR' || 
+                             userRole === 'ROLE_INSTRUCTOR' ||
+                             (typeof userRole === 'string' && userRole.toUpperCase().includes('INSTRUCTOR'));
+
+    console.log('🔍 Permission Check:', {
+      userRole,
+      isAdmin,
+      isInstructorRole,
+      isInstructorProp: isInstructor,
+      hasLoadedRef: hasLoadedRef.current,
+      hasFetchedOnce
+    });
+
+    const hasPermission = isInstructor || isAdmin || isInstructorRole;
+    
+    if (!hasPermission) {
+      Swal.fire({
+        title: "Access Denied",
+        html: `
+          <p>Only admins can create courses</p>
+          <p style="font-size: 12px; color: #666; margin-top: 8px;">
+            Debug: Role = "${userRole}"<br>
+            Mode: ${isInstructor ? 'Instructor' : 'Admin'}<br>
+            Please contact support if you think this is an error.
+          </p>
+        `,
+        icon: "error",
+        confirmButtonColor: colors.primary,
+      }).then(() => onClose());
+      return;
+    }
+
+    // Fetch instructors only for admin mode and only if not loaded before
+    if (!isInstructor && !hasLoadedRef.current) {
+      console.log('🚀 Starting instructor fetch...');
+      fetchInstructorsOnce();
+      hasLoadedRef.current = true;
+    }
+  }, [isOpen]); // Only depends on isOpen
+
+  // Reset mounted state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      isMountedRef.current = false;
+      resetImageState();
+    }
+  }, [isOpen]);
+
+  // Refresh instructors cache (unused - removed)
+  // const refreshInstructorsCache = useCallback(() => {
+  //   instructorsCache = null;
+  //   hasFetchedOnce = false;
+  //   hasLoadedRef.current = false;
+  //   if (isOpen && !isInstructor) {
+  //     fetchInstructorsOnce();
+  //   }
+  // }, [isOpen, isInstructor, fetchInstructorsOnce]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

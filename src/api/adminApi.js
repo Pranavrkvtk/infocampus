@@ -2,7 +2,6 @@
 import api from "./axios";
 
 // Get the base URL from the axios instance
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
 // ==================== DASHBOARD APIs ====================
 
