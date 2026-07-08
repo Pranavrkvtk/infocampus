@@ -185,22 +185,18 @@ function MyCoursesPage() {
 
     // ✅ Admin-uploaded images start with /uploads/ – need to add /admin
     if (imageUrl.startsWith('/uploads/')) {
-      // Remove leading slash and build full URL
-      return `${API_BASE}/admin${imageUrl}`;  // /api/admin/uploads/courses/...
+      return `${API_BASE}/admin${imageUrl}`;
     }
 
-    // Handle /api/ paths (should not happen often)
     if (imageUrl.startsWith('/api/')) {
       const baseUrl = API_BASE.replace('/api', '');
       return `${baseUrl}${imageUrl}`;
     }
 
-    // Handle relative paths without leading slash (e.g., "uploads/...")
     if (imageUrl.startsWith('uploads/')) {
       return `${API_BASE}/admin/${imageUrl}`;
     }
 
-    // Fallback: prepend base
     return `${API_BASE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
   };
 
@@ -212,7 +208,6 @@ function MyCoursesPage() {
       return fileName;
     }
 
-    // ✅ Add /admin for uploads
     if (fileName.startsWith('/uploads/')) {
       return `${API_BASE}/admin${fileName}`;
     }

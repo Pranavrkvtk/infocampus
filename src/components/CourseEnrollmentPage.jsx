@@ -1,11 +1,10 @@
 // src/components/CourseEnrollmentPage.jsx
-// Course enrollment page with course details, stats, and trainer information
+// Course enrollment page with course details and stats
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   getCourseDetails, 
-  getEnrollmentCount,
-  getInstructorById 
+  getEnrollmentCount 
 } from '../api/UserApi';
 
 // ─── Design tokens ─────────────────────────────────────────────────────
@@ -45,86 +44,11 @@ export default function CourseEnrollmentPage({
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [enrollmentCount, setEnrollmentCount] = useState(0);
   const [loadingEnrollmentCount, setLoadingEnrollmentCount] = useState(false);
-  const [instructorDetails, setInstructorDetails] = useState(null);
-  const [loadingInstructor, setLoadingInstructor] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const isMobile = window.innerWidth < 768;
 
-  // ─── Memoized Functions ──────────────────────────────────────────────
-
-  const getDefaultInstructor = useCallback(() => {
-    return {
-      id: 0,
-      name: 'Expert Instructor',
-      title: 'Senior Network Engineer & Instructor',
-      bio: 'Experienced network engineer with years of industry expertise.',
-      experience: '10+ years',
-      certifications: ['CCNA', 'CCNP', 'CCIE'],
-      company: 'Cisco Systems',
-      students: 45000,
-      courses: 12,
-      rating: 4.9,
-      email: 'instructor@example.com',
-      profileImage: '',
-    };
-  }, []);
-
-  const fetchInstructorDetails = useCallback(async (instructorId) => {
-    // If instructorId is a name string or not a number, skip API call
-    if (!instructorId) {
-      setInstructorDetails(getDefaultInstructor());
-      return;
-    }
-
-    // If it's a string that's not a number, use as name
-    if (isNaN(instructorId)) {
-      setInstructorDetails({
-        ...getDefaultInstructor(),
-        name: instructorId,
-      });
-      return;
-    }
-    
-    setLoadingInstructor(true);
-    try {
-      const data = await getInstructorById(parseInt(instructorId));
-      console.log('Instructor details from API:', data);
-      
-      // If we get valid data, use it
-      if (data && data.name) {
-        setInstructorDetails({
-          id: data.id || parseInt(instructorId),
-          name: data.name || `Instructor ${instructorId}`,
-          title: data.title || 'Senior Network Engineer & Instructor',
-          bio: data.bio || 'Experienced network engineer with years of industry expertise.',
-          experience: data.experience || '10+ years',
-          certifications: data.certifications || ['CCNA', 'CCNP', 'CCIE'],
-          company: data.company || 'Cisco Systems',
-          students: data.totalStudents || data.studentsCount || 45000,
-          courses: data.totalCourses || data.coursesCount || 12,
-          rating: data.rating || 4.9,
-          email: data.email || '',
-          profileImage: data.avatar || data.profileImage || '',
-        });
-      } else {
-        // If no data, use fallback with instructor ID
-        setInstructorDetails({
-          ...getDefaultInstructor(),
-          name: `Instructor ${instructorId}`,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching instructor details:', error);
-      // Use fallback data on error
-      setInstructorDetails({
-        ...getDefaultInstructor(),
-        name: `Instructor ${instructorId}`,
-      });
-    } finally {
-      setLoadingInstructor(false);
-    }
-  }, [getDefaultInstructor]);
+  // ─── Fetch Functions ──────────────────────────────────────────────
 
   const fetchCourseDetails = useCallback(async (courseId) => {
     setLoadingDetails(true);
@@ -132,22 +56,12 @@ export default function CourseEnrollmentPage({
       const data = await getCourseDetails(courseId);
       console.log('Course details from API:', data);
       setCourseDetails(data);
-      
-      // If instructor ID is in course data, fetch instructor details
-      const instructorId = data?.course?.instructorId || data?.course?.instructor;
-      if (instructorId) {
-        await fetchInstructorDetails(instructorId);
-      } else {
-        // If no instructor ID, set default instructor
-        setInstructorDetails(getDefaultInstructor());
-      }
     } catch (error) {
       console.error('Error fetching course details:', error);
-      setInstructorDetails(getDefaultInstructor());
     } finally {
       setLoadingDetails(false);
     }
-  }, [fetchInstructorDetails, getDefaultInstructor]);
+  }, []);
 
   const fetchEnrollmentCount = useCallback(async (courseId) => {
     setLoadingEnrollmentCount(true);
@@ -165,7 +79,6 @@ export default function CourseEnrollmentPage({
 
   // ─── Effects ──────────────────────────────────────────────────────────
 
-  // Fetch course details when component mounts or course changes
   useEffect(() => {
     if (course?.id) {
       fetchCourseDetails(course.id);
@@ -176,9 +89,6 @@ export default function CourseEnrollmentPage({
   // ─── Build Course Data ──────────────────────────────────────────────
 
   const buildCourseData = () => {
-    // Get instructor data (use API data or default)
-    const instructor = instructorDetails || getDefaultInstructor();
-
     // If we have API data, use it
     if (courseDetails && courseDetails.course) {
       const apiCourse = courseDetails.course;
@@ -203,22 +113,6 @@ export default function CourseEnrollmentPage({
       // Use actual enrollment count from API
       const students = enrollmentCount || 0;
 
-      // Build trainer info
-      const trainer = {
-        id: instructor.id || 0,
-        name: instructor.name || apiCourse.instructor || 'Expert Instructor',
-        title: instructor.title || 'Senior Network Engineer & Instructor',
-        bio: instructor.bio || 'Experienced network engineer with years of industry expertise.',
-        experience: instructor.experience || '10+ years',
-        certifications: instructor.certifications || ['CCNA', 'CCNP', 'CCIE'],
-        company: instructor.company || 'Cisco Systems',
-        students: instructor.students || 45000,
-        courses: instructor.courses || 12,
-        rating: instructor.rating || 4.9,
-        email: instructor.email || '',
-        profileImage: instructor.profileImage || '',
-      };
-
       return {
         id: apiCourse.id,
         title: apiCourse.title || 'Course',
@@ -239,7 +133,6 @@ export default function CourseEnrollmentPage({
           'Configure and troubleshoot IPv4 addressing',
           'Master Ethernet fundamentals and switching',
         ],
-        trainer: trainer,
         syllabus: syllabus.length > 0 ? syllabus : [
           { title: 'Network Fundamentals', duration: '1h 20m', lessons: 12 },
           { title: 'Network Access', duration: '1h 15m', lessons: 10 },
@@ -257,21 +150,6 @@ export default function CourseEnrollmentPage({
     }
 
     // Fallback to provided course prop
-    const trainer = {
-      id: instructor.id || 0,
-      name: instructor.name || course?.instructor || 'Expert Instructor',
-      title: instructor.title || 'Senior Network Engineer & Instructor',
-      bio: instructor.bio || 'Experienced network engineer with years of industry expertise.',
-      experience: instructor.experience || '10+ years',
-      certifications: instructor.certifications || ['CCNA', 'CCNP', 'CCIE'],
-      company: instructor.company || 'Cisco Systems',
-      students: instructor.students || 45000,
-      courses: instructor.courses || 12,
-      rating: instructor.rating || 4.9,
-      email: instructor.email || '',
-      profileImage: instructor.profileImage || '',
-    };
-
     return course || {
       id: 1,
       title: 'CCNA 200-301',
@@ -291,7 +169,6 @@ export default function CourseEnrollmentPage({
         'Configure and troubleshoot IPv4 addressing',
         'Master Ethernet fundamentals and switching',
       ],
-      trainer: trainer,
       syllabus: [
         { title: 'Network Fundamentals', duration: '1h 20m', lessons: 12 },
         { title: 'Network Access', duration: '1h 15m', lessons: 10 },
@@ -310,6 +187,7 @@ export default function CourseEnrollmentPage({
   const courseData = buildCourseData();
 
   // ─── Handlers ──────────────────────────────────────────────────────
+
   const handleEnrollClick = () => {
     if (!isLoggedIn) {
       setShowLoginModal(true);
@@ -472,13 +350,18 @@ export default function CourseEnrollmentPage({
     },
     mainLayout: {
       display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr',
+      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
       gap: '32px',
     },
     leftColumn: {
       display: 'flex',
       flexDirection: 'column',
       gap: '24px',
+    },
+    rightColumn: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '20px',
     },
     card: {
       background: COLORS.paper,
@@ -565,11 +448,6 @@ export default function CourseEnrollmentPage({
       fontSize: '13px',
       color: COLORS.slate,
     },
-    sidebar: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '20px',
-    },
     priceCard: {
       background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.plumMid})`,
       borderRadius: '16px',
@@ -612,12 +490,6 @@ export default function CourseEnrollmentPage({
       fontSize: '16px',
       fontWeight: 700,
       cursor: 'not-allowed',
-    },
-    viewOnlyMsg: {
-      textAlign: 'center',
-      padding: '10px 0',
-      color: 'rgba(255,255,255,0.9)',
-      fontSize: '14px',
     },
     shareBtn: {
       width: '100%',
@@ -664,64 +536,6 @@ export default function CourseEnrollmentPage({
     infoValue: {
       fontWeight: 600,
       color: COLORS.ink,
-    },
-    trainerCard: {
-      display: 'flex',
-      gap: '16px',
-      alignItems: 'flex-start',
-    },
-    trainerAvatar: {
-      width: '64px',
-      height: '64px',
-      borderRadius: '50%',
-      background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.gold})`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '28px',
-      color: '#fff',
-      flexShrink: 0,
-    },
-    trainerInfo: {
-      flex: 1,
-    },
-    trainerName: {
-      fontSize: '16px',
-      fontWeight: 700,
-      color: COLORS.ink,
-    },
-    trainerTitle: {
-      fontSize: '13px',
-      color: COLORS.slate,
-      marginBottom: '4px',
-    },
-    trainerStats: {
-      display: 'flex',
-      gap: '16px',
-      fontSize: '13px',
-      color: COLORS.slate,
-      marginTop: '4px',
-      flexWrap: 'wrap',
-    },
-    trainerBio: {
-      fontSize: '14px',
-      color: COLORS.slate,
-      lineHeight: 1.6,
-      marginTop: '8px',
-    },
-    trainerCerts: {
-      display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap',
-      marginTop: '8px',
-    },
-    certBadge: {
-      background: COLORS.tagBg,
-      color: COLORS.tagText,
-      padding: '2px 10px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: 600,
     },
     loginPrompt: {
       background: COLORS.paper,
@@ -853,7 +667,7 @@ export default function CourseEnrollmentPage({
     },
   };
 
-  if (loadingDetails || loadingEnrollmentCount || loadingInstructor) {
+  if (loadingDetails || loadingEnrollmentCount) {
     return (
       <div style={styles.page}>
         <div style={styles.topStrip}>
@@ -934,62 +748,6 @@ export default function CourseEnrollmentPage({
     </>
   );
 
-  const renderTrainer = () => (
-    <div style={styles.card}>
-      <h3 style={styles.cardTitle}>Trainer Details</h3>
-      <div style={styles.trainerCard}>
-        <div style={styles.trainerAvatar}>👨‍🏫</div>
-        <div style={styles.trainerInfo}>
-          <div style={styles.trainerName}>{courseData.trainer.name}</div>
-          <div style={styles.trainerTitle}>{courseData.trainer.title}</div>
-          {courseData.trainer.email && (
-            <div style={{ fontSize: '12px', color: COLORS.slate, marginBottom: '4px' }}>
-              📧 {courseData.trainer.email}
-            </div>
-          )}
-          <div style={styles.trainerStats}>
-            <span>⭐ {courseData.trainer.rating}</span>
-            <span>👥 {courseData.trainer.students.toLocaleString()} students</span>
-            <span>📚 {courseData.trainer.courses} courses</span>
-          </div>
-          <div style={styles.trainerCerts}>
-            {courseData.trainer.certifications && courseData.trainer.certifications.map((cert, idx) => (
-              <span key={idx} style={styles.certBadge}>{cert}</span>
-            ))}
-          </div>
-          <p style={styles.trainerBio}>{courseData.trainer.bio}</p>
-          <div style={styles.trainerStats}>
-            <span>🏢 {courseData.trainer.company}</span>
-            <span>⏱ {courseData.trainer.experience} experience</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderReviews = () => (
-    <div style={styles.card}>
-      <h3 style={styles.cardTitle}>Course Reviews</h3>
-      <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <div style={{ fontSize: '48px', color: COLORS.gold, marginBottom: '8px' }}>
-          ★★★★★
-        </div>
-        <div style={{ fontSize: '24px', fontWeight: 700, color: COLORS.ink }}>
-          {courseData.rating} / 5.0
-        </div>
-        <div style={{ color: COLORS.slate, marginTop: '4px' }}>
-          Based on {courseData.reviews.toLocaleString()} reviews
-        </div>
-        <div style={{ marginTop: '20px', color: COLORS.slate, fontSize: '14px' }}>
-          ⭐⭐⭐⭐⭐ Excellent
-        </div>
-        <div style={{ marginTop: '8px', color: COLORS.slate, fontSize: '14px' }}>
-          "This course is amazing! Highly recommended."
-        </div>
-      </div>
-    </div>
-  );
-
   // ─── Login Modal ──────────────────────────────────────────────────
 
   const renderLoginModal = () => (
@@ -1066,39 +824,9 @@ export default function CourseEnrollmentPage({
 
           {/* ─── Main Content ────────────────────────────────────────── */}
           <div style={styles.mainLayout}>
+            {/* ─── Left Column ───────────────────────────────────────── */}
             <div style={styles.leftColumn}>
-              {/* ─── Tabs ────────────────────────────────────────────── */}
-              <div style={styles.card}>
-                <div style={styles.tabs}>
-                  <button
-                    style={styles.tab(activeTab === 'overview')}
-                    onClick={() => setActiveTab('overview')}
-                  >
-                    📖 Overview
-                  </button>
-                  <button
-                    style={styles.tab(activeTab === 'trainer')}
-                    onClick={() => setActiveTab('trainer')}
-                  >
-                    👨‍🏫 Trainer
-                  </button>
-                  <button
-                    style={styles.tab(activeTab === 'reviews')}
-                    onClick={() => setActiveTab('reviews')}
-                  >
-                    ⭐ Reviews
-                  </button>
-                </div>
-
-                {activeTab === 'overview' && renderOverview()}
-                {activeTab === 'trainer' && renderTrainer()}
-                {activeTab === 'reviews' && renderReviews()}
-              </div>
-            </div>
-
-            {/* ─── Right Sidebar ─────────────────────────────────────── */}
-            <div style={styles.sidebar}>
-              {/* Price / Enroll Card */}
+              {/* Price / Enroll Card - Now on the left */}
               <div style={styles.priceCard}>
                 <div style={styles.price}>${courseData.price}</div>
                 <div style={styles.priceSub}>
@@ -1146,7 +874,7 @@ export default function CourseEnrollmentPage({
                 )}
               </div>
 
-              {/* Course Information */}
+              {/* Course Information - Now on the left */}
               <div style={styles.card}>
                 <h3 style={styles.cardTitle}>Course Information</h3>
                 <div style={styles.infoRow}>
@@ -1174,23 +902,22 @@ export default function CourseEnrollmentPage({
                   <span style={styles.infoValue}>{courseData.certificate}</span>
                 </div>
               </div>
+            </div>
 
-              {/* Trainer Quick Info */}
+            {/* ─── Right Column ──────────────────────────────────────── */}
+            <div style={styles.rightColumn}>
+              {/* ─── Tabs ────────────────────────────────────────────── */}
               <div style={styles.card}>
-                <h3 style={styles.cardTitle}>Your Instructor</h3>
-                <div style={styles.trainerCard}>
-                  <div style={styles.trainerAvatar}>👨‍🏫</div>
-                  <div style={styles.trainerInfo}>
-                    <div style={styles.trainerName}>{courseData.trainer.name}</div>
-                    <div style={{ fontSize: '12px', color: COLORS.slate }}>
-                      {courseData.trainer.title}
-                    </div>
-                    <div style={styles.trainerStats}>
-                      <span>⭐ {courseData.trainer.rating}</span>
-                      <span>{courseData.trainer.students.toLocaleString()} students</span>
-                    </div>
-                  </div>
+                <div style={styles.tabs}>
+                  <button
+                    style={styles.tab(activeTab === 'overview')}
+                    onClick={() => setActiveTab('overview')}
+                  >
+                    📖 Overview
+                  </button>
                 </div>
+
+                {activeTab === 'overview' && renderOverview()}
               </div>
             </div>
           </div>

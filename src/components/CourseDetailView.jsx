@@ -1,5 +1,5 @@
 // src/components/CourseDetailView.jsx
-// Enhanced Odoo-style learning UI - Clean, minimal, no progress bar or complete button
+// Odoo-style learning UI - Sidebar + Full Content
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -8,22 +8,18 @@ import {
   getSubtopicLabs,
 } from '../api/UserApi';
 
-// ✅ Fixed: Use environment variable with /api
+// ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
-
-
 
 // ─── Design tokens ─────────────────────────────────────────────────────
 const C = {
-  sidebarBg: '#15131C',
-  sidebarBgAlt: '#1D1A26',
-  sidebarLine: '#2A2733',
-  sidebarText: '#C9C5D6',
+  sidebarBg: '#F8F7FA',
+  sidebarBgAlt: '#F0EEF4',
+  sidebarLine: '#E8E3EE',
+  sidebarText: '#4A4458',
   sidebarTextDim: '#7C7791',
-  sidebarActive: '#2A2440',
-  sidebarHover: '#242033',
-  playerHeaderFrom: '#2E1F35',
-  playerHeaderTo: '#4A2F52',
+  sidebarActive: '#EDE7F6',
+  sidebarHover: '#F3F0F8',
   accent: '#8B5FBF',
   accentLight: '#A78BCC',
   accentDark: '#6B4A8A',
@@ -47,7 +43,6 @@ const C = {
 
 const getEmbedUrl = (url) => {
   if (!url) return null;
-  
   if (url.includes('watch?v=') && url.includes('&list=')) {
     const videoIdMatch = url.match(/[?&]v=([^&]+)/);
     if (videoIdMatch && videoIdMatch[1]) {
@@ -58,7 +53,6 @@ const getEmbedUrl = (url) => {
       return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
     }
   }
-  
   if (url.includes('watch?v=')) {
     return url.replace('watch?v=', 'embed/');
   }
@@ -85,12 +79,9 @@ const getVideoUrls = (subtopic) => {
 const fetchImageWithAuth = async (url) => {
   try {
     const token = localStorage.getItem('token');
-    // Clean the URL first
     const cleanUrl = url.replace(/([^:]\/)\/+/g, "$1");
     const response = await fetch(cleanUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!response.ok) throw new Error('Failed to fetch image');
     const blob = await response.blob();
@@ -104,39 +95,25 @@ const fetchImageWithAuth = async (url) => {
 const buildImgSrc = (src) => {
   if (!src) return '';
   if (src.startsWith('http://') || src.startsWith('https://')) return src;
-  
-  let url;
-  // Remove /api prefix from src if it exists since API_BASE already has it
   let cleanSrc = src;
-  if (cleanSrc.startsWith('/api/')) {
-    cleanSrc = cleanSrc.substring(4);
-  }
-  if (cleanSrc.startsWith('api/')) {
-    cleanSrc = cleanSrc.substring(4);
-  }
-  if (!cleanSrc.startsWith('/')) {
-    cleanSrc = '/' + cleanSrc;
-  }
-  
-  url = `${API_BASE}${cleanSrc}`;
-  // Remove duplicate slashes
+  if (cleanSrc.startsWith('/api/')) cleanSrc = cleanSrc.substring(4);
+  if (cleanSrc.startsWith('api/')) cleanSrc = cleanSrc.substring(4);
+  if (!cleanSrc.startsWith('/')) cleanSrc = '/' + cleanSrc;
+  let url = `${API_BASE}${cleanSrc}`;
   url = url.replace(/([^:]\/)\/+/g, "$1");
-  
   return url;
 };
 
-// ✅ Updated: Build image tag with authenticated src
 const buildImageTag = (alt, src) => {
   const imgSrc = buildImgSrc(src);
-  return `<img src="${imgSrc}" alt="${alt}" class="note-image" loading="lazy" style="max-width:100%;border-radius:14px;margin:24px 0;box-shadow:0 6px 24px rgba(0,0,0,0.1);display:block;height:auto;" />`;
+  return `<img src="${imgSrc}" alt="${alt}" class="note-image" loading="lazy" />`;
 };
 
 const inlineFormat = (str) => {
   let out = str;
   out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, src) => buildImageTag(alt, src));
-  out = out.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    (m, text, url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="note-link">${text}</a>`
+  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, text, url) => 
+    `<a href="${url}" target="_blank" rel="noopener noreferrer" class="note-link">${text}</a>`
   );
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
@@ -144,8 +121,11 @@ const inlineFormat = (str) => {
   return out;
 };
 
-const renderRichContent = (text) => {
+// ─── Odoo-style Markdown Renderer ────────────────────────────────────
+
+const renderOdooContent = (text) => {
   if (!text) return '';
+  
   const lines = text.split('\n');
   let html = '';
   let listType = null;
@@ -157,211 +137,302 @@ const renderRichContent = (text) => {
     }
   };
 
-  lines.forEach((rawLine) => {
-    const line = rawLine.trim();
-
-    if (line === '') {
+  const processLine = (line) => {
+    // Main heading (# Getting Started)
+    const mainHeading = line.match(/^#\s+(.+)$/);
+    if (mainHeading) {
       closeList();
-      return;
+      html += `<h1 class="odoo-main-heading">${inlineFormat(mainHeading[1])}</h1>`;
+      return true;
     }
 
-    const heading = line.match(/^(#{1,3})\s+(.*)$/);
-    if (heading) {
+    // Sub heading (## USING ODOO)
+    const subHeading = line.match(/^##\s+(.+)$/);
+    if (subHeading) {
       closeList();
-      const level = heading[1].length;
-      html += `<h${level} class="note-h${level}">${inlineFormat(heading[2])}</h${level}>`;
-      return;
+      html += `<h2 class="odoo-sub-heading">${inlineFormat(subHeading[1])}</h2>`;
+      return true;
     }
 
-    const quote = line.match(/^>\s*(.*)$/);
-    if (quote) {
+    // Numbered question (# 1. Where can...)
+    const question = line.match(/^#\s+(\d+)\.\s+(.*)$/);
+    if (question) {
       closeList();
-      html += `<div class="note-tip">💡 ${inlineFormat(quote[1])}</div>`;
-      return;
+      html += `<div class="odoo-question-wrapper">`;
+      html += `<div class="odoo-question-number">${question[1]}.</div>`;
+      html += `<div class="odoo-question-text">${inlineFormat(question[2])}</div>`;
+      html += `</div>`;
+      return true;
     }
 
-    const standaloneImage = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-    if (standaloneImage) {
+    // Bold list item (- GETTING STARTED with children)
+    const boldListItem = line.match(/^-\s+\*\*(.+)\*\*$/);
+    if (boldListItem) {
       closeList();
-      html += buildImageTag(standaloneImage[1], standaloneImage[2]);
-      return;
+      html += `<div class="odoo-section-header">${inlineFormat(boldListItem[1])}</div>`;
+      return true;
     }
 
-    const ulItem = line.match(/^[-*]\s+(.*)$/);
-    if (ulItem) {
+    // Indented list item (  - Create an Odoo Database)
+    const indentListItem = line.match(/^\s{2,}-\s+(.+)$/);
+    if (indentListItem) {
       if (listType !== 'ul') {
         closeList();
-        html += '<ul class="note-list">';
+        html += '<ul class="odoo-list">';
         listType = 'ul';
       }
-      html += `<li>${inlineFormat(ulItem[1])}</li>`;
-      return;
+      html += `<li class="odoo-list-item">${inlineFormat(indentListItem[1])}</li>`;
+      return true;
     }
 
-    const olItem = line.match(/^\d+\.\s+(.*)$/);
-    if (olItem) {
-      if (listType !== 'ol') {
+    // Regular list item (- something)
+    const listItem = line.match(/^-\s+(.+)$/);
+    if (listItem) {
+      if (listType !== 'ul') {
         closeList();
-        html += '<ol class="note-list">';
-        listType = 'ol';
+        html += '<ul class="odoo-list">';
+        listType = 'ul';
       }
-      html += `<li>${inlineFormat(olItem[1])}</li>`;
-      return;
+      html += `<li class="odoo-list-item">${inlineFormat(listItem[1])}</li>`;
+      return true;
     }
 
+    // Bold text (**Sign in and join...**)
+    const boldText = line.match(/^\*\*(.+)\*\*$/);
+    if (boldText) {
+      closeList();
+      html += `<div class="odoo-signin-text">${inlineFormat(boldText[1])}</div>`;
+      return true;
+    }
+
+    // XP badge (+40 XP)
+    const xpMatch = line.match(/^\+(\d+)\s+XP$/);
+    if (xpMatch) {
+      closeList();
+      html += `<div class="odoo-xp-badge">+${xpMatch[1]} XP</div>`;
+      return true;
+    }
+
+    // Horizontal rule (---)
+    if (line.match(/^---$/)) {
+      closeList();
+      html += '<hr class="odoo-divider" />';
+      return true;
+    }
+
+    // Regular paragraph
     closeList();
-    html += `<p class="note-paragraph">${inlineFormat(line)}</p>`;
-  });
+    if (line.trim()) {
+      html += `<p class="odoo-paragraph">${inlineFormat(line)}</p>`;
+    }
+    return true;
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (line === '') {
+      closeList();
+      continue;
+    }
+    processLine(line);
+  }
 
   closeList();
   return html;
 };
 
-const NOTE_STYLES = `
-  /* Prevent text selection and copying */
-  .notes-content, 
-  .notes-content *,
-  .player-body,
-  .player-body *,
-  .empty-state,
-  .empty-state * {
-    user-select: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-  }
-  
-  .notes-content { 
-    color: #1e293b; 
-    font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-    font-size: 19px;
-    line-height: 2.1;
-  }
-  .notes-content .note-h1 { 
-    font-size: 38px; 
-    font-weight: 800; 
-    color: #0f172a; 
-    margin: 0 0 24px; 
-    line-height: 1.3; 
-    letter-spacing: -0.5px;
-  }
-  .notes-content .note-h2 { 
-    font-size: 30px; 
-    font-weight: 700; 
-    color: #0f172a; 
-    margin: 0 0 18px; 
-    line-height: 1.35; 
-    border-bottom: 3px solid #f1f5f9; 
-    padding-bottom: 12px; 
-    letter-spacing: -0.3px;
-  }
-  .notes-content .note-h3 { 
-    font-size: 24px; 
-    font-weight: 600; 
-    color: #1e293b; 
-    margin: 0 0 16px; 
-    letter-spacing: -0.2px;
-  }
-  .notes-content .note-paragraph { 
-    margin: 0 0 22px; 
-    line-height: 2.1; 
-    font-size: 19px; 
-    color: #1e293b;
-  }
-  .notes-content .note-list { 
-    margin: 0 0 22px; 
-    padding-left: 36px; 
-    line-height: 2.1; 
-    font-size: 19px; 
-  }
-  .notes-content .note-list li { 
-    margin-bottom: 12px; 
-  }
-  .notes-content .note-tip { 
-    background: #fef9e7; 
-    border-left: 5px solid #f5b942; 
-    padding: 20px 28px; 
-    border-radius: 12px; 
-    margin: 24px 0; 
-    font-size: 18px; 
-    color: #7a5c00; 
-    line-height: 1.8; 
-  }
-  .notes-content .note-link { 
-    color: #4f46e5; 
-    text-decoration: underline; 
-    text-decoration-color: #c7d2fe; 
-    text-underline-offset: 3px;
-    font-weight: 500;
-  }
-  .notes-content .note-link:hover { 
-    color: #4338ca; 
-  }
-  .notes-content .note-image { 
-    max-width: 100%; 
-    border-radius: 16px; 
-    margin: 30px 0; 
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1); 
-    display: block; 
-  }
-  .notes-content .note-code { 
-    background: #f1f5f9; 
-    padding: 4px 12px; 
-    border-radius: 8px; 
-    font-size: 17px; 
-    color: #0f172a; 
-    font-family: 'JetBrains Mono', 'Fira Code', monospace; 
-  }
-  .notes-content > *:last-child { 
-    margin-bottom: 0; 
+// ─── Odoo Content Styles ─────────────────────────────────────────────
+
+const ODOO_STYLES = `
+  /* Content container */
+  .odoo-content {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #1E1B24;
+    font-size: 16px;
+    line-height: 1.8;
+    padding: 4px 0;
+    max-width: 100%;
   }
 
-  .fade-in { animation: fadeIn 0.6s ease-out; }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(12px); }
+  /* Main heading (# Getting Started) */
+  .odoo-main-heading {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 20px 0;
+    padding: 0;
+    line-height: 1.3;
+    letter-spacing: -0.3px;
+  }
+
+  /* Sub heading (## USING ODOO) */
+  .odoo-sub-heading {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 28px 0 16px 0;
+    padding: 0;
+    line-height: 1.4;
+    letter-spacing: -0.2px;
+  }
+
+  /* Section headers (- GETTING STARTED) */
+  .odoo-section-header {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1E293B;
+    margin: 16px 0 6px 0;
+    padding: 0;
+    letter-spacing: 0.3px;
+  }
+
+  /* Lists */
+  .odoo-list {
+    margin: 4px 0 16px 0;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .odoo-list-item {
+    padding: 4px 0 4px 24px;
+    position: relative;
+    font-size: 15px;
+    color: #1E293B;
+    line-height: 1.7;
+  }
+
+  .odoo-list-item::before {
+    content: "•";
+    position: absolute;
+    left: 4px;
+    color: #8B5FBF;
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  /* Quiz question wrapper */
+  .odoo-question-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin: 24px 0 12px 0;
+    padding: 0;
+  }
+
+  .odoo-question-number {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0F172A;
+    min-width: 28px;
+    flex-shrink: 0;
+  }
+
+  .odoo-question-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #0F172A;
+    line-height: 1.6;
+  }
+
+  /* Sign-in text */
+  .odoo-signin-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: #4A4458;
+    margin: 16px 0 8px 0;
+    padding: 0;
+    text-align: center;
+  }
+
+  /* XP Badge */
+  .odoo-xp-badge {
+    display: inline-block;
+    background: #8B5FBF;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 20px;
+    margin: 4px 0;
+  }
+
+  /* Divider */
+  .odoo-divider {
+    border: none;
+    border-top: 1px solid #EEECF3;
+    margin: 16px 0;
+  }
+
+  /* Paragraph */
+  .odoo-paragraph {
+    font-size: 15px;
+    color: #1E293B;
+    line-height: 1.8;
+    margin: 0 0 16px 0;
+  }
+
+  /* Links */
+  .note-link {
+    color: #8B5FBF;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .note-link:hover {
+    color: #6B4A8A;
+  }
+
+  /* Code */
+  .note-code {
+    background: #F1F0F4;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Images */
+  .note-image {
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 16px 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    display: block;
+  }
+
+  /* Animations */
+  .fade-in {
+    animation: odooFadeIn 0.5s ease-out;
+  }
+  @keyframes odooFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Prevent page swipe on mobile */
-  body {
-    overscroll-behavior: none;
-    touch-action: pan-y;
+  /* Prevent selection */
+  .odoo-content,
+  .odoo-content * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
   }
-  
-  .notes-content {
-    overscroll-behavior: contain;
-    touch-action: pan-y;
-  }
-  
-  .player-body {
-    overscroll-behavior: contain;
-    touch-action: pan-y;
-  }
-  
-  .notes-content::-webkit-scrollbar,
-  .player-body::-webkit-scrollbar {
+
+  /* Scrollbar */
+  .odoo-content::-webkit-scrollbar {
     width: 6px;
   }
-  
-  .notes-content::-webkit-scrollbar-track,
-  .player-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
+  .odoo-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .odoo-content::-webkit-scrollbar-thumb {
+    background: #D5D0DE;
     border-radius: 3px;
   }
-  
-  .notes-content::-webkit-scrollbar-thumb,
-  .player-body::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-  }
-  
-  .notes-content::-webkit-scrollbar-thumb:hover,
-  .player-body::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+  .odoo-content::-webkit-scrollbar-thumb:hover {
+    background: #BDB8C9;
   }
 `;
 
-// ─── Sidebar leaf-type config ──────────────────────────────────────────
+// ─── Sidebar config ──────────────────────────────────────────────────
+
 const CONTENT_TYPES = [
   { key: 'video',     icon: '🎬', label: 'Video Tutorial', color: '#8B5FBF' },
   { key: 'notes',     icon: '📄', label: 'Tutorial', color: '#3B82F6' },
@@ -370,111 +441,75 @@ const CONTENT_TYPES = [
   { key: 'labs',      icon: '🧪', label: 'Lab Exercise', color: '#10B981' },
 ];
 
-// ─── Section components ───────────────────────────────────────────────
+// ─── Tab Components ──────────────────────────────────────────────────
 
-// ─── NotesTab ──────────────────────────────────────────────────────────
-// Clean, continuous scrolling with mobile-friendly design
 function NotesTab({ content }) {
-  const containerRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // Check for mobile on resize
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   if (!content) {
-    return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>📝 No notes for this section.</div>;
+    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>📝 No notes for this section.</div>;
   }
 
-  const html = renderRichContent(content);
+  const html = renderOdooContent(content);
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>
       <div
-        ref={containerRef}
-        className="notes-content fade-in"
+        className="odoo-content fade-in"
         dangerouslySetInnerHTML={{ __html: html }}
         style={{
-          padding: isMobile ? '20px 16px 80px 16px' : '32px 36px 100px 36px',
-          maxHeight: isMobile ? '55vh' : '65vh',
-          minHeight: isMobile ? '200px' : '300px',
-          overflowY: 'auto',
+          padding: isMobile ? '12px 8px 60px 8px' : '16px 24px 80px 24px',
+          overflowY: 'visible',
           overflowX: 'hidden',
           userSelect: 'none',
           WebkitUserSelect: 'none',
-          MozUserSelect: 'none',
-          msUserSelect: 'none',
-          background: '#fff',
-          borderRadius: isMobile ? '12px' : '14px',
-          border: '1px solid #EEECF3',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-          overscrollBehavior: 'contain',
-          touchAction: 'pan-y',
           scrollBehavior: 'smooth',
           WebkitOverflowScrolling: 'touch',
-          fontSize: isMobile ? '15px' : '18px',
-          lineHeight: isMobile ? '1.9' : '2.0',
-          transition: 'all 0.3s ease',
         }}
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
         onContextMenu={(e) => e.preventDefault()}
         onSelect={(e) => e.preventDefault()}
       />
-
-      <style>{`
-        .notes-content {
-          transition: all 0.3s ease;
-        }
-        /* Mobile touch improvements */
-        @media (max-width: 768px) {
-          .notes-content {
-            -webkit-overflow-scrolling: touch;
-          }
-        }
-      `}</style>
+      <style>{ODOO_STYLES}</style>
     </div>
   );
 }
 
-// ─── VideoTab ──────────────────────────────────────────────────────────
 function VideoTab({ videoUrls }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
 
-  if (urls.length === 0) return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>🎬 No video for this section.</div>;
+  if (urls.length === 0) {
+    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>🎬 No video for this section.</div>;
+  }
 
   const currentUrl = urls[currentVideo];
   const embed = getEmbedUrl(currentUrl);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', userSelect: 'none', WebkitUserSelect: 'none' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {urls.length > 1 && (
-        <div style={{
-          display: 'flex',
-          gap: '10px',
-          flexWrap: 'wrap',
-          marginBottom: '4px',
-        }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {urls.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentVideo(idx)}
               style={{
-                padding: '8px 20px',
-                borderRadius: '20px',
-                border: idx === currentVideo ? '2px solid #8B5FBF' : '1px solid #E7E3EE',
+                padding: '6px 16px',
+                borderRadius: '16px',
+                border: idx === currentVideo ? '2px solid #8B5FBF' : '1px solid #E8E3EE',
                 background: idx === currentVideo ? '#EDE7F6' : '#fff',
                 color: idx === currentVideo ? '#8B5FBF' : '#6B6478',
                 fontWeight: idx === currentVideo ? 600 : 500,
-                fontSize: '13px',
+                fontSize: '12px',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
               }}
             >
               🎬 Video {idx + 1}
@@ -489,9 +524,8 @@ function VideoTab({ videoUrls }) {
           paddingBottom: '56.25%', 
           height: 0, 
           overflow: 'hidden', 
-          borderRadius: '14px', 
-          background: '#000', 
-          boxShadow: '0 4px 20px rgba(0,0,0,0.12)' 
+          borderRadius: '12px', 
+          background: '#000' 
         }}>
           <iframe
             src={embed}
@@ -503,134 +537,46 @@ function VideoTab({ videoUrls }) {
           />
         </div>
       )}
-
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '20px',
-        fontSize: '13px',
-        color: '#94a3b8',
-        padding: '4px 0',
-        flexWrap: 'wrap',
-      }}>
-        <span>▶ Play/Pause</span>
-        <span>⏪ Rewind 10s</span>
-        <span>⏩ Forward 10s</span>
-        <span>🔊 Volume</span>
-        <span>⛶ Fullscreen</span>
-      </div>
     </div>
   );
 }
 
-// ─── InterviewTab ──────────────────────────────────────────────────────
 function InterviewTab({ questions }) {
   const [expanded, setExpanded] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
 
-  if (!questions || questions.length === 0) return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>🎤 No interview questions.</div>;
-
-  const filteredQuestions = questions.filter(q => {
-    const matchesSearch = q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.answer.toLowerCase().includes(searchTerm.toLowerCase());
-    if (filterType === 'answered') {
-      return matchesSearch && expanded[q.id];
-    } else if (filterType === 'unanswered') {
-      return matchesSearch && !expanded[q.id];
-    }
-    return matchesSearch;
-  });
-
-  const toggleAll = () => {
-    const allExpanded = filteredQuestions.every(q => expanded[q.id]);
-    const newState = {};
-    filteredQuestions.forEach(q => {
-      newState[q.id] = !allExpanded;
-    });
-    setExpanded(newState);
-  };
+  if (!questions || questions.length === 0) {
+    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>🎤 No interview questions.</div>;
+  }
 
   return (
-    <div style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
-      <div style={{
-        display: 'flex',
-        gap: '12px',
-        marginBottom: '20px',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-      }}>
-        <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
-          <input
-            type="text"
-            placeholder="🔍 Search questions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: '1px solid #E7E3EE',
-              fontSize: '15px',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-              background: '#fff',
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#8B5FBF'}
-            onBlur={(e) => e.target.style.borderColor = '#E7E3EE'}
-          />
-        </div>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
+    <div>
+      <div style={{ marginBottom: '16px' }}>
+        <input
+          type="text"
+          placeholder="🔍 Search questions..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           style={{
-            padding: '10px 16px',
-            borderRadius: '12px',
-            border: '1px solid #E7E3EE',
-            background: '#fff',
-            fontSize: '13px',
-            color: '#6B6478',
-            cursor: 'pointer',
-            outline: 'none',
-          }}
-        >
-          <option value="all">All Questions</option>
-          <option value="answered">Answered</option>
-          <option value="unanswered">Unanswered</option>
-        </select>
-        <button
-          onClick={toggleAll}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '12px',
-            border: '1px solid #E7E3EE',
-            background: '#fff',
-            cursor: 'pointer',
+            width: '100%',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            border: '1px solid #E8E3EE',
             fontSize: '14px',
-            fontWeight: 500,
-            color: '#6B6478',
-            transition: 'all 0.2s',
-            whiteSpace: 'nowrap',
+            outline: 'none',
+            background: '#fff',
           }}
-        >
-          {filteredQuestions.every(q => expanded[q.id]) ? 'Collapse All' : 'Expand All'}
-        </button>
-        <span style={{ fontSize: '13px', color: '#94a3b8' }}>
-          {filteredQuestions.length} of {questions.length}
-        </span>
+        />
       </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {filteredQuestions.map((q, idx) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {questions.map((q, idx) => (
           <div
             key={q.id}
             style={{
               background: '#fff',
-              borderRadius: '14px',
-              border: '1px solid #E7E3EE',
+              borderRadius: '12px',
+              border: '1px solid #E8E3EE',
               overflow: 'hidden',
-              transition: 'box-shadow 0.2s',
-              boxShadow: expanded[q.id] ? '0 4px 16px rgba(139,95,191,0.08)' : 'none',
             }}
           >
             <div
@@ -639,40 +585,29 @@ function InterviewTab({ questions }) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '16px 20px',
-                background: expanded[q.id] ? '#FAF9FC' : '#fff',
+                padding: '14px 18px',
                 cursor: 'pointer',
                 fontWeight: 600,
+                fontSize: '14px',
                 color: '#1E1B24',
-                transition: 'background 0.2s',
-                fontSize: '15px',
               }}
-              onMouseEnter={(e) => { if (!expanded[q.id]) e.currentTarget.style.background = '#F8F7FA'; }}
-              onMouseLeave={(e) => { if (!expanded[q.id]) e.currentTarget.style.background = '#fff'; }}
             >
               <span>
-                <span style={{ color: '#94a3b8', fontWeight: 400, marginRight: '10px' }}>{idx + 1}.</span>
+                <span style={{ color: '#94a3b8', marginRight: '8px' }}>{idx + 1}.</span>
                 {q.question}
               </span>
-              <span style={{
-                fontSize: '20px',
-                color: '#8B7FA0',
-                transition: 'transform 0.2s',
-                transform: expanded[q.id] ? 'rotate(180deg)' : 'rotate(0deg)',
-              }}>
-                ▼
+              <span style={{ fontSize: '16px', color: '#94a3b8' }}>
+                {expanded[q.id] ? '▼' : '▶'}
               </span>
             </div>
             {expanded[q.id] && (
               <div style={{
-                padding: '16px 20px',
-                borderTop: '1px solid #E7E3EE',
-                background: '#fff',
-                color: '#3A3548',
+                padding: '14px 18px',
+                borderTop: '1px solid #E8E3EE',
+                background: '#FAF9FC',
+                color: '#4A4458',
                 lineHeight: '1.8',
-                fontSize: '15px',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
+                fontSize: '14px',
               }}>
                 {q.answer}
               </div>
@@ -680,136 +615,77 @@ function InterviewTab({ questions }) {
           </div>
         ))}
       </div>
-
-      {filteredQuestions.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '15px' }}>
-          No questions match your search.
-        </div>
-      )}
     </div>
   );
 }
 
-// ─── ExamTab ──────────────────────────────────────────────────────────
 function ExamTab({ questions, onScoreUpdate }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(300);
-  const [timerActive, setTimerActive] = useState(true);
 
-  const hasQuestions = !!(questions && questions.length > 0);
+  if (!questions || questions.length === 0) {
+    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>📝 No MCQ questions.</div>;
+  }
 
-  const handleSubmit = useCallback(() => {
-    if (!hasQuestions) return;
+  const handleSubmit = () => {
     let correct = 0;
     questions.forEach((q) => {
       if (answers[q.id] === q.correctAnswer) correct++;
     });
-    const total = questions.length;
-    setScore({ correct, total });
+    setScore({ correct, total: questions.length });
     setSubmitted(true);
-    setTimerActive(false);
-    if (onScoreUpdate) onScoreUpdate(correct, total);
-  }, [hasQuestions, questions, answers, onScoreUpdate]);
-
-  useEffect(() => {
-    if (!hasQuestions || !timerActive || submitted) return undefined;
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setTimerActive(false);
-          handleSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [hasQuestions, timerActive, submitted, handleSubmit]);
-
-  if (!hasQuestions) return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>📝 No MCQ questions.</div>;
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    if (onScoreUpdate) onScoreUpdate(correct, questions.length);
   };
 
-  const handleAnswer = (qId, answer) => setAnswers((prev) => ({ ...prev, [qId]: answer }));
-
-  const answeredCount = Object.keys(answers).length;
-  const totalQuestions = questions.length;
-
   return (
-    <div style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
+    <div>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '14px 20px',
-        background: '#f8fafc',
-        borderRadius: '14px',
-        marginBottom: '24px',
+        padding: '12px 16px',
+        background: '#F8F7FA',
+        borderRadius: '12px',
+        marginBottom: '16px',
         flexWrap: 'wrap',
-        gap: '12px',
+        gap: '8px',
       }}>
-        <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-            📝 MCQ Quiz
-          </span>
-          <span style={{ fontSize: '14px', color: '#64748b' }}>
-            {answeredCount}/{totalQuestions} answered
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <span style={{
-            fontSize: '16px',
-            fontWeight: 700,
-            color: timeLeft < 60 ? '#DC3545' : '#0f172a',
-            fontVariantNumeric: 'tabular-nums',
-          }}>
-            ⏱ {formatTime(timeLeft)}
-          </span>
-          {!submitted && (
-            <button
-              onClick={handleSubmit}
-              style={{
-                padding: '10px 24px',
-                background: '#8B5FBF',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '24px',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#7A4FAA'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#8B5FBF'}
-            >
-              Submit Quiz
-            </button>
-          )}
-        </div>
+        <span style={{ fontWeight: 700, fontSize: '15px', color: '#0F172A' }}>
+          📝 MCQ Quiz
+        </span>
+        {!submitted && (
+          <button
+            onClick={handleSubmit}
+            style={{
+              padding: '8px 20px',
+              background: '#8B5FBF',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '20px',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+          >
+            Submit Quiz
+          </button>
+        )}
       </div>
 
       {questions.map((q, idx) => (
         <div key={q.id} style={{
-          padding: '24px',
+          padding: '18px',
           background: '#fff',
-          borderRadius: '16px',
-          border: '1px solid #E7E3EE',
-          marginBottom: '14px',
-          transition: 'border-color 0.2s',
-          borderColor: answers[q.id] ? '#8B5FBF' : '#E7E3EE',
+          borderRadius: '12px',
+          border: '1px solid #E8E3EE',
+          marginBottom: '12px',
         }}>
-          <p style={{ fontWeight: 700, marginBottom: '16px', fontSize: '16px', color: '#1E1B24' }}>
-            <span style={{ color: '#94a3b8', fontWeight: 400, marginRight: '10px' }}>{idx + 1}.</span>
+          <p style={{ fontWeight: 600, marginBottom: '12px', fontSize: '15px', color: '#0F172A' }}>
+            <span style={{ color: '#94a3b8', marginRight: '8px' }}>{idx + 1}.</span>
             {q.question}
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {['A', 'B', 'C', 'D'].map((opt) => {
               const optText = q[`option${opt}`];
               if (!optText) return null;
@@ -820,45 +696,40 @@ function ExamTab({ questions, onScoreUpdate }) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '14px',
-                    cursor: submitted ? 'default' : 'pointer',
-                    padding: '12px 18px',
-                    borderRadius: '12px',
+                    gap: '12px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
                     background: isSelected ? '#EDE7F6' : 'transparent',
                     border: isSelected ? '1px solid #8B5FBF' : '1px solid transparent',
-                    transition: 'all 0.2s',
+                    cursor: submitted ? 'default' : 'pointer',
                   }}
-                  onMouseEnter={(e) => { if (!submitted && !isSelected) e.currentTarget.style.background = '#F8F7FA'; }}
-                  onMouseLeave={(e) => { if (!submitted && !isSelected) e.currentTarget.style.background = 'transparent'; }}
                 >
                   <input
                     type="radio"
                     name={`q-${q.id}`}
                     value={opt}
                     checked={isSelected}
-                    onChange={() => handleAnswer(q.id, opt)}
+                    onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
                     disabled={submitted}
-                    style={{ accentColor: '#8B5FBF', width: '18px', height: '18px', cursor: submitted ? 'default' : 'pointer' }}
+                    style={{ accentColor: '#8B5FBF' }}
                   />
-                  <span style={{ fontSize: '15px' }}>
-                    <strong style={{ color: '#64748b', marginRight: '6px' }}>{opt}.</strong>
+                  <span style={{ fontSize: '14px' }}>
+                    <strong style={{ color: '#6B6478', marginRight: '4px' }}>{opt}.</strong>
                     {optText}
                   </span>
                 </label>
               );
             })}
           </div>
-          {submitted && q.explanation && (
+          {submitted && (
             <div style={{
-              marginTop: '14px',
-              padding: '14px 18px',
+              marginTop: '10px',
+              padding: '10px 14px',
+              borderRadius: '8px',
               background: answers[q.id] === q.correctAnswer ? '#DFF3E8' : '#FDE8E8',
-              borderRadius: '10px',
-              fontSize: '14px',
-              color: answers[q.id] === q.correctAnswer ? '#1E7A4C' : '#DC3545',
+              fontSize: '13px',
             }}>
-              <strong>{answers[q.id] === q.correctAnswer ? '✅ Correct!' : '❌ Incorrect'}</strong>
-              <div style={{ marginTop: '2px', color: '#4A4458' }}>{q.explanation}</div>
+              {answers[q.id] === q.correctAnswer ? '✅ Correct!' : '❌ Incorrect'}
             </div>
           )}
         </div>
@@ -866,19 +737,16 @@ function ExamTab({ questions, onScoreUpdate }) {
 
       {submitted && score && (
         <div style={{
-          marginTop: '8px',
-          padding: '24px',
-          background: score.correct === score.total ? '#DFF3E8' : '#FDE8E8',
-          borderRadius: '16px',
+          padding: '16px',
+          background: '#F8F7FA',
+          borderRadius: '12px',
           textAlign: 'center',
+          marginTop: '8px',
         }}>
-          <div style={{ fontSize: '36px', marginBottom: '6px' }}>
-            {score.correct === score.total ? '🎉' : '📊'}
-          </div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: score.correct === score.total ? '#2E9B6C' : '#DC3545' }}>
+          <div style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A' }}>
             {score.correct} / {score.total}
           </div>
-          <div style={{ fontSize: '15px', color: '#64748b', marginTop: '6px' }}>
+          <div style={{ fontSize: '13px', color: '#6B6478' }}>
             {Math.round((score.correct / score.total) * 100)}% correct
           </div>
         </div>
@@ -887,153 +755,83 @@ function ExamTab({ questions, onScoreUpdate }) {
   );
 }
 
-// ─── LabsTab ──────────────────────────────────────────────────────────
 function LabsTab({ labs }) {
   const [completed, setCompleted] = useState({});
   const [activeLab, setActiveLab] = useState(null);
 
-  if (!labs || labs.length === 0) return <div className="empty-state" style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>🧪 No lab exercises.</div>;
-
-  const markComplete = (labId) => setCompleted((prev) => ({ ...prev, [labId]: true }));
-
-  const completedCount = Object.values(completed).filter(Boolean).length;
-  const totalLabs = labs.length;
-  const progress = totalLabs > 0 ? Math.round((completedCount / totalLabs) * 100) : 0;
+  if (!labs || labs.length === 0) {
+    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>🧪 No lab exercises.</div>;
+  }
 
   return (
-    <div style={{ userSelect: 'none', WebkitUserSelect: 'none' }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 18px',
-        background: '#f8fafc',
-        borderRadius: '14px',
-        marginBottom: '20px',
-        flexWrap: 'wrap',
-        gap: '10px',
-      }}>
-        <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
-          🧪 Lab Progress
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '140px', height: '8px', background: '#E7E3EE', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ width: `${progress}%`, height: '100%', background: '#10B981', borderRadius: '4px', transition: 'width 0.3s' }} />
+    <div>
+      {labs.map((lab, idx) => (
+        <div
+          key={lab.id}
+          style={{
+            background: '#fff',
+            borderRadius: '12px',
+            border: completed[lab.id] ? '1px solid #2E9B6C' : '1px solid #E8E3EE',
+            padding: '16px 20px',
+            marginBottom: '10px',
+            cursor: 'pointer',
+          }}
+          onClick={() => setActiveLab(activeLab === lab.id ? null : lab.id)}
+        >
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}>
+            <span style={{ fontWeight: 600, fontSize: '15px', color: '#0F172A' }}>
+              {idx + 1}. {lab.title}
+            </span>
+            {!completed[lab.id] && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCompleted((prev) => ({ ...prev, [lab.id]: true }));
+                }}
+                style={{
+                  padding: '4px 14px',
+                  background: '#2E9B6C',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '16px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                ✓ Mark Complete
+              </button>
+            )}
+            {completed[lab.id] && (
+              <span style={{ fontSize: '13px', color: '#2E9B6C', fontWeight: 600 }}>✅ Done</span>
+            )}
           </div>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
-            {completedCount}/{totalLabs}
-          </span>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {labs.map((lab, idx) => {
-          const isCompleted = completed[lab.id];
-          const isActive = activeLab === lab.id;
-          return (
-            <div
-              key={lab.id}
-              style={{
-                background: '#fff',
-                borderRadius: '16px',
-                border: isCompleted ? '1px solid #10B981' : '1px solid #E7E3EE',
-                padding: '24px',
-                transition: 'all 0.2s',
-                boxShadow: isCompleted ? '0 4px 16px rgba(16,185,129,0.08)' : 'none',
-                cursor: 'pointer',
-              }}
-              onClick={() => setActiveLab(isActive ? null : lab.id)}
-            >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: isActive ? '14px' : '0',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: isCompleted ? '#DFF3E8' : '#f1f5f9',
-                    fontSize: '18px',
-                  }}>
-                    {isCompleted ? '✅' : '🧪'}
-                  </span>
-                  <strong style={{ fontSize: '16px', color: '#1E1B24' }}>
-                    {idx + 1}. {lab.title}
-                  </strong>
-                </div>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <span style={{
-                    fontSize: '12px',
-                    color: '#94a3b8',
-                    transition: 'transform 0.2s',
-                    transform: isActive ? 'rotate(180deg)' : 'rotate(0deg)',
-                  }}>
-                    {isActive ? '▲' : '▼'}
-                  </span>
-                  {!isCompleted && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        markComplete(lab.id);
-                      }}
-                      style={{
-                        padding: '8px 20px',
-                        background: '#10B981',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '24px',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#0EA37A'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = '#10B981'}
-                    >
-                      ✓ Mark Complete
-                    </button>
-                  )}
-                  {isCompleted && (
-                    <span style={{ fontSize: '14px', color: '#10B981', fontWeight: 700 }}>
-                      ✓ Completed
-                    </span>
-                  )}
-                </div>
-              </div>
-              {isActive && (
-                <div style={{
-                  fontSize: '15px',
-                  color: '#4A4458',
-                  lineHeight: '1.8',
-                  whiteSpace: 'pre-wrap',
-                  paddingLeft: '4px',
-                  paddingTop: '14px',
-                  borderTop: '1px solid #E7E3EE',
-                  marginTop: '14px',
-                  animation: 'fadeIn 0.3s ease-out',
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                }}>
-                  {lab.instructions}
-                </div>
-              )}
+          {activeLab === lab.id && (
+            <div style={{
+              marginTop: '12px',
+              paddingTop: '12px',
+              borderTop: '1px solid #E8E3EE',
+              fontSize: '14px',
+              color: '#4A4458',
+              lineHeight: '1.8',
+            }}>
+              {lab.instructions}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
 
 // ─── Main CourseDetailView ────────────────────────────────────────────
+
 export default function CourseDetailView({
   selectedCourse,
   topics,
@@ -1069,29 +867,22 @@ export default function CourseDetailView({
   const [showSidebar, setShowSidebar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  
-  // ✅ State for authenticated image URLs (for gallery)
   const [authImageUrls, setAuthImageUrls] = useState({});
-  // ✅ Ref to track blob URLs for cleanup (fixes ESLint warning)
   const authImageUrlsRef = useRef({});
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
 
-  // ✅ Global copy protection for mobile
+  // ─── Effects ──────────────────────────────────────────────────────────
+
   useEffect(() => {
-    const preventLongPress = (e) => {
-      if (e.target.closest('.notes-content') || e.target.closest('.player-body')) {
-        e.preventDefault();
-      }
-    };
-    
-    document.addEventListener('contextmenu', preventLongPress);
-    document.addEventListener('selectstart', preventLongPress);
-    
+    const navbar = document.querySelector('nav');
+    if (navbar) navbar.style.display = 'none';
+    document.body.style.paddingTop = '0';
     return () => {
-      document.removeEventListener('contextmenu', preventLongPress);
-      document.removeEventListener('selectstart', preventLongPress);
+      const navbar = document.querySelector('nav');
+      if (navbar) navbar.style.display = '';
+      document.body.style.paddingTop = '';
     };
   }, []);
 
@@ -1106,73 +897,27 @@ export default function CourseDetailView({
   }, []);
 
   useEffect(() => {
-    if (isMobile && showSidebar) {
-      const handleClickOutside = (e) => {
-        const sidebar = document.getElementById('mobile-sidebar');
-        const menuBtn = document.getElementById('menu-btn');
-        if (sidebar && !sidebar.contains(e.target) && menuBtn && !menuBtn.contains(e.target)) {
-          setShowSidebar(false);
-        }
-      };
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [isMobile, showSidebar]);
-
-  // ─── HIDE NAVBAR IN COURSE DETAIL VIEW ───────────────────────────────
-  useEffect(() => {
-    // Hide the navbar when this component mounts
-    const navbar = document.querySelector('nav');
-    if (navbar) {
-      navbar.style.display = 'none';
-    }
-    
-    // Also remove any padding that might be on the body
-    document.body.style.paddingTop = '0';
-    
-    // Cleanup: show navbar when component unmounts
-    return () => {
-      const navbar = document.querySelector('nav');
-      if (navbar) {
-        navbar.style.display = '';
-      }
-      document.body.style.paddingTop = '';
-    };
-  }, []);
-
-  // ✅ Load images with authentication - Fixed ESLint warning
-  useEffect(() => {
     const loadImagesWithAuth = async () => {
       const newAuthUrls = {};
       for (const img of images) {
         const safeId = img.subTopicId || img.subtopicId;
         if (!safeId) continue;
-        const url = buildImageUrl(safeId, img.fileName);
+        const url = `/admin/uploads/subtopic_${safeId}/images/${img.fileName}`;
         const blobUrl = await fetchImageWithAuth(url);
-        if (blobUrl) {
-          newAuthUrls[img.id] = blobUrl;
-        }
+        if (blobUrl) newAuthUrls[img.id] = blobUrl;
       }
       setAuthImageUrls(newAuthUrls);
-      authImageUrlsRef.current = newAuthUrls; // Update ref for cleanup
+      authImageUrlsRef.current = newAuthUrls;
     };
-    
-    if (images.length > 0) {
-      loadImagesWithAuth();
-    }
-    
-    // Cleanup blob URLs using the ref (fixes the ESLint warning)
+    if (images.length > 0) loadImagesWithAuth();
     return () => {
       Object.values(authImageUrlsRef.current).forEach(url => {
-        if (url && url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
+        if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
       });
     };
-  }, [images]); // ✅ Only depends on images, not authImageUrls
+  }, [images]);
 
   const videoUrls = getVideoUrls(currentSub);
-
   const currentTopic = topics.find((t) =>
     (t.subtopics || []).some((s) => String(s.id) === String(currentSub?.id))
   );
@@ -1206,28 +951,21 @@ export default function CourseDetailView({
     }
   }, [currentTopic]);
 
-  function availableTypesFor(sub, vUrls, interviewQs, examQs, labList) {
+  const availableTypes = (() => {
     const out = [];
-    if (vUrls.length > 0) out.push('video');
-    if (sub?.content) out.push('notes');
-    if (interviewQs.length > 0) out.push('interview');
-    if (examQs.length > 0) out.push('exam');
-    if (labList.length > 0) out.push('labs');
+    if (videoUrls.length > 0) out.push('video');
+    if (currentSub?.content) out.push('notes');
+    if (interviewQuestions.length > 0) out.push('interview');
+    if (examQuestions.length > 0) out.push('exam');
+    if (labs.length > 0) out.push('labs');
     return out;
-  }
+  })();
 
-  const availableTypes = availableTypesFor(currentSub, videoUrls, interviewQuestions, examQuestions, labs);
-
-  // ✅ Prefer 'notes' when available
   useEffect(() => {
     if (loadingData) return;
     if (availableTypes.length > 0) {
-      const preferredType = availableTypes.includes('notes') ? 'notes' : 
-                            availableTypes.includes('video') ? 'video' : 
-                            availableTypes[0];
-      if (!availableTypes.includes(activeContentType)) {
-        setActiveContentType(preferredType);
-      }
+      const preferred = availableTypes.includes('notes') ? 'notes' : availableTypes[0];
+      if (!availableTypes.includes(activeContentType)) setActiveContentType(preferred);
     }
   }, [loadingData, availableTypes, activeContentType]);
 
@@ -1238,237 +976,22 @@ export default function CourseDetailView({
     setCurrentSubtopic(sub);
     await loadSubtopicImages(sub.id);
     if (isMobile) setShowSidebar(false);
-    if (sub?.content) {
-      setActiveContentType('notes');
-    }
+    if (sub?.content) setActiveContentType('notes');
   };
 
   const filteredTopics = searchQuery
     ? topics.filter(topic =>
         topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (topic.subtopics || []).some(sub =>
-          sub.title.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        (topic.subtopics || []).some(sub => sub.title.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : topics;
-
-  // ✅ Early return
-  if (contentLoading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '60px' }}>
-        <div style={{ width: '48px', height: '48px', border: '4px solid #e2e8f0', borderTopColor: C.accent, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
-        <p style={{ color: '#64748b', fontSize: '16px' }}>Loading course content…</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
-  // ✅ Updated: Build image URL without token in query (token will be in header via fetch)
-  const buildImageUrl = (subId, fileName) => {
-    // Build the path without the /api prefix since API_BASE already has it
-    const path = `/admin/uploads/subtopic_${subId}/images/${fileName}`;
-    let url = `${API_BASE}${path}`;
-    // Remove duplicate slashes
-    url = url.replace(/([^:]\/)\/+/g, "$1");
-    return url;
-  };
-
-  const isMobileDevice = window.innerWidth < 768;
-
-  const styles = {
-    page: { 
-      background: C.canvas, 
-      minHeight: '100vh', 
-      fontFamily: 'Inter, system-ui, sans-serif',
-      paddingTop: '0',
-    },
-    shell: {
-      display: 'grid',
-      gridTemplateColumns: isMobileDevice ? '1fr' : (isSidebarCollapsed ? '1fr' : '320px 1fr'),
-      minHeight: 'calc(100vh)',
-    },
-    mobileOverlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      backdropFilter: 'blur(4px)',
-      zIndex: 999,
-      display: isMobileDevice && showSidebar ? 'block' : 'none',
-    },
-    sidebar: {
-      background: C.sidebarBg,
-      color: C.sidebarText,
-      padding: '16px 0',
-      overflowY: 'auto',
-      maxHeight: isMobileDevice ? '100vh' : 'calc(100vh)',
-      position: isMobileDevice ? 'fixed' : 'sticky',
-      top: isMobileDevice ? '0' : '0',
-      left: isMobileDevice ? '-100%' : 'auto',
-      width: isMobileDevice ? '300px' : '320px',
-      height: isMobileDevice ? '100vh' : 'auto',
-      zIndex: 1000,
-      transition: isMobileDevice ? 'left 0.3s ease-in-out' : 'none',
-      boxShadow: isMobileDevice ? '4px 0 24px rgba(0,0,0,0.4)' : 'none',
-      display: isSidebarCollapsed && !isMobileDevice ? 'none' : 'block',
-    },
-    sidebarOpen: {
-      left: '0',
-    },
-    sidebarCloseBtn: {
-      display: isMobileDevice ? 'flex' : 'none',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '14px 18px 10px',
-      borderBottom: `1px solid ${C.sidebarLine}`,
-      marginBottom: '6px',
-    },
-    sidebarCourseTitle: {
-      fontSize: isMobileDevice ? '14px' : '15px',
-      fontWeight: 800,
-      color: '#fff',
-      padding: isMobileDevice ? '0' : '0 18px 14px',
-      borderBottom: isMobileDevice ? 'none' : `1px solid ${C.sidebarLine}`,
-      marginBottom: isMobileDevice ? '0' : '8px',
-    },
-    topicHeader: (isOpen) => ({
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: isMobileDevice ? '10px 18px' : '11px 18px',
-      cursor: 'pointer',
-      fontSize: isMobileDevice ? '12px' : '13px',
-      fontWeight: 700,
-      color: isOpen ? '#fff' : C.sidebarText,
-      background: isOpen ? C.sidebarBgAlt : 'transparent',
-      transition: 'all 0.2s',
-    }),
-    topicChevron: { fontSize: '11px', color: C.sidebarTextDim, transition: 'transform 0.2s' },
-    subtopicRow: (isActive) => ({
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      padding: isMobileDevice ? '8px 18px 8px 24px' : '9px 18px 9px 28px',
-      cursor: 'pointer',
-      fontSize: isMobileDevice ? '12px' : '13px',
-      fontWeight: isActive ? 700 : 500,
-      color: isActive ? '#fff' : C.sidebarText,
-      background: isActive ? C.sidebarActive : 'transparent',
-      borderLeft: isActive ? `3px solid ${C.accent}` : '3px solid transparent',
-      transition: 'all 0.2s',
-    }),
-    subtopicIcon: (hasVideo) => ({
-      width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px',
-      background: hasVideo ? C.accent : '#3A3648', color: '#fff',
-    }),
-    leafList: { display: 'flex', flexDirection: 'column' },
-    leafRow: (isActive) => ({
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: isMobileDevice ? '6px 18px 6px 44px' : '7px 18px 7px 52px',
-      cursor: 'pointer',
-      fontSize: isMobileDevice ? '10px' : '11px',
-      fontWeight: isActive ? 700 : 500,
-      letterSpacing: '0.04em',
-      textTransform: 'uppercase',
-      color: isActive ? C.gold : C.sidebarTextDim,
-      background: isActive ? 'rgba(232,184,75,0.08)' : 'transparent',
-      transition: 'all 0.2s',
-    }),
-    leafLoading: {
-      padding: isMobileDevice ? '6px 18px 6px 44px' : '7px 18px 7px 52px',
-      fontSize: isMobileDevice ? '10px' : '11px',
-      color: C.sidebarTextDim,
-      fontStyle: 'italic',
-    },
-    main: {
-      padding: isMobileDevice ? '14px' : '24px 28px',
-      maxWidth: '100%',
-      margin: '0 auto',
-      width: '100%',
-      overflowY: 'auto',
-      maxHeight: 'calc(100vh)',
-      overscrollBehavior: 'contain',
-    },
-    playerFrame: {
-      borderRadius: isMobileDevice ? '14px' : '16px',
-      overflow: 'hidden',
-      background: `linear-gradient(160deg, ${C.playerHeaderFrom}, ${C.playerHeaderTo})`,
-      boxShadow: '0 16px 40px -16px rgba(46,31,53,0.4)',
-    },
-    playerHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: isMobileDevice ? '14px 16px' : '16px 20px',
-      color: '#fff',
-      flexWrap: 'wrap',
-      gap: '6px',
-    },
-    playerHeaderLeft: { display: 'flex', alignItems: 'center', gap: '12px' },
-    playerHeaderIcon: {
-      width: isMobileDevice ? '28px' : '32px',
-      height: isMobileDevice ? '28px' : '32px',
-      borderRadius: '8px',
-      background: 'rgba(255,255,255,0.12)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: isMobileDevice ? '14px' : '16px',
-    },
-    playerHeaderTitle: { fontSize: isMobileDevice ? '14px' : '16px', fontWeight: 700 },
-    playerHeaderSubtitle: { fontSize: isMobileDevice ? '11px' : '12px', opacity: 0.7, marginTop: '1px' },
-    playerHeaderIcons: { display: 'flex', gap: '12px', fontSize: '14px', opacity: 0.8, alignItems: 'center' },
-    playerBody: {
-      background: C.paper,
-      padding: isMobileDevice ? '16px' : '24px 28px',
-      minHeight: isMobileDevice ? '260px' : '320px',
-      maxHeight: '70vh',
-      overflowY: 'auto',
-      userSelect: 'none',
-      WebkitUserSelect: 'none',
-      overscrollBehavior: 'contain',
-      touchAction: 'pan-y',
-      scrollBehavior: 'smooth',
-      WebkitOverflowScrolling: 'touch',
-    },
-    breadcrumb: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      gap: '6px',
-      fontSize: isMobileDevice ? '11px' : '13px',
-      color: '#A79FBC',
-      marginBottom: isMobileDevice ? '4px' : '6px',
-    },
-    breadcrumbSep: { color: '#5A5468' },
-    completedBadge: {
-      fontSize: isMobileDevice ? '10px' : '12px',
-      background: '#DFF3E8',
-      color: '#1E7A4C',
-      padding: '3px 10px',
-      borderRadius: '30px',
-      whiteSpace: 'nowrap',
-      fontWeight: 700,
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: isMobileDevice ? '30px 16px' : '40px 20px',
-      color: '#A79FBC',
-      fontSize: isMobileDevice ? '14px' : '16px',
-    },
-  };
 
   const typeMeta = CONTENT_TYPES.find((t) => t.key === activeContentType) || CONTENT_TYPES[0];
 
   const renderPanelContent = () => {
-    if (!currentSub) return <div style={styles.emptyState}>Select a section from the sidebar to begin</div>;
-    if (loadingData) return <div style={{ textAlign: 'center', padding: '30px', color: C.slate, fontSize: '14px' }}>Loading content…</div>;
-    if (availableTypes.length === 0) return <div style={styles.emptyState}>No content has been added for this section yet.</div>;
+    if (!currentSub) return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>Select a section from the sidebar to begin</div>;
+    if (loadingData) return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>Loading content…</div>;
+    if (availableTypes.length === 0) return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>No content has been added for this section yet.</div>;
 
     switch (activeContentType) {
       case 'video': return <VideoTab videoUrls={videoUrls} />;
@@ -1480,319 +1003,352 @@ export default function CourseDetailView({
     }
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
+  const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+
+  if (contentLoading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #E8E3EE', borderTopColor: '#8B5FBF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+        <p style={{ color: '#94a3b8', fontSize: '15px' }}>Loading course content…</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // ─── Styles ──────────────────────────────────────────────────────────
+
+  const isMobileDevice = window.innerWidth < 768;
+
+  const styles = {
+    page: {
+      background: '#F5F4F8',
+      height: '100vh',           // <-- changed from min-height
+      overflow: 'hidden',        // <-- prevent page scroll
+      fontFamily: 'Inter, system-ui, sans-serif',
+      paddingTop: '0',
+    },
+    shell: {
+      display: 'flex',
+      height: '100%',            // fills the viewport
+      width: '100%',
+    },
+    sidebar: {
+      width: '320px',
+      minWidth: '320px',
+      background: '#F8F7FA',
+      borderRight: '1px solid #E8E3EE',
+      // removed position: sticky and top: 0
+      height: '100vh',           // full height
+      overflowY: 'auto',         // sidebar itself can scroll if needed
+      flexShrink: 0,
+    },
+    sidebarOpen: { left: '0' },
+    sidebarHeader: {
+      padding: '0 16px 12px 16px',
+      borderBottom: '1px solid #E8E3EE',
+      marginBottom: '8px',
+    },
+    sidebarTitle: {
+      fontSize: '18px',
+      fontWeight: 700,
+      color: '#0F172A',
+    },
+    sidebarSubtitle: {
+      fontSize: '12px',
+      color: '#94a3b8',
+      marginTop: '2px',
+    },
+    topicItem: {
+      borderBottom: '1px solid #F0EEF4',
+    },
+    topicHeader: (isOpen) => ({
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '10px 16px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: 600,
+      color: isOpen ? '#0F172A' : '#4A4458',
+      background: isOpen ? '#F0EEF4' : 'transparent',
+      transition: 'all 0.15s',
+    }),
+    subtopicItem: (isActive) => ({
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '6px 16px 6px 28px',
+      cursor: 'pointer',
+      fontSize: '13px',
+      fontWeight: isActive ? 600 : 400,
+      color: isActive ? '#0F172A' : '#6B6478',
+      background: isActive ? '#EDE7F6' : 'transparent',
+      borderLeft: isActive ? '3px solid #8B5FBF' : '3px solid transparent',
+      transition: 'all 0.15s',
+    }),
+    leafItem: (isActive) => ({
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '4px 16px 4px 44px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: isActive ? 600 : 400,
+      color: isActive ? '#8B5FBF' : '#94a3b8',
+      background: isActive ? 'rgba(139,95,191,0.06)' : 'transparent',
+      borderLeft: isActive ? '2px solid #8B5FBF' : '2px solid transparent',
+      transition: 'all 0.15s',
+    }),
+    mainContent: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      background: '#F5F4F8',
+      overflow: 'hidden',
+      padding: '20px',
+    },
+    contentHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      padding: isMobileDevice ? '8px 4px 12px 4px' : '8px 0 16px 0',
+      flexWrap: 'wrap',
+      position: 'sticky',
+      top: 0,
+      zIndex: 5,
+      background: '#F5F4F8',
+    },
+    backBtn: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      background: '#fff',
+      border: '1px solid #E8E3EE',
+      borderRadius: '8px',
+      padding: '6px 14px',
+      fontSize: '13px',
+      fontWeight: 600,
+      color: '#4A4458',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+    },
+    contentTitle: {
+      fontSize: isMobileDevice ? '16px' : '20px',
+      fontWeight: 700,
+      color: '#0F172A',
+      flex: 1,
+    },
+    doneBadge: {
+      fontSize: '12px',
+      background: '#DFF3E8',
+      color: '#1E7A4C',
+      padding: '2px 12px',
+      borderRadius: '20px',
+      fontWeight: 600,
+    },
+    contentPanel: {
+      flex: 1,
+      background: '#fff',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    contentBody: {
+      flex: 1,
+      overflowY: 'auto',       // this is the only scrollable area
+      padding: '20px',
+    },
+    mobileOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.3)',
+      zIndex: 999,
+      display: isMobileDevice && showSidebar ? 'block' : 'none',
+    },
   };
 
   return (
     <div style={styles.page}>
-      <style>{NOTE_STYLES}</style>
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        * {
-          -webkit-touch-callout: none !important;
-          -webkit-user-select: none !important;
-          user-select: none !important;
-        }
-        input, textarea, select {
-          -webkit-user-select: auto !important;
-          user-select: auto !important;
-        }
-        .notes-content, .notes-content *,
-        .player-body, .player-body * {
-          -webkit-touch-callout: none !important;
-          -webkit-user-select: none !important;
-          user-select: none !important;
-          pointer-events: auto !important;
-        }
-        @media (max-width: 768px) {
-          .notes-content {
-            font-size: 15px !important;
-            padding: 16px 18px !important;
-          }
-          .notes-content .note-h1 {
-            font-size: 24px !important;
-          }
-          .notes-content .note-h2 {
-            font-size: 20px !important;
-          }
-          .notes-content .note-h3 {
-            font-size: 17px !important;
-          }
-          .notes-content .note-paragraph {
-            font-size: 15px !important;
-          }
-          .notes-content .note-list {
-            font-size: 15px !important;
-          }
-        }
-        body {
-          overscroll-behavior: none;
-          touch-action: pan-y;
-        }
+        * { -webkit-touch-callout: none !important; -webkit-user-select: none !important; user-select: none !important; }
+        input, textarea, select { -webkit-user-select: auto !important; user-select: auto !important; }
+        body { overscroll-behavior: none; touch-action: pan-y; margin: 0; padding: 0; }
+        .odoo-content { font-family: 'Inter', system-ui, sans-serif; }
       `}</style>
-      <div id="cdv-scroll-anchor" />
 
       {activeView === 'split' && (
-        <>
-          {isMobile && showSidebar && (
-            <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />
-          )}
+        <div style={styles.shell}>
+          {isMobile && showSidebar && <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />}
 
-          {/* ─── Sidebar Toggle Button ─────────────────────────────────── */}
-          {!isMobile && (
-            <button
-              onClick={toggleSidebar}
-              style={{
-                position: 'fixed',
-                left: isSidebarCollapsed ? '10px' : '332px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                zIndex: 100,
-                background: C.paper,
-                border: '1px solid #E7E3EE',
-                borderRadius: '24px',
-                padding: '8px 6px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                color: C.slate,
-                transition: 'left 0.3s ease',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              title={isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            >
-              {isSidebarCollapsed ? '▶' : '◀'}
-            </button>
-          )}
-
-          <div style={styles.shell}>
-            {/* ─── Sidebar ───────────────────────────────────────────────── */}
-            {(!isSidebarCollapsed || isMobile) && (
-              <aside
-                id="mobile-sidebar"
-                style={{
-                  ...styles.sidebar,
-                  ...(isMobile && showSidebar ? styles.sidebarOpen : {}),
-                }}
-              >
-                {isMobile && (
-                  <div style={styles.sidebarCloseBtn}>
-                    <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>{selectedCourse.title}</span>
-                    <button
-                      onClick={() => setShowSidebar(false)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: C.sidebarText,
-                        fontSize: '20px',
-                        cursor: 'pointer',
-                        padding: '2px 6px',
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-                {!isMobile && (
-                  <div style={{ padding: '0 18px 14px', borderBottom: `1px solid ${C.sidebarLine}` }}>
-                    <div style={styles.sidebarCourseTitle}>{selectedCourse.title}</div>
-                  </div>
-                )}
-
-                <div style={{ padding: '10px 14px' }}>
-                  <input
-                    type="text"
-                    placeholder="🔍 Search topics..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: `1px solid ${C.sidebarLine}`,
-                      background: C.sidebarBgAlt,
-                      color: '#fff',
-                      fontSize: '12px',
-                      outline: 'none',
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = C.accent}
-                    onBlur={(e) => e.target.style.borderColor = C.sidebarLine}
-                  />
-                </div>
-
-                <div>
-                  {filteredTopics.map((topic) => {
-                    const topicSubs = topic.subtopics || [];
-                    const isTopicOpen = !!expandedTopics[topic.id];
-                    return (
-                      <div key={topic.id} style={{ borderBottom: `1px solid ${C.sidebarLine}` }}>
-                        <div style={styles.topicHeader(isTopicOpen)} onClick={() => toggleTopic(topic.id)}>
-                          <span>{topic.title}</span>
-                          <span style={{ ...styles.topicChevron, transform: isTopicOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
-                        </div>
-
-                        {isTopicOpen && (
-                          <div>
-                            {topicSubs.map((sub) => {
-                              const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
-                              if (globalIndex === -1) return null;
-                              const isActiveSub = activeSection === globalIndex;
-                              const subVideoUrls = getVideoUrls(sub);
-                              const hasVideo = subVideoUrls.length > 0;
-                              const isSecCompleted = completedSections.includes(globalIndex);
-
-                              return (
-                                <div key={sub.id}>
-                                  <div style={styles.subtopicRow(isActiveSub)} onClick={() => selectSubtopic(sub, globalIndex)}>
-                                    <span style={styles.subtopicIcon(hasVideo)}>{hasVideo ? '▶' : '●'}</span>
-                                    <span style={{ flex: 1 }}>{sub.title}</span>
-                                    {isSecCompleted && <span style={{ fontSize: '10px', color: '#3FBF7F' }}>✓</span>}
-                                  </div>
-
-                                  {isActiveSub && (
-                                    <div style={styles.leafList}>
-                                      {loadingData ? (
-                                        <div style={styles.leafLoading}>Loading contents…</div>
-                                      ) : (
-                                        CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
-                                          <div
-                                            key={t.key}
-                                            style={styles.leafRow(activeContentType === t.key)}
-                                            onClick={() => setActiveContentType(t.key)}
-                                          >
-                                            <span>{t.icon}</span>
-                                            <span>{t.label}</span>
-                                          </div>
-                                        ))
-                                      )}
-                                      {!loadingData && availableTypes.length === 0 && (
-                                        <div style={styles.leafLoading}>No content yet</div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {filteredTopics.length === 0 && (
-                    <div style={{ padding: '20px', textAlign: 'center', color: C.sidebarTextDim, fontSize: '13px' }}>
-                      No topics match your search.
-                    </div>
-                  )}
-                </div>
-              </aside>
-            )}
-
-            {/* ─── Main Content ─────────────────────────────────────────── */}
-            <main style={styles.main}>
-              {currentSub && (
-                <div style={styles.breadcrumb}>
-                  <span>{selectedCourse.title}</span>
-                  {currentTopic && (<><span style={styles.breadcrumbSep}>›</span><span>{currentTopic.title}</span></>)}
-                  <span style={styles.breadcrumbSep}>›</span>
-                  <span style={{ color: C.slate, fontWeight: 600 }}>{currentSub.title}</span>
-                </div>
-              )}
-
-              <div style={styles.playerFrame}>
-                <div style={styles.playerHeader}>
-                  <div style={styles.playerHeaderLeft}>
-                    {/* ─── BACK BUTTON ─────────────────────────────────── */}
-                    <button
-                      onClick={handleBack}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: 'rgba(255,255,255,0.15)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: isMobileDevice ? '6px 12px' : '8px 16px',
-                        color: '#fff',
-                        fontSize: isMobileDevice ? '12px' : '14px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        marginRight: '4px',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
-                      }}
-                    >
-                      <span style={{ fontSize: isMobileDevice ? '14px' : '16px' }}>←</span>
-                      <span>Back</span>
-                    </button>
-
-                    <div style={styles.playerHeaderIcon}>{typeMeta.icon}</div>
-                    <div>
-                      <div style={styles.playerHeaderTitle}>{currentSub ? currentSub.title : 'Select a section'}</div>
-                      {currentSub && <div style={styles.playerHeaderSubtitle}>{typeMeta.label}{currentTopic ? ` · ${currentTopic.title}` : ''}</div>}
-                    </div>
-                  </div>
-                  <div style={styles.playerHeaderIcons}>
-                    {isCompleted && <span style={styles.completedBadge}>✅ Done</span>}
-                  </div>
-                </div>
-                <div style={styles.playerBody} className="fade-in">
-                  {renderPanelContent()}
-                </div>
+          {/* ─── Sidebar ────────────────────────────────────────────── */}
+          {(!isSidebarCollapsed || isMobile) && (
+            <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
+              <div style={styles.sidebarHeader}>
+                <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
+                <div style={styles.sidebarSubtitle}>Course Content</div>
               </div>
-            </main>
-          </div>
-        </>
+
+              {/* ─── Search ──────────────────────────────────────────── */}
+              <div style={{ padding: '0 12px 10px 12px' }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search topics..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #E8E3EE',
+                    background: '#fff',
+                    fontSize: '12px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* ─── Topics ───────────────────────────────────────────── */}
+              <div>
+                {filteredTopics.map((topic) => {
+                  const topicSubs = topic.subtopics || [];
+                  const isOpen = !!expandedTopics[topic.id];
+                  return (
+                    <div key={topic.id} style={styles.topicItem}>
+                      <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
+                        <span>{topic.title}</span>
+                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>{isOpen ? '▼' : '▶'}</span>
+                      </div>
+                      {isOpen && topicSubs.map((sub) => {
+                        const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
+                        if (globalIndex === -1) return null;
+                        const isActive = activeSection === globalIndex;
+                        const isDone = completedSections.includes(globalIndex);
+                        const hasVideo = getVideoUrls(sub).length > 0;
+                        return (
+                          <div key={sub.id}>
+                            <div style={styles.subtopicItem(isActive)} onClick={() => selectSubtopic(sub, globalIndex)}>
+                              <span style={{ fontSize: '10px', color: hasVideo ? '#8B5FBF' : '#94a3b8' }}>{hasVideo ? '▶' : '●'}</span>
+                              <span style={{ flex: 1 }}>{sub.title}</span>
+                              {isDone && <span style={{ fontSize: '10px', color: '#2E9B6C' }}>✓</span>}
+                            </div>
+                            {isActive && (
+                              <div>
+                                {loadingData ? (
+                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94a3b8' }}>Loading…</div>
+                                ) : (
+                                  CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
+                                    <div
+                                      key={t.key}
+                                      style={styles.leafItem(activeContentType === t.key)}
+                                      onClick={() => setActiveContentType(t.key)}
+                                    >
+                                      <span>{t.icon}</span>
+                                      <span>{t.label}</span>
+                                    </div>
+                                  ))
+                                )}
+                                {!loadingData && availableTypes.length === 0 && (
+                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94a3b8' }}>No content</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                {filteredTopics.length === 0 && (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                    No topics match your search.
+                  </div>
+                )}
+              </div>
+            </aside>
+          )}
+
+          {/* ─── Main Content ───────────────────────────────────────── */}
+          <main style={styles.mainContent}>
+            {/* ─── Header ────────────────────────────────────────────── */}
+            <div style={styles.contentHeader}>
+              <button
+                onClick={handleBack}
+                style={styles.backBtn}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#F0EEF4'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+              >
+                ← Back
+              </button>
+
+              <span style={styles.contentTitle}>
+                {currentSub ? currentSub.title : 'Select a section'}
+              </span>
+
+              {isCompleted && <span style={styles.doneBadge}>✅ Done</span>}
+
+              {isMobile && (
+                <button
+                  onClick={() => setShowSidebar(!showSidebar)}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #E8E3EE',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                    color: '#4A4458',
+                  }}
+                >
+                  ☰
+                </button>
+              )}
+            </div>
+
+            {/* ─── Content Panel ────────────────────────────────────── */}
+            <div style={styles.contentPanel}>
+              <div style={styles.contentBody} className="fade-in">
+                {renderPanelContent()}
+              </div>
+            </div>
+          </main>
+        </div>
       )}
 
       {activeView === 'gallery' && (
-        <div style={{ background: '#fff', borderRadius: '20px', padding: isMobile ? '14px' : '24px', margin: isMobile ? '14px' : '24px 28px' }}>
-          <h2 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 700, marginBottom: '24px' }}>📸 All Course Images ({images.length})</h2>
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', margin: '16px 24px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>📸 All Course Images ({images.length})</h2>
           {images.length === 0 ? (
-            <p style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '15px' }}>No images yet</p>
+            <p style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No images yet</p>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'repeat(auto-fill, minmax(240px, 1fr))',
-              gap: isMobile ? '12px' : '20px',
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
               {images.map((img) => {
                 const safeId = img.subTopicId || img.subtopicId;
                 if (!safeId) return null;
-                const imageUrl = authImageUrls[img.id] || buildImageUrl(safeId, img.fileName);
+                const imageUrl = authImageUrls[img.id] || `/admin/uploads/subtopic_${safeId}/images/${img.fileName}`;
                 return (
                   <div
                     key={img.id}
                     style={{
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '16px',
+                      border: '1px solid #E8E3EE',
+                      borderRadius: '12px',
                       overflow: 'hidden',
                       cursor: 'pointer',
-                      transition: 'transform 0.3s, box-shadow 0.3s',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
                     onClick={() => window.open(imageUrl, '_blank')}
                   >
                     <img
                       src={imageUrl}
                       alt={`Page ${img.pageNumber}`}
-                      style={{ width: '100%', height: isMobile ? '120px' : '170px', objectFit: 'cover' }}
-                      onError={() => handleImageError(img.id)}
+                      style={{ width: '100%', height: '150px', objectFit: 'cover' }}
+                      onError={() => handleImageError?.(img.id)}
                       loading="lazy"
                     />
-                    <div style={{ padding: '10px 14px', fontSize: isMobile ? '11px' : '12px', textAlign: 'center', background: '#f8fafc', color: '#64748b', fontWeight: 500 }}>
-                      Page {img.pageNumber} · {img.width}×{img.height}
+                    <div style={{ padding: '8px 12px', fontSize: '12px', textAlign: 'center', background: '#F8F7FA', color: '#6B6478' }}>
+                      Page {img.pageNumber}
                     </div>
                   </div>
                 );

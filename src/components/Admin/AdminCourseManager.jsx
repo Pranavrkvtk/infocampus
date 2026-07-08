@@ -5,7 +5,7 @@ import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
 import axiosInstance, { API_BASE_URL } from '../../api/axios';
 
-// ✅ FULLY FIXED: Build correct URL for admin‑uploaded images
+// ─── FIXED: Build correct URL for admin‑uploaded images ──────────────
 const getFullImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
 
@@ -21,24 +21,17 @@ const getFullImageUrl = (imageUrl) => {
   // Remove leading slash for consistent processing
   let clean = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
 
-  // If it already contains '/api/admin/uploads/', keep it as is
-  if (clean.startsWith('api/admin/uploads/')) {
-    return `${API_BASE_URL}/${clean}`;
+  // ✅ STRIP leading "api/" because API_BASE_URL already includes "/api"
+  if (clean.toLowerCase().startsWith('api/')) {
+    clean = clean.substring(4); // remove "api/"
   }
 
-  // If it starts with 'api/uploads/' (missing admin), add admin
-  if (clean.startsWith('api/uploads/')) {
-    clean = clean.replace('api/uploads/', 'api/admin/uploads/');
-    return `${API_BASE_URL}/${clean}`;
-  }
+  // Ensure clean doesn't start with '/'
+  if (!clean.startsWith('/')) clean = '/' + clean;
 
-  // If it starts with 'uploads/', add 'admin/'
-  if (clean.startsWith('uploads/')) {
-    return `${API_BASE_URL}/admin/${clean}`;
-  }
-
-  // For any other relative path (fallback), just prepend base
-  return `${API_BASE_URL}/${clean}`;
+  // Remove trailing slash from base to avoid double slashes
+  const base = API_BASE_URL.replace(/\/$/, '');
+  return `${base}${clean}`;
 };
 
 // Thin wrapper for axios
@@ -54,7 +47,9 @@ const clr = {
   text: '#0f172a', muted: '#64748b', faint: '#f1f5f9', accent: '#4f46e5',
   accentLight: '#eef2ff', accentText: '#3730a3', success: '#16a34a',
   successLight: '#f0fdf4', danger: '#dc2626', dangerLight: '#fef2f2',
-  sidebar: '#1e1b4b', sidebarText: '#c7d2fe',
+  sidebar: '#f1f5f9', // Changed from '#1e1b4b' to grey
+  sidebarText: '#475569', // Changed from '#c7d2fe' to darker grey
+  sidebarBorder: '#e2e8f0', // Added for sidebar borders
 };
 
 const uid = () => Math.random().toString(36).slice(2, 8);
@@ -204,7 +199,29 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [imageError, setImageError] = useState(false);
 
   const handleImageUpload = async (event) => {
-    // ... (same as before, unchanged)
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.show('Please select an image file', 'error');
+      return;
+    }
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const response = await axiosInstance.post(`/admin/courses/${course.id}/upload-image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const updatedCourse = response.data;
+      onImageUploaded(updatedCourse);
+      setImageError(false);
+      toast.show('Image uploaded successfully', 'success');
+    } catch (err) {
+      toast.show(err.response?.data?.message || 'Upload failed', 'error');
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
   };
 
   const imageSrc = getFullImageUrl(course.imageUrl);
@@ -238,7 +255,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
               setImageError(true);
             }}
             onLoad={() => {
-              // If it loads successfully, ensure error state is false
               setImageError(false);
             }}
           />
@@ -858,28 +874,14 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   );
 }
 
+// ─── FIXED: Markdown Image Component ──────────────────────────────────────
 function MarkdownImage({ src, alt }) {
   const [hasError, setHasError] = useState(false);
 
   if (!src) return null;
 
-  let fullSrc;
-  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:image/')) {
-    fullSrc = src;
-  } else {
-    let clean = src.startsWith('/') ? src.substring(1) : src;
-    if (clean.startsWith('api/admin/uploads/')) {
-      fullSrc = `${API_BASE_URL}/${clean}`;
-    } else if (clean.startsWith('api/uploads/')) {
-      clean = clean.replace('api/uploads/', 'api/admin/uploads/');
-      fullSrc = `${API_BASE_URL}/${clean}`;
-    } else if (clean.startsWith('uploads/')) {
-      fullSrc = `${API_BASE_URL}/admin/${clean}`;
-    } else {
-      if (clean.startsWith('api/')) clean = clean.substring(4);
-      fullSrc = `${API_BASE_URL}/${clean}`;
-    }
-  }
+  // ✅ Use the same helper (now correctly strips api/)
+  const fullSrc = getFullImageUrl(src);
 
   if (hasError) {
     return (
@@ -1026,7 +1028,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
       toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
     } catch (err) {
       console.error('Upload error:', err);
-      // ✅ FIXED: Safely extract a string message
       const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
       toast.show(msg, 'error');
     } finally {
@@ -1392,23 +1393,46 @@ export default function AdminCourseManager() {
       <style>{`* { box-sizing: border-box; } button { font-family: inherit; }`}</style>
 
       {/* ── Header ── */}
-      <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
+      <div style={{ 
+        background: clr.sidebar, 
+        padding: '14px 28px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 16,
+        borderBottom: `1px solid ${clr.sidebarBorder}`,
+      }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: clr.text }}>🏫 Course Manager</div>
         {selectedCourse && (
           <>
-            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.2)' }} />
+            <div style={{ width: 1, height: 20, background: clr.sidebarBorder }} />
             <div style={{ fontSize: 13, color: clr.sidebarText }}>{selectedCourse.title}</div>
-            <div style={{ fontSize: 11, color: clr.sidebarText, background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 12 }}>
+            <div style={{ fontSize: 11, color: clr.sidebarText, background: clr.faint, padding: '2px 8px', borderRadius: 12 }}>
               {pagination.totalItems} topics
             </div>
           </>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
-          <button onClick={() => setView('course')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'course' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>
+          <button onClick={() => setView('course')} style={{ 
+            padding: '6px 14px', 
+            fontSize: 12, 
+            borderRadius: 7, 
+            border: 'none', 
+            cursor: 'pointer', 
+            background: view === 'course' ? clr.accent : clr.faint,
+            color: view === 'course' ? '#fff' : clr.text,
+          }}>
             🏠 Courses
           </button>
           {selectedCourse && (
-            <button onClick={() => setView('manage')} style={{ padding: '6px 14px', fontSize: 12, borderRadius: 7, border: 'none', cursor: 'pointer', background: view === 'manage' ? clr.accent : 'rgba(255,255,255,0.1)', color: '#fff' }}>
+            <button onClick={() => setView('manage')} style={{ 
+              padding: '6px 14px', 
+              fontSize: 12, 
+              borderRadius: 7, 
+              border: 'none', 
+              cursor: 'pointer', 
+              background: view === 'manage' ? clr.accent : clr.faint,
+              color: view === 'manage' ? '#fff' : clr.text,
+            }}>
               ✏ Manage Content
             </button>
           )}
@@ -1428,8 +1452,14 @@ export default function AdminCourseManager() {
       {/* ── Content management view ── */}
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
-          <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
-            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Left Sidebar - Grey background */}
+          <div style={{ 
+            borderRight: `1px solid ${clr.sidebarBorder}`, 
+            background: clr.sidebar, 
+            overflowY: 'auto',
+            padding: 16,
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* ── Course Image Upload ── */}
               <CourseImageUploader 
                 course={selectedCourse} 
@@ -1448,7 +1478,7 @@ export default function AdminCourseManager() {
                   style={{
                     width: '100%',
                     padding: '8px 12px',
-                    border: `1px solid ${clr.border}`,
+                    border: `1px solid ${clr.sidebarBorder}`,
                     borderRadius: 8,
                     fontSize: 13,
                     outline: 'none',
@@ -1463,7 +1493,7 @@ export default function AdminCourseManager() {
                     left: 0,
                     right: 0,
                     background: clr.white,
-                    border: `1px solid ${clr.border}`,
+                    border: `1px solid ${clr.sidebarBorder}`,
                     borderRadius: 8,
                     maxHeight: 300,
                     overflowY: 'auto',
@@ -1477,7 +1507,7 @@ export default function AdminCourseManager() {
                         style={{
                           padding: '8px 12px',
                           cursor: 'pointer',
-                          borderBottom: `1px solid ${clr.border}`,
+                          borderBottom: `1px solid ${clr.sidebarBorder}`,
                           '&:hover': { background: clr.accentLight },
                         }}
                       >
@@ -1523,7 +1553,8 @@ export default function AdminCourseManager() {
             </div>
           </div>
 
-          <div style={{ overflowY: 'auto', padding: 20 }}>
+          {/* Right Content */}
+          <div style={{ overflowY: 'auto', padding: 20, background: clr.bg }}>
             {activeSub ? (
               <SubtopicContentEditor
                 key={activeSub.id}
