@@ -26,7 +26,7 @@ const getFullImageUrl = (imageUrl) => {
   
   // For static assets (images, uploads), use API_ROOT_URL (without /api)
   // These are served from the root, not from /api endpoint
-  return `${API_ROOT_URL}/${cleanPath}`;
+  return `${API_BASE_URL}/${cleanPath}`;
 };
 
 // Thin wrapper for axios
@@ -936,7 +936,7 @@ function MarkdownImage({ src, alt }) {
     }
     
     // For static assets (images, uploads), use API_ROOT_URL (without /api)
-    fullSrc = `${API_ROOT_URL}/${cleanSrc}`;
+    fullSrc = `${API_BASE_URL}/${cleanSrc}`;
   }
 
   return (
