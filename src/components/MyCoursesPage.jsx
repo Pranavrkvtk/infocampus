@@ -164,7 +164,7 @@ function MyCoursesPage() {
     };
   }, [activeView]);
 
-  // ─── Helper: Get course image from admin uploads ──────────────────
+  // ─── ✅ FIXED: Get course image from admin uploads ──────────────────
   const getCourseImage = (course) => {
     if (!course.imageUrl) {
       const name = course.title?.toLowerCase() || '';
@@ -175,46 +175,51 @@ function MyCoursesPage() {
     }
 
     const imageUrl = course.imageUrl;
-    
-    if (imageUrl.startsWith('data:image/')) {
+
+    // Already absolute or data URI
+    if (imageUrl.startsWith('data:image/') || 
+        imageUrl.startsWith('http://') || 
+        imageUrl.startsWith('https://')) {
       return imageUrl;
     }
-    
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return imageUrl;
+
+    // ✅ Admin-uploaded images start with /uploads/ – need to add /admin
+    if (imageUrl.startsWith('/uploads/')) {
+      // Remove leading slash and build full URL
+      return `${API_BASE}/admin${imageUrl}`;  // /api/admin/uploads/courses/...
     }
-    
+
+    // Handle /api/ paths (should not happen often)
     if (imageUrl.startsWith('/api/')) {
       const baseUrl = API_BASE.replace('/api', '');
       return `${baseUrl}${imageUrl}`;
     }
-    
-    if (imageUrl.startsWith('/')) {
-      return `${API_BASE}${imageUrl}`;
-    }
-    
+
+    // Handle relative paths without leading slash (e.g., "uploads/...")
     if (imageUrl.startsWith('uploads/')) {
       return `${API_BASE}/admin/${imageUrl}`;
     }
-    
-    return `${API_BASE}/admin/uploads/${imageUrl}`;
+
+    // Fallback: prepend base
+    return `${API_BASE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
   };
-  
-  // ─── Helper: Get subtopic image from admin uploads ────────────────
+
+  // ─── ✅ FIXED: Get subtopic image from admin uploads ────────────────
   const getSubtopicImageUrl = (subtopicId, fileName) => {
     if (!subtopicId || !fileName) return FALLBACK_IMAGE;
-    
+
     if (fileName.startsWith('http://') || fileName.startsWith('https://') || fileName.startsWith('data:image/')) {
       return fileName;
     }
-    
+
+    // ✅ Add /admin for uploads
     if (fileName.startsWith('/uploads/')) {
       return `${API_BASE}/admin${fileName}`;
     }
     if (fileName.startsWith('uploads/')) {
       return `${API_BASE}/admin/${fileName}`;
     }
-    
+
     return `${API_BASE}/admin/uploads/${fileName}`;
   };
 

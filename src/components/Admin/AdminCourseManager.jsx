@@ -4,26 +4,41 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
 import axiosInstance, { API_BASE_URL } from '../../api/axios';
-// ✅ FIXED: Helper function to build image URLs correctly
+
+// ✅ FULLY FIXED: Build correct URL for admin‑uploaded images
 const getFullImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
-  
-  // If it's already a full URL (absolute)
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+
+  // Already absolute or data URI
+  if (
+    imageUrl.startsWith('http://') ||
+    imageUrl.startsWith('https://') ||
+    imageUrl.startsWith('data:image/')
+  ) {
     return imageUrl;
   }
-  
-  // Remove any leading / from the imageUrl
-  let cleanPath = imageUrl;
-  if (cleanPath.startsWith('/')) {
-    cleanPath = cleanPath.substring(1);
+
+  // Remove leading slash for consistent processing
+  let clean = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+
+  // If it already contains '/api/admin/uploads/', keep it as is
+  if (clean.startsWith('api/admin/uploads/')) {
+    return `${API_BASE_URL}/${clean}`;
   }
-  
-  // Remove any /api/ prefix if present (to avoid duplication)
-  if (cleanPath.startsWith('api/')) {
-    cleanPath = cleanPath.substring(4);
+
+  // If it starts with 'api/uploads/' (missing admin), add admin
+  if (clean.startsWith('api/uploads/')) {
+    clean = clean.replace('api/uploads/', 'api/admin/uploads/');
+    return `${API_BASE_URL}/${clean}`;
   }
-  return `${API_BASE_URL}/${cleanPath}`;
+
+  // If it starts with 'uploads/', add 'admin/'
+  if (clean.startsWith('uploads/')) {
+    return `${API_BASE_URL}/admin/${clean}`;
+  }
+
+  // For any other relative path (fallback), just prepend base
+  return `${API_BASE_URL}/${clean}`;
 };
 
 // Thin wrapper for axios
@@ -183,7 +198,7 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE IMAGE UPLOADER - FIXED
+// COURSE IMAGE UPLOADER
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
@@ -309,7 +324,7 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR - FIXED
+// COURSE SELECTOR
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
@@ -912,27 +927,28 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE RENDERER - FIXED
+// MARKDOWN IMAGE RENDERER – FULLY FIXED
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   if (!src) return null;
 
   let fullSrc;
-  if (src.startsWith('http://') || src.startsWith('https://')) {
+  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:image/')) {
     fullSrc = src;
   } else {
-    // Remove leading slash
-    let cleanSrc = src;
-    if (cleanSrc.startsWith('/')) {
-      cleanSrc = cleanSrc.substring(1);
+    let clean = src.startsWith('/') ? src.substring(1) : src;
+
+    if (clean.startsWith('api/admin/uploads/')) {
+      fullSrc = `${API_BASE_URL}/${clean}`;
+    } else if (clean.startsWith('api/uploads/')) {
+      clean = clean.replace('api/uploads/', 'api/admin/uploads/');
+      fullSrc = `${API_BASE_URL}/${clean}`;
+    } else if (clean.startsWith('uploads/')) {
+      fullSrc = `${API_BASE_URL}/admin/${clean}`;
+    } else {
+      if (clean.startsWith('api/')) clean = clean.substring(4);
+      fullSrc = `${API_BASE_URL}/${clean}`;
     }
-    
-    // Remove any /api/ prefix if present
-    if (cleanSrc.startsWith('api/')) {
-      cleanSrc = cleanSrc.substring(4);
-    }
-    
-    fullSrc = `${API_BASE_URL}/${cleanSrc}`;
   }
 
   return (
@@ -942,7 +958,6 @@ function MarkdownImage({ src, alt }) {
       style={{ maxWidth: '100%', height: 'auto', margin: '12px 0', borderRadius: 8, display: 'block' }}
       onError={(e) => {
         console.error('❌ Markdown image load error:', fullSrc);
-        // Show error message in the image placeholder
         const parent = e.target.parentElement;
         const fallback = document.createElement('div');
         fallback.style.cssText = `
@@ -1079,8 +1094,9 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
       toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
     } catch (err) {
       console.error('Upload error:', err);
-      const msg = err.response?.data?.message || err.response?.data || err.message;
-      toast.show(msg || 'Upload failed', 'error');
+      // ✅ FIXED: Safely extract a string message
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
+      toast.show(msg, 'error');
     } finally {
       setUploadingDoc(false);
     }
