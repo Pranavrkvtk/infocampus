@@ -1,5 +1,5 @@
 // src/components/CourseDetailView.jsx
-// Odoo-style learning UI - Sidebar + Full Content
+// Premium Odoo-style learning UI - Sidebar + Full Content
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -13,31 +13,34 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
 // ─── Design tokens ─────────────────────────────────────────────────────
 const C = {
-  // Grey sidebar colors
-  sidebarBg: '#F1F5F9',
-  sidebarBgAlt: '#E8EDF5',
+  sidebarBg: '#FFFFFF',
+  sidebarBgAlt: '#F8FAFC',
   sidebarLine: '#E2E8F0',
-  sidebarText: '#475569',
+  sidebarText: '#334155',
   sidebarTextDim: '#94A3B8',
-  sidebarActive: '#DBEAFE',
-  sidebarHover: '#E8EDF5',
-  accent: '#8B5FBF',
-  accentLight: '#A78BCC',
-  accentDark: '#6B4A8A',
-  accentSoft: '#EDE7F6',
+  sidebarActive: '#EFF6FF',
+  sidebarHover: '#F8FAFC',
+  accent: '#2563EB',
+  accentLight: '#60A5FA',
+  accentDark: '#1D4ED8',
+  accentSoft: '#EFF6FF',
   gold: '#E8B84B',
   goldLight: '#F5D98A',
   paper: '#FFFFFF',
-  canvas: '#F5F4F8',
-  ink: '#1E1B24',
-  slate: '#6B6478',
-  slateLight: '#A79FBC',
-  success: '#2E9B6C',
-  successLight: '#DFF3E8',
-  error: '#DC3545',
-  errorLight: '#FDE8E8',
+  canvas: '#F8FAFC',
+  ink: '#0F172A',
+  slate: '#64748B',
+  slateLight: '#94A3B8',
+  success: '#10B981',
+  successLight: '#D1FAE5',
+  error: '#EF4444',
+  errorLight: '#FEE2E2',
   warning: '#F59E0B',
   warningLight: '#FEF3C7',
+  shadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+  shadowHover: '0 10px 40px -12px rgba(0,0,0,0.15)',
+  radius: '12px',
+  radiusLg: '16px',
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────
@@ -139,7 +142,6 @@ const renderOdooContent = (text) => {
   };
 
   const processLine = (line) => {
-    // Main heading (# Getting Started)
     const mainHeading = line.match(/^#\s+(.+)$/);
     if (mainHeading) {
       closeList();
@@ -147,7 +149,6 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    // Sub heading (## USING ODOO)
     const subHeading = line.match(/^##\s+(.+)$/);
     if (subHeading) {
       closeList();
@@ -155,7 +156,6 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    // Numbered question (# 1. Where can...)
     const question = line.match(/^#\s+(\d+)\.\s+(.*)$/);
     if (question) {
       closeList();
@@ -166,7 +166,6 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    // Bold list item (- GETTING STARTED with children)
     const boldListItem = line.match(/^-\s+\*\*(.+)\*\*$/);
     if (boldListItem) {
       closeList();
@@ -174,7 +173,6 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    // Indented list item (  - Create an Odoo Database)
     const indentListItem = line.match(/^\s{2,}-\s+(.+)$/);
     if (indentListItem) {
       if (listType !== 'ul') {
@@ -186,7 +184,6 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    // Regular list item (- something)
     const listItem = line.match(/^-\s+(.+)$/);
     if (listItem) {
       if (listType !== 'ul') {
@@ -198,7 +195,6 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    // Bold text (**Sign in and join...**)
     const boldText = line.match(/^\*\*(.+)\*\*$/);
     if (boldText) {
       closeList();
@@ -206,7 +202,6 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    // XP badge (+40 XP)
     const xpMatch = line.match(/^\+(\d+)\s+XP$/);
     if (xpMatch) {
       closeList();
@@ -214,14 +209,12 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    // Horizontal rule (---)
     if (line.match(/^---$/)) {
       closeList();
       html += '<hr class="odoo-divider" />';
       return true;
     }
 
-    // Regular paragraph
     closeList();
     if (line.trim()) {
       html += `<p class="odoo-paragraph">${inlineFormat(line)}</p>`;
@@ -245,81 +238,72 @@ const renderOdooContent = (text) => {
 // ─── Odoo Content Styles ─────────────────────────────────────────────
 
 const ODOO_STYLES = `
-  /* Content container */
   .odoo-content {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    color: #1E1B24;
+    color: #0F172A;
     font-size: 16px;
     line-height: 1.8;
     padding: 4px 0;
     max-width: 100%;
   }
-
-  /* Main heading (# Getting Started) */
   .odoo-main-heading {
-    font-size: 28px;
+    font-size: 32px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 24px 0;
+    padding: 0;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+  .odoo-sub-heading {
+    font-size: 24px;
     font-weight: 700;
     color: #0F172A;
-    margin: 0 0 20px 0;
+    margin: 32px 0 16px 0;
     padding: 0;
     line-height: 1.3;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.01em;
   }
-
-  /* Sub heading (## USING ODOO) */
-  .odoo-sub-heading {
-    font-size: 22px;
-    font-weight: 700;
-    color: #0F172A;
-    margin: 28px 0 16px 0;
-    padding: 0;
-    line-height: 1.4;
-    letter-spacing: -0.2px;
-  }
-
-  /* Section headers (- GETTING STARTED) */
   .odoo-section-header {
     font-size: 15px;
     font-weight: 700;
     color: #1E293B;
-    margin: 16px 0 6px 0;
+    margin: 20px 0 8px 0;
     padding: 0;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #64748B;
   }
-
-  /* Lists */
   .odoo-list {
-    margin: 4px 0 16px 0;
+    margin: 4px 0 20px 0;
     padding-left: 0;
     list-style: none;
   }
-
   .odoo-list-item {
-    padding: 4px 0 4px 24px;
+    padding: 6px 0 6px 28px;
     position: relative;
     font-size: 15px;
     color: #1E293B;
     line-height: 1.7;
   }
-
   .odoo-list-item::before {
-    content: "•";
+    content: "●";
     position: absolute;
     left: 4px;
-    color: #8B5FBF;
+    color: #2563EB;
     font-weight: 700;
-    font-size: 18px;
+    font-size: 12px;
   }
-
-  /* Quiz question wrapper */
   .odoo-question-wrapper {
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    margin: 24px 0 12px 0;
-    padding: 0;
+    margin: 28px 0 12px 0;
+    padding: 16px 20px;
+    background: #F8FAFC;
+    border-radius: 12px;
+    border-left: 4px solid #2563EB;
   }
-
   .odoo-question-number {
     font-size: 16px;
     font-weight: 700;
@@ -327,80 +311,65 @@ const ODOO_STYLES = `
     min-width: 28px;
     flex-shrink: 0;
   }
-
   .odoo-question-text {
     font-size: 16px;
     font-weight: 600;
     color: #0F172A;
     line-height: 1.6;
   }
-
-  /* Sign-in text */
   .odoo-signin-text {
     font-size: 15px;
     font-weight: 500;
-    color: #4A4458;
-    margin: 16px 0 8px 0;
+    color: #475569;
+    margin: 20px 0 10px 0;
     padding: 0;
     text-align: center;
   }
-
-  /* XP Badge */
   .odoo-xp-badge {
     display: inline-block;
-    background: #8B5FBF;
+    background: #2563EB;
     color: #fff;
     font-size: 14px;
     font-weight: 700;
-    padding: 4px 16px;
+    padding: 6px 20px;
     border-radius: 20px;
     margin: 4px 0;
   }
-
-  /* Divider */
   .odoo-divider {
     border: none;
-    border-top: 1px solid #EEECF3;
-    margin: 16px 0;
+    border-top: 1px solid #E2E8F0;
+    margin: 24px 0;
   }
-
-  /* Paragraph */
   .odoo-paragraph {
     font-size: 15px;
     color: #1E293B;
     line-height: 1.8;
-    margin: 0 0 16px 0;
+    margin: 0 0 18px 0;
   }
-
-  /* Links */
   .note-link {
-    color: #8B5FBF;
+    color: #2563EB;
     text-decoration: underline;
     text-underline-offset: 2px;
+    font-weight: 500;
   }
   .note-link:hover {
-    color: #6B4A8A;
+    color: #1D4ED8;
   }
-
-  /* Code */
   .note-code {
-    background: #F1F0F4;
-    padding: 2px 8px;
-    border-radius: 4px;
+    background: #F1F5F9;
+    padding: 2px 10px;
+    border-radius: 6px;
     font-size: 14px;
     font-family: 'JetBrains Mono', monospace;
+    color: #0F172A;
   }
-
-  /* Images */
   .note-image {
     max-width: 100%;
     border-radius: 12px;
-    margin: 16px 0;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    margin: 20px 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     display: block;
   }
-
-  /* Animations */
   .fade-in {
     animation: odooFadeIn 0.5s ease-out;
   }
@@ -408,15 +377,11 @@ const ODOO_STYLES = `
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
-
-  /* Prevent selection */
   .odoo-content,
   .odoo-content * {
     user-select: none !important;
     -webkit-user-select: none !important;
   }
-
-  /* Scrollbar */
   .odoo-content::-webkit-scrollbar {
     width: 6px;
   }
@@ -424,22 +389,22 @@ const ODOO_STYLES = `
     background: transparent;
   }
   .odoo-content::-webkit-scrollbar-thumb {
-    background: #D5D0DE;
+    background: #CBD5E1;
     border-radius: 3px;
   }
   .odoo-content::-webkit-scrollbar-thumb:hover {
-    background: #BDB8C9;
+    background: #94A3B8;
   }
 `;
 
 // ─── Sidebar config ──────────────────────────────────────────────────
 
 const CONTENT_TYPES = [
-  { key: 'video',     icon: '🎬', label: 'Video Tutorial', color: '#8B5FBF' },
-  { key: 'notes',     icon: '📄', label: 'Tutorial', color: '#3B82F6' },
-  { key: 'interview', icon: '🎤', label: 'Interview Qs', color: '#F59E0B' },
-  { key: 'exam',      icon: '📝', label: 'Exam Question', color: '#EF4444' },
-  { key: 'labs',      icon: '🧪', label: 'Lab Exercise', color: '#10B981' },
+  { key: 'video',     icon: '▶', label: 'Video', color: '#2563EB' },
+  { key: 'notes',     icon: '📄', label: 'Tutorial', color: '#2563EB' },
+  { key: 'interview', icon: '🎤', label: 'Interview', color: '#F59E0B' },
+  { key: 'exam',      icon: '📝', label: 'Quiz', color: '#EF4444' },
+  { key: 'labs',      icon: '🧪', label: 'Lab', color: '#10B981' },
 ];
 
 // ─── Tab Components ──────────────────────────────────────────────────
@@ -454,7 +419,7 @@ function NotesTab({ content }) {
   }, []);
 
   if (!content) {
-    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>📝 No notes for this section.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>📝 No notes for this section.</div>;
   }
 
   const html = renderOdooContent(content);
@@ -488,7 +453,7 @@ function VideoTab({ videoUrls }) {
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
 
   if (urls.length === 0) {
-    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>🎬 No video for this section.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>🎬 No video for this section.</div>;
   }
 
   const currentUrl = urls[currentVideo];
@@ -505,15 +470,15 @@ function VideoTab({ videoUrls }) {
               style={{
                 padding: '6px 16px',
                 borderRadius: '16px',
-                border: idx === currentVideo ? '2px solid #8B5FBF' : '1px solid #E2E8F0',
-                background: idx === currentVideo ? '#EDE7F6' : '#fff',
-                color: idx === currentVideo ? '#8B5FBF' : '#475569',
+                border: idx === currentVideo ? '2px solid #2563EB' : '1px solid #E2E8F0',
+                background: idx === currentVideo ? '#EFF6FF' : '#fff',
+                color: idx === currentVideo ? '#2563EB' : '#475569',
                 fontWeight: idx === currentVideo ? 600 : 500,
                 fontSize: '12px',
                 cursor: 'pointer',
               }}
             >
-              🎬 Video {idx + 1}
+              ▶ Video {idx + 1}
             </button>
           ))}
         </div>
@@ -547,7 +512,7 @@ function InterviewTab({ questions }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   if (!questions || questions.length === 0) {
-    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>🎤 No interview questions.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>🎤 No interview questions.</div>;
   }
 
   return (
@@ -626,7 +591,7 @@ function ExamTab({ questions, onScoreUpdate }) {
   const [score, setScore] = useState(null);
 
   if (!questions || questions.length === 0) {
-    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>📝 No MCQ questions.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>📝 No MCQ questions.</div>;
   }
 
   const handleSubmit = () => {
@@ -660,7 +625,7 @@ function ExamTab({ questions, onScoreUpdate }) {
             onClick={handleSubmit}
             style={{
               padding: '8px 20px',
-              background: '#8B5FBF',
+              background: '#2563EB',
               color: '#fff',
               border: 'none',
               borderRadius: '20px',
@@ -700,8 +665,8 @@ function ExamTab({ questions, onScoreUpdate }) {
                     gap: '12px',
                     padding: '8px 14px',
                     borderRadius: '8px',
-                    background: isSelected ? '#EDE7F6' : 'transparent',
-                    border: isSelected ? '1px solid #8B5FBF' : '1px solid transparent',
+                    background: isSelected ? '#EFF6FF' : 'transparent',
+                    border: isSelected ? '1px solid #2563EB' : '1px solid transparent',
                     cursor: submitted ? 'default' : 'pointer',
                   }}
                 >
@@ -712,7 +677,7 @@ function ExamTab({ questions, onScoreUpdate }) {
                     checked={isSelected}
                     onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
                     disabled={submitted}
-                    style={{ accentColor: '#8B5FBF' }}
+                    style={{ accentColor: '#2563EB' }}
                   />
                   <span style={{ fontSize: '14px' }}>
                     <strong style={{ color: '#475569', marginRight: '4px' }}>{opt}.</strong>
@@ -761,7 +726,7 @@ function LabsTab({ labs }) {
   const [activeLab, setActiveLab] = useState(null);
 
   if (!labs || labs.length === 0) {
-    return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>🧪 No lab exercises.</div>;
+    return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>🧪 No lab exercises.</div>;
   }
 
   return (
@@ -772,7 +737,7 @@ function LabsTab({ labs }) {
           style={{
             background: '#fff',
             borderRadius: '12px',
-            border: completed[lab.id] ? '1px solid #2E9B6C' : '1px solid #E2E8F0',
+            border: completed[lab.id] ? '1px solid #10B981' : '1px solid #E2E8F0',
             padding: '16px 20px',
             marginBottom: '10px',
             cursor: 'pointer',
@@ -797,7 +762,7 @@ function LabsTab({ labs }) {
                 }}
                 style={{
                   padding: '4px 14px',
-                  background: '#2E9B6C',
+                  background: '#10B981',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '16px',
@@ -810,7 +775,7 @@ function LabsTab({ labs }) {
               </button>
             )}
             {completed[lab.id] && (
-              <span style={{ fontSize: '13px', color: '#2E9B6C', fontWeight: 600 }}>✅ Done</span>
+              <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 600 }}>✅ Done</span>
             )}
           </div>
           {activeLab === lab.id && (
@@ -990,9 +955,9 @@ export default function CourseDetailView({
   const typeMeta = CONTENT_TYPES.find((t) => t.key === activeContentType) || CONTENT_TYPES[0];
 
   const renderPanelContent = () => {
-    if (!currentSub) return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>Select a section from the sidebar to begin</div>;
-    if (loadingData) return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>Loading content…</div>;
-    if (availableTypes.length === 0) return <div style={{ padding: '20px', color: '#94a3b8', textAlign: 'center' }}>No content has been added for this section yet.</div>;
+    if (!currentSub) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>Select a section from the sidebar to begin</div>;
+    if (loadingData) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>Loading content…</div>;
+    if (availableTypes.length === 0) return <div style={{ padding: '20px', color: '#94A3B8', textAlign: 'center' }}>No content has been added for this section yet.</div>;
 
     switch (activeContentType) {
       case 'video': return <VideoTab videoUrls={videoUrls} />;
@@ -1009,20 +974,20 @@ export default function CourseDetailView({
   if (contentLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#8B5FBF', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
-        <p style={{ color: '#94a3b8', fontSize: '15px' }}>Loading course content…</p>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+        <p style={{ color: '#94A3B8', fontSize: '15px' }}>Loading course content…</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // ─── Styles ──────────────────────────────────────────────────────────
+  // ─── Premium Styles ──────────────────────────────────────────────────
 
   const isMobileDevice = window.innerWidth < 768;
 
   const styles = {
     page: {
-      background: '#F5F4F8',
+      background: '#F8FAFC',
       height: '100vh',
       overflow: 'hidden',
       fontFamily: 'Inter, system-ui, sans-serif',
@@ -1033,77 +998,93 @@ export default function CourseDetailView({
       height: '100%',
       width: '100%',
     },
+    // ─── Premium Sidebar ──────────────────────────────────────────────
     sidebar: {
       width: '320px',
       minWidth: '320px',
-      background: '#F1F5F9', // Grey sidebar
-      borderRight: '1px solid #E2E8F0', // Grey border
+      background: '#FFFFFF',
+      borderRight: '1px solid #E5E7EB',
       height: '100vh',
       overflowY: 'auto',
       flexShrink: 0,
+      boxShadow: '4px 0 20px rgba(0,0,0,0.05)',
     },
     sidebarOpen: { left: '0' },
+    // ─── Sidebar Header ──────────────────────────────────────────────
     sidebarHeader: {
-      padding: '0 16px 12px 16px',
-      borderBottom: '1px solid #E2E8F0',
-      marginBottom: '8px',
+      padding: '20px',
+      borderBottom: '1px solid #EEF2F7',
+      background: '#F8FAFC',
     },
     sidebarTitle: {
-      fontSize: '18px',
+      fontSize: '20px',
       fontWeight: 700,
       color: '#0F172A',
+      lineHeight: '1.3',
     },
     sidebarSubtitle: {
-      fontSize: '12px',
-      color: '#475569',
-      marginTop: '2px',
+      fontSize: '13px',
+      color: '#64748B',
+      marginTop: '6px',
     },
+    // ─── Topic Card ────────────────────────────────────────────────────
     topicItem: {
-      borderBottom: '1px solid #E2E8F0',
+      margin: '10px',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      border: '1px solid #E2E8F0',
+      background: '#FFFFFF',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
     },
+    // ─── Topic Header ──────────────────────────────────────────────────
     topicHeader: (isOpen) => ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '10px 16px',
+      padding: '14px 18px',
       cursor: 'pointer',
-      fontSize: '14px',
       fontWeight: 600,
-      color: isOpen ? '#0F172A' : '#475569',
-      background: isOpen ? '#E8EDF5' : 'transparent',
-      transition: 'all 0.15s',
+      fontSize: '15px',
+      color: isOpen ? '#2563EB' : '#334155',
+      background: isOpen ? 'linear-gradient(90deg, #EFF6FF, #DBEAFE)' : '#FFFFFF',
+      transition: '0.25s',
+      borderBottom: isOpen ? '1px solid #DBEAFE' : 'none',
     }),
+    // ─── Subtopic ──────────────────────────────────────────────────────
     subtopicItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '6px 16px 6px 28px',
+      gap: '10px',
+      padding: '12px 18px 12px 32px',
       cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: isActive ? 600 : 400,
-      color: isActive ? '#0F172A' : '#475569',
-      background: isActive ? '#DBEAFE' : 'transparent',
-      borderLeft: isActive ? '3px solid #8B5FBF' : '3px solid transparent',
-      transition: 'all 0.15s',
+      fontSize: '14px',
+      fontWeight: isActive ? '600' : '500',
+      color: isActive ? '#2563EB' : '#475569',
+      background: isActive ? '#EFF6FF' : '#FFFFFF',
+      borderLeft: isActive ? '4px solid #2563EB' : '4px solid transparent',
+      transition: '0.2s',
     }),
+    // ─── Leaf Item ─────────────────────────────────────────────────────
     leafItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
-      gap: '6px',
-      padding: '4px 16px 4px 44px',
+      gap: '8px',
+      padding: '10px 18px 10px 52px',
+      fontSize: '13px',
       cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: isActive ? 600 : 400,
-      color: isActive ? '#8B5FBF' : '#94A3B8',
-      background: isActive ? 'rgba(139,95,191,0.06)' : 'transparent',
-      borderLeft: isActive ? '2px solid #8B5FBF' : '2px solid transparent',
-      transition: 'all 0.15s',
+      borderRadius: '8px',
+      margin: '4px 10px',
+      color: isActive ? '#FFFFFF' : '#64748B',
+      background: isActive ? '#2563EB' : 'transparent',
+      transition: '0.2s',
+      fontWeight: isActive ? 600 : 500,
     }),
+    // ─── Main Content ──────────────────────────────────────────────────
     mainContent: {
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
-      background: '#F5F4F8',
+      background: '#F8FAFC',
       overflow: 'hidden',
       padding: '20px',
     },
@@ -1116,7 +1097,7 @@ export default function CourseDetailView({
       position: 'sticky',
       top: 0,
       zIndex: 5,
-      background: '#F5F4F8',
+      background: '#F8FAFC',
     },
     backBtn: {
       display: 'flex',
@@ -1140,8 +1121,8 @@ export default function CourseDetailView({
     },
     doneBadge: {
       fontSize: '12px',
-      background: '#DFF3E8',
-      color: '#1E7A4C',
+      background: '#D1FAE5',
+      color: '#065F46',
       padding: '2px 12px',
       borderRadius: '20px',
       fontWeight: 600,
@@ -1153,6 +1134,7 @@ export default function CourseDetailView({
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
     },
     contentBody: {
       flex: 1,
@@ -1178,6 +1160,12 @@ export default function CourseDetailView({
         input, textarea, select { -webkit-user-select: auto !important; user-select: auto !important; }
         body { overscroll-behavior: none; touch-action: pan-y; margin: 0; padding: 0; }
         .odoo-content { font-family: 'Inter', system-ui, sans-serif; }
+        
+        /* Premium scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #F1F5F9; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
       `}</style>
 
       {activeView === 'split' && (
@@ -1189,11 +1177,11 @@ export default function CourseDetailView({
             <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
               <div style={styles.sidebarHeader}>
                 <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
-                <div style={styles.sidebarSubtitle}>Course Content</div>
+                <div style={styles.sidebarSubtitle}>{subtopics.length} Lessons</div>
               </div>
 
               {/* ─── Search ──────────────────────────────────────────── */}
-              <div style={{ padding: '0 12px 10px 12px' }}>
+              <div style={{ padding: '10px 12px' }}>
                 <input
                   type="text"
                   placeholder="🔍 Search topics..."
@@ -1201,13 +1189,21 @@ export default function CourseDetailView({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #E2E8F0',
-                    background: '#fff',
-                    fontSize: '12px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid #CBD5E1',
+                    background: '#FFFFFF',
+                    fontSize: '14px',
                     outline: 'none',
-                    color: '#0F172A',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#2563EB';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#CBD5E1';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -1220,8 +1216,10 @@ export default function CourseDetailView({
                   return (
                     <div key={topic.id} style={styles.topicItem}>
                       <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
-                        <span>{topic.title}</span>
-                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>{isOpen ? '▼' : '▶'}</span>
+                        <span>📚 {topic.title}</span>
+                        <span style={{ fontSize: '12px', color: isOpen ? '#2563EB' : '#94A3B8' }}>
+                          {isOpen ? '▼' : '▶'}
+                        </span>
                       </div>
                       {isOpen && topicSubs.map((sub) => {
                         const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
@@ -1231,10 +1229,21 @@ export default function CourseDetailView({
                         const hasVideo = getVideoUrls(sub).length > 0;
                         return (
                           <div key={sub.id}>
-                            <div style={styles.subtopicItem(isActive)} onClick={() => selectSubtopic(sub, globalIndex)}>
-                              <span style={{ fontSize: '10px', color: hasVideo ? '#8B5FBF' : '#94A3B8' }}>{hasVideo ? '▶' : '●'}</span>
+                            <div 
+                              style={styles.subtopicItem(isActive)} 
+                              onClick={() => selectSubtopic(sub, globalIndex)}
+                              onMouseEnter={(e) => {
+                                if (!isActive) e.currentTarget.style.background = '#F8FAFC';
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isActive) e.currentTarget.style.background = '#FFFFFF';
+                              }}
+                            >
+                              <span style={{ fontSize: '12px', color: hasVideo ? '#2563EB' : '#94A3B8' }}>
+                                {hasVideo ? '▶' : '●'}
+                              </span>
                               <span style={{ flex: 1 }}>{sub.title}</span>
-                              {isDone && <span style={{ fontSize: '10px', color: '#2E9B6C' }}>✓</span>}
+                              {isDone && <span style={{ fontSize: '12px', color: '#10B981' }}>✓</span>}
                             </div>
                             {isActive && (
                               <div>
@@ -1246,6 +1255,18 @@ export default function CourseDetailView({
                                       key={t.key}
                                       style={styles.leafItem(activeContentType === t.key)}
                                       onClick={() => setActiveContentType(t.key)}
+                                      onMouseEnter={(e) => {
+                                        if (activeContentType !== t.key) {
+                                          e.currentTarget.style.background = '#F1F5F9';
+                                          e.currentTarget.style.color = '#0F172A';
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (activeContentType !== t.key) {
+                                          e.currentTarget.style.background = 'transparent';
+                                          e.currentTarget.style.color = '#64748B';
+                                        }
+                                      }}
                                     >
                                       <span>{t.icon}</span>
                                       <span>{t.label}</span>
@@ -1279,8 +1300,14 @@ export default function CourseDetailView({
               <button
                 onClick={handleBack}
                 style={styles.backBtn}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#E8EDF5'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#F1F5F9';
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#fff';
+                  e.currentTarget.style.borderColor = '#E2E8F0';
+                }}
               >
                 ← Back
               </button>
@@ -1297,11 +1324,20 @@ export default function CourseDetailView({
                   style={{
                     background: '#fff',
                     border: '1px solid #E2E8F0',
-                    borderRadius: '6px',
-                    padding: '6px 10px',
-                    fontSize: '16px',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '18px',
                     cursor: 'pointer',
                     color: '#475569',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#F1F5F9';
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#fff';
+                    e.currentTarget.style.borderColor = '#E2E8F0';
                   }}
                 >
                   ☰
@@ -1338,6 +1374,15 @@ export default function CourseDetailView({
                       borderRadius: '12px',
                       overflow: 'hidden',
                       cursor: 'pointer',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                     onClick={() => window.open(imageUrl, '_blank')}
                   >
@@ -1348,7 +1393,7 @@ export default function CourseDetailView({
                       onError={() => handleImageError?.(img.id)}
                       loading="lazy"
                     />
-                    <div style={{ padding: '8px 12px', fontSize: '12px', textAlign: 'center', background: '#F8F7FA', color: '#475569' }}>
+                    <div style={{ padding: '8px 12px', fontSize: '12px', textAlign: 'center', background: '#F8FAFC', color: '#475569' }}>
                       Page {img.pageNumber}
                     </div>
                   </div>
