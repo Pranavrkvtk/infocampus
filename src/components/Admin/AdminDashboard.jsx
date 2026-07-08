@@ -32,7 +32,8 @@ import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
 import HomeEditorTab from "./HomeEditorTab";
-import MyCoursesEditorTab from "./MyCoursesEditorTab"; // ✅ Import MyCoursesEditorTab
+import MyCoursesEditorTab from "./MyCoursesEditorTab";
+import NavbarEditorTab from "./NavbarEditorTab"; // ✅ Import Navbar Editor
 
 // ===================== MEDIA TAB =====================
 function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
@@ -829,12 +830,13 @@ export default function AdminDashboard() {
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
       case "home-editor": return <HomeEditorTab />;
-      case "my-courses-editor": return <MyCoursesEditorTab />; // ✅ Added My Courses Editor
+      case "my-courses-editor": return <MyCoursesEditorTab />;
+      case "navbar-editor": return <NavbarEditorTab />; // ✅ Added Navbar Editor
       default: return null;
     }
   };
 
-  // ✅ Updated navItems with My Courses Editor
+  // ✅ Updated navItems with Navbar Editor
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
@@ -844,7 +846,8 @@ export default function AdminDashboard() {
     { icon: "🎬", label: "Media",          id: "media"          },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
     { icon: "🏠", label: "Home Editor",    id: "home-editor"    },
-    { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" }, // ✅ Added
+    { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" },
+    { icon: "🎨", label: "Navbar Editor",  id: "navbar-editor" }, // ✅ Added
   ];
 
   // ✅ Updated PAGE_TITLES
@@ -858,7 +861,8 @@ export default function AdminDashboard() {
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
     "home-editor":   "Home Page Editor",
-    "my-courses-editor": "My Courses Editor", // ✅ Added
+    "my-courses-editor": "My Courses Editor",
+    "navbar-editor": "Navbar Editor", // ✅ Added
   };
 
   // ✅ Updated PAGE_SUBS
@@ -872,7 +876,8 @@ export default function AdminDashboard() {
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
     "home-editor":   "Customize all text, colors, and content on the public home page",
-    "my-courses-editor": "Customize all text, icons, and content on the My Courses page", // ✅ Added
+    "my-courses-editor": "Customize all text, icons, and content on the My Courses page",
+    "navbar-editor": "Customize the navigation bar appearance, colors, and content", // ✅ Added
   };
 
   return (

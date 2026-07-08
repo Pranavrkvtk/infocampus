@@ -1,57 +1,145 @@
-import { useState } from "react";
+// src/components/Navbar.jsx
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const courseItems = [
-  "Network Fundamentals",
-  "Cisco",
-  "Routing & Switching",
-  "Data Center",
-  "Automation & Cloud",
-  "Infrastructure Services",
-  "WAN & Connectivity",
-  "Troubleshooting",
-  "Miscellaneous",
-  "Labs",
-  "Legacy",
-];
-
-const ciscoCourses = [
-  "CCNA 200-301",
-  "CCNP ENCOR 350-401",
-  "CCNP ENARSI 300-410",
-  "CCIE Enterprise Infrastructure",
-  "ASA Firewall",
-  "Cisco SD-WAN",
-];
-
-const courseRoutes = {
-  "CCNA 200-301": "/ccna200",
-  "CCNP ENCOR 350-401": "/ccnp-encor",
-  "CCNP ENARSI 300-410": "/ccnp-enarsi",
+// ===================== CONFIGURATION =====================
+export const DEFAULT_CONFIG = {
+  // Colors
+  navBg: "#4a7fb5",
+  navHover: "#3a6fa5",
+  dropdownBg: "#3a6fa5",
+  dropdownHover: "#2e5f8f",
+  ciscoBg: "#2e5f8f",
+  accent: "#f5c842",
+  green: "#3abf94",
+  logoutColor: "#e05252",
+  logoutHover: "#c94444",
+  
+  // Font
+  font: "'Trebuchet MS', sans-serif",
+  
+  // Branding
+  logoText: "Info",
+  logoAccent: "campus",
+  logoAccentColor: "#f5c842",
+  
+  // Navigation Items
+  navItems: [
+    { id: "home", label: "Home", path: "/" },
+    { id: "courses", label: "Courses", type: "dropdown" },
+    { id: "tools", label: "Tools", type: "dropdown" },
+    { id: "about", label: "About", type: "dropdown" }
+  ],
+  
+  // Course Items
+  courseItems: [
+    "Network Fundamentals",
+    "Cisco",
+    "Routing & Switching",
+    "Data Center",
+    "Automation & Cloud",
+    "Infrastructure Services",
+    "WAN & Connectivity",
+    "Troubleshooting",
+    "Miscellaneous",
+    "Labs",
+    "Legacy"
+  ],
+  
+  // Cisco Courses
+  ciscoCourses: [
+    "CCNA 200-301",
+    "CCNP ENCOR 350-401",
+    "CCNP ENARSI 300-410",
+    "CCIE Enterprise Infrastructure",
+    "ASA Firewall",
+    "Cisco SD-WAN"
+  ],
+  
+  // Course Routes
+  courseRoutes: {
+    "CCNA 200-301": "/ccna200",
+    "CCNP ENCOR 350-401": "/ccnp-encor",
+    "CCNP ENARSI 300-410": "/ccnp-enarsi"
+  },
+  
+  // Tool Items
+  toolItems: [
+    { label: "Packet Captures", path: "/packet-captures" },
+    { label: "Resources", path: "/resources" },
+    { label: "Practice Exams", path: "/practice-exam" }
+  ],
+  
+  // About Items
+  aboutItems: [
+    { label: "Free Account", path: "/free-account" },
+    { label: "Discounts and Promotions", path: "/discounts" },
+    { label: "Training for Teams", path: "/training" }
+  ],
+  
+  // Search
+  searchPlaceholder: "Search...",
+  
+  // Buttons
+  loginText: "Login",
+  logoutText: "Logout",
+  
+  // Mobile
+  mobileBreakpoint: 768
 };
 
-const NAV_BG = "#4a7fb5";
-const NAV_HOVER = "#3a6fa5";
-const DROPDOWN_BG = "#3a6fa5";
-const DROPDOWN_HOVER = "#2e5f8f";
-const CISCO_BG = "#2e5f8f";
-const ACCENT = "#f5c842";
-const GREEN = "#3abf94";
-const LOGOUT_COLOR = "#e05252";
-const LOGOUT_HOVER = "#c94444";
-const FONT = "'Trebuchet MS', sans-serif";
+// Load config from localStorage
+const loadConfig = () => {
+  try {
+    const saved = localStorage.getItem("navbar_config");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return { ...DEFAULT_CONFIG, ...parsed };
+    }
+  } catch (e) {
+    console.error("Failed to load navbar config:", e);
+  }
+  return DEFAULT_CONFIG;
+};
 
+// Save config to localStorage
+export const saveNavbarConfig = (config) => {
+  try {
+    localStorage.setItem("navbar_config", JSON.stringify(config));
+    return true;
+  } catch (e) {
+    console.error("Failed to save navbar config:", e);
+    return false;
+  }
+};
+
+// Get current config
+export const getNavbarConfig = () => {
+  return loadConfig();
+};
+
+// ===================== NAVBAR COMPONENT =====================
 export default function Navbar() {
+  const [config, setConfig] = useState(loadConfig);
   const navigate = useNavigate();
   const [searchVal, setSearchVal] = useState("");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [openMenu, setOpenMenu] = useState(null);
   const [cisco, setCisco] = useState(false);
 
-  // ✅ Check if user is logged in
+  // Listen for config changes
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === "navbar_config") {
+        setConfig(loadConfig());
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   const isLoggedIn = !!localStorage.getItem("token");
 
-  // ✅ Logout handler
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
@@ -79,8 +167,33 @@ export default function Navbar() {
     setMobileMenu(false);
   };
 
+  const {
+    navBg,
+    navHover,
+    dropdownBg,
+    dropdownHover,
+    ciscoBg,
+    accent,
+    green,
+    logoutColor,
+    logoutHover,
+    font,
+    logoText,
+    logoAccent,
+    logoAccentColor,
+    searchPlaceholder,
+    loginText,
+    logoutText,
+    courseItems,
+    ciscoCourses,
+    courseRoutes,
+    toolItems,
+    aboutItems,
+    navItems
+  } = config;
+
   return (
-    <nav style={{ background: NAV_BG, fontFamily: FONT, position: "relative", zIndex: 100 }}>
+    <nav style={{ background: navBg, fontFamily: font, position: "relative", zIndex: 100 }}>
       <div style={{
         maxWidth: "1200px",
         margin: "0 auto",
@@ -93,15 +206,19 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" onClick={handleNavigation} style={{ textDecoration: "none", marginRight: "12px" }}>
           <span style={{ color: "#fff", fontWeight: 700, fontSize: "20px", letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
-            Info<span style={{ color: ACCENT }}>campus</span>
+            {logoText}<span style={{ color: logoAccentColor }}>{logoAccent}</span>
           </span>
         </Link>
 
         {/* Desktop nav */}
         <DesktopMenu
-          searchVal={searchVal} setSearchVal={setSearchVal}
-          openMenu={openMenu} toggle={toggle}
-          cisco={cisco} setCisco={setCisco}
+          config={config}
+          searchVal={searchVal} 
+          setSearchVal={setSearchVal}
+          openMenu={openMenu} 
+          toggle={toggle}
+          cisco={cisco} 
+          setCisco={setCisco}
           closeAllMenus={closeAllMenus}
           handleNavigation={handleNavigation}
           isLoggedIn={isLoggedIn}
@@ -113,9 +230,14 @@ export default function Navbar() {
           onClick={() => setMobileMenu(!mobileMenu)}
           className="hamburger"
           style={{
-            marginLeft: "auto", background: "none", border: "none",
-            color: "#fff", fontSize: "22px", cursor: "pointer",
-            display: "none", padding: "6px 10px",
+            marginLeft: "auto", 
+            background: "none", 
+            border: "none",
+            color: "#fff", 
+            fontSize: "22px", 
+            cursor: "pointer",
+            display: "none", 
+            padding: "6px 10px",
           }}
         >
           {mobileMenu ? "✕" : "☰"}
@@ -125,9 +247,13 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {mobileMenu && (
         <MobileMenu
-          searchVal={searchVal} setSearchVal={setSearchVal}
-          openMenu={openMenu} toggle={toggle}
-          cisco={cisco} setCisco={setCisco}
+          config={config}
+          searchVal={searchVal} 
+          setSearchVal={setSearchVal}
+          openMenu={openMenu} 
+          toggle={toggle}
+          cisco={cisco} 
+          setCisco={setCisco}
           setMobileMenu={setMobileMenu}
           closeAllMenus={closeAllMenus}
           handleNavigation={handleNavigation}
@@ -137,49 +263,49 @@ export default function Navbar() {
       )}
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: ${config.mobileBreakpoint}px) {
           .desktop-nav { display: none !important; }
           .hamburger { display: block !important; }
         }
-        @media (min-width: 769px) {
+        @media (min-width: ${config.mobileBreakpoint + 1}px) {
           .hamburger { display: none !important; }
         }
         .nav-btn {
           background: none; border: none; color: #fff;
-          font-family: ${FONT}; font-size: 14px; font-weight: 500;
+          font-family: ${font}; font-size: 14px; font-weight: 500;
           cursor: pointer; padding: 6px 12px; border-radius: 4px;
           transition: background 0.15s; white-space: nowrap;
         }
-        .nav-btn:hover { background: ${NAV_HOVER}; }
-        .nav-btn.active { background: ${NAV_HOVER}; }
+        .nav-btn:hover { background: ${navHover}; }
+        .nav-btn.active { background: ${navHover}; }
         .dd-row {
-          padding: 9px 16px; color: #fff; font-family: ${FONT};
+          padding: 9px 16px; color: #fff; font-family: ${font};
           font-size: 13.5px; cursor: pointer; transition: background 0.12s;
           white-space: nowrap; display: flex; align-items: center;
           justify-content: space-between; gap: 8px;
           border-bottom: 1px solid rgba(255,255,255,0.08);
         }
-        .dd-row:hover { background: ${DROPDOWN_HOVER}; }
+        .dd-row:hover { background: ${dropdownHover}; }
         .cisco-row {
           padding: 9px 16px 9px 28px; color: rgba(255,255,255,0.88);
-          font-family: ${FONT}; font-size: 13px; cursor: pointer;
+          font-family: ${font}; font-size: 13px; cursor: pointer;
           transition: background 0.12s;
           border-bottom: 1px solid rgba(255,255,255,0.06);
-          background: ${CISCO_BG};
+          background: ${ciscoBg};
         }
         .cisco-row:hover { background: #255080; }
         .cisco-row-link {
-          padding: 9px 16px 9px 28px; color: ${ACCENT};
-          font-family: ${FONT}; font-size: 13px; font-weight: 600;
+          padding: 9px 16px 9px 28px; color: ${accent};
+          font-family: ${font}; font-size: 13px; font-weight: 600;
           cursor: pointer; transition: background 0.12s;
           border-bottom: 1px solid rgba(255,255,255,0.06);
-          background: ${CISCO_BG}; display: block;
+          background: ${ciscoBg}; display: block;
         }
         .cisco-row-link:hover { background: #255080; }
         .nav-search {
           background: rgba(255,255,255,0.15);
           border: 1px solid rgba(255,255,255,0.3); border-radius: 5px;
-          padding: 5px 10px; color: #fff; font-family: ${FONT};
+          padding: 5px 10px; color: #fff; font-family: ${font};
           font-size: 13px; width: 150px; outline: none; transition: background 0.15s;
         }
         .nav-search::placeholder { color: rgba(255,255,255,0.6); }
@@ -189,8 +315,11 @@ export default function Navbar() {
   );
 }
 
+// ===================== NAV DROPDOWN =====================
 function NavDropdown({ name, label, openMenu, toggle, children }) {
   const open = openMenu === name;
+  const config = loadConfig();
+  
   return (
     <div style={{ position: "relative" }}>
       <button className={`nav-btn${open ? " active" : ""}`} onClick={() => toggle(name)}>
@@ -198,10 +327,14 @@ function NavDropdown({ name, label, openMenu, toggle, children }) {
       </button>
       {open && (
         <div style={{
-          position: "absolute", top: "calc(100% + 4px)", left: 0,
-          background: DROPDOWN_BG, borderRadius: "6px",
+          position: "absolute", 
+          top: "calc(100% + 4px)", 
+          left: 0,
+          background: config.dropdownBg, 
+          borderRadius: "6px",
           boxShadow: "0 6px 24px rgba(0,0,0,0.22)",
-          minWidth: "210px", zIndex: 200,
+          minWidth: "210px", 
+          zIndex: 200,
         }}>
           {children}
         </div>
@@ -210,11 +343,40 @@ function NavDropdown({ name, label, openMenu, toggle, children }) {
   );
 }
 
+// ===================== DESKTOP MENU =====================
 function DesktopMenu({
-  searchVal, setSearchVal, openMenu, toggle,
-  cisco, setCisco, closeAllMenus, handleNavigation,
-  isLoggedIn, handleLogout,
+  config,
+  searchVal, 
+  setSearchVal, 
+  openMenu, 
+  toggle,
+  cisco, 
+  setCisco, 
+  closeAllMenus, 
+  handleNavigation,
+  isLoggedIn, 
+  handleLogout,
 }) {
+  const {
+    navHover,
+    dropdownBg,
+    dropdownHover,
+    ciscoBg,
+    accent,
+    green,
+    logoutColor,
+    logoutHover,
+    font,
+    courseItems,
+    ciscoCourses,
+    courseRoutes,
+    toolItems,
+    aboutItems,
+    searchPlaceholder,
+    loginText,
+    logoutText
+  } = config;
+
   return (
     <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: "2px", flex: 1 }}>
       <Link to="/" onClick={handleNavigation} style={{ textDecoration: "none" }}>
@@ -222,7 +384,7 @@ function DesktopMenu({
       </Link>
 
       {/* Courses */}
-      <NavDropdown name="courses" label="Courses" openMenu={openMenu} toggle={toggle} closeAllMenus={closeAllMenus}>
+      <NavDropdown name="courses" label="Courses" openMenu={openMenu} toggle={toggle}>
         {courseItems.map((item) => (
           <div key={item}>
             <div className="dd-row" onClick={() => {
@@ -236,11 +398,15 @@ function DesktopMenu({
                     setCisco(!cisco);
                   }}
                   style={{
-                    background: cisco ? ACCENT : "rgba(255,255,255,0.2)",
+                    background: cisco ? accent : "rgba(255,255,255,0.2)",
                     color: cisco ? "#1a1a1a" : "#fff",
-                    borderRadius: "3px", padding: "1px 8px",
-                    fontSize: "15px", fontWeight: 700, cursor: "pointer",
-                    lineHeight: 1.4, flexShrink: 0,
+                    borderRadius: "3px", 
+                    padding: "1px 8px",
+                    fontSize: "15px", 
+                    fontWeight: 700, 
+                    cursor: "pointer",
+                    lineHeight: 1.4, 
+                    flexShrink: 0,
                   }}
                 >
                   {cisco ? "−" : "+"}
@@ -270,60 +436,81 @@ function DesktopMenu({
       </NavDropdown>
 
       {/* Tools */}
-      <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle} closeAllMenus={closeAllMenus}>
-        <div className="dd-row" onClick={closeAllMenus}>Packet Captures</div>
-        <div className="dd-row" onClick={closeAllMenus}>Resources</div>
-        <Link to="/practice-exam" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
-          <div className="dd-row">Practice Exams</div>
-        </Link>
+      <NavDropdown name="tools" label="Tools" openMenu={openMenu} toggle={toggle}>
+        {toolItems.map((item) => (
+          item.path ? (
+            <Link key={item.label} to={item.path} onClick={closeAllMenus} style={{ textDecoration: "none" }}>
+              <div className="dd-row">{item.label}</div>
+            </Link>
+          ) : (
+            <div key={item.label} className="dd-row" onClick={closeAllMenus}>{item.label}</div>
+          )
+        ))}
       </NavDropdown>
 
       {/* About */}
-      <NavDropdown name="about" label="About" openMenu={openMenu} toggle={toggle} closeAllMenus={closeAllMenus}>
-        <Link to="/free-account" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
-          <div className="dd-row">Free Account</div>
-        </Link>
-        <div className="dd-row" onClick={closeAllMenus}>Discounts and Promotions</div>
-        <div className="dd-row" onClick={closeAllMenus}>Training for Teams</div>
+      <NavDropdown name="about" label="About" openMenu={openMenu} toggle={toggle}>
+        {aboutItems.map((item) => (
+          item.path ? (
+            <Link key={item.label} to={item.path} onClick={closeAllMenus} style={{ textDecoration: "none" }}>
+              <div className="dd-row">{item.label}</div>
+            </Link>
+          ) : (
+            <div key={item.label} className="dd-row" onClick={closeAllMenus}>{item.label}</div>
+          )
+        ))}
       </NavDropdown>
 
       {/* Right side: search + login/logout */}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
         <input
           className="nav-search"
-          placeholder="Search..."
+          placeholder={searchPlaceholder}
           value={searchVal}
           onChange={(e) => setSearchVal(e.target.value)}
         />
 
-        {/* ✅ Show Logout if logged in, Login if not */}
         {isLoggedIn ? (
           <button
             onClick={handleLogout}
             style={{
-              background: LOGOUT_COLOR, color: "#fff", border: "none",
-              borderRadius: "5px", padding: "7px 18px", fontFamily: FONT,
-              fontWeight: 700, fontSize: "14px", cursor: "pointer",
-              whiteSpace: "nowrap", transition: "background 0.15s",
+              background: logoutColor, 
+              color: "#fff", 
+              border: "none",
+              borderRadius: "5px", 
+              padding: "7px 18px", 
+              fontFamily: font,
+              fontWeight: 700, 
+              fontSize: "14px", 
+              cursor: "pointer",
+              whiteSpace: "nowrap", 
+              transition: "background 0.15s",
             }}
-            onMouseEnter={e => e.currentTarget.style.background = LOGOUT_HOVER}
-            onMouseLeave={e => e.currentTarget.style.background = LOGOUT_COLOR}
+            onMouseEnter={e => e.currentTarget.style.background = logoutHover}
+            onMouseLeave={e => e.currentTarget.style.background = logoutColor}
           >
-            Logout
+            {logoutText}
           </button>
         ) : (
           <Link to="/login" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
             <button
               style={{
-                background: GREEN, color: "#fff", border: "none",
-                borderRadius: "5px", padding: "7px 18px", fontFamily: FONT,
-                fontWeight: 700, fontSize: "14px", cursor: "pointer",
-                whiteSpace: "nowrap", transition: "background 0.15s",
+                background: green, 
+                color: "#fff", 
+                border: "none",
+                borderRadius: "5px", 
+                padding: "7px 18px", 
+                fontFamily: font,
+                fontWeight: 700, 
+                fontSize: "14px", 
+                cursor: "pointer",
+                whiteSpace: "nowrap", 
+                transition: "background 0.15s",
               }}
               onMouseEnter={e => e.currentTarget.style.background = "#2eac82"}
-              onMouseLeave={e => e.currentTarget.style.background = GREEN}
+              onMouseLeave={e => e.currentTarget.style.background = green}
             >
-              Login
+              {loginText}
             </button>
           </Link>
         )}
@@ -332,35 +519,81 @@ function DesktopMenu({
   );
 }
 
+// ===================== MOBILE MENU =====================
 function MobileMenu({
-  searchVal, setSearchVal, openMenu, toggle,
-  cisco, setCisco, setMobileMenu, closeAllMenus, handleNavigation,
-  isLoggedIn, handleLogout,
+  config,
+  searchVal, 
+  setSearchVal, 
+  openMenu, 
+  toggle,
+  cisco, 
+  setCisco, 
+  setMobileMenu, 
+  closeAllMenus, 
+  handleNavigation,
+  isLoggedIn, 
+  handleLogout,
 }) {
+  const {
+    navBg,
+    dropdownBg,
+    dropdownHover,
+    ciscoBg,
+    accent,
+    green,
+    logoutColor,
+    font,
+    courseItems,
+    ciscoCourses,
+    courseRoutes,
+    toolItems,
+    aboutItems,
+    searchPlaceholder,
+    loginText,
+    logoutText
+  } = config;
+
   const rowStyle = {
-    padding: "13px 20px", color: "#fff", fontFamily: FONT, fontSize: "15px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)", cursor: "pointer",
-    display: "flex", justifyContent: "space-between", alignItems: "center",
+    padding: "13px 20px", 
+    color: "#fff", 
+    fontFamily: font, 
+    fontSize: "15px",
+    borderBottom: "1px solid rgba(255,255,255,0.1)", 
+    cursor: "pointer",
+    display: "flex", 
+    justifyContent: "space-between", 
+    alignItems: "center",
   };
+  
   const subRowStyle = {
-    padding: "10px 32px", color: "rgba(255,255,255,0.85)", fontFamily: FONT,
-    fontSize: "14px", borderBottom: "1px solid rgba(255,255,255,0.07)",
-    cursor: "pointer", background: DROPDOWN_BG,
+    padding: "10px 32px", 
+    color: "rgba(255,255,255,0.85)", 
+    fontFamily: font,
+    fontSize: "14px", 
+    borderBottom: "1px solid rgba(255,255,255,0.07)",
+    cursor: "pointer", 
+    background: dropdownBg,
   };
+  
   const ciscoSubStyle = {
-    padding: "10px 44px", color: "rgba(255,255,255,0.8)", fontFamily: FONT,
-    fontSize: "13px", borderBottom: "1px solid rgba(255,255,255,0.06)",
-    cursor: "pointer", background: CISCO_BG,
+    padding: "10px 44px", 
+    color: "rgba(255,255,255,0.8)", 
+    fontFamily: font,
+    fontSize: "13px", 
+    borderBottom: "1px solid rgba(255,255,255,0.06)",
+    cursor: "pointer", 
+    background: ciscoBg,
   };
+  
   const ciscoLinkStyle = {
     ...ciscoSubStyle,
-    color: ACCENT,
+    color: accent,
     fontWeight: 600,
     display: "block",
   };
 
   return (
-    <div style={{ background: NAV_BG, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+    <div style={{ background: navBg, borderTop: "1px solid rgba(255,255,255,0.15)" }}>
       <Link to="/" onClick={handleNavigation} style={{ textDecoration: "none" }}>
         <div style={rowStyle}>Home</div>
       </Link>
@@ -386,10 +619,13 @@ function MobileMenu({
             <span>{item}</span>
             {item === "Cisco" && (
               <span style={{
-                background: cisco ? ACCENT : "rgba(255,255,255,0.2)",
+                background: cisco ? accent : "rgba(255,255,255,0.2)",
                 color: cisco ? "#1a1a1a" : "#fff",
-                borderRadius: "3px", padding: "1px 8px",
-                fontSize: "14px", fontWeight: 700, lineHeight: 1.4,
+                borderRadius: "3px", 
+                padding: "1px 8px",
+                fontSize: "14px", 
+                fontWeight: 700, 
+                lineHeight: 1.4,
               }}>
                 {cisco ? "−" : "+"}
               </span>
@@ -419,11 +655,15 @@ function MobileMenu({
       </div>
       {openMenu === "tools" && (
         <>
-          <div style={subRowStyle} onClick={handleNavigation}>Packet Captures</div>
-          <div style={subRowStyle} onClick={handleNavigation}>Resources</div>
-          <Link to="/practice-exam" onClick={handleNavigation} style={{ textDecoration: "none" }}>
-            <div style={subRowStyle}>Practice Exams</div>
-          </Link>
+          {toolItems.map((item) => (
+            item.path ? (
+              <Link key={item.label} to={item.path} onClick={handleNavigation} style={{ textDecoration: "none" }}>
+                <div style={subRowStyle}>{item.label}</div>
+              </Link>
+            ) : (
+              <div key={item.label} style={subRowStyle} onClick={handleNavigation}>{item.label}</div>
+            )
+          ))}
         </>
       )}
 
@@ -434,11 +674,15 @@ function MobileMenu({
       </div>
       {openMenu === "about" && (
         <>
-          <Link to="/free-account" onClick={handleNavigation} style={{ textDecoration: "none" }}>
-            <div style={subRowStyle}>Free Account</div>
-          </Link>
-          <div style={subRowStyle} onClick={handleNavigation}>Discounts and Promotions</div>
-          <div style={subRowStyle} onClick={handleNavigation}>Training for Teams</div>
+          {aboutItems.map((item) => (
+            item.path ? (
+              <Link key={item.label} to={item.path} onClick={handleNavigation} style={{ textDecoration: "none" }}>
+                <div style={subRowStyle}>{item.label}</div>
+              </Link>
+            ) : (
+              <div key={item.label} style={subRowStyle} onClick={handleNavigation}>{item.label}</div>
+            )
+          ))}
         </>
       )}
 
@@ -446,36 +690,50 @@ function MobileMenu({
       <div style={{ padding: "12px 20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
         <input
           className="nav-search"
-          placeholder="Search..."
+          placeholder={searchPlaceholder}
           value={searchVal}
           onChange={(e) => setSearchVal(e.target.value)}
           style={{ width: "100%", boxSizing: "border-box" }}
         />
       </div>
 
-      {/* ✅ Login / Logout */}
+      {/* Login / Logout */}
       <div style={{ padding: "12px 20px" }}>
         {isLoggedIn ? (
           <button
             onClick={handleLogout}
             style={{
-              background: LOGOUT_COLOR, color: "#fff", border: "none",
-              borderRadius: "5px", padding: "10px 0", width: "100%",
-              fontFamily: FONT, fontWeight: 700, fontSize: "15px", cursor: "pointer",
+              background: logoutColor, 
+              color: "#fff", 
+              border: "none",
+              borderRadius: "5px", 
+              padding: "10px 0", 
+              width: "100%",
+              fontFamily: font, 
+              fontWeight: 700, 
+              fontSize: "15px", 
+              cursor: "pointer",
             }}
           >
-            Logout
+            {logoutText}
           </button>
         ) : (
           <Link to="/login" onClick={handleNavigation} style={{ textDecoration: "none" }}>
             <button
               style={{
-                background: GREEN, color: "#fff", border: "none",
-                borderRadius: "5px", padding: "10px 0", width: "100%",
-                fontFamily: FONT, fontWeight: 700, fontSize: "15px", cursor: "pointer",
+                background: green, 
+                color: "#fff", 
+                border: "none",
+                borderRadius: "5px", 
+                padding: "10px 0", 
+                width: "100%",
+                fontFamily: font, 
+                fontWeight: 700, 
+                fontSize: "15px", 
+                cursor: "pointer",
               }}
             >
-              Login
+              {loginText}
             </button>
           </Link>
         )}

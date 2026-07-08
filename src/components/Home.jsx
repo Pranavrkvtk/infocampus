@@ -7,12 +7,23 @@ const getHomeConfig = () => {
   const saved = localStorage.getItem('homePageConfig');
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      // Ensure features and testimonials exist
+      if (!parsed.features || !Array.isArray(parsed.features)) {
+        parsed.features = DEFAULT_CONFIG.features;
+      }
+      if (!parsed.testimonials || !Array.isArray(parsed.testimonials)) {
+        parsed.testimonials = DEFAULT_CONFIG.testimonials;
+      }
+      if (!parsed.trainingTopics || !Array.isArray(parsed.trainingTopics)) {
+        parsed.trainingTopics = DEFAULT_CONFIG.trainingTopics;
+      }
+      return parsed;
     } catch {
-      return null;
+      return DEFAULT_CONFIG;
     }
   }
-  return null;
+  return DEFAULT_CONFIG;
 };
 
 // ✅ Default config if nothing is saved
@@ -109,8 +120,8 @@ export default function Home() {
   const [checkingEnrollments, setCheckingEnrollments] = useState(true);
   const navigate = useNavigate();
 
-  // ✅ Get home config
-  const homeConfig = getHomeConfig() || DEFAULT_CONFIG;
+  // ✅ Get home config with fallback
+  const homeConfig = getHomeConfig();
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -295,8 +306,8 @@ export default function Home() {
     
     if (isNewUser) {
       return {
-        message: homeConfig.welcomeNewUserMessage,
-        bgColor: homeConfig.welcomeNewUserBg,
+        message: homeConfig.welcomeNewUserMessage || DEFAULT_CONFIG.welcomeNewUserMessage,
+        bgColor: homeConfig.welcomeNewUserBg || DEFAULT_CONFIG.welcomeNewUserBg,
         textColor: "#1a1a1a",
         btnText: "Start Learning →"
       };
@@ -304,16 +315,16 @@ export default function Home() {
     
     if (!hasEnrolledCourses) {
       return {
-        message: homeConfig.welcomeReturningNoCourses,
-        bgColor: homeConfig.welcomeNoCoursesBg,
+        message: homeConfig.welcomeReturningNoCourses || DEFAULT_CONFIG.welcomeReturningNoCourses,
+        bgColor: homeConfig.welcomeNoCoursesBg || DEFAULT_CONFIG.welcomeNoCoursesBg,
         textColor: "#fff",
         btnText: "Explore Courses →"
       };
     }
     
     return {
-      message: homeConfig.welcomeReturningWithCourses,
-      bgColor: homeConfig.welcomeWithCoursesBg,
+      message: homeConfig.welcomeReturningWithCourses || DEFAULT_CONFIG.welcomeReturningWithCourses,
+      bgColor: homeConfig.welcomeWithCoursesBg || DEFAULT_CONFIG.welcomeWithCoursesBg,
       textColor: "#fff",
       btnText: "Continue Learning →"
     };
@@ -330,6 +341,17 @@ export default function Home() {
     return "Continue Learning →";
   };
 
+  // ✅ Handle CTA click based on user state
+  const handleCtaClick = () => {
+    if (!isLoggedIn) {
+      navigate("/free-account");
+    } else if (isNewUser || !hasEnrolledCourses) {
+      navigate("/my-courses");
+    } else {
+      navigate("/my-courses");
+    }
+  };
+
   return (
     <div
       style={{
@@ -342,7 +364,7 @@ export default function Home() {
       {!isLoggedIn && (
         <div
           style={{
-            background: homeConfig.bannerBgColor,
+            background: homeConfig.bannerBgColor || DEFAULT_CONFIG.bannerBgColor,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -360,12 +382,12 @@ export default function Home() {
               color: "#1a1a1a",
             }}
           >
-            {homeConfig.bannerText}
+            {homeConfig.bannerText || DEFAULT_CONFIG.bannerText}
           </span>
           <Link to="/free-account" style={{ textDecoration: "none" }}>
             <button
               style={{
-                background: homeConfig.bannerButtonColor,
+                background: homeConfig.bannerButtonColor || DEFAULT_CONFIG.bannerButtonColor,
                 color: "#fff",
                 border: "none",
                 borderRadius: "6px",
@@ -375,9 +397,12 @@ export default function Home() {
                 fontSize: isMobile ? "13px" : "15px",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
+                transition: "opacity 0.2s",
               }}
+              onMouseEnter={(e) => e.target.style.opacity = "0.85"}
+              onMouseLeave={(e) => e.target.style.opacity = "1"}
             >
-              {homeConfig.bannerButtonText}
+              {homeConfig.bannerButtonText || DEFAULT_CONFIG.bannerButtonText}
             </button>
           </Link>
         </div>
@@ -438,11 +463,11 @@ export default function Home() {
           }}
         >
           <button
-            onClick={() => navigate("/my-courses")}
+            onClick={handleCtaClick}
             style={{
               marginTop: isMobile ? "24px" : "36px",
-              background: homeConfig.ctaButtonBg,
-              color: homeConfig.ctaButtonTextColor,
+              background: homeConfig.ctaButtonBg || DEFAULT_CONFIG.ctaButtonBg,
+              color: homeConfig.ctaButtonTextColor || DEFAULT_CONFIG.ctaButtonTextColor,
               border: "none",
               borderRadius: "7px",
               padding: isMobile ? "13px 28px" : "16px 48px",
@@ -450,8 +475,17 @@ export default function Home() {
               fontWeight: 700,
               fontSize: isMobile ? "15px" : "18px",
               cursor: "pointer",
-              boxShadow: `0 4px 18px ${homeConfig.ctaButtonBg}4D`,
+              boxShadow: `0 4px 18px ${homeConfig.ctaButtonBg || DEFAULT_CONFIG.ctaButtonBg}4D`,
               width: isMobile ? "100%" : "auto",
+              transition: "transform 0.2s, box-shadow 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = "scale(1.02)";
+              e.target.style.boxShadow = `0 6px 24px ${homeConfig.ctaButtonBg || DEFAULT_CONFIG.ctaButtonBg}66`;
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = "scale(1)";
+              e.target.style.boxShadow = `0 4px 18px ${homeConfig.ctaButtonBg || DEFAULT_CONFIG.ctaButtonBg}4D`;
             }}
           >
             {getCtaText()}
@@ -475,7 +509,7 @@ export default function Home() {
               fontFamily: "'Trebuchet MS', sans-serif",
             }}
           >
-            {homeConfig.taglineLine1}
+            {homeConfig.taglineLine1 || DEFAULT_CONFIG.taglineLine1}
           </p>
           <p
             style={{
@@ -485,7 +519,7 @@ export default function Home() {
               fontFamily: "'Trebuchet MS', sans-serif",
             }}
           >
-            {homeConfig.taglineLine2}
+            {homeConfig.taglineLine2 || DEFAULT_CONFIG.taglineLine2}
           </p>
         </div>
       </main>
@@ -508,28 +542,13 @@ export default function Home() {
 // ============ FEATURES SECTION - UPDATED ============
 function FeaturesSection({ isMobile, config }) {
   // Use config features or fallback to defaults
-  const features = config?.features || [
-    {
-      icon: "🏅",
-      title: "Exclusive Content",
-      desc: "809 lessons and I am constantly adding new lessons, videos and reference material. Everything is explained in the simplest way possible."
-    },
-    {
-      icon: "❤️",
-      title: "Start for Free",
-      desc: "Create your free account and start learning right away. Explore 328 free lessons, experience our teaching style, and learn at your own pace."
-    },
-    {
-      icon: "📢",
-      title: "Community Forum",
-      desc: "Do you still have questions after viewing some of the lessons? We have a community forum where we help out members with answers."
-    }
-  ];
+  const features = config?.features || DEFAULT_CONFIG.features;
+  const bgColor = config?.featuresBgColor || DEFAULT_CONFIG.featuresBgColor;
 
   return (
     <section
       style={{
-        background: config?.featuresBgColor || "#5b8dbf",
+        background: bgColor,
         padding: isMobile ? "48px 20px" : "64px 40px",
       }}
     >
@@ -589,17 +608,9 @@ function FeaturesSection({ isMobile, config }) {
 
 // ============ TRAINING SECTION - UPDATED ============
 function TrainingSection({ isMobile, config }) {
-  const topics = config?.trainingTopics || [
-    ["Subnetting", "Switching", "Spanning-Tree", "Frame-Relay"],
-    ["RIP", "EIGRP", "OSPF", "BGP"],
-    ["Multicast", "IPv6", "QoS", "MPLS"],
-    ["Security", "IP Routing", "Network Services", "Linux"],
-    ["GRE", "IOS", "DMVPN", "PIM"],
-    ["NAT", "ACL", "VPN", "IPSec"],
-  ];
-
-  const topicColor = config?.trainingTopicColor || "#3a7fc1";
-  const topicHoverColor = config?.trainingTopicHoverColor || "#e5a800";
+  const topics = config?.trainingTopics || DEFAULT_CONFIG.trainingTopics;
+  const topicColor = config?.trainingTopicColor || DEFAULT_CONFIG.trainingTopicColor;
+  const topicHoverColor = config?.trainingTopicHoverColor || DEFAULT_CONFIG.trainingTopicHoverColor;
 
   return (
     <section
@@ -651,10 +662,13 @@ function TrainingSection({ isMobile, config }) {
 
 // ============ INSTRUCTOR SECTION - UPDATED ============
 function InstructorSection({ isMobile, config }) {
+  const bgStart = config?.instructorBgStart || DEFAULT_CONFIG.instructorBgStart;
+  const bgEnd = config?.instructorBgEnd || DEFAULT_CONFIG.instructorBgEnd;
+
   return (
     <section
       style={{
-        background: `linear-gradient(120deg, ${config?.instructorBgStart || "#4a7fb5"} 60%, ${config?.instructorBgEnd || "#6fa3d0"} 100%)`,
+        background: `linear-gradient(120deg, ${bgStart} 60%, ${bgEnd} 100%)`,
         position: "relative",
         overflow: "hidden",
         minHeight: isMobile ? "auto" : "380px",
@@ -699,7 +713,7 @@ function InstructorSection({ isMobile, config }) {
               letterSpacing: "-0.2px",
             }}
           >
-            {config?.instructorTitle || "Stop Struggling & Start Learning"}
+            {config?.instructorTitle || DEFAULT_CONFIG.instructorTitle}
           </h2>
           <p
             style={{
@@ -710,7 +724,7 @@ function InstructorSection({ isMobile, config }) {
               margin: "0 0 22px",
             }}
           >
-            {config?.instructorText || "My name is Rene, and I am here to help you to achieve your goals. Do you want to upgrade your skills? Want to start a career in networking? Become a CCIE in Enterprise Infrastructure? Let me help you! After teaching Cisco classroom courses for several years I decided to share my knowledge online on Infocampus.com."}
+            {config?.instructorText || DEFAULT_CONFIG.instructorText}
           </p>
           <p
             style={{
@@ -720,7 +734,10 @@ function InstructorSection({ isMobile, config }) {
               margin: 0,
             }}
           >
-            <strong style={{ color: "#fff" }}>{config?.instructorName || "Rene Molenaar"}</strong> {config?.instructorTitle2 || "CCIE #41726, founder of Infocampus.com (and primary course author)"}
+            <strong style={{ color: "#fff" }}>
+              {config?.instructorName || DEFAULT_CONFIG.instructorName}
+            </strong>{" "}
+            {config?.instructorTitle2 || DEFAULT_CONFIG.instructorTitle2}
           </p>
         </div>
         <div
@@ -812,40 +829,13 @@ function InstructorIllustration({ isMobile }) {
 
 // ============ TESTIMONIALS SECTION - UPDATED ============
 function TestimonialsSection({ isMobile, config }) {
-  const testimonials = config?.testimonials || [
-    {
-      name: "ETHAN MORISSETTE",
-      role: "Network Analyst",
-      date: "March 18, 2025",
-      title: "Beyond Expectations",
-      text: "What can I say... infocampus.com is such a well put together site. The content helped me build my knowledge, link certain topics together, and deepen my understanding of networking. I really love that they included additional resources about note taking and building a home lab. Something I had never seen before is an instructor of a site reaching out (and actually replying) when you subscribe. Thank you for your hard work!",
-      initials: "EM",
-      color: "#7aa3c8"
-    },
-    {
-      name: "MURAT BILGIN",
-      role: "Senior Systems Analyst",
-      date: "December 17, 2024",
-      title: "Clear and Concise",
-      text: "Preparing for my ENRSI, I am a visual learner and learn best from examples. I like that I can follow along using CML/GNS3 to understand the basics and mechanics, then try to build a more difficult lab. Everything so far has been clear and concise.",
-      initials: "MB",
-      color: "#6b9abf"
-    },
-    {
-      name: "FARRAKH GILANI",
-      role: "Network Engineer",
-      date: "March 19, 2025",
-      title: "Ideal for Certification",
-      text: "infocampus.com is simply the best trainer. Topics are explained in a way that makes them easy to understand. The content's quality and clear explanations make it ideal for certification or increasing your knowledge on a topic. Highly recommended!",
-      initials: "FG",
-      color: "#5b8dbf"
-    }
-  ];
+  const testimonials = config?.testimonials || DEFAULT_CONFIG.testimonials;
+  const testimonialsBg = config?.testimonialsBg || DEFAULT_CONFIG.testimonialsBg;
 
   return (
     <section
       style={{
-        background: config?.testimonialsBg || "#f0f2f5",
+        background: testimonialsBg,
         padding: isMobile ? "48px 16px 40px" : "60px 40px 48px",
       }}
     >
@@ -966,7 +956,7 @@ function TestimonialsSection({ isMobile, config }) {
         <div style={{ textAlign: "center" }}>
           <p style={{ fontFamily: "'Trebuchet MS', sans-serif", fontSize: "16px", color: "#333" }}>
             <span style={{ color: "#e5a800", fontWeight: 700, marginRight: "4px" }}>★</span>
-            <strong>{config?.testimonialsSignupText || "3414 people signed up the last 30 days!"}</strong>
+            <strong>{config?.testimonialsSignupText || DEFAULT_CONFIG.testimonialsSignupText}</strong>
           </p>
         </div>
       </div>
@@ -974,7 +964,7 @@ function TestimonialsSection({ isMobile, config }) {
   );
 }
 
-// ============ ICON COMPONENTS (unchanged) ============
+// ============ ICON COMPONENTS ============
 function StarIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="#f5c842">
