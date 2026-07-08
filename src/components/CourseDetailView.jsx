@@ -1111,6 +1111,10 @@ export default function CourseDetailView({
       flex: 1,
       overflowY: 'auto',
       padding: '20px',
+      // ─── Copy protection for all content ──────────────────────────
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
+      WebkitTouchCallout: 'none',
     },
     mobileOverlay: {
       position: 'fixed',
@@ -1122,6 +1126,12 @@ export default function CourseDetailView({
       zIndex: 999,
       display: isMobileDevice && showSidebar ? 'block' : 'none',
     },
+  };
+
+  // ─── Handlers to prevent copying on the content panel ──────────────
+  const preventCopy = (e) => {
+    e.preventDefault();
+    return false;
   };
 
   return (
@@ -1319,7 +1329,14 @@ export default function CourseDetailView({
 
             {/* ─── Content Panel ────────────────────────────────────── */}
             <div style={styles.contentPanel}>
-              <div style={styles.contentBody} className="fade-in">
+              <div
+                style={styles.contentBody}
+                className="fade-in"
+                onCopy={preventCopy}
+                onCut={preventCopy}
+                onContextMenu={preventCopy}
+                onSelectStart={preventCopy}
+              >
                 {renderPanelContent()}
               </div>
             </div>
