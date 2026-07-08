@@ -3,8 +3,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
-import axiosInstance, { API_ROOT_URL } from '../../api/axios';
+import axiosInstance, { API_BASE_URL, API_ROOT_URL } from '../../api/axios';
 
+// ✅ FIXED: Helper function to build image URLs correctly - NO DUPLICATE /api/
 // ✅ FIXED: Helper function to build image URLs correctly
 const getFullImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
@@ -20,18 +21,13 @@ const getFullImageUrl = (imageUrl) => {
     cleanPath = cleanPath.substring(1);
   }
   
-  // If the path contains 'admin/uploads/', add the full API URL with /api/
-  if (cleanPath.includes('admin/uploads/')) {
-    return `${API_ROOT_URL}/api/${cleanPath}`;
+  // Remove any /api/ prefix if present (to avoid duplication)
+  if (cleanPath.startsWith('api/')) {
+    cleanPath = cleanPath.substring(4);
   }
   
-  // If it starts with 'uploads/', construct properly
-  if (cleanPath.startsWith('uploads/')) {
-    return `${API_ROOT_URL}/api/${cleanPath}`;
-  }
-  
-  // Otherwise, assume it's a relative path from /api/
-  return `${API_ROOT_URL}/api/${cleanPath}`;
+  // Use API_BASE_URL which already includes /api
+  return `${API_BASE_URL}/${cleanPath}`;
 };
 
 // Thin wrapper for axios
@@ -191,57 +187,55 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE IMAGE UPLOADER - FIXED (Path hidden)
+// COURSE IMAGE UPLOADER - FIXED (No duplicate /api/)
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-const handleImageUpload = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-  if (!file.type.startsWith('image/')) {
-    toast.show('Please select an image file', 'error');
-    event.target.value = '';
-    return;
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    toast.show('Image size should be less than 5MB', 'error');
-    event.target.value = '';
-    return;
-  }
-
-  setUploading(true);
-  const formData = new FormData();
-  formData.append('file', file);
-
-  try {
-    const response = await axiosInstance.post(`/admin/courses/${course.id}/upload-image`, formData);
-    const result = response.data;
-    console.log('Upload result:', result);
-
-    if (result.success) {
-      toast.show('Image uploaded successfully! 🎉', 'success');
-      setImageError(false);
-      // ✅ The result already contains the updated course with the new image URL
-      if (onImageUploaded) {
-        // Pass the course from the result directly
-        onImageUploaded(result.course);
-      }
-    } else {
-      throw new Error(result.message || 'Upload failed');
+    if (!file.type.startsWith('image/')) {
+      toast.show('Please select an image file', 'error');
+      event.target.value = '';
+      return;
     }
-  } catch (error) {
-    console.error('Upload error:', error);
-    const msg = error.response?.data?.message || error.message;
-    toast.show('Failed to upload image: ' + msg, 'error');
-  } finally {
-    setUploading(false);
-    event.target.value = '';
-  }
-};
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.show('Image size should be less than 5MB', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axiosInstance.post(`/admin/courses/${course.id}/upload-image`, formData);
+      const result = response.data;
+      console.log('Upload result:', result);
+
+      if (result.success) {
+        toast.show('Image uploaded successfully! 🎉', 'success');
+        setImageError(false);
+        if (onImageUploaded) {
+          onImageUploaded(result.course);
+        }
+      } else {
+        throw new Error(result.message || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      const msg = error.response?.data?.message || error.message;
+      toast.show('Failed to upload image: ' + msg, 'error');
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
+  };
 
   const imageSrc = getFullImageUrl(course.imageUrl);
 
@@ -285,7 +279,6 @@ const handleImageUpload = async (event) => {
               console.error('Image load error for URL:', imageSrc);
               setImageError(true);
               e.target.style.display = 'none';
-              // Show fallback message
               const parent = e.target.parentElement;
               const fallback = document.createElement('div');
               fallback.style.cssText = 'padding: 20px; text-align: center; color: #dc2626; font-size: 13px; background: #fef2f2; border-radius: 8px;';
@@ -294,13 +287,11 @@ const handleImageUpload = async (event) => {
             }}
             onLoad={(e) => {
               setImageError(false);
-              // Remove any fallback messages
               const parent = e.target.parentElement;
               const fallback = parent.querySelector('div[style*="color: #dc2626"]');
               if (fallback) fallback.remove();
             }}
           />
-          {/* Path hidden - removed the div showing path and full URL */}
         </div>
       ) : (
         <div style={{ 
@@ -322,7 +313,7 @@ const handleImageUpload = async (event) => {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE SELECTOR - FIXED
+// COURSE SELECTOR - FIXED (No duplicate /api/)
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [courses, setCourses] = useState([]);
@@ -920,7 +911,7 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE RENDERER - FIXED (No duplicate /api/)
+// MARKDOWN IMAGE RENDERER - FIXED (Use API_BASE_URL)
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   if (!src) return null;
@@ -935,15 +926,13 @@ function MarkdownImage({ src, alt }) {
       cleanSrc = cleanSrc.substring(1);
     }
     
-    // If the path already contains 'admin/uploads/', don't add /api/ again
-    if (cleanSrc.includes('admin/uploads/')) {
-      fullSrc = `${API_ROOT_URL}/${cleanSrc}`;
-    } else if (cleanSrc.startsWith('uploads/')) {
-      fullSrc = `${API_ROOT_URL}/${cleanSrc}`;
-    } else {
-      // Otherwise, add /api/ prefix
-      fullSrc = `${API_ROOT_URL}/api/${cleanSrc}`;
+    // Remove any /api/ prefix if present
+    if (cleanSrc.startsWith('api/')) {
+      cleanSrc = cleanSrc.substring(4);
     }
+    
+    // Use API_BASE_URL which already includes /api
+    fullSrc = `${API_BASE_URL}/${cleanSrc}`;
   }
 
   return (
@@ -961,7 +950,7 @@ function MarkdownImage({ src, alt }) {
   );
 }
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR (unchanged, uses markdownComponents with fixed MarkdownImage)
+// SUBTOPIC CONTENT EDITOR
 // ═══════════════════════════════════════════════════════════════════════════════
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSearchTerm }) {
   const [notes, setNotes] = useState(sub.content || '');

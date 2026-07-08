@@ -36,13 +36,26 @@ export const getAvailableCourses = async () => {
   }
 };
 
-// Create new course (for instructor)
-export const createInstructorCourse = async (courseData) => {
+// FIXED: Create instructor course with FormData support
+export const createInstructorCourse = async (formData) => {
+  const token = localStorage.getItem('token');
+  
+  // Check if token exists
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
   try {
-    const response = await api.post("/instructor/courses", courseData);
-    return response;
+    // Use the api instance instead of direct axios
+    const response = await api.post('/instructor/courses', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // Don't set Content-Type - browser will set it with boundary for FormData
+      }
+    });
+    return response.data;
   } catch (error) {
-    console.error("Error creating instructor course:", error);
+    console.error('Instructor course creation error:', error);
     throw error;
   }
 };

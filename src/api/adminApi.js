@@ -1,6 +1,9 @@
 // src/api/adminApi.js
 import api from "./axios";
 
+// Get the base URL from the axios instance
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
 // ==================== DASHBOARD APIs ====================
 
 // Get dashboard KPIs (total students, active courses, completion rate, etc.)
@@ -40,9 +43,52 @@ export const getAdminCourseById = (id) => {
   return api.get(`/admin/courses/${id}`);
 };
 
-// Create new course
-export const createAdminCourse = (courseData) => {
-  return api.post("/admin/courses", courseData);
+// ✅ CREATE COURSE AS JSON (for text data only)
+export const createAdminCourse = async (courseData) => {
+  const token = localStorage.getItem('token');
+  
+  // Check if token exists
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.post('/admin/courses', courseData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Admin course creation error:', error);
+    throw error;
+  }
+};
+
+// ✅ UPLOAD COURSE IMAGE (separate endpoint)
+export const uploadCourseImage = async (courseId, imageFile) => {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    
+    const response = await api.post(`/admin/courses/${courseId}/upload-image`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // Don't set Content-Type - browser will set it with boundary for FormData
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Course image upload error:', error);
+    throw error;
+  }
 };
 
 // Update course
@@ -80,13 +126,48 @@ export const getInstructorCourses = async () => {
   }
 };
 
-// Create new course (for instructor)
+// ✅ CREATE INSTRUCTOR COURSE AS JSON
 export const createInstructorCourse = async (courseData) => {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
   try {
-    const response = await api.post("/admin/instructor/courses", courseData);
-    return response;
+    const response = await api.post('/admin/instructor/courses', courseData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      }
+    });
+    return response.data;
   } catch (error) {
-    console.error("Error creating instructor course:", error);
+    console.error('Instructor course creation error:', error);
+    throw error;
+  }
+};
+
+// ✅ UPLOAD INSTRUCTOR COURSE IMAGE
+export const uploadInstructorCourseImage = async (courseId, imageFile) => {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    
+    const response = await api.post(`/admin/instructor/courses/${courseId}/upload-image`, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Instructor course image upload error:', error);
     throw error;
   }
 };
@@ -550,6 +631,7 @@ const adminApi = {
   getAdminCourses,
   getAdminCourseById,
   createAdminCourse,
+  uploadCourseImage, // ✅ Added image upload
   updateAdminCourse,
   deleteAdminCourse,
   updateCourseStatus,
@@ -558,6 +640,7 @@ const adminApi = {
   // Course Management - Instructor
   getInstructorCourses,
   createInstructorCourse,
+  uploadInstructorCourseImage, // ✅ Added instructor image upload
   updateInstructorCourse,
   deleteInstructorCourse,
   getInstructorCourseDetails,

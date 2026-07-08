@@ -1,9 +1,15 @@
 // src/components/Admin/AddCourseModal.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Swal from "sweetalert2";
 import { colors } from "./AdminStyles";
 import { createAdminCourse, getAllInstructors } from "../../api/adminApi";
 import { createInstructorCourse } from "../../api/instructorApi";
+
+// Cache for instructors data - persists across component re-renders
+let instructorsCache = null;
+let isLoadingInstructors = false;
+let fetchPromise = null;
+let hasFetchedOnce = false;
 
 export default function AddCourseModal({ 
   isOpen, 
@@ -19,57 +25,273 @@ export default function AddCourseModal({
     duration: "", 
     level: ""
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [instructors, setInstructors] = useState([]);
   const [loadingInstructors, setLoadingInstructors] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef(null);
+  
+  // Use ref to track if we've already loaded for this modal instance
+  const hasLoadedRef = useRef(false);
+  const isMountedRef = useRef(false);
 
+  // Check authentication and permissions - only once when modal opens
   useEffect(() => {
-    if (isOpen && !isInstructor) {
-      fetchInstructors();
+    // Only run when modal opens
+    if (!isOpen) {
+      return;
     }
-  }, [isOpen, isInstructor]);
 
-  const fetchInstructors = async () => {
-    setLoadingInstructors(true);
-    try {
-      const data = await getAllInstructors();
-      let instructorsArray = [];
-      
-      if (Array.isArray(data)) {
-        instructorsArray = data;
-      } else if (data && typeof data === 'object') {
-        if (Array.isArray(data.instructors)) {
-          instructorsArray = data.instructors;
-        } else if (Array.isArray(data.data)) {
-          instructorsArray = data.data;
-        } else if (Array.isArray(data.content)) {
-          instructorsArray = data.content;
-        } else {
-          instructorsArray = [data];
-        }
-      }
-      
-      const validInstructors = instructorsArray.filter(inst => 
-        inst && (inst.id || inst._id) && (inst.name || inst.email)
-      );
-      
-      setInstructors(validInstructors);
-      
-      if (validInstructors.length === 0) {
-        console.warn('No valid instructors found in response');
-      }
-    } catch (error) {
-      console.error("Failed to fetch instructors:", error);
-      Swal.fire("Error", "Failed to load instructors list", "error");
-      setInstructors([]);
-    } finally {
-      setLoadingInstructors(false);
+    // Prevent multiple executions
+    if (isMountedRef.current) {
+      console.log('⏭️ Skipping permission check - already mounted');
+      return;
     }
-  };
+
+    isMountedRef.current = true;
+    console.log('🔍 First-time permission check...');
+
+    const token = localStorage.getItem('token');
+    let user = {};
+    
+    try {
+      user = JSON.parse(localStorage.getItem('user') || '{}');
+    } catch (e) {
+      console.error('Failed to parse user from localStorage:', e);
+    }
+    
+    // Check if user is authenticated
+    if (!token) {
+      Swal.fire({
+        title: "Authentication Required",
+        text: "Please login to create courses",
+        icon: "warning",
+        confirmButtonColor: colors.primary,
+      }).then(() => onClose());
+      return;
+    }
+
+    // Check user role
+    const userRole = user.role || 
+                     user.userRole || 
+                     user.roleName || 
+                     user.authorities?.[0] || 
+                     user.type ||
+                     user.roles?.[0] ||
+                     '';
+
+    const isAdmin = userRole === 'admin' || 
+                    userRole === 'ADMIN' || 
+                    userRole === 'super_admin' || 
+                    userRole === 'SUPER_ADMIN' ||
+                    userRole === 'ROLE_ADMIN' ||
+                    userRole === 'ROLE_SUPER_ADMIN' ||
+                    (typeof userRole === 'string' && userRole.toUpperCase().includes('ADMIN'));
+
+    const isInstructorRole = userRole === 'instructor' || 
+                             userRole === 'INSTRUCTOR' || 
+                             userRole === 'ROLE_INSTRUCTOR' ||
+                             (typeof userRole === 'string' && userRole.toUpperCase().includes('INSTRUCTOR'));
+
+    console.log('🔍 Permission Check:', {
+      userRole,
+      isAdmin,
+      isInstructorRole,
+      isInstructorProp: isInstructor,
+      hasLoadedRef: hasLoadedRef.current,
+      hasFetchedOnce
+    });
+
+    const hasPermission = isInstructor || isAdmin || isInstructorRole;
+    
+    if (!hasPermission) {
+      Swal.fire({
+        title: "Access Denied",
+        html: `
+          <p>Only admins can create courses</p>
+          <p style="font-size: 12px; color: #666; margin-top: 8px;">
+            Debug: Role = "${userRole}"<br>
+            Mode: ${isInstructor ? 'Instructor' : 'Admin'}<br>
+            Please contact support if you think this is an error.
+          </p>
+        `,
+        icon: "error",
+        confirmButtonColor: colors.primary,
+      }).then(() => onClose());
+      return;
+    }
+
+    // Fetch instructors only for admin mode and only if not loaded before
+    if (!isInstructor && !hasLoadedRef.current) {
+      console.log('🚀 Starting instructor fetch...');
+      fetchInstructorsOnce();
+      hasLoadedRef.current = true;
+    }
+  }, [isOpen]); // Only depends on isOpen, not on other variables
+
+  // Reset mounted state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      isMountedRef.current = false;
+      resetImageState();
+    }
+  }, [isOpen]);
+
+  // Modified fetch function with caching
+  const fetchInstructorsOnce = useCallback(async () => {
+    // If we already have cached data, use it
+    if (instructorsCache && Array.isArray(instructorsCache) && instructorsCache.length > 0) {
+      console.log('📦 Using cached instructors:', instructorsCache.length);
+      setInstructors(instructorsCache);
+      return;
+    }
+
+    // If already loading, wait for the existing promise
+    if (isLoadingInstructors && fetchPromise) {
+      console.log('⏳ Waiting for existing fetch...');
+      try {
+        const data = await fetchPromise;
+        setInstructors(data);
+      } catch (error) {
+        console.error('Failed to get instructors from existing promise:', error);
+      }
+      return;
+    }
+
+    // Start new fetch
+    setLoadingInstructors(true);
+    isLoadingInstructors = true;
+    
+    fetchPromise = (async () => {
+      try {
+        console.log('🔄 Fetching instructors from API...');
+        const data = await getAllInstructors();
+        console.log('📥 Raw API response:', data);
+        
+        let instructorsArray = [];
+        
+        if (Array.isArray(data)) {
+          instructorsArray = data;
+        } else if (data && typeof data === 'object') {
+          if (Array.isArray(data.data)) {
+            instructorsArray = data.data;
+          } else if (Array.isArray(data.instructors)) {
+            instructorsArray = data.instructors;
+          } else if (Array.isArray(data.content)) {
+            instructorsArray = data.content;
+          } else {
+            instructorsArray = [data];
+          }
+        }
+        
+        const validInstructors = instructorsArray.filter(inst => 
+          inst && (inst.id || inst._id) && (inst.name || inst.email)
+        );
+        
+        console.log('✅ Processed instructors:', validInstructors.length);
+        
+        // Cache the results
+        instructorsCache = validInstructors;
+        hasFetchedOnce = true;
+        setInstructors(validInstructors);
+        
+        if (validInstructors.length === 0) {
+          console.warn('⚠️ No valid instructors found in response');
+        }
+        
+        return validInstructors;
+      } catch (error) {
+        console.error("❌ Failed to fetch instructors:", error);
+        
+        // Check if it's an authentication error
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          Swal.fire({
+            title: "Authentication Error",
+            text: "Please login again to access instructor list",
+            icon: "error",
+            confirmButtonColor: colors.primary,
+          }).then(() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.reload();
+          });
+        } else {
+          Swal.fire("Error", "Failed to load instructors list: " + (error.message || "Unknown error"), "error");
+        }
+        
+        setInstructors([]);
+        instructorsCache = [];
+        return [];
+      } finally {
+        setLoadingInstructors(false);
+        isLoadingInstructors = false;
+        fetchPromise = null;
+      }
+    })();
+
+    try {
+      await fetchPromise;
+    } catch (error) {
+      // Error already handled in the promise
+    }
+  }, []);
+
+  // Refresh instructors cache (call this when a new instructor is added elsewhere)
+  const refreshInstructorsCache = useCallback(() => {
+    instructorsCache = null;
+    hasFetchedOnce = false;
+    hasLoadedRef.current = false;
+    if (isOpen && !isInstructor) {
+      fetchInstructorsOnce();
+    }
+  }, [isOpen, isInstructor, fetchInstructorsOnce]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        Swal.fire("Error", "Please upload a valid image (JPG, PNG, WEBP, or GIF)", "error");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        Swal.fire("Error", "Image size must be less than 5MB", "error");
+        return;
+      }
+
+      setImageFile(file);
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const resetImageState = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const reset = () => { 
@@ -80,7 +302,8 @@ export default function AddCourseModal({
       instructor: "", 
       duration: "", 
       level: ""
-    }); 
+    });
+    resetImageState();
   };
   
   const handleClose = () => { 
@@ -91,47 +314,126 @@ export default function AddCourseModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate price
     const priceValue = parseFloat(form.price);
     if (isNaN(priceValue) || priceValue <= 0) {
       Swal.fire("Error", "Please enter a valid price greater than 0", "error");
       return;
     }
+
+    if (!form.title.trim()) {
+      Swal.fire("Error", "Please enter a course title", "error");
+      return;
+    }
     
     setLoading(true);
+    setUploadProgress(10);
+    
     try {
       const courseData = {
         title: form.title.trim(),
-        description: form.description?.trim() || null,
+        description: form.description?.trim() || '',
         price: priceValue,
-        duration: form.duration || null,
-        level: form.level || null,
+        duration: form.duration || '',
+        level: form.level || '',
       };
 
-      // For admin mode, include instructor ID if selected
       if (!isInstructor && form.instructor) {
         courseData.instructor = form.instructor;
-      } else if (!isInstructor) {
-        courseData.instructor = null;
       }
 
-      console.log('Creating course with data:', courseData);
+      console.log('📤 STEP 1: Creating course with data:', courseData);
+      console.log('📤 Mode:', isInstructor ? 'Instructor' : 'Admin');
+      setUploadProgress(30);
       
-      // Use different API based on mode
+      let response;
       if (isInstructor) {
-        await createInstructorCourse(courseData);
+        response = await createInstructorCourse(courseData);
       } else {
-        await createAdminCourse(courseData);
+        response = await createAdminCourse(courseData);
       }
       
-      Swal.fire("Success!", "Course created successfully!", "success");
+      const courseId = response?.courseId || response?.id || response?.course?.id;
+      
+      if (!courseId) {
+        throw new Error('Course created but no ID returned');
+      }
+      
+      console.log('✅ Course created with ID:', courseId);
+      setUploadProgress(60);
+      
+      if (imageFile) {
+        console.log('📤 STEP 2: Uploading image for course:', courseId);
+        
+        const imageFormData = new FormData();
+        imageFormData.append('file', imageFile);
+        
+        const token = localStorage.getItem('token');
+        
+        let uploadUrl;
+        if (isInstructor) {
+          uploadUrl = `http://localhost:8082/api/admin/instructor/courses/${courseId}/upload-image`;
+        } else {
+          uploadUrl = `http://localhost:8082/api/admin/courses/${courseId}/upload-image`;
+        }
+        
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: imageFormData,
+        });
+        
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.warn('⚠️ Image upload failed:', errorText);
+          Swal.fire({
+            title: "Course Created",
+            text: "Course created successfully, but image upload failed. You can add image later.",
+            icon: "warning",
+            timer: 2000,
+            showConfirmButton: true,
+          });
+        } else {
+          const uploadResult = await uploadResponse.json();
+          console.log('✅ Image uploaded successfully:', uploadResult);
+          setUploadProgress(90);
+        }
+      }
+      
+      setUploadProgress(100);
+      
+      Swal.fire({
+        title: "Success!",
+        text: "Course created successfully!",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      
       if (onCourseCreated) await onCourseCreated();
       handleClose();
+      
     } catch (err) {
-      console.error('Error creating course:', err);
-      Swal.fire("Error", err.response?.data?.message || "Failed to create course", "error");
+      console.error('❌ Error creating course:', err);
+      
+      let errorMessage = "Failed to create course";
+      if (err.response?.status === 403) {
+        errorMessage = "You don't have permission to create courses. Please make sure you're logged in as an admin.";
+      } else if (err.response?.status === 401) {
+        errorMessage = "Your session has expired. Please login again.";
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      Swal.fire("Error", errorMessage, "error");
     }
     setLoading(false);
+    setUploadProgress(0);
   };
 
   if (!isOpen) return null;
@@ -143,14 +445,18 @@ export default function AddCourseModal({
     borderRadius: 6, 
     fontSize: 12, 
     outline: "none", 
-    boxSizing: "border-box" 
+    boxSizing: "border-box",
+    background: "var(--bg-base)",
+    color: "var(--text-primary)",
+    transition: "border-color 0.2s"
   };
   
   const label = { 
     display: "block", 
     fontSize: 11, 
     fontWeight: 600, 
-    marginBottom: 3 
+    marginBottom: 3,
+    color: "var(--text-secondary)"
   };
 
   const getInstructorId = (instructor) => {
@@ -171,21 +477,38 @@ export default function AddCourseModal({
         position: "fixed", 
         inset: 0, 
         background: "rgba(0,0,0,0.5)", 
+        backdropFilter: "blur(4px)",
         display: "flex", 
         alignItems: "center", 
         justifyContent: "center", 
-        zIndex: 1000 
+        zIndex: 1000,
+        animation: "fadeIn 0.2s ease"
       }} 
       onClick={handleClose}
     >
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+        `}
+      </style>
       <div 
         style={{ 
-          background: colors.surface, 
+          background: "var(--surface)",
           borderRadius: 12, 
           width: "90%", 
           maxWidth: 450, 
           maxHeight: "80vh", 
-          overflowY: "auto" 
+          overflowY: "auto",
+          overflowX: "hidden",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+          animation: "slideUp 0.3s ease"
         }} 
         onClick={e => e.stopPropagation()}
       >
@@ -194,11 +517,14 @@ export default function AddCourseModal({
             padding: "10px 14px", 
             borderBottom: `1px solid ${colors.borderLight}`, 
             display: "flex", 
-            justifyContent: "space-between" 
+            justifyContent: "space-between",
+            alignItems: "center",
+            background: "var(--bg-base)",
+            borderRadius: "12px 12px 0 0"
           }}
         >
-          <h2 style={{ fontSize: 15, margin: 0 }}>
-            {isInstructor ? "➕ Add Course" : "➕ Add Course"}
+          <h2 style={{ fontSize: 15, margin: 0, color: "var(--text-primary)" }}>
+            {isInstructor ? "➕ Add Course (Instructor)" : "➕ Add Course"}
           </h2>
           <button 
             onClick={handleClose} 
@@ -206,14 +532,112 @@ export default function AddCourseModal({
               background: "none", 
               border: "none", 
               fontSize: 18, 
-              cursor: "pointer" 
+              cursor: "pointer",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              transition: "background 0.2s",
+              color: "var(--text-secondary)"
             }}
+            onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-hover)"}
+            onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
           >
             ✕
           </button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: "10px 14px" }}>
+          {/* Course Image Upload Section */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={label}>Course Image</label>
+            <div 
+              style={{ 
+                border: `2px dashed ${imagePreview ? colors.borderLight : colors.primary}`,
+                borderRadius: 8,
+                padding: imagePreview ? "8px" : "16px",
+                textAlign: "center",
+                transition: "all 0.3s ease",
+                background: imagePreview ? "transparent" : "rgba(0,0,0,0.02)",
+                position: "relative",
+                cursor: "pointer",
+              }}
+            >
+              {imagePreview ? (
+                <div style={{ position: "relative" }}>
+                  <img 
+                    src={imagePreview} 
+                    alt="Course preview" 
+                    style={{
+                      width: "100%",
+                      maxHeight: "200px",
+                      objectFit: "cover",
+                      borderRadius: "6px",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    style={{
+                      position: "absolute",
+                      top: "8px",
+                      right: "8px",
+                      background: "rgba(0,0,0,0.7)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "28px",
+                      height: "28px",
+                      fontSize: "16px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.9)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.7)"}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: "40px", marginBottom: "8px" }}>
+                    🖼️
+                  </div>
+                  <p style={{ 
+                    fontSize: "13px", 
+                    color: "var(--text-secondary)", 
+                    margin: "0 0 8px 0"
+                  }}>
+                    Click to upload course image
+                  </p>
+                  <p style={{ 
+                    fontSize: "11px", 
+                    color: "var(--text-secondary)", 
+                    opacity: 0.7,
+                    margin: 0
+                  }}>
+                    JPG, PNG, WEBP, GIF (max 5MB)
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    onChange={handleImageChange}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      opacity: 0,
+                      cursor: "pointer",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
           <div style={{ marginBottom: 10 }}>
             <label style={label}>Title *</label>
             <input 
@@ -240,78 +664,77 @@ export default function AddCourseModal({
               maxLength={500}
             />
           </div>
-<div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-  <div style={{ flex: 1 }}>
-    <label style={label}>Price *</label>
-    <input 
-      type="number" 
-      name="price" 
-      value={form.price} 
-      onChange={handleChange} 
-      required 
-      step="1" 
-      min="1"
-      style={input} 
-      placeholder="0"
-    />
-  </div>
-  
-  {/* Instructor dropdown - only show for admin */}
-  {!isInstructor && (
-    <div style={{ flex: 1 }}>
-      <label style={label}>Instructor (Optional)</label>
-      <select 
-        name="instructor" 
-        value={form.instructor} 
-        onChange={handleChange} 
-        style={input}
-        disabled={loadingInstructors}
-      >
-        <option value="">Unassigned</option>
-        {Array.isArray(instructors) && instructors.length > 0 ? (
-          instructors.map((instructor) => {
-            const id = getInstructorId(instructor);
-            const displayName = getInstructorName(instructor);
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={label}>Price (₹) *</label>
+              <input 
+                type="number" 
+                name="price" 
+                value={form.price} 
+                onChange={handleChange} 
+                required 
+                step="1" 
+                min="1"
+                style={input} 
+                placeholder="0"
+              />
+            </div>
             
-            return (
-              <option key={id} value={id}>
-                {displayName}
-              </option>
-            );
-          })
-        ) : (
-          !loadingInstructors && (
-            <option value="" disabled>No instructors available</option>
-          )
-        )}
-      </select>
-      {!loadingInstructors && instructors.length === 0 && (
-        <div style={{ fontSize: 10, color: '#e74c3c', marginTop: 4 }}>
-          No instructors found. Please add instructors first.
-        </div>
-      )}
-    </div>
-  )}
-  
-  {/* For instructor mode, show the instructor name as read-only */}
-  {isInstructor && (
-    <div style={{ flex: 1 }}>
-      <label style={label}>Instructor</label>
-      <div style={{ 
-        ...input, 
-        background: '#f5f5f5', 
-        color: '#333',
-        padding: '6px 10px',
-        border: `1px solid ${colors.borderLight}`,
-        borderRadius: 6,
-        fontSize: 12,
-        cursor: 'not-allowed'
-      }}>
-        You (Logged-in instructor)
-      </div>
-    </div>
-  )}
-</div>
+            {!isInstructor && (
+              <div style={{ flex: 1 }}>
+                <label style={label}>Instructor (Optional)</label>
+                <select 
+                  name="instructor" 
+                  value={form.instructor} 
+                  onChange={handleChange} 
+                  style={input}
+                  disabled={loadingInstructors}
+                >
+                  <option value="">Unassigned</option>
+                  {Array.isArray(instructors) && instructors.length > 0 ? (
+                    instructors.map((instructor) => {
+                      const id = getInstructorId(instructor);
+                      const displayName = getInstructorName(instructor);
+                      
+                      return (
+                        <option key={id} value={id}>
+                          {displayName}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    !loadingInstructors && (
+                      <option value="" disabled>No instructors available</option>
+                    )
+                  )}
+                </select>
+                {!loadingInstructors && instructors.length === 0 && (
+                  <div style={{ fontSize: 10, color: '#e74c3c', marginTop: 4 }}>
+                    No instructors found. Please add instructors first.
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {isInstructor && (
+              <div style={{ flex: 1 }}>
+                <label style={label}>Instructor</label>
+                <div style={{ 
+                  ...input, 
+                  background: '#f5f5f5', 
+                  color: '#333',
+                  padding: '6px 10px',
+                  border: `1px solid ${colors.borderLight}`,
+                  borderRadius: 6,
+                  fontSize: 12,
+                  cursor: 'not-allowed'
+                }}>
+                  You (Logged-in instructor)
+                </div>
+              </div>
+            )}
+          </div>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
@@ -346,6 +769,28 @@ export default function AddCourseModal({
             </div>
           </div>
 
+          {uploadProgress > 0 && uploadProgress < 100 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ 
+                width: '100%', 
+                height: '4px', 
+                background: '#e0e0e0', 
+                borderRadius: '2px',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  width: `${uploadProgress}%`, 
+                  height: '100%', 
+                  background: colors.gradPrimary,
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                {uploadProgress < 60 ? 'Creating course...' : 'Uploading image...'} {uploadProgress}%
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
             <button 
               type="button" 
@@ -357,9 +802,10 @@ export default function AddCourseModal({
                 background: "transparent", 
                 border: `1px solid ${colors.borderLight}`, 
                 cursor: "pointer",
-                transition: "background-color 0.2s"
+                transition: "background-color 0.2s",
+                color: "var(--text-secondary)"
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f5f5f5"}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--bg-hover)"}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
             >
               Cancel

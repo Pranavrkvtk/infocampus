@@ -1,12 +1,12 @@
 // src/components/Login.jsx
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // ✅ Add useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
 import { login } from "../api/authApi";
 import Swal from "sweetalert2";
 
 function Login() {
-  const navigate = useNavigate(); // ✅ Add this
+  const navigate = useNavigate();
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,19 +31,22 @@ function Login() {
       const response = await login({ email, password });
       const data = response.data;
 
-      console.log("Login Response:", data);
+      console.log("🔍 Login Response:", data);
 
-      // ✅ Store user data
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
-      localStorage.setItem("userId", data.userId);
-      localStorage.setItem("userName", data.name);
-      localStorage.setItem("userEmail", data.email || email);
-      localStorage.setItem("userStatus", data.status || "ACTIVE");
+      // ✅ All user data is now stored in the login function
+      // The user object with role is already in localStorage
+
+      // ✅ Get the stored user data
+      const userStr = localStorage.getItem("user");
+      const userData = userStr ? JSON.parse(userStr) : {};
+      const role = userData.role || "USER";
+
+      console.log("✅ User data from localStorage:", userData);
+      console.log("✅ Role:", role);
 
       await Swal.fire({
         icon: "success",
-        title: `Welcome ${data.name}! 👋`,
+        title: `Welcome ${userData.name || "User"}! 👋`,
         text: "Login Successful",
         confirmButtonColor: "#10b981",
         timer: 2000,
@@ -51,10 +54,8 @@ function Login() {
         showConfirmButton: false,
       });
 
-      const role = data.role?.toUpperCase();
-      
-      // ✅ Use navigate instead of window.location.replace
-      if (role === "ADMIN") {
+      // ✅ Redirect based on role
+      if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin");
       } else if (role === "INSTRUCTOR") {
         navigate("/instructor");
@@ -63,7 +64,7 @@ function Login() {
       }
 
     } catch (error) {
-      console.error("Login Error:", error);
+      console.error("❌ Login Error:", error);
 
       let errorMessage = "Invalid email or password";
       let errorTitle = "Login Failed ❌";
@@ -84,12 +85,8 @@ function Login() {
           errorTitle = "Account Inactive ⛔";
           if (errorMessage.includes("inactive") || errorMessage.includes("deleted")) {
             errorMessage = "Your account has been deactivated or deleted. Please contact the administrator.";
-            localStorage.removeItem("token");
-            localStorage.removeItem("role");
-            localStorage.removeItem("userId");
-            localStorage.removeItem("userName");
-            localStorage.removeItem("userEmail");
-            localStorage.removeItem("userStatus");
+            // Clear all localStorage items
+            localStorage.clear();
           }
         } else if (status === 401) {
           errorTitle = "Invalid Credentials ❌";

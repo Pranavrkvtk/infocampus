@@ -8,17 +8,77 @@ export const register = (userData) => {
   return api.post("/auth/register", userData);
 };
 
-// Login user
-export const login = (credentials) => {
-  return api.post("/auth/login", credentials);
+// ✅ FIXED: Login user with proper data storage
+export const login = async (credentials) => {
+  try {
+    const response = await api.post("/auth/login", credentials);
+    
+    console.log('🔍 Login Response:', response.data);
+    
+    const data = response.data;
+    
+    // ✅ Store token
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+    
+    // ✅ Store individual fields
+    const role = data.role || "USER";
+    const userId = data.userId || data.id;
+    const name = data.name || "User";
+    const email = data.email || credentials.email;
+    const status = data.status || "ACTIVE";
+    
+    localStorage.setItem("role", role);
+    localStorage.setItem("userId", userId);
+    localStorage.setItem("userName", name);
+    localStorage.setItem("userEmail", email);
+    localStorage.setItem("userStatus", status);
+    
+    // ✅ CRITICAL: Store complete user object with role
+    const userData = {
+      id: userId,
+      userId: userId,
+      email: email,
+      name: name,
+      role: role,
+      status: status,
+      token: data.token
+    };
+    
+    localStorage.setItem("user", JSON.stringify(userData));
+    
+    console.log('✅ User data stored:', userData);
+    console.log('✅ Role stored:', localStorage.getItem('role'));
+    console.log('✅ User object:', JSON.parse(localStorage.getItem('user')));
+    
+    return response;
+  } catch (error) {
+    console.error('❌ Login error:', error);
+    throw error;
+  }
 };
 
-// Logout user
+// ✅ FIXED: Logout user with complete cleanup
 export const logout = () => {
+  // ✅ Clear all auth-related items
   localStorage.removeItem("token");
   localStorage.removeItem("role");
   localStorage.removeItem("userId");
-  return api.post("/auth/logout");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("userStatus");
+  localStorage.removeItem("user"); // ✅ Important: Remove the user object
+  
+  // ✅ Optional: Clear other app-specific items if needed
+  // localStorage.removeItem("recentColors");
+  // localStorage.removeItem("myCoursesConfig");
+  // localStorage.removeItem("homeConfig");
+  
+  return api.post("/auth/logout").catch(() => {
+    // Ignore logout endpoint errors - just clear local storage
+    console.log("Logout successful (local)");
+  });
 };
 
 // Get current user profile
@@ -72,6 +132,61 @@ export const getUserId = () => {
   return localStorage.getItem("userId");
 };
 
+// ✅ NEW: Get full user object
+export const getUser = () => {
+  try {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+  } catch (error) {
+    console.error("Error parsing user data:", error);
+    return null;
+  }
+};
+
+// ✅ NEW: Get user name
+export const getUserName = () => {
+  return localStorage.getItem("userName") || "User";
+};
+
+// ✅ NEW: Get user email
+export const getUserEmail = () => {
+  return localStorage.getItem("userEmail") || "";
+};
+
+// ✅ NEW: Update user in localStorage
+export const updateUser = (userData) => {
+  const currentUser = getUser() || {};
+  const updatedUser = { ...currentUser, ...userData };
+  localStorage.setItem("user", JSON.stringify(updatedUser));
+  
+  // Update individual fields
+  if (userData.role) localStorage.setItem("role", userData.role);
+  if (userData.name) localStorage.setItem("userName", userData.name);
+  if (userData.email) localStorage.setItem("userEmail", userData.email);
+  if (userData.status) localStorage.setItem("userStatus", userData.status);
+  
+  return updatedUser;
+};
+
+// ✅ NEW: Check if user has specific role
+export const hasRole = (role) => {
+  const userRole = localStorage.getItem("role");
+  if (!userRole) return false;
+  return userRole.toUpperCase() === role.toUpperCase();
+};
+
+// ✅ NEW: Check if user is admin
+export const isAdmin = () => {
+  const role = localStorage.getItem("role");
+  return role === "ADMIN" || role === "SUPER_ADMIN";
+};
+
+// ✅ NEW: Check if user is instructor
+export const isInstructor = () => {
+  const role = localStorage.getItem("role");
+  return role === "INSTRUCTOR";
+};
+
 // ==================== EXPORT ALL ====================
 
 const authApi = {
@@ -88,6 +203,13 @@ const authApi = {
   isAuthenticated,
   getUserRole,
   getUserId,
+  getUser,           // ✅ Added
+  getUserName,       // ✅ Added
+  getUserEmail,      // ✅ Added
+  updateUser,        // ✅ Added
+  hasRole,           // ✅ Added
+  isAdmin,           // ✅ Added
+  isInstructor,      // ✅ Added
 };
 
 export default authApi;
