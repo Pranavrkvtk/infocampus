@@ -919,15 +919,14 @@ export default function HomeEditorTab({ onSave, initialConfig }) {
     }
   };
 
-  // Enhanced Color Picker Component
-// Enhanced Color Picker Component
+// Enhanced Color Picker Component - Fixed
 const ColorPicker = ({ label, value, onChange, path, id, showGradient = true }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [recentColors, setRecentColors] = useState([]);
   const [inputValue, setInputValue] = useState(value);
-  const [selectedColor, setSelectedColor] = useState(value);
+  // Removed: const [selectedColor, setSelectedColor] = useState(value);
 
   // Color Library with categories
   const COLOR_LIBRARY = {
@@ -1007,7 +1006,6 @@ const ColorPicker = ({ label, value, onChange, path, id, showGradient = true }) 
   // Handle color change
   const handleColorChange = (newColor) => {
     setInputValue(newColor);
-    setSelectedColor(newColor);
     onChange(path, newColor);
 
     // Save to recent colors
@@ -1480,7 +1478,6 @@ const ColorPicker = ({ label, value, onChange, path, id, showGradient = true }) 
     </div>
   );
 };
-
   // Tab render functions
   const renderBannerTab = () => (
     <div>
