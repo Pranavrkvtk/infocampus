@@ -8,6 +8,7 @@ import {
   getSubtopicLabs,
 } from '../api/UserApi';
 import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
+import { useNavigate } from 'react-router-dom';
 
 // ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
@@ -756,6 +757,77 @@ function LabsTab({ labs, config }) {
   );
 }
 
+// ─── Login Prompt Modal ───────────────────────────────────────────────
+
+function LoginPrompt({ onClose, onLogin }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,0.5)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+    }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '16px',
+        maxWidth: '420px',
+        width: '100%',
+        padding: '32px 28px',
+        textAlign: 'center',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🔒</div>
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+          Login Required
+        </h2>
+        <p style={{ fontSize: '14px', color: '#475569', marginBottom: '24px', lineHeight: '1.6' }}>
+          You need to log in to access this content.  
+          The first topic is free; all other topics require an account.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <button
+            onClick={onLogin}
+            style={{
+              padding: '10px 24px',
+              background: '#4f46e5',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '14px',
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#4338ca'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#4f46e5'}
+          >
+            Go to Login
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 24px',
+              background: '#f1f5f9',
+              color: '#475569',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '14px',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main CourseDetailView ────────────────────────────────────────────
 
 export default function CourseDetailView({
@@ -780,6 +852,8 @@ export default function CourseDetailView({
   getImageUrl,
   handleImageError,
 }) {
+  const navigate = useNavigate();
+
   // ─── Load config ─────────────────────────────────────────────────────
   const config = getCourseDetailConfig();
 
@@ -809,6 +883,9 @@ export default function CourseDetailView({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [authImageUrls, setAuthImageUrls] = useState({});
   const authImageUrlsRef = useRef({});
+
+  // ─── Login prompt state ─────────────────────────────────────────────
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const currentSub = subtopics[activeSection];
   const isCompleted = completedSections.includes(activeSection);
@@ -862,8 +939,21 @@ export default function CourseDetailView({
     (t.subtopics || []).some((s) => String(s.id) === String(currentSub?.id))
   );
 
+  // ─── 🆕 Enhanced fetchSubtopicData – skip for guests to avoid 401 ──
   const fetchSubtopicData = useCallback(async (subtopicId) => {
     if (!subtopicId) return;
+    
+    // If not logged in, skip fetching – leave arrays empty.
+    // The public endpoint already provides notes and video; interview/exam/labs
+    // will simply not appear for guests.
+    const isLoggedIn = !!localStorage.getItem('token');
+    if (!isLoggedIn) {
+      setInterviewQuestions([]);
+      setExamQuestions([]);
+      setLabs([]);
+      return;
+    }
+
     setLoadingData(true);
     try {
       const [questions, exams, labList] = await Promise.all([
@@ -876,6 +966,9 @@ export default function CourseDetailView({
       setLabs(labList);
     } catch (err) {
       console.error('Failed to load subtopic data', err);
+      setInterviewQuestions([]);
+      setExamQuestions([]);
+      setLabs([]);
     } finally {
       setLoadingData(false);
     }
@@ -907,15 +1000,35 @@ export default function CourseDetailView({
   useEffect(() => {
     if (loadingData) return;
     if (availableTypes.length > 0) {
-      // prefer notes if available, else first in order
       const preferred = availableTypes.includes('notes') ? 'notes' : availableTypes[0];
       if (!availableTypes.includes(activeContentType)) setActiveContentType(preferred);
     }
   }, [loadingData, availableTypes, activeContentType]);
 
+  // ─── Login gate: check if a subtopic is in the first topic ─────────
+  const isFirstTopic = (subtopic) => {
+    if (!topics.length) return false;
+    const firstTopicId = topics[0].id;
+    const topicOfSub = topics.find((t) =>
+      (t.subtopics || []).some((s) => String(s.id) === String(subtopic.id))
+    );
+    return topicOfSub && topicOfSub.id === firstTopicId;
+  };
+
+  const isUserLoggedIn = () => {
+    return !!localStorage.getItem('token');
+  };
+
   const toggleTopic = (topicId) => setExpandedTopics((prev) => ({ ...prev, [topicId]: !prev[topicId] }));
 
   const selectSubtopic = async (sub, globalIndex) => {
+    // ─── Gate: if subtopic is NOT in first topic and user not logged in ──
+    if (!isFirstTopic(sub) && !isUserLoggedIn()) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
+    // Proceed
     setActiveSection(globalIndex);
     setCurrentSubtopic(sub);
     await loadSubtopicImages(sub.id);
@@ -1111,7 +1224,6 @@ export default function CourseDetailView({
       flex: 1,
       overflowY: 'auto',
       padding: '20px',
-      // ─── Copy protection for all content ──────────────────────────
       userSelect: 'none',
       WebkitUserSelect: 'none',
       WebkitTouchCallout: 'none',
@@ -1132,6 +1244,11 @@ export default function CourseDetailView({
   const preventCopy = (e) => {
     e.preventDefault();
     return false;
+  };
+
+  const handleLoginRedirect = () => {
+    setShowLoginPrompt(false);
+    navigate('/login');
   };
 
   return (
@@ -1194,6 +1311,7 @@ export default function CourseDetailView({
                 {filteredTopics.map((topic) => {
                   const topicSubs = topic.subtopics || [];
                   const isOpen = !!expandedTopics[topic.id];
+                  const isFirst = topic.id === topics[0]?.id;
                   return (
                     <div key={topic.id} style={styles.topicItem}>
                       <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
@@ -1225,13 +1343,15 @@ export default function CourseDetailView({
                               </span>
                               <span style={{ flex: 1 }}>{sub.title}</span>
                               {isDone && <span style={{ fontSize: '12px', color: config.colors.success }}>✓</span>}
+                              {!isFirst && !isUserLoggedIn() && (
+                                <span style={{ fontSize: '10px', color: '#f59e0b', marginLeft: '4px' }}>🔒</span>
+                              )}
                             </div>
                             {isActive && (
                               <div>
                                 {loadingData ? (
                                   <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: '#94A3B8' }}>Loading…</div>
                                 ) : (
-                                  // ─── Leaf items are now rendered in typeOrder ───
                                   CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
                                     <div
                                       key={t.key}
@@ -1335,7 +1455,6 @@ export default function CourseDetailView({
                 onCopy={preventCopy}
                 onCut={preventCopy}
                 onContextMenu={preventCopy}
-                onSelectStart={preventCopy}
               >
                 {renderPanelContent()}
               </div>
@@ -1391,6 +1510,14 @@ export default function CourseDetailView({
             </div>
           )}
         </div>
+      )}
+
+      {/* ─── Login Prompt Modal ─────────────────────────────────────── */}
+      {showLoginPrompt && (
+        <LoginPrompt
+          onClose={() => setShowLoginPrompt(false)}
+          onLogin={handleLoginRedirect}
+        />
       )}
     </div>
   );

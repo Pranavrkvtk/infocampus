@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 import CourseDetailView from './CourseDetailView';
 import CourseEnrollmentPage from './CourseEnrollmentPage';
 import Swal from 'sweetalert2';
@@ -98,7 +99,6 @@ const COLORS = {
   tagBg: '#F1E9F0',
   tagText: '#714B67',
   success: '#2E8B57',
-  // Grey sidebar colors
   sidebarBg: '#F1F5F9',
   sidebarBorder: '#E2E8F0',
   sidebarText: '#475569',
@@ -121,11 +121,11 @@ const COURSE_IMAGES = {
 
 function MyCoursesPage() {
   const navigate = useNavigate();
-  
-  // ✅ Get config from localStorage
+  const { courseId } = useParams();          // ← read courseId from URL
+  const urlLoadedRef = useRef(false);        // ← prevent double-loading
+
   const myCoursesConfig = getMyCoursesConfig() || DEFAULT_MY_COURSES_CONFIG;
   
-  // ✅ Build TRACKS from config
   const TRACKS = Object.entries(myCoursesConfig.trackIcons).map(([key, icon]) => ({
     match: key,
     icon: icon,
@@ -168,7 +168,7 @@ function MyCoursesPage() {
     };
   }, [activeView]);
 
-  // ─── ✅ FIXED: Get course image from admin uploads ──────────────────
+  // ─── Get course image from admin uploads ────────────────────────────
   const getCourseImage = (course) => {
     if (!course.imageUrl) {
       const name = course.title?.toLowerCase() || '';
@@ -180,14 +180,12 @@ function MyCoursesPage() {
 
     const imageUrl = course.imageUrl;
 
-    // Already absolute or data URI
     if (imageUrl.startsWith('data:image/') || 
         imageUrl.startsWith('http://') || 
         imageUrl.startsWith('https://')) {
       return imageUrl;
     }
 
-    // ✅ Admin-uploaded images start with /uploads/ – need to add /admin
     if (imageUrl.startsWith('/uploads/')) {
       return `${API_BASE}/admin${imageUrl}`;
     }
@@ -204,7 +202,7 @@ function MyCoursesPage() {
     return `${API_BASE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
   };
 
-  // ─── ✅ FIXED: Get subtopic image from admin uploads ────────────────
+  // ─── Get subtopic image from admin uploads ────────────────────────────
   const getSubtopicImageUrl = (subtopicId, fileName) => {
     if (!subtopicId || !fileName) return FALLBACK_IMAGE;
 
@@ -304,10 +302,26 @@ function MyCoursesPage() {
     }
   };
 
+  // ─── loadCourseDetails with public endpoint for guests ──────────────
   const loadCourseDetails = async (courseId) => {
     setContentLoading(true);
     try {
-      const data = await getCourseDetails(courseId);
+      let data;
+      if (isLoggedIn) {
+        // Authenticated user – fetch full course details
+        data = await getCourseDetails(courseId);
+      } else {
+        // Guest user – fetch only the first topic via public endpoint
+  const response = await axios.get(`${API_BASE}/public/courses/${courseId}/public`);
+        const firstTopic = response.data;
+        // Check if we got a topic or a message (e.g., "No topics...")
+        if (firstTopic && firstTopic.id) {
+          data = { topics: [firstTopic] };
+        } else {
+          data = { topics: [] };
+        }
+      }
+
       const allTopics = data.topics || [];
 
       const allSubtopics = [];
@@ -453,7 +467,6 @@ function MyCoursesPage() {
     return courses.some((ec) => ec.id === courseId);
   };
 
-  // ✅ Updated: Get track from config
   const getTrack = (title) => {
     const name = title?.toLowerCase() || '';
     for (const track of TRACKS) {
@@ -478,17 +491,57 @@ function MyCoursesPage() {
     return FALLBACK_IMAGE;
   };
 
-  // Effects
+  // ─── 🆕 Effect to load course from URL parameter ────────────────────
+  useEffect(() => {
+    if (!courseId) {
+      urlLoadedRef.current = false;
+      return;
+    }
+
+    // Prevent double-load
+    if (urlLoadedRef.current) return;
+
+    const id = parseInt(courseId);
+    if (isNaN(id)) return;
+
+    const loadCourse = async () => {
+      // If allCourses is empty, fetch it first
+      if (allCourses.length === 0) {
+        await fetchAllCourses();
+      }
+
+      // Find the course in allCourses
+      const found = allCourses.find(c => c.id === id);
+      if (found) {
+        setSelectedCourse(found);
+        setActiveView('enrollment');   // show enrollment page first
+        await loadCourseDetails(id);
+        urlLoadedRef.current = true;
+      } else {
+        // Course not found – maybe go back to catalog
+        Swal.fire({
+          title: 'Course Not Found',
+          text: 'The course you are looking for does not exist.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+        }).then(() => {
+          navigate('/my-courses');
+        });
+      }
+    };
+
+    loadCourse();
+  }, [courseId, allCourses]);
+
+  // ─── Effects for initial data ────────────────────────────────────────
   useEffect(() => {
     fetchEnrolledCourses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) {
       fetchAllCourses();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, allCourses.length, loadingAllCourses]);
 
   useEffect(() => {

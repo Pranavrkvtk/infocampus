@@ -1,3 +1,4 @@
+// src/App.js
 import './App.css';
 import {
   BrowserRouter,
@@ -37,10 +38,10 @@ const HIDE_NAVBAR = [
   '/instructor',
   '/logout',
   '/test-api',
-  // ✅ Course detail routes - Navbar will be hidden on these pages
   '/ccna200',
   '/ccnp-encor',
   '/ccnp-enarsi',
+  '/course',        // ← HIDE navbar on all course detail pages
 ];
 
 function AppRoutes() {
@@ -88,6 +89,9 @@ function AppRoutes() {
       
       <Route path="/test-api" element={<TestApiConnection />} />
       
+      {/* ✅ NEW: Public direct course detail route */}
+      <Route path="/course/:courseId" element={<MyCoursesPage />} />
+
       <Route
         path="/admin"
         element={
@@ -105,7 +109,7 @@ function AppRoutes() {
         }
       />
       <Route path="/logout" element={<Logout />} />
-      <Route path="/my-courses" element={<MyCoursesPage isMobile={isMobile} onBack={() => navigate("/courses")} />} />
+      <Route path="/my-courses" element={<MyCoursesPage />} />
       <Route
         path="/support"
         element={
