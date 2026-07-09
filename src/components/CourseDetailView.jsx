@@ -716,7 +716,6 @@ function ExamTab({ questions, config, onScoreUpdate }) {
 }
 
 function LabsTab({ labs, config }) {
-  const [completed, setCompleted] = useState({});
   const [activeLab, setActiveLab] = useState(null);
 
   if (!labs || labs.length === 0) {
@@ -731,7 +730,7 @@ function LabsTab({ labs, config }) {
           style={{
             background: LIGHT.surface,
             borderRadius: '12px',
-            border: completed[lab.id] ? `1px solid ${LIGHT.success}` : `1px solid ${LIGHT.border}`,
+            border: `1px solid ${LIGHT.border}`,
             padding: '16px 20px',
             marginBottom: '10px',
             cursor: 'pointer',
@@ -748,29 +747,6 @@ function LabsTab({ labs, config }) {
             <span style={{ fontWeight: 600, fontSize: '15px', color: LIGHT.textLight }}>
               {idx + 1}. {lab.title}
             </span>
-            {!completed[lab.id] && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCompleted((prev) => ({ ...prev, [lab.id]: true }));
-                }}
-                style={{
-                  padding: '4px 14px',
-                  background: LIGHT.success,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '16px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {config.labels?.markCompleteText || 'Mark Complete'}
-              </button>
-            )}
-            {completed[lab.id] && (
-              <span style={{ fontSize: '13px', color: LIGHT.success, fontWeight: 600 }}>{config.labels?.doneBadgeText || '✅ Done'}</span>
-            )}
           </div>
           {activeLab === lab.id && (
             <div style={{
@@ -844,8 +820,10 @@ export default function CourseDetailView({
   const [authImageUrls, setAuthImageUrls] = useState({});
   const authImageUrlsRef = useRef({});
 
+  // ─── Check if user is logged in ─────────────────────────────────────
+  const isLoggedIn = !!localStorage.getItem('token');
+
   const currentSub = subtopics[activeSection];
-  const isCompleted = completedSections.includes(activeSection);
 
   // ─── Effects ──────────────────────────────────────────────────────────
 
@@ -962,8 +940,6 @@ export default function CourseDetailView({
       )
     : topics;
 
-  const typeMeta = CONTENT_TYPES.find((t) => t.key === activeContentType) || CONTENT_TYPES[0];
-
   const renderPanelContent = () => {
     if (!currentSub) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.labels?.selectSectionText || 'Select a section'}</div>;
     if (loadingData) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.labels?.loadingContentText || 'Loading...'}</div>;
@@ -980,6 +956,19 @@ export default function CourseDetailView({
   };
 
   const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+
+  // ─── Handle Logout ──────────────────────────────────────────────────
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userId');
+    window.location.href = '/login';
+  };
+
+  // ─── Handle Login Redirect ──────────────────────────────────────────
+  const handleLogin = () => {
+    window.location.href = '/login';
+  };
 
   if (contentLoading) {
     return (
@@ -1092,6 +1081,7 @@ export default function CourseDetailView({
     contentHeader: {
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'space-between',
       gap: '12px',
       padding: isMobileDevice ? '8px 4px 12px 4px' : '8px 0 16px 0',
       flexWrap: 'wrap',
@@ -1100,6 +1090,17 @@ export default function CourseDetailView({
       zIndex: 5,
       background: LIGHT.bg,
     },
+    headerLeft: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      flexWrap: 'wrap',
+    },
+    headerRight: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+    },
     backBtn: {
       display: 'flex',
       alignItems: 'center',
@@ -1107,26 +1108,41 @@ export default function CourseDetailView({
       background: LIGHT.surface,
       border: `1px solid ${LIGHT.border}`,
       borderRadius: '8px',
-      padding: '6px 14px',
+      padding: '8px 16px',
       fontSize: '13px',
       fontWeight: 600,
       color: LIGHT.text,
       cursor: 'pointer',
       transition: 'all 0.2s',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
     },
     contentTitle: {
       fontSize: isMobileDevice ? '16px' : '20px',
       fontWeight: 700,
       color: LIGHT.textLight,
-      flex: 1,
     },
-    doneBadge: {
-      fontSize: '12px',
-      background: LIGHT.successBg,
-      color: LIGHT.success,
-      padding: '2px 12px',
-      borderRadius: '20px',
+    // ─── Auth Buttons ──────────────────────────────────────────────────
+    authBtn: {
+      padding: '8px 20px',
+      borderRadius: '8px',
+      fontSize: '13px',
       fontWeight: 600,
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+    },
+    signInBtn: {
+      background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+      color: '#fff',
+      boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
+    },
+    logoutBtn: {
+      background: '#fee2e2',
+      color: '#dc2626',
+      border: '1px solid #fca5a5',
     },
     contentPanel: {
       flex: 1,
@@ -1237,7 +1253,6 @@ export default function CourseDetailView({
                         const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
                         if (globalIndex === -1) return null;
                         const isActive = activeSection === globalIndex;
-                        const isDone = completedSections.includes(globalIndex);
                         const hasVideo = getVideoUrls(sub).length > 0;
                         return (
                           <div key={sub.id}>
@@ -1255,7 +1270,6 @@ export default function CourseDetailView({
                                 {hasVideo ? '▶' : '●'}
                               </span>
                               <span style={{ flex: 1, color: isActive ? '#fff' : DARK.text }}>{sub.title}</span>
-                              {isDone && <span style={{ fontSize: '12px', color: DARK.success }}>✓</span>}
                             </div>
                             {isActive && (
                               <div>
@@ -1309,52 +1323,99 @@ export default function CourseDetailView({
           <main style={styles.mainContent}>
             {/* ─── Header ────────────────────────────────────────────── */}
             <div style={styles.contentHeader}>
-              <button
-                onClick={handleBack}
-                style={styles.backBtn}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = LIGHT.hover;
-                  e.currentTarget.style.borderColor = LIGHT.textMuted;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = LIGHT.surface;
-                  e.currentTarget.style.borderColor = LIGHT.border;
-                }}
-              >
-                {config.labels?.backButtonText || '← Back'}
-              </button>
-
-              <span style={styles.contentTitle}>
-                {currentSub ? currentSub.title : 'Select a section'}
-              </span>
-
-              {isCompleted && <span style={styles.doneBadge}>{config.labels?.doneBadgeText || '✅ Done'}</span>}
-
-              {isMobile && (
+              <div style={styles.headerLeft}>
+                {/* ✅ Home button with icon */}
                 <button
-                  onClick={() => setShowSidebar(!showSidebar)}
-                  style={{
-                    background: LIGHT.surface,
-                    border: `1px solid ${LIGHT.border}`,
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '18px',
-                    cursor: 'pointer',
-                    color: LIGHT.text,
-                    transition: 'all 0.2s',
-                  }}
+                  onClick={handleBack}
+                  style={styles.backBtn}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = LIGHT.hover;
                     e.currentTarget.style.borderColor = LIGHT.textMuted;
+                    e.currentTarget.style.transform = 'translateY(-1px)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = LIGHT.surface;
                     e.currentTarget.style.borderColor = LIGHT.border;
+                    e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
-                  ☰
+                  🏠 Home
                 </button>
-              )}
+
+                <span style={styles.contentTitle}>
+                  {currentSub ? currentSub.title : 'Select a section'}
+                </span>
+              </div>
+
+              <div style={styles.headerRight}>
+                {isLoggedIn ? (
+                  // ✅ Logout Button - Attractive
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      ...styles.authBtn,
+                      ...styles.logoutBtn,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#fecaca';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#fee2e2';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    🚪 Logout
+                  </button>
+                ) : (
+                  // ✅ Sign In Button - Attractive Gradient
+                  <button
+                    onClick={handleLogin}
+                    style={{
+                      ...styles.authBtn,
+                      ...styles.signInBtn,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(79, 70, 229, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(79, 70, 229, 0.3)';
+                    }}
+                  >
+                    🔐 Sign In
+                  </button>
+                )}
+
+                {isMobile && (
+                  <button
+                    onClick={() => setShowSidebar(!showSidebar)}
+                    style={{
+                      background: LIGHT.surface,
+                      border: `1px solid ${LIGHT.border}`,
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '18px',
+                      cursor: 'pointer',
+                      color: LIGHT.text,
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = LIGHT.hover;
+                      e.currentTarget.style.borderColor = LIGHT.textMuted;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = LIGHT.surface;
+                      e.currentTarget.style.borderColor = LIGHT.border;
+                    }}
+                  >
+                    ☰
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* ─── Content Panel ────────────────────────────────────── */}
