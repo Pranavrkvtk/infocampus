@@ -124,7 +124,7 @@ export default function CourseEnrollmentPage({
       return {
         id: apiCourse.id,
         title: apiCourse.title || 'Course',
-        subtitle: apiCourse.description?.substring(0, 100) || 'Learn with expert instructors',
+        subtitle: '',
         rating: apiCourse.rating || 4.8,
         reviews: apiCourse.reviews || 1247,
         students: students,
@@ -133,7 +133,6 @@ export default function CourseEnrollmentPage({
         level: apiCourse.level || 'Intermediate',
         language: 'English',
         certificate: 'Yes',
-        price: apiCourse.price || 2344,
         image: apiCourse.imageUrl || '',
         description: apiCourse.description || 'Master networking fundamentals with this comprehensive course.',
         syllabus: syllabus.length > 0 ? syllabus : [
@@ -157,7 +156,7 @@ export default function CourseEnrollmentPage({
     return course || {
       id: 1,
       title: 'ccna-302',
-      subtitle: 'xhjxx',
+      subtitle: '',
       rating: 4.8,
       reviews: 1247,
       students: enrollmentCount || 0,
@@ -166,7 +165,6 @@ export default function CourseEnrollmentPage({
       level: 'Intermediate',
       language: 'English',
       certificate: 'Yes',
-      price: 2344,
       description: 'xhjxx',
       syllabus: [
         { 
@@ -261,6 +259,25 @@ export default function CourseEnrollmentPage({
       padding: isMobile ? '16px' : '24px 40px',
     },
     
+    // ─── FULL WIDTH TOP COLOR BAR ──────────────────────────────────
+    topColorBar: {
+      background: `linear-gradient(135deg, ${COLORS.plumDark}, ${COLORS.plumMid}, ${COLORS.plumLight})`,
+      padding: isMobile ? '20px 16px' : '24px 40px',
+      marginBottom: '24px',
+      color: '#fff',
+      width: '100%',
+      boxSizing: 'border-box',
+    },
+    topColorBarTitle: {
+      fontSize: isMobile ? '20px' : '28px',
+      fontWeight: 700,
+      marginBottom: '4px',
+    },
+    topColorBarSubtitle: {
+      fontSize: isMobile ? '13px' : '16px',
+      opacity: 0.85,
+    },
+
     // ─── Top Navigation ──────────────────────────────────────────────
     topNav: {
       display: 'flex',
@@ -306,77 +323,6 @@ export default function CourseEnrollmentPage({
       display: 'flex',
       flexDirection: 'column',
       gap: '24px',
-    },
-
-    // ─── Breadcrumb ──────────────────────────────────────────────────
-    breadcrumb: {
-      fontSize: '13px',
-      color: COLORS.slate,
-      marginBottom: '8px',
-      display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap',
-    },
-
-    // ─── Course Header (Right Column) ──────────────────────────────
-    courseHeader: {
-      background: COLORS.paper,
-      borderRadius: '16px',
-      padding: isMobile ? '20px' : '24px',
-      border: `1px solid ${COLORS.line}`,
-    },
-    courseTitle: {
-      fontSize: isMobile ? '24px' : '28px',
-      fontWeight: 800,
-      color: COLORS.ink,
-      letterSpacing: '-0.5px',
-      marginBottom: '4px',
-    },
-    courseSubtitle: {
-      fontSize: isMobile ? '15px' : '17px',
-      color: COLORS.slate,
-      marginBottom: '8px',
-    },
-    ratingRow: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      flexWrap: 'wrap',
-      marginBottom: '8px',
-    },
-    stars: {
-      color: COLORS.gold,
-      fontSize: '16px',
-      letterSpacing: '1px',
-    },
-    ratingText: {
-      fontSize: '13px',
-      color: COLORS.slate,
-    },
-    enrolledBadge: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      background: 'rgba(46, 139, 87, 0.15)',
-      color: COLORS.success,
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontSize: '12px',
-      fontWeight: 600,
-    },
-    metaRow: {
-      display: 'flex',
-      gap: '16px',
-      flexWrap: 'wrap',
-      fontSize: '13px',
-      color: COLORS.slate,
-      paddingTop: '8px',
-      borderTop: `1px solid ${COLORS.line}`,
-    },
-    metaItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
     },
 
     // ─── Tab Navigation ──────────────────────────────────────────────
@@ -512,11 +458,6 @@ export default function CourseEnrollmentPage({
       marginBottom: '4px',
       letterSpacing: '0.5px',
     },
-    joinCardPrice: {
-      fontSize: '32px',
-      fontWeight: 800,
-      marginBottom: '16px',
-    },
     joinBtn: {
       width: '100%',
       padding: '14px',
@@ -592,6 +533,14 @@ export default function CourseEnrollmentPage({
     infoValue: {
       fontWeight: 600,
       color: COLORS.ink,
+    },
+
+    // ─── Content Card (Right Column) ──────────────────────────────
+    contentCard: {
+      background: COLORS.paper,
+      borderRadius: '16px',
+      padding: isMobile ? '20px' : '24px',
+      border: `1px solid ${COLORS.line}`,
     },
 
     // ─── Loading ──────────────────────────────────────────────────────
@@ -817,11 +766,30 @@ export default function CourseEnrollmentPage({
     </div>
   );
 
+  // ─── Get course title for top bar ──────────────────────────────
+  const getCourseTitle = () => {
+    return courseData.title || 'Getting Started';
+  };
+
+  const getBreadcrumbText = () => {
+    return `Courses / ${courseData.title || 'Getting Started'}`;
+  };
+
   // ─── Render ──────────────────────────────────────────────────────
 
   return (
     <>
       <div style={styles.page}>
+        {/* ─── FULL WIDTH TOP COLOR BAR ────────────────────────────── */}
+        <div style={styles.topColorBar}>
+          <div style={styles.container}>
+            <h1 style={styles.topColorBarTitle}>{getCourseTitle()}</h1>
+            <p style={styles.topColorBarSubtitle}>
+              {getBreadcrumbText()}
+            </p>
+          </div>
+        </div>
+
         <div style={styles.container}>
           {/* ─── Top Navigation ────────────────────────────────────── */}
           <div style={styles.topNav}>
@@ -830,21 +798,12 @@ export default function CourseEnrollmentPage({
             </button>
           </div>
 
-          {/* ─── Breadcrumb ────────────────────────────────────────── */}
-          <div style={styles.breadcrumb}>
-            <span>Courses</span>
-            <span>/</span>
-            <span>Getting Started</span>
-          </div>
-
           {/* ─── Main Layout ────────────────────────────────────────── */}
           <div style={styles.mainLayout}>
             {/* ─── Left Column (Join Card + Info) ──────────────────── */}
             <div style={styles.leftColumn}>
               {/* Join Course Card */}
               <div style={styles.joinCard}>
-                <div style={styles.joinCardTitle}>JOIN THIS COURSE</div>
-                <div style={styles.joinCardPrice}>${courseData.price}</div>
 
                 {isEnrolled ? (
                   <>
@@ -913,30 +872,8 @@ export default function CourseEnrollmentPage({
 
             {/* ─── Right Column (Course Content) ────────────────────── */}
             <div style={styles.rightColumn}>
-              {/* Course Header */}
-              <div style={styles.courseHeader}>
-                <h1 style={styles.courseTitle}>{courseData.title}</h1>
-                <div style={styles.courseSubtitle}>{courseData.subtitle}</div>
-
-                <div style={styles.ratingRow}>
-                  <span style={styles.stars}>★★★★★</span>
-                  <span style={styles.ratingText}>
-                    {courseData.rating} ({courseData.reviews} reviews)
-                  </span>
-                  {isEnrolled && (
-                    <span style={styles.enrolledBadge}>✓ Enrolled</span>
-                  )}
-                </div>
-
-                <div style={styles.metaRow}>
-                  <span style={styles.metaItem}>📅 Last Update {courseData.lastUpdate}</span>
-                  <span style={styles.metaItem}>⏰ {courseData.duration}</span>
-                  <span style={styles.metaItem}>👥 {courseData.students.toLocaleString()} members</span>
-                </div>
-              </div>
-
-              {/* Tabs and Content */}
-              <div style={styles.courseHeader}>
+              {/* ─── Content Card - Only Overview tab now ──────────── */}
+              <div style={styles.contentCard}>
                 <div style={styles.tabs}>
                   <button
                     style={styles.tab(activeTab === 'overview')}
@@ -957,4 +894,4 @@ export default function CourseEnrollmentPage({
       {showLoginModal && renderLoginModal()}
     </>
   );
-} // <-- This is the closing brace for the CourseEnrollmentPage component
+}
