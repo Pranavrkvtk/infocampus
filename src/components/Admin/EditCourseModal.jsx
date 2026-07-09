@@ -1,8 +1,24 @@
 // src/components/Admin/EditCourseModal.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import { colors } from "./AdminStyles";
 import { updateAdminCourse } from "../../api/adminApi";
+import axiosInstance from "../../api/axios";
+
+const resolveImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  if (
+    imageUrl.startsWith("data:image/") ||
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://")
+  ) {
+    return imageUrl;
+  }
+  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8082/api";
+  if (imageUrl.startsWith("/uploads/")) return `${API_BASE}/admin${imageUrl}`;
+  if (imageUrl.startsWith("uploads/")) return `${API_BASE}/admin/${imageUrl}`;
+  return `${API_BASE}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+};
 
 export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdated }) {
   const [formData, setFormData] = useState({
@@ -16,6 +32,14 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
     imageUrl: "",
     status: "PUBLISHED"
   });
+
+  // ── Image upload state ─────────────────────────────────────────
+  const [imageFile, setImageFile] = useState(null);       // newly picked file
+  const [imagePreview, setImagePreview] = useState(null); // local preview (data URL)
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -32,6 +56,9 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
         imageUrl: course.imageUrl || "",
         status: course.status || "PUBLISHED"
       });
+      setImageFile(null);
+      setImagePreview(null);
+      setRemoveExistingImage(false);
     }
   }, [course]);
 
@@ -40,12 +67,47 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+    if (!validTypes.includes(file.type)) {
+      Swal.fire("Error", "Please upload a valid image (JPG, PNG, WEBP, or GIF)", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire("Error", "Image size must be less than 5MB", "error");
+      return;
+    }
+
+    setImageFile(file);
+    setRemoveExistingImage(false);
+
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const clearNewImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleRemoveExistingImage = () => {
+    clearNewImage();
+    setRemoveExistingImage(true);
+  };
+
   const resetForm = () => {
     setFormData({
       title: "", description: "", price: "",
       instructor: "", duration: "", level: "",
       videoUrl: "", imageUrl: "", status: "PUBLISHED"
     });
+    clearNewImage();
+    setRemoveExistingImage(false);
     setError("");
   };
 
@@ -66,23 +128,49 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
       instructor: formData.instructor,
       duration: formData.duration || null,
       videoUrl: formData.videoUrl || null,
-      imageUrl: formData.imageUrl || null,
+      imageUrl: removeExistingImage ? null : (formData.imageUrl || null),
       level: formData.level || null,
       status: formData.status
     };
 
     try {
-      const response = await updateAdminCourse(course.id, courseData);
-      console.log("Course updated:", response.data);
-      
+      // 1. Update the course's text/meta fields
+      await updateAdminCourse(course.id, courseData);
+
+      // 2. If a new image file was picked, upload it separately
+      if (imageFile) {
+        setUploadingImage(true);
+        const imageFormData = new FormData();
+        imageFormData.append("file", imageFile);
+        try {
+          const uploadResponse = await axiosInstance.post(
+            `/admin/courses/${course.id}/upload-image`,
+            imageFormData,
+            { headers: { "Content-Type": "multipart/form-data" } }
+          );
+          if (!uploadResponse.data?.success) {
+            throw new Error(uploadResponse.data?.message || "Upload failed");
+          }
+        } catch (uploadErr) {
+          console.warn("⚠️ Image upload failed:", uploadErr);
+          Swal.fire({
+            title: "Course Updated",
+            text: "Course details saved, but the new image failed to upload. Please try again.",
+            icon: "warning",
+          });
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
       Swal.fire({
-        title: '✅ Success!',
-        text: 'Course updated successfully!',
-        icon: 'success',
+        title: "✅ Success!",
+        text: "Course updated successfully!",
+        icon: "success",
         timer: 2000,
         showConfirmButton: false
       });
-      
+
       if (onCourseUpdated) await onCourseUpdated();
       onClose();
       resetForm();
@@ -102,11 +190,15 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
     borderRadius: 10, fontSize: 13, outline: "none",
     boxSizing: "border-box",
   };
-  
+
   const labelStyle = {
     display: "block", fontSize: 12, fontWeight: 600,
     color: colors.textPrimary, marginBottom: 4,
   };
+
+  // What to actually show in the preview box
+  const existingImageUrl = !removeExistingImage ? resolveImageUrl(formData.imageUrl) : null;
+  const displayedImage = imagePreview || existingImageUrl;
 
   return (
     <div style={{
@@ -120,7 +212,7 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
         width: "90%", maxWidth: 500, maxHeight: "85vh",
         overflowY: "auto", boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
       }} onClick={(e) => e.stopPropagation()}>
-        
+
         <div style={{
           padding: "16px 20px", borderBottom: `1px solid ${colors.borderLight}`,
           display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -137,6 +229,107 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
 
         <form onSubmit={handleSubmit} style={{ padding: "16px 20px" }}>
           {error && <div style={{ background: colors.coralSoft, color: colors.coral, padding: "8px 12px", borderRadius: 10, fontSize: 12, marginBottom: 16 }}>⚠️ {error}</div>}
+
+          {/* ── Course Image Upload ───────────────────────────────── */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Course Image</label>
+            <div
+              style={{
+                border: `2px dashed ${displayedImage ? colors.borderLight : colors.primary}`,
+                borderRadius: 8,
+                padding: displayedImage ? "8px" : "16px",
+                textAlign: "center",
+                background: displayedImage ? "transparent" : "rgba(0,0,0,0.02)",
+                position: "relative",
+              }}
+            >
+              {displayedImage ? (
+                <div style={{ position: "relative" }}>
+                  <img
+                    src={displayedImage}
+                    alt="Course"
+                    style={{
+                      width: "100%",
+                      maxHeight: "200px",
+                      objectFit: "cover",
+                      borderRadius: "6px",
+                    }}
+                    onError={(e) => { e.target.style.opacity = 0.3; }}
+                  />
+                  <div style={{
+                    position: "absolute", top: "8px", right: "8px",
+                    display: "flex", gap: 6,
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Replace image"
+                      style={{
+                        background: "rgba(0,0,0,0.7)", color: "#fff", border: "none",
+                        borderRadius: "50%", width: 28, height: 28, fontSize: 13,
+                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={imageFile ? clearNewImage : handleRemoveExistingImage}
+                      title="Remove image"
+                      style={{
+                        background: "rgba(0,0,0,0.7)", color: "#fff", border: "none",
+                        borderRadius: "50%", width: 28, height: 28, fontSize: 14,
+                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  {imageFile && (
+                    <div style={{
+                      position: "absolute", bottom: "8px", left: "8px",
+                      background: "rgba(46, 139, 87, 0.9)", color: "#fff",
+                      fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 10,
+                    }}>
+                      New image selected
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    onChange={handleImageChange}
+                    style={{ display: "none" }}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: "36px", marginBottom: "8px" }}>🖼️</div>
+                  <p style={{ fontSize: "13px", color: colors.textMuted, margin: "0 0 8px 0" }}>
+                    Click to upload a course image
+                  </p>
+                  <p style={{ fontSize: "11px", color: colors.textMuted, opacity: 0.7, margin: 0 }}>
+                    JPG, PNG, WEBP, GIF (max 5MB)
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    onChange={handleImageChange}
+                    style={{
+                      position: "absolute", inset: 0, width: "100%", height: "100%",
+                      opacity: 0, cursor: "pointer",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            {uploadingImage && (
+              <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 6 }}>
+                ⏳ Uploading image…
+              </div>
+            )}
+          </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Course Title *</label>
@@ -191,19 +384,16 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
             </select>
           </div>
 
-          <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Video URL</label>
             <input type="url" name="videoUrl" value={formData.videoUrl} onChange={handleChange} style={inputStyle} />
           </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>Image URL</label>
-            <input type="url" name="imageUrl" value={formData.imageUrl} onChange={handleChange} style={inputStyle} />
-          </div>
-
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button type="button" onClick={handleClose} style={{ padding: "6px 16px", borderRadius: 30, border: `1px solid ${colors.borderLight}`, background: "transparent" }}>Cancel</button>
-            <button type="submit" disabled={loading} style={{ padding: "6px 20px", borderRadius: 30, background: colors.gradPrimary, border: "none", color: "#fff" }}>{loading ? "Updating..." : "Update Course"}</button>
+            <button type="submit" disabled={loading || uploadingImage} style={{ padding: "6px 20px", borderRadius: 30, background: colors.gradPrimary, border: "none", color: "#fff", opacity: (loading || uploadingImage) ? 0.7 : 1 }}>
+              {loading ? "Updating..." : "Update Course"}
+            </button>
           </div>
         </form>
       </div>

@@ -1,3 +1,4 @@
+// src/components/MyCoursesPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CourseDetailView from './CourseDetailView';
@@ -35,11 +36,8 @@ const DEFAULT_MY_COURSES_CONFIG = {
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
   heroBgEnd: "#83698A",
-  heroDecor: "🎓",
-  sectionTitleMy: "My Courses",
-  sectionTitleAll: "All Courses",
-  myCoursesTabText: "My Courses",
-  allCoursesTabText: "All Courses",
+  heroImageUrl: '',
+  sectionTitle: "All Courses",
   searchPlaceholder: "Search courses...",
   cardDurationLabel: "⏱",
   cardStepsLabel: "📋",
@@ -47,14 +45,8 @@ const DEFAULT_MY_COURSES_CONFIG = {
   enrolledBadgeText: "Enrolled",
   viewCourseButtonText: "View Course",
   continueLearningButtonText: "Continue Learning",
-  emptyStateLoginTitle: "Login required",
-  emptyStateLoginText: "Please log in to see your enrolled courses.",
-  emptyStateLoginButton: "Go to Login",
-  emptyStateNoCoursesTitle: "No courses yet",
-  emptyStateNoCoursesText: "Enroll in a course to start learning.",
-  emptyStateNoCoursesButton: "Browse All Courses",
-  emptyStateNoAvailableTitle: "No courses available",
-  emptyStateNoAvailableText: "Check back later for new courses.",
+  emptyStateTitle: "No courses available",
+  emptyStateText: "Check back later for new courses.",
   footerText: "Click any course to view details — enrolled courses can be resumed anytime.",
   trackIcons: {
     ccna: "🌐",
@@ -98,7 +90,6 @@ const COLORS = {
   tagBg: '#F1E9F0',
   tagText: '#714B67',
   success: '#2E8B57',
-  // Grey sidebar colors
   sidebarBg: '#F1F5F9',
   sidebarBorder: '#E2E8F0',
   sidebarText: '#475569',
@@ -119,13 +110,27 @@ const COURSE_IMAGES = {
   'default': 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=250&fit=crop'
 };
 
+// ─── Helper: Resolve image URL ──────────────────────────────────────
+const resolveImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  if (
+    imageUrl.startsWith("data:image/") ||
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://")
+  ) {
+    return imageUrl;
+  }
+  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8082/api";
+  if (imageUrl.startsWith("/uploads/")) return `${API_BASE}/admin${imageUrl}`;
+  if (imageUrl.startsWith("uploads/")) return `${API_BASE}/admin/${imageUrl}`;
+  return `${API_BASE}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+};
+
 function MyCoursesPage() {
   const navigate = useNavigate();
   
-  // ✅ Get config from localStorage
   const myCoursesConfig = getMyCoursesConfig() || DEFAULT_MY_COURSES_CONFIG;
   
-  // ✅ Build TRACKS from config
   const TRACKS = Object.entries(myCoursesConfig.trackIcons).map(([key, icon]) => ({
     match: key,
     icon: icon,
@@ -139,7 +144,6 @@ function MyCoursesPage() {
   const [activeSection, setActiveSection] = useState(0);
   const [completedSections, setCompletedSections] = useState([]);
   const [progress, setProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [topics, setTopics] = useState([]);
   const [subtopics, setSubtopics] = useState([]);
@@ -150,13 +154,15 @@ function MyCoursesPage() {
 
   const [allCourses, setAllCourses] = useState([]);
   const [loadingAllCourses, setLoadingAllCourses] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('all');
 
   const isMobile = window.innerWidth < 768;
+  const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
+  const isSmallDesktop = window.innerWidth >= 1024 && window.innerWidth < 1280;
   const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
   const isLoggedIn = !!localStorage.getItem('token');
 
-  // ─── HIDE NAVBAR WHEN VIEWING COURSE DETAILS ──────────────────────────
   useEffect(() => {
     if (activeView === 'split' || activeView === 'enrollment') {
       document.body.classList.add('hide-main-navbar');
@@ -168,7 +174,6 @@ function MyCoursesPage() {
     };
   }, [activeView]);
 
-  // ─── ✅ FIXED: Get course image from admin uploads ──────────────────
   const getCourseImage = (course) => {
     if (!course.imageUrl) {
       const name = course.title?.toLowerCase() || '';
@@ -180,14 +185,12 @@ function MyCoursesPage() {
 
     const imageUrl = course.imageUrl;
 
-    // Already absolute or data URI
     if (imageUrl.startsWith('data:image/') || 
         imageUrl.startsWith('http://') || 
         imageUrl.startsWith('https://')) {
       return imageUrl;
     }
 
-    // ✅ Admin-uploaded images start with /uploads/ – need to add /admin
     if (imageUrl.startsWith('/uploads/')) {
       return `${API_BASE}/admin${imageUrl}`;
     }
@@ -204,7 +207,6 @@ function MyCoursesPage() {
     return `${API_BASE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
   };
 
-  // ─── ✅ FIXED: Get subtopic image from admin uploads ────────────────
   const getSubtopicImageUrl = (subtopicId, fileName) => {
     if (!subtopicId || !fileName) return FALLBACK_IMAGE;
 
@@ -222,7 +224,6 @@ function MyCoursesPage() {
     return `${API_BASE}/admin/uploads/${fileName}`;
   };
 
-  // ─── API calls ─────────────────────────────────────────────────────────
   const fetchEnrolledCourses = async () => {
     if (!isLoggedIn) {
       setCourses([]);
@@ -267,7 +268,6 @@ function MyCoursesPage() {
     }
   };
 
-  // ─── Enroll Handler ──────────────────────────────────────────────────
   const handleEnroll = async (courseId) => {
     if (!isLoggedIn) {
       Swal.fire({
@@ -360,7 +360,6 @@ function MyCoursesPage() {
     }
   };
 
-  // ─── Course Selection Handlers ──────────────────────────────────────
   const handleViewCourse = async (course) => {
     setSelectedCourse(course);
     setActiveView('enrollment');
@@ -448,12 +447,10 @@ function MyCoursesPage() {
     });
   };
 
-  // ─── Helper: Determine if course is enrolled ──────────────────────────
   const isCourseEnrolled = (courseId) => {
     return courses.some((ec) => ec.id === courseId);
   };
 
-  // ✅ Updated: Get track from config
   const getTrack = (title) => {
     const name = title?.toLowerCase() || '';
     for (const track of TRACKS) {
@@ -465,7 +462,6 @@ function MyCoursesPage() {
     };
   };
 
-  // ─── Image handling functions ────────────────────────────────────────
   const handleImageError = (id) => {
     if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));
   };
@@ -478,283 +474,388 @@ function MyCoursesPage() {
     return FALLBACK_IMAGE;
   };
 
-  // Effects
   useEffect(() => {
     fetchEnrolledCourses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchAllCourses();
   }, []);
 
-  useEffect(() => {
-    if (activeTab === 'all' && allCourses.length === 0 && !loadingAllCourses) {
-      fetchAllCourses();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, allCourses.length, loadingAllCourses]);
+  // ─── Get unique categories from courses ──────────────────────────
+  const getCategories = () => {
+    const cats = new Set();
+    allCourses.forEach(course => {
+      if (course.category) {
+        cats.add(course.category);
+      }
+    });
+    return ['all', ...Array.from(cats)];
+  };
 
-  useEffect(() => {
-    if (!isLoggedIn && activeTab === 'my') {
-      setActiveTab('all');
-    }
-  }, [isLoggedIn, activeTab]);
+  const categories = getCategories();
 
-  // ─── Styles ─────────────────────────────────────────────────────────────
+  // ─── Filter courses by category ──────────────────────────────────
+  const getFilteredCourses = () => {
+    if (activeCategory === 'all') {
+      return allCourses;
+    }
+    return allCourses.filter(course => course.category === activeCategory);
+  };
+
+  const filteredCourses = getFilteredCourses();
+  const visibleCourses = filteredCourses.filter((c) => 
+    c.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // ─── Get grid columns based on screen size ──────────────────────
+  const getGridColumns = () => {
+    if (isMobile) return '1fr';
+    if (isTablet) return '2fr';
+    if (isSmallDesktop) return '3fr';
+    return 'repeat(4, 1fr)';
+  };
+
+  // ─── Styles ──────────────────────────────────────────────────────
   const styles = {
-    page: { minHeight: '100vh', background: COLORS.canvas, fontFamily: "'Inter', system-ui, -apple-system, sans-serif", color: COLORS.ink },
-
-    // ─── Navbar ──────────────────────────────────────────────────────
-    nav: { 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'space-between', 
-      padding: isMobile ? '16px 20px' : '18px 40px', 
-      borderBottom: `1px solid ${COLORS.line}`, 
-      background: COLORS.paper 
-    },
-    navLeft: { display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' },
-    logoMark: { 
-      width: '30px', 
-      height: '30px', 
-      borderRadius: '8px', 
-      background: `linear-gradient(135deg, ${COLORS.plumMid}, ${COLORS.accent})`, 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      color: '#fff', 
-      fontWeight: 800, 
-      fontSize: '15px' 
-    },
-    logoText: { fontWeight: 800, fontSize: '18px', letterSpacing: '-0.3px', color: COLORS.ink },
-    navRight: { display: 'flex', alignItems: 'center', gap: '12px' },
-    navGhostBtn: { 
-      background: 'transparent', 
-      border: 'none', 
-      color: COLORS.ink, 
-      fontWeight: 600, 
-      fontSize: '14px', 
-      cursor: 'pointer', 
-      padding: '8px 4px' 
-    },
-    navPrimaryBtn: { 
-      background: COLORS.accent, 
-      color: '#fff', 
-      border: 'none', 
-      borderRadius: '8px', 
-      padding: '10px 18px', 
-      fontWeight: 600, 
-      fontSize: '14px', 
-      cursor: 'pointer' 
+    page: { 
+      minHeight: '100vh', 
+      background: COLORS.canvas, 
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif", 
+      color: COLORS.ink 
     },
 
-    // ✅ Hero - Using config
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
       background: `linear-gradient(120deg, ${myCoursesConfig.heroBgStart} 0%, ${myCoursesConfig.heroBgMid} 55%, ${myCoursesConfig.heroBgEnd} 100%)`, 
-      padding: isMobile ? '44px 24px' : '64px 60px', 
-      color: '#fff' 
+      padding: isMobile ? '40px 20px' : '56px 48px', 
+      color: '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: isMobile ? 'auto' : '280px',
     },
-    heroInner: { maxWidth: '760px' },
-    heroEyebrow: { fontSize: '13px', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', opacity: 0.75, marginBottom: '14px' },
-    heroTitle: { fontSize: isMobile ? '32px' : '48px', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.5px', marginBottom: '18px' },
-    heroText: { fontSize: isMobile ? '15px' : '17px', lineHeight: 1.6, opacity: 0.88, maxWidth: '520px', marginBottom: '28px' },
+    heroInner: { 
+      maxWidth: '680px',
+      flex: 1,
+    },
+    heroEyebrow: { 
+      fontSize: '12px', 
+      fontWeight: 700, 
+      letterSpacing: '1.5px', 
+      textTransform: 'uppercase', 
+      opacity: 0.75, 
+      marginBottom: '10px' 
+    },
+    heroTitle: { 
+      fontSize: isMobile ? '28px' : '40px', 
+      fontWeight: 800, 
+      lineHeight: 1.08, 
+      letterSpacing: '-0.5px', 
+      marginBottom: '14px' 
+    },
+    heroText: { 
+      fontSize: isMobile ? '14px' : '16px', 
+      lineHeight: 1.6, 
+      opacity: 0.88, 
+      maxWidth: '480px', 
+      marginBottom: '22px' 
+    },
     heroBtn: { 
       background: '#fff', 
       color: COLORS.accent, 
       border: 'none', 
       borderRadius: '8px', 
-      padding: '13px 26px', 
+      padding: '12px 24px', 
       fontWeight: 700, 
-      fontSize: '15px', 
+      fontSize: '14px', 
       cursor: 'pointer', 
       boxShadow: '0 10px 25px -8px rgba(0,0,0,0.4)' 
     },
-    heroDecor: { 
-      position: 'absolute', 
-      right: isMobile ? '-60px' : '20px', 
-      top: '50%', 
-      transform: 'translateY(-50%)', 
-      fontSize: isMobile ? '100px' : '160px', 
-      opacity: 0.12, 
-      lineHeight: 1 
+    heroImage: {
+      width: isMobile ? '100%' : '260px',
+      height: isMobile ? '180px' : '260px',
+      objectFit: 'cover',
+      borderRadius: '14px',
+      marginLeft: isMobile ? '0' : '32px',
+      marginTop: isMobile ? '16px' : '0',
+      boxShadow: '0 16px 32px rgba(0,0,0,0.2)',
     },
 
-    // ─── Section Bar ─────────────────────────────────────────────────
     sectionBar: { 
       display: 'flex', 
       flexDirection: isMobile ? 'column' : 'row', 
       alignItems: isMobile ? 'stretch' : 'center', 
       justifyContent: 'space-between', 
-      gap: '18px', 
-      padding: isMobile ? '28px 20px 0' : '40px 60px 0', 
-      maxWidth: '1320px', 
+      gap: '14px', 
+      padding: isMobile ? '20px 16px 0' : '28px 40px 0', 
+      maxWidth: '1440px', 
       margin: '0 auto' 
     },
-    sectionTitle: { fontSize: '24px', fontWeight: 800, letterSpacing: '-0.3px', color: COLORS.ink },
-    tabRow: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-    tabPill: (active) => ({ 
-      padding: '9px 18px', 
-      borderRadius: '999px', 
-      border: `1px solid ${active ? COLORS.accent : COLORS.line}`, 
-      background: active ? COLORS.accent : COLORS.paper, 
-      color: active ? '#fff' : COLORS.slate, 
-      fontSize: '14px', 
-      fontWeight: 600, 
-      cursor: 'pointer', 
-      transition: 'all 0.15s' 
-    }),
-    searchWrap: { position: 'relative', width: isMobile ? '100%' : '280px' },
+    sectionTitle: { 
+      fontSize: '24px', 
+      fontWeight: 800, 
+      letterSpacing: '-0.3px', 
+      color: COLORS.ink 
+    },
+    searchWrap: { 
+      position: 'relative', 
+      width: isMobile ? '100%' : '280px' 
+    },
     searchIcon: { 
       position: 'absolute', 
       left: '14px', 
       top: '50%', 
       transform: 'translateY(-50%)', 
-      fontSize: '15px', 
+      fontSize: '14px', 
       color: COLORS.slate 
     },
     searchInput: { 
       width: '100%', 
       boxSizing: 'border-box', 
-      padding: '10px 14px 10px 38px', 
-      border: `1px solid ${COLORS.line}`, 
-      borderRadius: '999px', 
+      padding: '10px 14px 10px 40px', 
+      border: `2px solid ${COLORS.line}`, 
+      borderRadius: '10px', 
       fontSize: '14px', 
       outline: 'none', 
       background: COLORS.paper, 
-      color: COLORS.ink 
+      color: COLORS.ink,
+      transition: 'border-color 0.2s',
+      '&:focus': {
+        borderColor: COLORS.accent,
+      }
     },
 
-    // ─── Course Grid ─────────────────────────────────────────────────
+    // ─── Category Tabs ──────────────────────────────────────────────
+    categoryTabs: {
+      display: 'flex',
+      gap: '8px',
+      padding: isMobile ? '12px 16px 0' : '16px 40px 0',
+      maxWidth: '1440px',
+      margin: '0 auto',
+      overflowX: 'auto',
+      flexWrap: isMobile ? 'nowrap' : 'wrap',
+    },
+    categoryTab: (active) => ({
+      padding: '8px 20px',
+      borderRadius: '10px',
+      border: `2px solid ${active ? COLORS.accent : COLORS.line}`,
+      background: active ? COLORS.accent : COLORS.paper,
+      color: active ? '#fff' : COLORS.slate,
+      fontSize: '13px',
+      fontWeight: 600,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      whiteSpace: 'nowrap',
+      '&:hover': {
+        transform: 'scale(1.02)',
+      }
+    }),
+
+    // ─── Grid - 4 columns ──────────────────────────────────────────
     grid: { 
       display: 'grid', 
-      gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', 
-      gap: '28px', 
-      padding: isMobile ? '24px 20px 60px' : '28px 60px 80px', 
-      maxWidth: '1320px', 
+      gridTemplateColumns: getGridColumns(),
+      gap: '20px', 
+      padding: isMobile ? '20px 16px 48px' : '24px 40px 64px', 
+      maxWidth: '1440px', 
       margin: '0 auto' 
     },
+
+    // ─── Compact Odoo-style Card ──────────────────────────────────
     card: { 
       background: COLORS.paper, 
       borderRadius: '16px', 
       overflow: 'hidden', 
       cursor: 'pointer', 
-      transition: 'transform 0.2s, box-shadow 0.2s', 
+      transition: 'transform 0.25s ease, box-shadow 0.25s ease', 
       display: 'flex', 
       flexDirection: 'column',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      border: '1px solid rgba(0,0,0,0.04)',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.12)',
+      }
+    },
+    cardImageWrapper: {
+      position: 'relative',
+      paddingBottom: '56.25%',
+      background: '#f5f5f5',
+      overflow: 'hidden',
     },
     cardImage: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
       width: '100%',
-      height: '180px',
+      height: '100%',
       objectFit: 'cover',
-      background: '#f0f0f0',
+      transition: 'transform 0.3s ease',
+      '&:hover': {
+        transform: 'scale(1.02)',
+      }
     },
     cardBody: { 
-      padding: '18px 20px 16px', 
+      padding: '14px 16px 10px', 
       display: 'flex', 
       flexDirection: 'column', 
-      gap: '8px', 
-      flex: 1 
+      gap: '4px', 
+      flex: 1,
+      minHeight: '90px',
     },
     cardTitle: { 
-      fontSize: '17px', 
+      fontSize: '16px', 
       fontWeight: 700, 
       color: COLORS.ink, 
-      lineHeight: 1.35,
-      marginBottom: '4px',
+      lineHeight: 1.3,
+      marginBottom: '2px',
       display: '-webkit-box',
       WebkitLineClamp: 2,
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden',
+      minHeight: '42px',
+    },
+    cardDescription: {
+      fontSize: '13px',
+      color: COLORS.slate,
+      lineHeight: 1.4,
+      display: '-webkit-box',
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: 'vertical',
+      overflow: 'hidden',
+      minHeight: '36px',
+      marginBottom: '2px',
     },
     cardMetaRow: { 
       display: 'flex', 
       alignItems: 'center', 
-      gap: '16px', 
-      fontSize: '12.5px', 
+      gap: '12px', 
+      fontSize: '12px', 
       color: COLORS.slate,
+      paddingTop: '6px',
+      borderTop: `1px solid ${COLORS.line}`,
       marginTop: 'auto',
-      paddingTop: '4px',
       flexWrap: 'wrap',
     },
-    cardFooter: { padding: '0 20px 18px' },
-    enrollBtn: { 
-      width: '100%', 
-      padding: '11px', 
-      background: COLORS.accent, 
-      color: '#fff', 
-      border: 'none', 
-      borderRadius: '10px', 
-      fontWeight: 700, 
-      fontSize: '13.5px', 
-      cursor: 'pointer',
+    metaItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+    },
+    metaIcon: {
+      fontSize: '12px',
+    },
+    cardFooter: { 
+      padding: '0 16px 14px',
+      marginTop: '2px',
     },
     viewBtn: { 
       width: '100%', 
-      padding: '11px', 
+      padding: '10px', 
       background: '#fff', 
       color: COLORS.accent, 
       border: `2px solid ${COLORS.accent}`, 
       borderRadius: '10px', 
-      fontWeight: 700, 
-      fontSize: '13.5px', 
+      fontWeight: 600, 
+      fontSize: '13px', 
       cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        background: COLORS.accent,
+        color: '#fff',
+        boxShadow: '0 4px 12px rgba(113, 75, 103, 0.25)',
+      }
     },
     continueBtn: { 
       width: '100%', 
-      padding: '11px', 
+      padding: '10px', 
       background: COLORS.accent, 
       color: '#fff', 
       border: 'none', 
       borderRadius: '10px', 
-      fontWeight: 700, 
-      fontSize: '13.5px', 
+      fontWeight: 600, 
+      fontSize: '13px', 
       cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        background: COLORS.plumDark,
+        boxShadow: '0 4px 12px rgba(113, 75, 103, 0.3)',
+      }
+    },
+
+    enrolledBadge: {
+      position: 'absolute',
+      top: '12px',
+      right: '12px',
+      background: COLORS.success,
+      color: '#fff',
+      fontSize: '10px',
+      fontWeight: 700,
+      padding: '4px 12px',
+      borderRadius: '16px',
+      boxShadow: '0 2px 8px rgba(46, 139, 87, 0.35)',
+      zIndex: 1,
+      letterSpacing: '0.3px',
+    },
+
+    categoryTag: {
+      position: 'absolute',
+      bottom: '12px',
+      left: '12px',
+      background: 'rgba(0,0,0,0.65)',
+      backdropFilter: 'blur(6px)',
+      color: '#fff',
+      fontSize: '10px',
+      fontWeight: 600,
+      padding: '3px 12px',
+      borderRadius: '16px',
+      letterSpacing: '0.4px',
+      textTransform: 'uppercase',
     },
 
     emptyState: { 
       textAlign: 'center', 
-      padding: '70px 20px', 
+      padding: '60px 20px', 
       background: COLORS.paper, 
-      border: `1px solid ${COLORS.line}`, 
+      border: `2px dashed ${COLORS.line}`, 
       borderRadius: '16px', 
       maxWidth: '480px', 
-      margin: '40px auto' 
+      margin: '32px auto' 
     },
-    emptyIcon: { fontSize: '56px', marginBottom: '16px' },
-    emptyTitle: { fontSize: '20px', fontWeight: 800, color: COLORS.ink, marginBottom: '8px' },
-    emptyText: { color: COLORS.slate, marginBottom: '24px', fontSize: '14px' },
+    emptyIcon: { fontSize: '48px', marginBottom: '12px' },
+    emptyTitle: { fontSize: '20px', fontWeight: 800, color: COLORS.ink, marginBottom: '6px' },
+    emptyText: { color: COLORS.slate, marginBottom: '20px', fontSize: '14px' },
 
-    loadingContainer: { textAlign: 'center', padding: '90px 20px', color: COLORS.accent },
+    loadingContainer: { textAlign: 'center', padding: '80px 20px', color: COLORS.accent },
     spinner: { 
-      width: '46px', 
-      height: '46px', 
+      width: '40px', 
+      height: '40px', 
       border: `4px solid ${COLORS.line}`, 
       borderTopColor: COLORS.accent, 
       borderRadius: '50%', 
       animation: 'spin 0.9s linear infinite', 
-      margin: '0 auto 18px' 
+      margin: '0 auto 16px' 
     },
 
     footer: { 
       textAlign: 'center', 
-      padding: '30px', 
+      padding: '24px', 
       color: COLORS.slate, 
       fontSize: '13px', 
       borderTop: `1px solid ${COLORS.line}` 
     },
   };
 
-  if (loading) {
+  if (loading || loadingAllCourses) {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p>Loading your learning journey...</p>
+        <p>Loading courses...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // ─── Render: Enrollment Page (View-Only) ──────────────────────────────
+  // ─── Render: Enrollment Page ──────────────────────────────────────────
   if (selectedCourse && activeView === 'enrollment') {
     const enrollmentCourseData = {
       id: selectedCourse.id,
@@ -834,36 +935,43 @@ function MyCoursesPage() {
   }
 
   // ─── Render: Course Catalog ───────────────────────────────────────────
-  const visibleCourses = (activeTab === 'my' ? courses : allCourses)
-    .filter((c) => c.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const heroImageUrl = myCoursesConfig.heroImageUrl ? resolveImageUrl(myCoursesConfig.heroImageUrl) : null;
+
+  const formatCategoryName = (cat) => {
+    if (cat === 'all') return 'All Courses';
+    return cat.charAt(0).toUpperCase() + cat.slice(1);
+  };
 
   return (
     <div style={styles.page}>
-      {/* ─── Hero ────────────────────────────────────────────────────── */}
+      {/* ─── Hero Section ────────────────────────────────────────────── */}
       <div style={styles.hero}>
-        <span style={styles.heroDecor}>{myCoursesConfig.heroDecor}</span>
         <div style={styles.heroInner}>
           <div style={styles.heroEyebrow}>{myCoursesConfig.heroEyebrow}</div>
           <h1 style={styles.heroTitle}>{myCoursesConfig.heroTitle}</h1>
           <p style={styles.heroText}>{myCoursesConfig.heroText}</p>
-          <button style={styles.heroBtn} onClick={() => setActiveTab('all')}>{myCoursesConfig.heroButtonText}</button>
+          <button style={styles.heroBtn} onClick={() => {
+            document.getElementById('courses-section')?.scrollIntoView({ behavior: 'smooth' });
+          }}>
+            {myCoursesConfig.heroButtonText}
+          </button>
         </div>
+        {heroImageUrl && (
+          <img 
+            src={heroImageUrl} 
+            alt="Hero" 
+            style={styles.heroImage}
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        )}
       </div>
 
-      {/* ─── Section bar: title, tabs, search ───────────────────────────── */}
-      <div style={styles.sectionBar}>
+      {/* ─── Section Bar ──────────────────────────────────────────────── */}
+      <div style={styles.sectionBar} id="courses-section">
         <div style={styles.sectionTitle}>
-          {activeTab === 'my' ? myCoursesConfig.sectionTitleMy : myCoursesConfig.sectionTitleAll}
-        </div>
-        <div style={styles.tabRow}>
-          {isLoggedIn && (
-            <button style={styles.tabPill(activeTab === 'my')} onClick={() => setActiveTab('my')}>
-              {myCoursesConfig.myCoursesTabText}
-            </button>
-          )}
-          <button style={styles.tabPill(activeTab === 'all')} onClick={() => setActiveTab('all')}>
-            {myCoursesConfig.allCoursesTabText}
-          </button>
+          {myCoursesConfig.sectionTitle}
         </div>
         <div style={styles.searchWrap}>
           <span style={styles.searchIcon}>🔍</span>
@@ -877,155 +985,107 @@ function MyCoursesPage() {
         </div>
       </div>
 
-      {/* ─── My Courses ──────────────────────────────────────────────── */}
-      {activeTab === 'my' && (
-        <>
-          {!isLoggedIn ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>🔐</div>
-              <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateLoginTitle}</h3>
-              <p style={styles.emptyText}>{myCoursesConfig.emptyStateLoginText}</p>
-              <button onClick={() => navigate('/login')} style={styles.enrollBtn}>{myCoursesConfig.emptyStateLoginButton}</button>
-            </div>
-          ) : courses.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>📚</div>
-              <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateNoCoursesTitle}</h3>
-              <p style={styles.emptyText}>{myCoursesConfig.emptyStateNoCoursesText}</p>
-              <button onClick={() => setActiveTab('all')} style={styles.enrollBtn}>{myCoursesConfig.emptyStateNoCoursesButton}</button>
-            </div>
-          ) : (
-            <div style={styles.grid}>
-              {visibleCourses.map((course) => {
-                const track = getTrack(course.title);
-                const imageUrl = getCourseImage(course);
-                
-                return (
-                  <div key={course.id} style={styles.card}>
-                    <img 
-                      src={imageUrl} 
-                      alt={course.title}
-                      style={styles.cardImage}
-                      onError={(e) => {
-                        e.target.src = COURSE_IMAGES.default;
-                      }}
-                    />
-                    <div style={styles.cardBody}>
-                      <div style={styles.cardTitle}>{course.title}</div>
-                      <div style={styles.cardMetaRow}>
-                        <span>{myCoursesConfig.cardDurationLabel} {course.duration || '—'}</span>
-                        <span>{myCoursesConfig.cardStepsLabel} {course.steps || course.subtopicCount || '—'} {myCoursesConfig.cardStepsText}</span>
-                        <span>{track.icon}</span>
-                      </div>
-                    </div>
-                    <div style={styles.cardFooter}>
-                      <button 
-                        style={styles.continueBtn} 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          handleContinueLearning(course); 
-                        }}
-                      >
-                        {myCoursesConfig.continueLearningButtonText}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
+      {/* ─── Category Tabs ────────────────────────────────────────────── */}
+      <div style={styles.categoryTabs}>
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            style={styles.categoryTab(activeCategory === cat)}
+            onClick={() => setActiveCategory(cat)}
+          >
+            {formatCategoryName(cat)}
+          </button>
+        ))}
+      </div>
 
-      {/* ─── All Courses ─────────────────────────────────────────────── */}
-      {activeTab === 'all' && (
-        <>
-          {loadingAllCourses ? (
-            <div style={styles.loadingContainer}>
-              <div style={styles.spinner}></div>
-              <p>Loading course catalog...</p>
-            </div>
-          ) : allCourses.length === 0 ? (
-            <div style={styles.emptyState}>
-              <div style={styles.emptyIcon}>📭</div>
-              <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateNoAvailableTitle}</h3>
-              <p style={styles.emptyText}>{myCoursesConfig.emptyStateNoAvailableText}</p>
-            </div>
-          ) : (
-            <div style={styles.grid}>
-              {visibleCourses.map((course) => {
-                const track = getTrack(course.title);
-                const isEnrolled = isLoggedIn && courses.some((ec) => ec.id === course.id);
-                const imageUrl = getCourseImage(course);
-                
-                return (
-                  <div
-                    key={course.id}
-                    style={styles.card}
-                  >
-                    <div style={{ position: 'relative' }}>
-                      <img 
-                        src={imageUrl} 
-                        alt={course.title}
-                        style={styles.cardImage}
-                        onError={(e) => {
-                          e.target.src = COURSE_IMAGES.default;
-                        }}
-                      />
-                      {isEnrolled && (
-                        <span style={{
-                          position: 'absolute',
-                          top: '12px',
-                          right: '12px',
-                          background: COLORS.success,
-                          color: '#fff',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          padding: '4px 12px',
-                          borderRadius: '999px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        }}>
-                          {myCoursesConfig.enrolledBadgeText}
-                        </span>
-                      )}
-                    </div>
-                    <div style={styles.cardBody}>
-                      <div style={styles.cardTitle}>{course.title}</div>
-                      <div style={styles.cardMetaRow}>
-                        <span>{myCoursesConfig.cardDurationLabel} {course.duration || '—'}</span>
-                        <span>{myCoursesConfig.cardStepsLabel} {course.steps || course.subtopicCount || '—'} {myCoursesConfig.cardStepsText}</span>
-                        <span>{track.icon}</span>
-                      </div>
-                    </div>
-                    <div style={styles.cardFooter}>
-                      {isEnrolled ? (
-                        <button 
-                          style={styles.continueBtn} 
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            handleContinueLearning(course); 
-                          }}
-                        >
-                          {myCoursesConfig.continueLearningButtonText}
-                        </button>
-                      ) : (
-                        <button
-                          style={styles.viewBtn}
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            handleViewCourse(course); 
-                          }}
-                        >
-                          {myCoursesConfig.viewCourseButtonText}
-                        </button>
-                      )}
-                    </div>
+      {/* ─── Courses Grid ────────────────────────────────────────────── */}
+      {visibleCourses.length === 0 ? (
+        <div style={styles.emptyState}>
+          <div style={styles.emptyIcon}>📭</div>
+          <h3 style={styles.emptyTitle}>
+            {allCourses.length === 0 ? myCoursesConfig.emptyStateTitle : 'No courses in this category'}
+          </h3>
+          <p style={styles.emptyText}>
+            {allCourses.length === 0 ? myCoursesConfig.emptyStateText : 'Try selecting a different category.'}
+          </p>
+        </div>
+      ) : (
+        <div style={styles.grid}>
+          {visibleCourses.map((course) => {
+            const isEnrolled = isLoggedIn && courses.some((ec) => ec.id === course.id);
+            const imageUrl = getCourseImage(course);
+            
+            return (
+              <div key={course.id} style={styles.card}>
+                <div style={styles.cardImageWrapper}>
+                  <img 
+                    src={imageUrl} 
+                    alt={course.title}
+                    style={styles.cardImage}
+                    onError={(e) => {
+                      e.target.src = COURSE_IMAGES.default;
+                    }}
+                  />
+                  {isEnrolled && (
+                    <span style={styles.enrolledBadge}>
+                      {myCoursesConfig.enrolledBadgeText}
+                    </span>
+                  )}
+                  {course.category && (
+                    <span style={styles.categoryTag}>
+                      {course.category}
+                    </span>
+                  )}
+                </div>
+                <div style={styles.cardBody}>
+                  <div style={styles.cardTitle}>{course.title}</div>
+                  {course.description && (
+                    <div style={styles.cardDescription}>{course.description}</div>
+                  )}
+                  <div style={styles.cardMetaRow}>
+                    <span style={styles.metaItem}>
+                      <span style={styles.metaIcon}>⏱</span>
+                      {course.duration || '—'}
+                    </span>
+                    <span style={styles.metaItem}>
+                      <span style={styles.metaIcon}>📋</span>
+                      {course.steps || course.subtopicCount || '—'} {myCoursesConfig.cardStepsText}
+                    </span>
+                    {course.level && (
+                      <span style={styles.metaItem}>
+                        <span style={styles.metaIcon}>📊</span>
+                        {course.level}
+                      </span>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </>
+                </div>
+                <div style={styles.cardFooter}>
+                  {isEnrolled ? (
+                    <button 
+                      style={styles.continueBtn} 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleContinueLearning(course); 
+                      }}
+                    >
+                      {myCoursesConfig.continueLearningButtonText}
+                    </button>
+                  ) : (
+                    <button
+                      style={styles.viewBtn}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleViewCourse(course); 
+                      }}
+                    >
+                      {myCoursesConfig.viewCourseButtonText}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       <div style={styles.footer}>

@@ -1,95 +1,39 @@
+// src/App.js
 import './App.css';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  useLocation,
-  useNavigate,
-} from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+// Main pages
+import MyCoursesPage from './components/MyCoursesPage';
+import CourseDetailView from './components/CourseDetailView';
+import CourseEnrollmentPage from './components/CourseEnrollmentPage';
+
+// Navbar and auth pages
 import Navbar from './components/Navbar';
-import Home from './components/Home';
-import FreeAccount from './components/About/FreeAccount';
 import Login from './components/Login';
-import CoursesPage from './components/CoursesPage';
-import WatchDemoPage from './components/WatchDemoPage';
-import EnrollPage from './components/EnrollPage';
-import PracticeExam from './components/Tools/PracticeExam';
-import ForumPage from './components/Forum/ForumPage';
-import SupportPage from './components/Support/SupportPage';
-import CCNA200 from './components/Course/Cisco/CCNA200';
-import CCNA350 from './components/Course/Cisco/CCNA350';
-import CCNA300 from './components/Course/Cisco/CCNA300';
-import UpgradePage from './components/Tools/UpgradePage';
-import MyCoursesPage from "./components/MyCoursesPage";
+import Logout from './components/Logout';
+
+// Admin / Instructor
 import AdminDashboard from './components/Admin/AdminDashboard';
 import InstructorDashboard from './components/Instructor/InstructorDashboard';
-import Logout from './components/Logout';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import ProtectedInstructorRoute from './components/ProtectedInstructorRoute';
-import { TestApiConnection } from './components/TestApiConnection';
-
-// ✅ Routes where Navbar should be hidden
-const HIDE_NAVBAR = [
-  '/free-account',
-  '/login',
-  '/admin',
-  '/instructor',
-  '/logout',
-  '/test-api',
-  // ✅ Course detail routes - Navbar will be hidden on these pages
-  '/ccna200',
-  '/ccnp-encor',
-  '/ccnp-enarsi',
-];
 
 function AppRoutes() {
-  const navigate = useNavigate();
-  const isMobile = window.innerWidth < 768;
-
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/free-account" element={<FreeAccount />} />
+      {/* Main pages */}
+      <Route path="/" element={<MyCoursesPage />} />
+      <Route path="/my-courses" element={<MyCoursesPage />} />
+      <Route path="/course/:courseId" element={<CourseDetailView />} />
+      <Route path="/enroll/:courseId?" element={<CourseEnrollmentPage />} />
+
+      {/* Auth pages */}
       <Route path="/login" element={<Login />} />
+      <Route path="/logout" element={<Logout />} />
+
+      {/* Admin & Instructor (protected) */}
       <Route
-        path="/courses"
-        element={
-          <CoursesPage
-            isMobile={isMobile}
-            onBack={() => navigate('/')}
-          />
-        }
-      />
-      <Route
-        path="/watch-demo"
-        element={
-          <WatchDemoPage
-            isMobile={isMobile}
-            onBack={() => navigate('/courses')}
-          />
-        }
-      />
-      <Route path="/ccna200" element={<CCNA200 />} />
-      <Route
-        path="/enroll"
-        element={
-          <EnrollPage
-            isMobile={isMobile}
-            onBack={() => navigate('/courses')}
-          />
-        }
-      />
-      <Route path="/practice-exam" element={<PracticeExam />} />
-      <Route path="/forum" element={<ForumPage />} />
-      <Route path="/ccnp-encor" element={<CCNA350 />} />
-      <Route path="/ccnp-enarsi" element={<CCNA300 />} />
-      <Route path="/upgrade" element={<UpgradePage />} />
-      
-      <Route path="/test-api" element={<TestApiConnection />} />
-      
-      <Route
-        path="/admin"
+        path="/admin/*"
         element={
           <ProtectedAdminRoute>
             <AdminDashboard />
@@ -97,22 +41,11 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/instructor"
+        path="/instructor/*"
         element={
           <ProtectedInstructorRoute>
             <InstructorDashboard />
           </ProtectedInstructorRoute>
-        }
-      />
-      <Route path="/logout" element={<Logout />} />
-      <Route path="/my-courses" element={<MyCoursesPage isMobile={isMobile} onBack={() => navigate("/courses")} />} />
-      <Route
-        path="/support"
-        element={
-          <SupportPage
-            isMobile={isMobile}
-            onBack={() => navigate('/')}
-          />
         }
       />
     </Routes>
@@ -120,22 +53,9 @@ function AppRoutes() {
 }
 
 function Layout() {
-  const location = useLocation();
-  
-  // Check if current path should hide navbar
-  const showNavbar = !HIDE_NAVBAR.some(path => {
-    // For dynamic routes (like /course/:id), check if path starts with base
-    if (path.includes(':')) {
-      const basePath = path.split(':')[0];
-      return location.pathname.startsWith(basePath);
-    }
-    // For exact matches
-    return location.pathname === path;
-  });
-
   return (
     <>
-      {showNavbar && <Navbar />}
+      <Navbar />   {/* Navbar appears on every page */}
       <AppRoutes />
     </>
   );
