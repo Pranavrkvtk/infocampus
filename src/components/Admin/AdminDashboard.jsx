@@ -7,12 +7,6 @@ import {
   searchUsersByName,
   deleteAdminCourse,
   updateUserStatus,
-  getAllInstructors,
-  deleteInstructor,
-  hardDeleteInstructor,
-  updateInstructorStatus,
-  getHomeVideo,
-  updateHomeVideoUrl,
   getAllEnrollments,
   deleteUser,
 } from "../../api/adminApi";
@@ -25,353 +19,12 @@ import EditRoleModal from "./EditRoleModal";
 import DashboardTab from "./DashboardTab";
 import CoursesTab from "./CoursesTab";
 import StudentsTab from "./StudentsTab";
-import InstructorsTab from "./InstructorsTab";
 import EnrollmentsTab from "./EnrollmentsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
-import HomeEditorTab from "./HomeEditorTab";
 import MyCoursesEditorTab from "./MyCoursesEditorTab";
-import NavbarEditorTab from "./NavbarEditorTab";
 import CourseDetailEditorTab from "./CourseDetailEditorTab";
-
-// ===================== MEDIA TAB =====================
-function MediaTab({ videoUrl, videoLoading, fetchHomeVideo, setVideoLoading }) {
-  const [urlInput, setUrlInput] = useState("");
-  const [updatingUrl, setUpdatingUrl] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [isYoutube, setIsYoutube] = useState(false);
-  const [embedUrl, setEmbedUrl] = useState("");
-
-  useEffect(() => {
-    setUrlInput(videoUrl || "");
-    if (videoUrl) {
-      setPreviewUrl(videoUrl);
-      validateAndEmbedUrl(videoUrl);
-    }
-  }, [videoUrl]);
-
-  const validateAndEmbedUrl = (url) => {
-    if (!url || !url.trim()) {
-      setIsYoutube(false);
-      setEmbedUrl("");
-      return;
-    }
-
-    try {
-      new URL(url);
-      
-      const isYoutubeUrl = url.includes('youtube.com') || url.includes('youtu.be');
-      setIsYoutube(isYoutubeUrl);
-      
-      if (isYoutubeUrl) {
-        let videoId = null;
-        let embed = url;
-        
-        if (url.includes('watch?v=')) {
-          const videoIdMatch = url.match(/[?&]v=([^&]+)/);
-          if (videoIdMatch && videoIdMatch[1]) {
-            videoId = videoIdMatch[1];
-          }
-        } else if (url.includes('youtu.be/')) {
-          const videoIdMatch = url.match(/youtu\.be\/([^?&]+)/);
-          if (videoIdMatch && videoIdMatch[1]) {
-            videoId = videoIdMatch[1];
-          }
-        }
-        
-        if (videoId) {
-          const listMatch = url.match(/[?&]list=([^&]+)/);
-          if (listMatch && listMatch[1]) {
-            embed = `https://www.youtube.com/embed/${videoId}?list=${listMatch[1]}`;
-          } else {
-            embed = `https://www.youtube.com/embed/${videoId}`;
-          }
-        }
-        setEmbedUrl(embed);
-      } else {
-        setEmbedUrl(url);
-      }
-    } catch (_) {
-      setIsYoutube(false);
-      setEmbedUrl("");
-    }
-  };
-
-  const handleUrlChange = (e) => {
-    const value = e.target.value;
-    setUrlInput(value);
-    if (value.trim()) {
-      validateAndEmbedUrl(value);
-    } else {
-      setIsYoutube(false);
-      setEmbedUrl("");
-    }
-  };
-
-  const handleSaveUrl = async () => {
-    const trimmed = urlInput.trim();
-    if (!trimmed) {
-      Swal.fire("Error", "Please enter a valid video URL", "error");
-      return;
-    }
-    try {
-      new URL(trimmed);
-    } catch (_) {
-      Swal.fire("Invalid URL", "Please enter a full URL (e.g., https://...)", "error");
-      return;
-    }
-    const result = await Swal.fire({
-      title: "Set Video URL?",
-      text: "This will replace the current home video.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Yes, set URL",
-      confirmButtonColor: colors.teal,
-    });
-    if (!result.isConfirmed) return;
-
-    setUpdatingUrl(true);
-    try {
-      await updateHomeVideoUrl(trimmed);
-      await fetchHomeVideo();
-      setPreviewUrl(trimmed);
-      validateAndEmbedUrl(trimmed);
-      Swal.fire("Success!", "Home video URL updated.", "success");
-    } catch (err) {
-      Swal.fire("Error", err.response?.data?.message || "Failed to update URL", "error");
-    } finally {
-      setUpdatingUrl(false);
-    }
-  };
-
-  const getYoutubeThumbnail = (url) => {
-    if (!url) return null;
-    let videoId = null;
-    if (url.includes('watch?v=')) {
-      const match = url.match(/[?&]v=([^&]+)/);
-      if (match) videoId = match[1];
-    } else if (url.includes('youtu.be/')) {
-      const match = url.match(/youtu\.be\/([^?&]+)/);
-      if (match) videoId = match[1];
-    }
-    return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
-  };
-
-  const thumbnailUrl = isYoutube && previewUrl ? getYoutubeThumbnail(previewUrl) : null;
-
-  return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <div
-        style={{
-          background: "var(--surface)",
-          borderRadius: 16,
-          padding: 32,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-          border: "1px solid var(--border-light)",
-        }}
-      >
-        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, color: "var(--text-primary)" }}>
-          🎬 Home Page Video
-        </h2>
-        <p style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
-          Paste a direct video URL or a YouTube link. This will be shown on the public home page.
-        </p>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "200px" }}>
-            <input
-              type="text"
-              placeholder="https://example.com/video.mp4 or YouTube link"
-              value={urlInput}
-              onChange={handleUrlChange}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                borderRadius: 8,
-                border: "1px solid var(--border-light)",
-                fontSize: 14,
-                background: "var(--bg-base)",
-                color: "var(--text-primary)",
-                outline: "none",
-                transition: "border-color 0.2s",
-              }}
-              onFocus={(e) => e.target.style.borderColor = "var(--primary)"}
-              onBlur={(e) => e.target.style.borderColor = "var(--border-light)"}
-            />
-          </div>
-          <button
-            onClick={handleSaveUrl}
-            disabled={updatingUrl || !urlInput.trim()}
-            style={{
-              padding: "12px 24px",
-              background: "var(--primary)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontWeight: 600,
-              cursor: "pointer",
-              opacity: (updatingUrl || !urlInput.trim()) ? 0.6 : 1,
-              whiteSpace: "nowrap",
-              transition: "opacity 0.2s",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            {updatingUrl ? (
-              <span>⏳ Saving...</span>
-            ) : (
-              <span>💾 Set URL</span>
-            )}
-          </button>
-        </div>
-
-        {previewUrl && (
-          <div style={{ marginTop: 24 }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              marginBottom: "12px",
-            }}>
-              <span style={{
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "var(--text-primary)",
-              }}>
-                📺 Current Video Preview
-              </span>
-              {isYoutube && (
-                <span style={{
-                  fontSize: "11px",
-                  background: "#ff0000",
-                  color: "#fff",
-                  padding: "2px 10px",
-                  borderRadius: "12px",
-                  fontWeight: 600,
-                }}>
-                  YouTube
-                </span>
-              )}
-              {previewUrl && !isYoutube && (
-                <span style={{
-                  fontSize: "11px",
-                  background: "#4CAF50",
-                  color: "#fff",
-                  padding: "2px 10px",
-                  borderRadius: "12px",
-                  fontWeight: 600,
-                }}>
-                  Direct Video
-                </span>
-              )}
-            </div>
-
-            {isYoutube && embedUrl ? (
-              <div style={{
-                position: "relative",
-                paddingBottom: "56.25%",
-                height: 0,
-                overflow: "hidden",
-                borderRadius: 12,
-                background: "#000",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-              }}>
-                <iframe
-                  src={embedUrl}
-                  title="Home Page Video"
-                  frameBorder="0"
-                  allowFullScreen
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                  }}
-                />
-              </div>
-            ) : previewUrl && !isYoutube ? (
-              <div style={{
-                position: "relative",
-                paddingBottom: "56.25%",
-                height: 0,
-                overflow: "hidden",
-                borderRadius: 12,
-                background: "#000",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-              }}>
-                <video
-                  controls
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                  }}
-                >
-                  <source src={previewUrl} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            ) : null}
-
-            <div style={{
-              marginTop: 12,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "8px",
-            }}>
-              <span style={{
-                fontSize: "12px",
-                color: "var(--text-secondary)",
-                wordBreak: "break-all",
-                flex: 1,
-              }}>
-                🔗 {previewUrl}
-              </span>
-              {isYoutube && thumbnailUrl && (
-                <span style={{
-                  fontSize: "12px",
-                  color: "var(--text-secondary)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                }}>
-                  🖼️ Thumbnail available
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {!previewUrl && (
-          <div style={{
-            marginTop: 24,
-            padding: "40px 20px",
-            textAlign: "center",
-            background: "var(--bg-base)",
-            borderRadius: 12,
-            border: "2px dashed var(--border-light)",
-          }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🎬</div>
-            <h3 style={{ color: "var(--text-secondary)", fontSize: 16, fontWeight: 500 }}>
-              No video set yet
-            </h3>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-              Enter a YouTube URL or direct video link above to add a video to the home page.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -389,9 +42,6 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
 
-  const [videoUrl, setVideoUrl] = useState("");
-  const [videoLoading, setVideoLoading] = useState(false);
-
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
   const currentSearchTermRef = useRef("");
@@ -399,7 +49,6 @@ export default function AdminDashboard() {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
-  const [instructors, setInstructors] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
 
   // Resize listener
@@ -423,20 +72,6 @@ export default function AdminDashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // fetch home video
-  const fetchHomeVideo = async () => {
-    setVideoLoading(true);
-    try {
-      const response = await getHomeVideo();
-      setVideoUrl(response.data.videoUrl || "");
-    } catch (err) {
-      console.error("Failed to fetch home video:", err);
-      setVideoUrl("");
-    } finally {
-      setVideoLoading(false);
-    }
-  };
-
   // Fetch all students
   const fetchAllStudents = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -451,27 +86,6 @@ export default function AdminDashboard() {
       if (err.name !== "AbortError") {
         setError(err.response?.data?.message || "Failed to load users");
         setStudents([]);
-      }
-    } finally {
-      setLoading(false);
-      if (abortControllerRef.current === abortController) abortControllerRef.current = null;
-    }
-  };
-
-  // Fetch all instructors
-  const fetchAllInstructors = async () => {
-    if (abortControllerRef.current) abortControllerRef.current.abort();
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await getAllInstructors();
-      setInstructors(response.data || []);
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        setError(err.response?.data?.message || "Failed to load instructors");
-        setInstructors([]);
       }
     } finally {
       setLoading(false);
@@ -562,182 +176,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteInstructor = async (instructorId, instructorName, isActive = true) => {
-    if (!isActive) {
-      const result = await Swal.fire({
-        title: "Permanently Delete Instructor?",
-        html: `
-          <p>Delete <strong>${instructorName}</strong>?</p>
-          <p style="color: #991b1b; font-size: 13px; margin-top: 8px;">
-            ⚠️ This will permanently delete the instructor and all their data.
-            <br>This action <strong>cannot</strong> be undone!
-          </p>
-        `,
-        icon: "error",
-        showCancelButton: true,
-        confirmButtonText: "Yes, Permanently Delete",
-        confirmButtonColor: "#dc2626",
-        cancelButtonText: "Cancel",
-        cancelButtonColor: "#6b7280"
-      });
-      
-      if (result.isConfirmed) {
-        Swal.fire({ 
-          title: "Deleting...", 
-          allowOutsideClick: false, 
-          didOpen: () => Swal.showLoading() 
-        });
-        
-        try {
-          await hardDeleteInstructor(instructorId);
-          await fetchAllInstructors();
-          
-          Swal.fire({ 
-            title: "Deleted!", 
-            text: `${instructorName} has been permanently deleted.`,
-            icon: "success", 
-            timer: 2000, 
-            showConfirmButton: false 
-          });
-        } catch (error) {
-          console.error("Hard delete error:", error);
-          Swal.fire({ 
-            title: "Failed!", 
-            text: error.response?.data?.message || error.response?.data?.error || "Failed to delete instructor", 
-            icon: "error" 
-          });
-        }
-      }
-      return;
-    }
-
-    const { value: choice } = await Swal.fire({
-      title: `Manage ${instructorName}`,
-      text: "What would you like to do with this instructor?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "🔒 Deactivate",
-      cancelButtonText: "Cancel",
-      showDenyButton: true,
-      denyButtonText: "🗑️ Permanently Delete",
-      denyButtonColor: "#dc2626",
-      confirmButtonColor: "#f59e0b",
-      cancelButtonColor: "#6b7280"
-    });
-
-    if (choice === true) {
-      const confirm = await Swal.fire({
-        title: "Deactivate Instructor?",
-        html: `
-          <p>Deactivate <strong>${instructorName}</strong>?</p>
-          <p style="color: #92400e; font-size: 13px; margin-top: 8px;">
-            ⚠️ This instructor will no longer be able to log in.
-            <br>They can be <strong>reactivated</strong> later if needed.
-          </p>
-        `,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes, Deactivate",
-        confirmButtonColor: "#f59e0b",
-        cancelButtonText: "Cancel"
-      });
-
-      if (confirm.isConfirmed) {
-        Swal.fire({ 
-          title: "Deactivating...", 
-          allowOutsideClick: false, 
-          didOpen: () => Swal.showLoading() 
-        });
-        
-        try {
-          await deleteInstructor(instructorId);
-          await fetchAllInstructors();
-          
-          Swal.fire({ 
-            title: "Deactivated!", 
-            text: `${instructorName} has been deactivated.`,
-            icon: "success", 
-            timer: 2000, 
-            showConfirmButton: false 
-          });
-        } catch (error) {
-          console.error("Deactivate error:", error);
-          Swal.fire({ 
-            title: "Failed!", 
-            text: error.response?.data?.message || error.response?.data?.error || "Failed to deactivate instructor", 
-            icon: "error" 
-          });
-        }
-      }
-    } else if (choice === false) {
-      const confirm = await Swal.fire({
-        title: "Permanently Delete?",
-        html: `
-          <p>Delete <strong>${instructorName}</strong>?</p>
-          <p style="color: #991b1b; font-size: 13px; margin-top: 8px;">
-            ⚠️ This will permanently delete the instructor and all their data.
-            <br>This action <strong>cannot</strong> be undone!
-          </p>
-        `,
-        icon: "error",
-        showCancelButton: true,
-        confirmButtonText: "Yes, Delete Permanently",
-        confirmButtonColor: "#dc2626",
-        cancelButtonText: "Cancel",
-        cancelButtonColor: "#6b7280"
-      });
-
-      if (confirm.isConfirmed) {
-        Swal.fire({ 
-          title: "Deleting...", 
-          allowOutsideClick: false, 
-          didOpen: () => Swal.showLoading() 
-        });
-        
-        try {
-          await hardDeleteInstructor(instructorId);
-          await fetchAllInstructors();
-          
-          Swal.fire({ 
-            title: "Deleted!", 
-            text: `${instructorName} has been permanently deleted.`,
-            icon: "success", 
-            timer: 2000, 
-            showConfirmButton: false 
-          });
-        } catch (error) {
-          console.error("Hard delete error:", error);
-          Swal.fire({ 
-            title: "Failed!", 
-            text: error.response?.data?.message || error.response?.data?.error || "Failed to delete instructor", 
-            icon: "error" 
-          });
-        }
-      }
-    }
-  };
-
-  const handleToggleInstructorStatus = async (instructorId, currentStatus) => {
-    const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-    const action = newStatus === "ACTIVE" ? "activate" : "deactivate";
-    const result = await Swal.fire({
-      title: `${action === "activate" ? "Activate" : "Deactivate"} Instructor?`,
-      text: `Are you sure you want to ${action} this instructor?`,
-      icon: "question", showCancelButton: true,
-      confirmButtonText: `Yes, ${action}`,
-      confirmButtonColor: action === "activate" ? colors.teal : colors.coral,
-    });
-    if (result.isConfirmed) {
-      Swal.fire({ title: "Processing...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      try {
-        await updateInstructorStatus(instructorId, newStatus); await fetchAllInstructors();
-        Swal.fire({ title: `Instructor ${action}d!`, icon: "success", timer: 2000, showConfirmButton: false });
-      } catch (error) {
-        Swal.fire({ title: "Failed!", text: error.response?.data?.message || `Failed to ${action} instructor`, icon: "error" });
-      }
-    }
-  };
-
   const handleToggleStatus = async (studentId, currentStatus) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     const action = newStatus === "ACTIVE" ? "activate" : "deactivate";
@@ -783,9 +221,7 @@ export default function AdminDashboard() {
     if (activeTab === "dashboard") fetchDashboardStats();
     else if (activeTab === "courses") fetchCourses();
     else if (activeTab === "students") fetchAllStudents();
-    else if (activeTab === "instructors") fetchAllInstructors();
     else if (activeTab === "enrollments") fetchEnrollments();
-    else if (activeTab === "media") fetchHomeVideo();
   }, [activeTab]);
 
   const handleLogout = () => {
@@ -810,9 +246,7 @@ export default function AdminDashboard() {
         <button onClick={() => {
           if (activeTab === "students") fetchAllStudents();
           else if (activeTab === "courses") fetchCourses();
-          else if (activeTab === "instructors") fetchAllInstructors();
           else if (activeTab === "enrollments") fetchEnrollments();
-          else if (activeTab === "media") fetchHomeVideo();
           else fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
           Retry
@@ -823,15 +257,11 @@ export default function AdminDashboard() {
       case "dashboard":   return <DashboardTab kpis={kpis} loading={loading} isMobile={isMobile} onNavigate={setActiveTab} />;
       case "courses":     return <CoursesTab courses={courses} isMobile={isMobile} handleDeleteCourse={handleDeleteCourse} setSelectedCourse={setSelectedCourse} setIsEditCourseModalOpen={setIsEditCourseModalOpen} setIsAddCourseModalOpen={setIsAddCourseModalOpen} fetchCourses={fetchCourses} />;
       case "students":    return <StudentsTab students={students} searchTerm={searchTerm} handleSearchChange={handleSearchChange} handleToggleStatus={handleToggleStatus} handleDeleteStudent={handleDeleteStudent} isMobile={isMobile} />;
-      case "instructors": return <InstructorsTab instructors={instructors} isMobile={isMobile} handleDeleteInstructor={handleDeleteInstructor} handleToggleInstructorStatus={handleToggleInstructorStatus} fetchAllInstructors={fetchAllInstructors} />;
       case "enrollments": return <EnrollmentsTab isMobile={isMobile} />;
-      case "media":       return <MediaTab videoUrl={videoUrl} videoLoading={videoLoading} fetchHomeVideo={fetchHomeVideo} setVideoLoading={setVideoLoading} />;
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
-      case "home-editor": return <HomeEditorTab />;
       case "my-courses-editor": return <MyCoursesEditorTab />;
-      case "navbar-editor": return <NavbarEditorTab />;
       case "course-detail-editor": return <CourseDetailEditorTab />;
       default: return null;
     }
@@ -841,13 +271,9 @@ export default function AdminDashboard() {
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
     { icon: "👨‍🎓", label: "Students",      id: "students"       },
-    { icon: "👨‍🏫", label: "Instructors",   id: "instructors"    },
     { icon: "📋", label: "Enrollments",    id: "enrollments"    },
-    { icon: "🎬", label: "Media",          id: "media"          },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
-    { icon: "🏠", label: "Home Editor",    id: "home-editor"    },
     { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" },
-    { icon: "🎨", label: "Navbar Editor",  id: "navbar-editor" },
     { icon: "📄", label: "Course Detail Editor", id: "course-detail-editor" },
   ];
 
@@ -855,14 +281,10 @@ export default function AdminDashboard() {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
     students:        "Student Management",
-    instructors:     "Instructor Management",
     enrollments:     "Enrollment Management",
-    media:           "Media Manager",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
-    "home-editor":   "Home Page Editor",
     "my-courses-editor": "My Courses Editor",
-    "navbar-editor": "Navbar Editor",
     "course-detail-editor": "Course Detail Editor",
   };
 
@@ -870,14 +292,10 @@ export default function AdminDashboard() {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
     students:        "View and manage all enrolled students",
-    instructors:     "Manage instructors, their status and permissions",
     enrollments:     "View all student enrollments and progress",
-    media:           "Manage the home page video and future image assets",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
-    "home-editor":   "Customize all text, colors, and content on the public home page",
     "my-courses-editor": "Customize all text, icons, and content on the My Courses page",
-    "navbar-editor": "Customize the navigation bar appearance, colors, and content",
     "course-detail-editor": "Customize the course detail page layout, colors, and content",
   };
 
@@ -1017,7 +435,6 @@ export default function AdminDashboard() {
                   let badge = 0;
                   if (item.id === "courses") badge = courses.length;
                   else if (item.id === "students") badge = students.length;
-                  else if (item.id === "instructors") badge = instructors.length;
                   else if (item.id === "enrollments") badge = enrollments.length;
                   return (
                     <SidebarNavItem

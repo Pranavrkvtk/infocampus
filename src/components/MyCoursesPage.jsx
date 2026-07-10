@@ -12,6 +12,20 @@ import {
   enrollInCourse,
 } from '../api/UserApi';
 
+// ─── Material UI Icons ──────────────────────────────────────────────────
+import SearchIcon from '@mui/icons-material/Search';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import SchoolIcon from '@mui/icons-material/School';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
+
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
 // ─── Get My Courses Configuration from localStorage ────────────────────
@@ -74,6 +88,18 @@ const DEFAULT_MY_COURSES_CONFIG = {
     devops: "#FFF3E0",
     default: "#F2F1F6"
   }
+};
+
+// ─── Top Bar Colors ──────────────────────────────────────────────────
+const TOPBAR = {
+  bg: '#2C3540',
+  bgGradient: 'linear-gradient(180deg, #2C3540 0%, #1F2933 100%)',
+  bgActive: '#1A232E',
+  bgHover: '#3A4553',
+  border: '#3E4A58',
+  text: '#FFFFFF',
+  muted: '#C9D2DC',
+  lessonsColor: '#47525f',
 };
 
 // ─── Design tokens ───────────────────────────────────────────────
@@ -173,6 +199,62 @@ function MyCoursesPage() {
       document.body.classList.remove('hide-main-navbar');
     };
   }, [activeView]);
+
+  // ─── Handle Share ──────────────────────────────────────────────────
+  const handleShare = async () => {
+    const shareData = {
+      title: 'NetLearn - Networking & Security Academy',
+      text: 'Check out NetLearn - Your networking and security learning platform!',
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Share error:', error);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        Swal.fire({
+          title: 'Link Copied!',
+          text: 'Course link copied to clipboard.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        console.error('Clipboard error:', error);
+      }
+    }
+  };
+
+  // ─── Handle Logout ──────────────────────────────────────────────────
+  const handleLogout = () => {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'You will be logged out of your account.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Logout',
+      confirmButtonColor: '#dc2626',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('userId');
+        window.location.href = '/login';
+      }
+    });
+  };
+
+  // ─── Handle Login ──────────────────────────────────────────────────
+  const handleLogin = () => {
+    window.location.href = '/login';
+  };
 
   const getCourseImage = (course) => {
     if (!course.imageUrl) {
@@ -522,6 +604,41 @@ function MyCoursesPage() {
       color: COLORS.ink 
     },
 
+    // ─── TOP NAVIGATION BAR ──────────────────────────────────────
+    topBar: {
+      height: '64px',
+      background: TOPBAR.bgGradient,
+      borderBottom: `1px solid ${TOPBAR.border}`,
+      display: 'flex',
+      alignItems: 'stretch',
+      justifyContent: 'flex-end',
+      padding: 0,
+      color: TOPBAR.text,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+    },
+    topBarRight: {
+      display: 'flex',
+      alignItems: 'stretch',
+      gap: '0px',
+      height: '100%',
+    },
+    actionButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '0 24px',
+      fontSize: '15px',
+      fontWeight: 600,
+      border: 'none',
+      borderLeft: `1px solid ${TOPBAR.border}`,
+      cursor: 'pointer',
+      transition: 'background 0.15s',
+      background: TOPBAR.bgActive,
+      color: TOPBAR.text,
+      height: '100%',
+      borderRadius: 0,
+    },
+
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
@@ -568,7 +685,15 @@ function MyCoursesPage() {
       fontWeight: 700, 
       fontSize: '14px', 
       cursor: 'pointer', 
-      boxShadow: '0 10px 25px -8px rgba(0,0,0,0.4)' 
+      boxShadow: '0 10px 25px -8px rgba(0,0,0,0.4)',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px',
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 14px 30px -8px rgba(0,0,0,0.5)',
+      }
     },
     heroImage: {
       width: isMobile ? '100%' : '260px',
@@ -594,7 +719,10 @@ function MyCoursesPage() {
       fontSize: '24px', 
       fontWeight: 800, 
       letterSpacing: '-0.3px', 
-      color: COLORS.ink 
+      color: COLORS.ink,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
     },
     searchWrap: { 
       position: 'relative', 
@@ -605,8 +733,8 @@ function MyCoursesPage() {
       left: '14px', 
       top: '50%', 
       transform: 'translateY(-50%)', 
-      fontSize: '14px', 
-      color: COLORS.slate 
+      color: COLORS.slate,
+      pointerEvents: 'none',
     },
     searchInput: { 
       width: '100%', 
@@ -618,9 +746,10 @@ function MyCoursesPage() {
       outline: 'none', 
       background: COLORS.paper, 
       color: COLORS.ink,
-      transition: 'border-color 0.2s',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
       '&:focus': {
         borderColor: COLORS.accent,
+        boxShadow: `0 0 0 4px ${COLORS.accent}20`,
       }
     },
 
@@ -647,6 +776,7 @@ function MyCoursesPage() {
       whiteSpace: 'nowrap',
       '&:hover': {
         transform: 'scale(1.02)',
+        boxShadow: active ? '0 4px 12px rgba(113, 75, 103, 0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
       }
     }),
 
@@ -742,7 +872,8 @@ function MyCoursesPage() {
       gap: '4px',
     },
     metaIcon: {
-      fontSize: '12px',
+      fontSize: '14px',
+      color: COLORS.slate,
     },
     cardFooter: { 
       padding: '0 16px 14px',
@@ -759,6 +890,10 @@ function MyCoursesPage() {
       fontSize: '13px', 
       cursor: 'pointer',
       transition: 'all 0.2s ease',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6px',
       '&:hover': {
         background: COLORS.accent,
         color: '#fff',
@@ -776,6 +911,10 @@ function MyCoursesPage() {
       fontSize: '13px', 
       cursor: 'pointer',
       transition: 'all 0.2s ease',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6px',
       '&:hover': {
         background: COLORS.plumDark,
         boxShadow: '0 4px 12px rgba(113, 75, 103, 0.3)',
@@ -795,6 +934,9 @@ function MyCoursesPage() {
       boxShadow: '0 2px 8px rgba(46, 139, 87, 0.35)',
       zIndex: 1,
       letterSpacing: '0.3px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
     },
 
     categoryTag: {
@@ -944,6 +1086,64 @@ function MyCoursesPage() {
 
   return (
     <div style={styles.page}>
+      {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
+      <div style={styles.topBar}>
+        <div style={styles.topBarRight}>
+          <button
+            onClick={handleShare}
+            className="action-btn"
+            style={styles.actionButton}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgActive;
+            }}
+          >
+            <ShareOutlinedIcon style={{ fontSize: '20px' }} />
+            <span>Share</span>
+          </button>
+
+          {isLoggedIn ? (
+            <button
+              onClick={handleLogout}
+              className="action-btn"
+              style={{
+                ...styles.actionButton,
+                color: '#ff6b6b',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgActive;
+              }}
+            >
+              <LogoutRoundedIcon style={{ fontSize: '20px' }} />
+              <span>Logout</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="action-btn"
+              style={{
+                ...styles.actionButton,
+                color: '#F7C948',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgActive;
+              }}
+            >
+              <LoginRoundedIcon style={{ fontSize: '20px' }} />
+              <span>Sign In</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ─── Hero Section ────────────────────────────────────────────── */}
       <div style={styles.hero}>
         <div style={styles.heroInner}>
@@ -953,6 +1153,7 @@ function MyCoursesPage() {
           <button style={styles.heroBtn} onClick={() => {
             document.getElementById('courses-section')?.scrollIntoView({ behavior: 'smooth' });
           }}>
+            <WhatshotIcon style={{ fontSize: '18px' }} />
             {myCoursesConfig.heroButtonText}
           </button>
         </div>
@@ -971,10 +1172,11 @@ function MyCoursesPage() {
       {/* ─── Section Bar ──────────────────────────────────────────────── */}
       <div style={styles.sectionBar} id="courses-section">
         <div style={styles.sectionTitle}>
+          <SchoolIcon style={{ fontSize: '24px', color: COLORS.accent }} />
           {myCoursesConfig.sectionTitle}
         </div>
         <div style={styles.searchWrap}>
-          <span style={styles.searchIcon}>🔍</span>
+          <SearchIcon style={styles.searchIcon} />
           <input
             type="text"
             placeholder={myCoursesConfig.searchPlaceholder}
@@ -1028,6 +1230,7 @@ function MyCoursesPage() {
                   />
                   {isEnrolled && (
                     <span style={styles.enrolledBadge}>
+                      <BookmarkIcon style={{ fontSize: '12px' }} />
                       {myCoursesConfig.enrolledBadgeText}
                     </span>
                   )}
@@ -1044,16 +1247,16 @@ function MyCoursesPage() {
                   )}
                   <div style={styles.cardMetaRow}>
                     <span style={styles.metaItem}>
-                      <span style={styles.metaIcon}>⏱</span>
+                      <AccessTimeIcon style={styles.metaIcon} />
                       {course.duration || '—'}
                     </span>
                     <span style={styles.metaItem}>
-                      <span style={styles.metaIcon}>📋</span>
+                      <MenuBookIcon style={styles.metaIcon} />
                       {course.steps || course.subtopicCount || '—'} {myCoursesConfig.cardStepsText}
                     </span>
                     {course.level && (
                       <span style={styles.metaItem}>
-                        <span style={styles.metaIcon}>📊</span>
+                        <EmojiEventsIcon style={styles.metaIcon} />
                         {course.level}
                       </span>
                     )}
@@ -1068,6 +1271,7 @@ function MyCoursesPage() {
                         handleContinueLearning(course); 
                       }}
                     >
+                      <PlayArrowIcon style={{ fontSize: '16px' }} />
                       {myCoursesConfig.continueLearningButtonText}
                     </button>
                   ) : (
@@ -1078,6 +1282,7 @@ function MyCoursesPage() {
                         handleViewCourse(course); 
                       }}
                     >
+                      <ArrowBackIcon style={{ fontSize: '16px', transform: 'rotate(180deg)' }} />
                       {myCoursesConfig.viewCourseButtonText}
                     </button>
                   )}

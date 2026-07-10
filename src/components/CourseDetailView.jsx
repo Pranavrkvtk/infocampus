@@ -502,51 +502,22 @@ function VideoTab({ videoUrls, config, title, courseTitle }) {
   return (
     <div style={{
       height: '100%',
-      minHeight: 0,
-      background: 'linear-gradient(180deg, #321B2B 0%, #7B4A6D 100%)',
+      width: '100%',
+      background: '#000',
       position: 'relative',
       overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
     }}>
+      {/* Video container - fills the entire space */}
       <div style={{
-        position: 'absolute',
-        inset: 0,
-        opacity: 0.22,
-        background:
-          'repeating-radial-gradient(ellipse at top right, transparent 0 70px, rgba(255,255,255,.22) 72px 74px)',
-        pointerEvents: 'none',
-      }} />
-
-      <div style={{
-        position: 'absolute',
-        top: 18,
-        left: 36,
-        right: 36,
-        zIndex: 2,
+        flex: 1,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        color: '#fff',
-      }}>
-  <div style={{ display: 'flex', alignItems: 'center' }}>
-  <div>
-    <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15 }}>
-      {title || 'Course Video'}
-    </div>
-    <div style={{ fontSize: 14, fontWeight: 600, opacity: 0.9 }}>
-      {courseTitle || 'Course'}
-    </div>
-  </div>
-</div>
-
-      </div>
-
-      <div style={{
-        height: '100%',
-        display: 'grid',
-        placeItems: 'center',
-        padding: '86px 36px 56px',
+        justifyContent: 'center',
         position: 'relative',
-        zIndex: 1,
+        width: '100%',
+        height: '100%',
       }}>
         <iframe
           src={embed}
@@ -557,22 +528,27 @@ function VideoTab({ videoUrls, config, title, courseTitle }) {
           style={{
             width: '100%',
             height: '100%',
-            maxHeight: 'calc(100vh - 150px)',
-            aspectRatio: '16 / 9',
             border: 0,
-            background: 'transparent',
+            display: 'block',
+            background: '#000',
           }}
         />
       </div>
 
+      {/* Video navigation - minimal, overlaid on bottom */}
       {urls.length > 1 && (
         <div style={{
           position: 'absolute',
-          left: 36,
+          left: '50%',
+          transform: 'translateX(-50%)',
           bottom: 24,
           zIndex: 3,
           display: 'flex',
           gap: 8,
+          background: 'rgba(0,0,0,0.6)',
+          padding: '8px 16px',
+          borderRadius: 999,
+          backdropFilter: 'blur(8px)',
         }}>
           {urls.map((_, idx) => (
             <button
@@ -581,14 +557,26 @@ function VideoTab({ videoUrls, config, title, courseTitle }) {
               style={{
                 border: 0,
                 borderRadius: 999,
-                padding: '8px 14px',
-                background: idx === currentVideo ? '#875A7B' : 'rgba(0,0,0,.35)',
-                color: '#fff',
+                padding: '6px 14px',
+                background: idx === currentVideo ? '#ffffff' : 'rgba(255,255,255,0.2)',
+                color: idx === currentVideo ? '#000' : '#fff',
                 fontWeight: 700,
+                fontSize: '12px',
                 cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (idx !== currentVideo) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (idx !== currentVideo) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+                }
               }}
             >
-              Video {idx + 1}
+              {idx + 1}
             </button>
           ))}
         </div>
@@ -596,7 +584,6 @@ function VideoTab({ videoUrls, config, title, courseTitle }) {
     </div>
   );
 }
-
 function InterviewTab({ questions, config }) {
   const [expanded, setExpanded] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -1529,7 +1516,7 @@ export default function CourseDetailView({
             }}
           >
             <HomeOutlinedIcon style={{ fontSize: '20px' }} />
-            <span>Home</span>
+            <span>Back to Courses</span>
           </button>
 
           {isLoggedIn ? (

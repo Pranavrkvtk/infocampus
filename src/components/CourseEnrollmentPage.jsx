@@ -7,6 +7,12 @@ import {
   getEnrollmentCount 
 } from '../api/UserApi';
 
+// ─── Material UI Icons ──────────────────────────────────────────────────
+import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
+
 // ─── Design tokens ─────────────────────────────────────────────────────
 const COLORS = {
   plumDark: '#3B2340',
@@ -23,6 +29,17 @@ const COLORS = {
   success: '#2E8B57',
   gold: '#E8B84B',
   error: '#DC3545',
+};
+
+// ─── Top Bar Colors ──────────────────────────────────────────────────
+const TOPBAR = {
+  bg: '#0F172A',
+  bgGradient: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)',
+  bgActive: '#1E293B',
+  bgHover: '#334155',
+  border: '#334155',
+  text: '#FFFFFF',
+  muted: '#94A3B8',
 };
 
 // ─── CourseEnrollmentPage Component ──────────────────────────────────
@@ -245,6 +262,28 @@ export default function CourseEnrollmentPage({
     setShowLoginModal(false);
   };
 
+  // ─── Handle Home Navigation ──────────────────────────────────────────
+  const handleHomeClick = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      window.location.href = '/courses';
+    }
+  };
+
+  // ─── Handle Logout ──────────────────────────────────────────────────
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userId');
+    window.location.href = '/login';
+  };
+
+  // ─── Handle Login ──────────────────────────────────────────────────
+  const handleLogin = () => {
+    window.location.href = '/login';
+  };
+
   // ─── Styles ──────────────────────────────────────────────────────────
 
   const styles = {
@@ -253,6 +292,45 @@ export default function CourseEnrollmentPage({
       minHeight: '100vh',
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
     },
+    
+    // ─── TOP NAVIGATION BAR ──────────────────────────────────────
+    topBar: {
+      height: '64px',
+      background: TOPBAR.bgGradient,
+      borderBottom: `1px solid ${TOPBAR.border}`,
+      display: 'flex',
+      alignItems: 'stretch',
+      justifyContent: 'flex-end',
+      padding: 0,
+      color: TOPBAR.text,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100,
+    },
+    topBarRight: {
+      display: 'flex',
+      alignItems: 'stretch',
+      gap: '0px',
+      height: '100%',
+    },
+    actionButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '0 24px',
+      fontSize: '15px',
+      fontWeight: 600,
+      border: 'none',
+      borderLeft: `1px solid ${TOPBAR.border}`,
+      cursor: 'pointer',
+      transition: 'background 0.15s',
+      background: TOPBAR.bgActive,
+      color: TOPBAR.text,
+      height: '100%',
+      borderRadius: 0,
+    },
+
     container: {
       maxWidth: '1400px',
       margin: '0 auto',
@@ -262,47 +340,22 @@ export default function CourseEnrollmentPage({
     // ─── FULL WIDTH TOP COLOR BAR ──────────────────────────────────
     topColorBar: {
       background: `linear-gradient(135deg, ${COLORS.plumDark}, ${COLORS.plumMid}, ${COLORS.plumLight})`,
-      padding: isMobile ? '20px 16px' : '24px 40px',
-      marginBottom: '24px',
+      padding: isMobile ? '32px 20px' : '40px 48px', // Reduced padding
+      marginBottom: '0px', // Removed margin
       color: '#fff',
       width: '100%',
       boxSizing: 'border-box',
     },
     topColorBarTitle: {
-      fontSize: isMobile ? '20px' : '28px',
+      fontSize: isMobile ? '28px' : '42px',
       fontWeight: 700,
-      marginBottom: '4px',
+      marginBottom: '8px',
+      letterSpacing: '-0.02em',
     },
     topColorBarSubtitle: {
-      fontSize: isMobile ? '13px' : '16px',
+      fontSize: isMobile ? '15px' : '20px',
       opacity: 0.85,
-    },
-
-    // ─── Top Navigation ──────────────────────────────────────────────
-    topNav: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: isMobile ? '12px 0' : '16px 0',
-      borderBottom: `1px solid ${COLORS.line}`,
-      marginBottom: '24px',
-      flexWrap: 'wrap',
-      gap: '12px',
-    },
-    backLink: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      color: COLORS.slate,
-      fontSize: '14px',
-      fontWeight: 500,
-      cursor: 'pointer',
-      textDecoration: 'none',
-      background: 'transparent',
-      border: 'none',
-      padding: '8px 12px',
-      borderRadius: '8px',
-      transition: 'all 0.2s',
+      fontWeight: 400,
     },
 
     // ─── Main Layout ──────────────────────────────────────────────────
@@ -311,6 +364,7 @@ export default function CourseEnrollmentPage({
       gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr' : '1fr 2fr',
       gap: '32px',
       alignItems: 'start',
+      paddingTop: '0px', // Removed padding top
     },
     leftColumn: {
       display: 'flex',
@@ -645,6 +699,52 @@ export default function CourseEnrollmentPage({
   if (loadingDetails || loadingEnrollmentCount) {
     return (
       <div style={styles.page}>
+        {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
+        <div style={styles.topBar}>
+          <div style={styles.topBarRight}>
+            <button
+              onClick={handleShare}
+              style={styles.actionButton}
+              onMouseEnter={(e) => e.currentTarget.style.background = TOPBAR.bgHover}
+              onMouseLeave={(e) => e.currentTarget.style.background = TOPBAR.bgActive}
+            >
+              <ShareOutlinedIcon style={{ fontSize: '20px' }} />
+              <span>Share</span>
+            </button>
+
+            <button
+              onClick={handleHomeClick}
+              style={styles.actionButton}
+              onMouseEnter={(e) => e.currentTarget.style.background = TOPBAR.bgHover}
+              onMouseLeave={(e) => e.currentTarget.style.background = TOPBAR.bgActive}
+            >
+              <HomeRoundedIcon style={{ fontSize: '20px' }} />
+              <span>Home</span>
+            </button>
+
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                style={{...styles.actionButton, color: '#EF4444'}}
+                onMouseEnter={(e) => e.currentTarget.style.background = TOPBAR.bgHover}
+                onMouseLeave={(e) => e.currentTarget.style.background = TOPBAR.bgActive}
+              >
+                <LogoutRoundedIcon style={{ fontSize: '20px' }} />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleLogin}
+                style={{...styles.actionButton, color: '#F59E0B'}}
+                onMouseEnter={(e) => e.currentTarget.style.background = TOPBAR.bgHover}
+                onMouseLeave={(e) => e.currentTarget.style.background = TOPBAR.bgActive}
+              >
+                <LoginRoundedIcon style={{ fontSize: '20px' }} />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
+        </div>
         <div style={styles.container}>
           <div style={styles.loadingContainer}>
             <div style={styles.spinner}></div>
@@ -780,6 +880,53 @@ export default function CourseEnrollmentPage({
   return (
     <>
       <div style={styles.page}>
+        {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
+        <div style={styles.topBar}>
+          <div style={styles.topBarRight}>
+            <button
+              onClick={handleShare}
+              style={styles.actionButton}
+              onMouseEnter={(e) => e.currentTarget.style.background = TOPBAR.bgHover}
+              onMouseLeave={(e) => e.currentTarget.style.background = TOPBAR.bgActive}
+            >
+              <ShareOutlinedIcon style={{ fontSize: '20px' }} />
+              <span>Share</span>
+            </button>
+
+            <button
+              onClick={handleHomeClick}
+              style={styles.actionButton}
+              onMouseEnter={(e) => e.currentTarget.style.background = TOPBAR.bgHover}
+              onMouseLeave={(e) => e.currentTarget.style.background = TOPBAR.bgActive}
+            >
+              <HomeRoundedIcon style={{ fontSize: '20px' }} />
+              <span>Home</span>
+            </button>
+
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                style={{...styles.actionButton, color: '#EF4444'}}
+                onMouseEnter={(e) => e.currentTarget.style.background = TOPBAR.bgHover}
+                onMouseLeave={(e) => e.currentTarget.style.background = TOPBAR.bgActive}
+              >
+                <LogoutRoundedIcon style={{ fontSize: '20px' }} />
+                <span>Logout</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleLogin}
+                style={{...styles.actionButton, color: '#F59E0B'}}
+                onMouseEnter={(e) => e.currentTarget.style.background = TOPBAR.bgHover}
+                onMouseLeave={(e) => e.currentTarget.style.background = TOPBAR.bgActive}
+              >
+                <LoginRoundedIcon style={{ fontSize: '20px' }} />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* ─── FULL WIDTH TOP COLOR BAR ────────────────────────────── */}
         <div style={styles.topColorBar}>
           <div style={styles.container}>
@@ -791,20 +938,12 @@ export default function CourseEnrollmentPage({
         </div>
 
         <div style={styles.container}>
-          {/* ─── Top Navigation ────────────────────────────────────── */}
-          <div style={styles.topNav}>
-            <button style={styles.backLink} onClick={onBack}>
-              ← Back to Courses
-            </button>
-          </div>
-
           {/* ─── Main Layout ────────────────────────────────────────── */}
           <div style={styles.mainLayout}>
             {/* ─── Left Column (Join Card + Info) ──────────────────── */}
             <div style={styles.leftColumn}>
               {/* Join Course Card */}
               <div style={styles.joinCard}>
-
                 {isEnrolled ? (
                   <>
                     <button style={styles.startBtn} onClick={handleStartLearning}>
