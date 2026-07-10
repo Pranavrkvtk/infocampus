@@ -13,29 +13,43 @@ import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 import ShareIcon from '@mui/icons-material/Share';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
+import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
 
 // ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-// ─── Dark Theme Colors for Sidebar (Odoo-style Dark Blue-Gray) ──────
-const DARK = {
-  bg: '#262C35',
-  surface: '#303743',
-  surfaceLight: '#3A4959',
-  border: '#444E5A',
+// ─── Odoo eLearning Color Palette ────────────────────────────────────
+const SIDEBAR = {
+  bg: 'linear-gradient(180deg, #4D5865 0%, #404B58 100%)',
+  header: '#505C69',
+  item: '#36404C',
+  hover: '#495563',
+  active: '#465362',
+  border: '#4F5B68',
   text: '#FFFFFF',
-  textMuted: '#A8AEB1',
-  textLight: '#DADDDD',
+  textLight: '#D7DDE5',
+  textMuted: '#A8B3BF',
   accent: '#F7C948',
-  accentSoft: '#3A4959',
+};
+
+// ─── Dark Theme Colors for Sidebar (Legacy - kept for compatibility) ─
+const DARK = {
+  bg: '#404B58',
+  surface: '#36404C',
+  surfaceLight: '#495563',
+  border: '#4F5B68',
+  text: '#FFFFFF',
+  textMuted: '#A8B3BF',
+  textLight: '#D7DDE5',
+  accent: '#F7C948',
+  accentSoft: '#465362',
   success: '#22c55e',
   successBg: '#052e16',
-  hover: '#3A4959',
-  cardBg: '#303743',
-  inputBg: '#262C35',
+  hover: '#495563',
+  cardBg: '#36404C',
+  inputBg: '#404B58',
 };
 
 // ─── Light Theme Colors for Content ──────────────────────────────────
@@ -53,7 +67,7 @@ const LIGHT = {
   successBg: '#dcfce7',
 };
 
-// ─── Grey Top Bar Colors (Odoo-style Dark Gradient) ──────────────────
+// ─── Top Bar Colors ──────────────────────────────────────────────────
 const TOPBAR = {
   bg: '#2C3540',
   bgGradient: 'linear-gradient(180deg, #2C3540 0%, #1F2933 100%)',
@@ -260,7 +274,7 @@ const renderOdooContent = (text) => {
 // ─── Odoo Content Styles (Light Theme) ──────────────────────────────
 const buildOdooStyles = (colors) => `
   .odoo-content {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: #1a1a1a !important;
     font-size: 16px;
     line-height: 1.8;
@@ -1160,12 +1174,12 @@ export default function CourseDetailView({
 
   const styles = {
     page: {
-      background: '#222B34',
+      background: '#3C4652',
       height: '100vh',
       overflow: 'hidden',
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     },
-    // ─── Top Grey Navigation Bar ──────────────────────────────────────
+    // ─── Top Navigation Bar ──────────────────────────────────────
     topBar: {
       height: '64px',
       background: TOPBAR.bgGradient,
@@ -1245,32 +1259,32 @@ export default function CourseDetailView({
       display: 'flex',
       height: 'calc(100% - 64px)',
       width: '100%',
-      background: 'linear-gradient(180deg, #1F2933 0%, #222B34 100%)',
+      background: SIDEBAR.bg,
     },
     sidebar: {
       width: '340px',
       minWidth: '340px',
-      background: 'linear-gradient(180deg, #1F2933 0%, #222B34 100%)',
-      borderRight: '1px solid #111820',
-      color: '#fff',
+      background: SIDEBAR.bg,
+      borderRight: `1px solid ${SIDEBAR.border}`,
+      color: SIDEBAR.text,
       overflowY: 'auto',
       flexShrink: 0,
     },
     sidebarOpen: { left: '0' },
     sidebarHeader: {
       padding: '20px 20px 16px',
-      background: 'linear-gradient(135deg, #1F2933 0%, #2C3540 100%)',
-      borderBottom: `1px solid ${DARK.border}`,
+      background: SIDEBAR.header,
+      borderBottom: `1px solid ${SIDEBAR.border}`,
     },
     sidebarTitle: {
       fontSize: '20px',
       fontWeight: 700,
-      color: DARK.text,
+  color: '#111827',  // ← Changed to black
       lineHeight: 1.2,
       textShadow: '0 1px 2px rgba(0,0,0,0.2)',
     },
     topicItem: {
-      borderBottom: `1px solid ${DARK.border}`,
+      margin: '2px 4px',
       background: 'transparent',
       transition: 'background 0.2s',
     },
@@ -1278,48 +1292,51 @@ export default function CourseDetailView({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '14px 20px',
+      padding: '10px 14px',
       cursor: 'pointer',
-      fontWeight: 700,
-      fontSize: '11px',
-      letterSpacing: '0.06em',
+      fontWeight: isOpen ? 700 : 600,
+      fontSize: '12px',
+      letterSpacing: '0.03em',
       textTransform: 'uppercase',
-      color: isOpen ? DARK.textLight : DARK.textMuted,
-      background: isOpen ? 'rgba(255,255,255,0.03)' : 'transparent',
-      transition: '0.2s',
-      borderLeft: isOpen ? `3px solid ${DARK.accent}` : '3px solid transparent',
+      color: isOpen ? SIDEBAR.textLight : SIDEBAR.text,
+      background: SIDEBAR.item,
+      borderRadius: '4px',
+      transition: 'all 0.2s ease',
+      borderLeft: isOpen ? `3px solid ${SIDEBAR.accent}` : '3px solid transparent',
     }),
     subtopicItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      padding: '9px 20px 9px 28px',
+      gap: '8px',
+      padding: '8px 12px 8px 28px',
       cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: isActive ? '700' : '400',
-      color: isActive ? DARK.text : DARK.textMuted,
-      background: isActive ? 'rgba(247, 201, 72, 0.08)' : 'transparent',
-      transition: '0.2s',
-      borderLeft: isActive ? `3px solid ${DARK.accent}` : '3px solid transparent',
+      fontSize: '13px',
+      fontWeight: isActive ? '600' : '400',
+      color: isActive ? SIDEBAR.text : SIDEBAR.textMuted,
+      background: isActive ? SIDEBAR.active : 'transparent',
+      transition: 'all 0.2s ease',
+      borderLeft: isActive ? `3px solid ${SIDEBAR.accent}` : '3px solid transparent',
+      borderRadius: '3px',
+      margin: '1px 0',
     }),
     leafItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '7px 20px 7px 48px',
-      fontSize: '13px',
+      gap: '6px',
+      padding: '6px 12px 6px 48px',
+      fontSize: '12px',
       cursor: 'pointer',
-      color: isActive ? DARK.accent : DARK.textMuted,
-      background: isActive ? 'rgba(247, 201, 72, 0.06)' : 'transparent',
-      transition: '0.2s',
+      color: isActive ? SIDEBAR.accent : SIDEBAR.textMuted,
+      background: isActive ? SIDEBAR.active : 'transparent',
+      transition: 'all 0.2s ease',
       fontWeight: isActive ? 600 : 400,
-      borderRadius: '4px',
-      margin: '2px 8px',
+      borderRadius: '3px',
+      margin: '1px 0',
     }),
     mainContent: {
       flex: 1,
       minWidth: 0,
-      background: 'linear-gradient(180deg, #1F2933 0%, #222B34 100%)',
+      background: '#3C4652',
       display: 'flex',
       flexDirection: 'column',
     },
@@ -1361,11 +1378,37 @@ export default function CourseDetailView({
 
   return (
     <div style={styles.page}>
+      {/* ─── Inter Font Import ────────────────────────────────────── */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
       <style>{`
-        * { -webkit-touch-callout: none !important; -webkit-user-select: none !important; user-select: none !important; }
-        input, textarea, select { -webkit-user-select: auto !important; user-select: auto !important; }
-        body { overscroll-behavior: none; touch-action: pan-y; margin: 0; padding: 0; background: #222B34; }
-        .odoo-content { font-family: 'Inter', system-ui, sans-serif; }
+        * { 
+          -webkit-touch-callout: none !important; 
+          -webkit-user-select: none !important; 
+          user-select: none !important;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        }
+        input, textarea, select { 
+          -webkit-user-select: auto !important; 
+          user-select: auto !important;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        }
+        body { 
+          overscroll-behavior: none; 
+          touch-action: pan-y; 
+          margin: 0; 
+          padding: 0; 
+          background: #3C4652;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        }
+        .odoo-content { 
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        }
+        .odoo-content * {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+        }
         
         /* Premium scrollbar - dark theme */
         ::-webkit-scrollbar { width: 6px; }
@@ -1389,47 +1432,55 @@ export default function CourseDetailView({
           transform: translateY(0);
           box-shadow: none;
         }
+
+        /* Sidebar hover states - no hover on topic headers */
+        .sidebar-item:hover {
+          background: ${SIDEBAR.hover} !important;
+        }
+        .sidebar-item-active {
+          background: ${SIDEBAR.active} !important;
+        }
       `}</style>
 
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
       <div style={styles.topBar}>
-        <div style={styles.topBarLeft}>
-          {/* ─── LESSONS TOGGLE (always shows #47525f) ─────────────── */}
-          <button
-            onClick={toggleSidebar}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '0 24px',
-              fontSize: '17px',
-              fontWeight: 700,
-              color: TOPBAR.text,
-              cursor: 'pointer',
-              transition: 'background 0.15s, transform 0.15s',
-              background: TOPBAR.lessonsColor,
-              border: 'none',
-              borderRight: `1px solid ${TOPBAR.border}`,
-              height: '100%',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = TOPBAR.bgHover;
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = TOPBAR.lessonsColor;
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <MenuBookIcon style={{ fontSize: '22px' }} />
-            <span>Lessons</span>
-          </button>
-        </div>
+       <div style={styles.topBarLeft}>
+  {/* ─── LESSONS TOGGLE with MenuIcon ──────────────────────── */}
+  <button
+    onClick={toggleSidebar}
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '0 24px',
+      fontSize: '17px',
+      fontWeight: 700,
+      color: TOPBAR.text,
+      cursor: 'pointer',
+      transition: 'background 0.15s, transform 0.15s',
+      background: TOPBAR.lessonsColor,
+      border: 'none',
+      borderRight: `1px solid ${TOPBAR.border}`,
+      height: '100%',
+      textTransform: 'none',  // ← Changed from 'uppercase' to 'none'
+      letterSpacing: '0.5px',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.background = TOPBAR.bgHover;
+      e.currentTarget.style.transform = 'translateY(-1px)';
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.background = TOPBAR.lessonsColor;
+      e.currentTarget.style.transform = 'translateY(0)';
+    }}
+  >
+    <MenuIcon style={{ color: '#FFFFFF', fontSize: 28 }} />
+    <span>Lessons</span>
+  </button>
+</div>
 
         <div style={styles.topBarRight}>
-          {/* ─── SHARE BUTTON ────────────────────────────────────── */}
           <button
             onClick={handleShare}
             className="action-btn"
@@ -1445,7 +1496,6 @@ export default function CourseDetailView({
             <span>Share</span>
           </button>
 
-          {/* ─── FULLSCREEN BUTTON ────────────────────────────────── */}
           <button
             onClick={handleFullscreen}
             className="action-btn"
@@ -1461,7 +1511,6 @@ export default function CourseDetailView({
             <span>Fullscreen</span>
           </button>
 
-          {/* ─── HOME BUTTON ────────────────────────────────────── */}
           <button
             onClick={handleHomeClick}
             className="action-btn"
@@ -1482,20 +1531,8 @@ export default function CourseDetailView({
               onClick={handleLogout}
               className="action-btn"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '0 24px',
-                fontSize: '15px',
-                fontWeight: 600,
-                border: 'none',
-                borderLeft: `1px solid ${TOPBAR.border}`,
-                cursor: 'pointer',
-                transition: 'background 0.15s',
-                background: TOPBAR.bgActive,
+                ...styles.actionButton,
                 color: '#ff6b6b',
-                height: '100%',
-                borderRadius: 0,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = TOPBAR.bgHover;
@@ -1512,20 +1549,8 @@ export default function CourseDetailView({
               onClick={handleLogin}
               className="action-btn"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '0 24px',
-                fontSize: '15px',
-                fontWeight: 600,
-                border: 'none',
-                borderLeft: `1px solid ${TOPBAR.border}`,
-                cursor: 'pointer',
-                transition: 'background 0.15s',
-                background: TOPBAR.bgActive,
+                ...styles.actionButton,
                 color: DARK.accent,
-                height: '100%',
-                borderRadius: 0,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = TOPBAR.bgHover;
@@ -1541,150 +1566,160 @@ export default function CourseDetailView({
         </div>
       </div>
 
-  {activeView === 'split' && (
-  <div style={styles.shell}>
-    {isMobile && showSidebar && <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />}
+      {activeView === 'split' && (
+        <div style={styles.shell}>
+          {isMobile && showSidebar && <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />}
 
-    {/* ─── Sidebar ────────────────────────────────────── */}
-    {(!isSidebarCollapsed || isMobile) && (
-      <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
-        <div style={{ 
-          ...styles.sidebarHeader,
-          background: TOPBAR.lessonsColor, // Changed to #47525f
-        }}>
-          <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
-        </div>
+          {/* ─── Sidebar ────────────────────────────────────── */}
+          {(!isSidebarCollapsed || isMobile) && (
+            <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
+              <div style={styles.sidebarHeader}>
+                <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
+              </div>
 
-        {/* ─── Search ──────────────────────────────────────────── */}
-        <div style={{ padding: '10px 12px' }}>
-          <input
-            type="text"
-            placeholder="Search topics..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 14px',
-              borderRadius: '12px',
-              border: `1px solid ${DARK.border}`,
-              background: 'rgba(255,255,255,0.05)',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
-              color: DARK.text,
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = DARK.accent;
-              e.target.style.boxShadow = `0 0 0 3px rgba(247, 201, 72, 0.15)`;
-              e.target.style.background = 'rgba(255,255,255,0.08)';
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = DARK.border;
-              e.target.style.boxShadow = 'none';
-              e.target.style.background = 'rgba(255,255,255,0.05)';
-            }}
-          />
-        </div>
+              {/* ─── Search ──────────────────────────────────────────── */}
+              <div style={{ padding: '10px 12px' }}>
+                <input
+                  type="text"
+                  placeholder="Search topics..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    border: `1px solid ${SIDEBAR.border}`,
+                    background: 'rgba(255,255,255,0.05)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
+                    color: SIDEBAR.text,
+                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = SIDEBAR.accent;
+                    e.target.style.boxShadow = `0 0 0 3px rgba(247, 201, 72, 0.15)`;
+                    e.target.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = SIDEBAR.border;
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = 'rgba(255,255,255,0.05)';
+                  }}
+                />
+              </div>
 
-        {/* ─── Topics ───────────────────────────────────────────── */}
-        <div>
-          {filteredTopics.map((topic) => {
-            const topicSubs = topic.subtopics || [];
-            const isOpen = !!expandedTopics[topic.id];
-            return (
-              <div key={topic.id} style={styles.topicItem}>
-                <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
-                  <span>{topic.title}</span>
-                  <span style={{ fontSize: '10px' }}>
-                    {isOpen ? '▼' : '▶'}
-                  </span>
-                </div>
-                {isOpen && topicSubs.map((sub) => {
-                  const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
-                  if (globalIndex === -1) return null;
-                  const isActive = activeSection === globalIndex;
-                  const hasVideo = getVideoUrls(sub).length > 0;
+              {/* ─── Topics ───────────────────────────────────────────── */}
+              <div>
+                {filteredTopics.map((topic) => {
+                  const topicSubs = topic.subtopics || [];
+                  const isOpen = !!expandedTopics[topic.id];
                   return (
-                    <div key={sub.id}>
+                    <div key={topic.id} style={styles.topicItem}>
                       <div 
-                        style={styles.subtopicItem(isActive)} 
-                        onClick={() => selectSubtopic(sub, globalIndex)}
-                        onMouseEnter={(e) => {
-                          if (!isActive) e.currentTarget.style.color = DARK.textLight;
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isActive) e.currentTarget.style.color = DARK.textMuted;
-                        }}
+                        style={styles.topicHeader(isOpen)} 
+                        onClick={() => toggleTopic(topic.id)}
                       >
-                        <span style={{ fontSize: '11px', color: hasVideo ? DARK.accent : 'inherit' }}>
-                          {hasVideo ? '▶' : '●'}
+                        <span>{topic.title}</span>
+                        <span style={{ fontSize: '10px' }}>
+                          {isOpen ? '▼' : '▶'}
                         </span>
-                        <span style={{ flex: 1 }}>{sub.title}</span>
                       </div>
-                      {isActive && (
-                        <div>
-                          {loadingData ? (
-                            <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: DARK.textMuted }}>Loading…</div>
-                          ) : (
-                            CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
-                              <div
-                                key={t.key}
-                                style={styles.leafItem(activeContentType === t.key)}
-                                onClick={() => setActiveContentType(t.key)}
-                                onMouseEnter={(e) => {
-                                  if (activeContentType !== t.key) {
-                                    e.currentTarget.style.color = DARK.textLight;
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (activeContentType !== t.key) {
-                                    e.currentTarget.style.color = DARK.textMuted;
-                                  }
-                                }}
-                              >
-                                <span>{t.icon}</span>
-                                <span>{t.label}</span>
+                      {isOpen && topicSubs.map((sub) => {
+                        const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
+                        if (globalIndex === -1) return null;
+                        const isActive = activeSection === globalIndex;
+                        const hasVideo = getVideoUrls(sub).length > 0;
+                        return (
+                          <div key={sub.id}>
+                            <div 
+                              style={styles.subtopicItem(isActive)}
+                              className={isActive ? 'sidebar-item-active' : 'sidebar-item'}
+                              onClick={() => selectSubtopic(sub, globalIndex)}
+                              onMouseEnter={(e) => {
+                                if (!isActive) {
+                                  e.currentTarget.style.color = SIDEBAR.textLight;
+                                  e.currentTarget.style.background = SIDEBAR.hover;
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isActive) {
+                                  e.currentTarget.style.color = SIDEBAR.textMuted;
+                                  e.currentTarget.style.background = 'transparent';
+                                }
+                              }}
+                            >
+                              <span style={{ fontSize: '11px', color: hasVideo ? SIDEBAR.accent : 'inherit' }}>
+                                {hasVideo ? '▶' : '●'}
+                              </span>
+                              <span style={{ flex: 1 }}>{sub.title}</span>
+                            </div>
+                            {isActive && (
+                              <div>
+                                {loadingData ? (
+                                  <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: SIDEBAR.textMuted }}>Loading…</div>
+                                ) : (
+                                  CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
+                                    <div
+                                      key={t.key}
+                                      style={styles.leafItem(activeContentType === t.key)}
+                                      className={activeContentType === t.key ? 'sidebar-item-active' : 'sidebar-item'}
+                                      onClick={() => setActiveContentType(t.key)}
+                                      onMouseEnter={(e) => {
+                                        if (activeContentType !== t.key) {
+                                          e.currentTarget.style.color = SIDEBAR.textLight;
+                                          e.currentTarget.style.background = SIDEBAR.hover;
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (activeContentType !== t.key) {
+                                          e.currentTarget.style.color = SIDEBAR.textMuted;
+                                          e.currentTarget.style.background = 'transparent';
+                                        }
+                                      }}
+                                    >
+                                      <span>{t.icon}</span>
+                                      <span>{t.label}</span>
+                                    </div>
+                                  ))
+                                )}
+                                {!loadingData && availableTypes.length === 0 && (
+                                  <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: SIDEBAR.textMuted }}>No content</div>
+                                )}
                               </div>
-                            ))
-                          )}
-                          {!loadingData && availableTypes.length === 0 && (
-                            <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: DARK.textMuted }}>No content</div>
-                          )}
-                        </div>
-                      )}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
+                {filteredTopics.length === 0 && (
+                  <div style={{ padding: '20px', textAlign: 'center', color: SIDEBAR.textMuted, fontSize: '13px' }}>
+                    No topics match your search.
+                  </div>
+                )}
               </div>
-            );
-          })}
-          {filteredTopics.length === 0 && (
-            <div style={{ padding: '20px', textAlign: 'center', color: DARK.textMuted, fontSize: '13px' }}>
-              No topics match your search.
-            </div>
+            </aside>
           )}
-        </div>
-      </aside>
-    )}
 
-    {/* ─── Main Content ────────────────────────────────── */}
-    <main style={styles.mainContent}>
-      {/* ─── Content Panel ────────────────────────────────────── */}
-      <div style={styles.contentPanel}>
-        <div
-          style={styles.contentBody}
-          className="fade-in"
-          onCopy={preventCopy}
-          onCut={preventCopy}
-          onContextMenu={preventCopy}
-          onSelectStart={preventCopy}
-        >
-          {renderPanelContent()}
+          {/* ─── Main Content ────────────────────────────────── */}
+          <main style={styles.mainContent}>
+            <div style={styles.contentPanel}>
+              <div
+                style={styles.contentBody}
+                className="fade-in"
+                onCopy={preventCopy}
+                onCut={preventCopy}
+                onContextMenu={preventCopy}
+                onSelectStart={preventCopy}
+              >
+                {renderPanelContent()}
+              </div>
+            </div>
+          </main>
         </div>
-      </div>
-    </main>
-  </div>
-)}
+      )}
 
       {activeView === 'gallery' && (
         <div style={{ background: LIGHT.surface, borderRadius: '16px', padding: '20px', margin: '16px 24px', border: `1px solid ${LIGHT.border}` }}>
