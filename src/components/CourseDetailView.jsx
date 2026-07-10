@@ -527,36 +527,17 @@ function VideoTab({ videoUrls, config, title, courseTitle }) {
         justifyContent: 'space-between',
         color: '#fff',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{
-            width: 46,
-            height: 46,
-            borderRadius: '50%',
-            background: '#fff',
-            color: '#875A7B',
-            display: 'grid',
-            placeItems: 'center',
-            fontWeight: 800,
-            fontSize: 13,
-          }}>
-            odoo
-          </div>
+  <div style={{ display: 'flex', alignItems: 'center' }}>
+  <div>
+    <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15 }}>
+      {title || 'Course Video'}
+    </div>
+    <div style={{ fontSize: 14, fontWeight: 600, opacity: 0.9 }}>
+      {courseTitle || 'Course'}
+    </div>
+  </div>
+</div>
 
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15 }}>
-              {title || 'Course Video'}
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, opacity: 0.9 }}>
-              {courseTitle || 'Course'}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 16, fontSize: 24 }}>
-          <span>vol</span>
-          <span>cc</span>
-          <span>gear</span>
-        </div>
       </div>
 
       <div style={{
