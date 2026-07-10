@@ -1541,147 +1541,150 @@ export default function CourseDetailView({
         </div>
       </div>
 
-      {activeView === 'split' && (
-        <div style={styles.shell}>
-          {isMobile && showSidebar && <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />}
+  {activeView === 'split' && (
+  <div style={styles.shell}>
+    {isMobile && showSidebar && <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />}
 
-          {/* ─── Sidebar ────────────────────────────────────── */}
-          {(!isSidebarCollapsed || isMobile) && (
-            <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
-              <div style={styles.sidebarHeader}>
-                <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
-              </div>
+    {/* ─── Sidebar ────────────────────────────────────── */}
+    {(!isSidebarCollapsed || isMobile) && (
+      <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
+        <div style={{ 
+          ...styles.sidebarHeader,
+          background: TOPBAR.lessonsColor, // Changed to #47525f
+        }}>
+          <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
+        </div>
 
-              {/* ─── Search ──────────────────────────────────────────── */}
-              <div style={{ padding: '10px 12px' }}>
-                <input
-                  type="text"
-                  placeholder="Search topics..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: `1px solid ${DARK.border}`,
-                    background: 'rgba(255,255,255,0.05)',
-                    fontSize: '14px',
-                    outline: 'none',
-                    transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
-                    color: DARK.text,
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = DARK.accent;
-                    e.target.style.boxShadow = `0 0 0 3px rgba(247, 201, 72, 0.15)`;
-                    e.target.style.background = 'rgba(255,255,255,0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = DARK.border;
-                    e.target.style.boxShadow = 'none';
-                    e.target.style.background = 'rgba(255,255,255,0.05)';
-                  }}
-                />
-              </div>
+        {/* ─── Search ──────────────────────────────────────────── */}
+        <div style={{ padding: '10px 12px' }}>
+          <input
+            type="text"
+            placeholder="Search topics..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: `1px solid ${DARK.border}`,
+              background: 'rgba(255,255,255,0.05)',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
+              color: DARK.text,
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = DARK.accent;
+              e.target.style.boxShadow = `0 0 0 3px rgba(247, 201, 72, 0.15)`;
+              e.target.style.background = 'rgba(255,255,255,0.08)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = DARK.border;
+              e.target.style.boxShadow = 'none';
+              e.target.style.background = 'rgba(255,255,255,0.05)';
+            }}
+          />
+        </div>
 
-              {/* ─── Topics ───────────────────────────────────────────── */}
-              <div>
-                {filteredTopics.map((topic) => {
-                  const topicSubs = topic.subtopics || [];
-                  const isOpen = !!expandedTopics[topic.id];
+        {/* ─── Topics ───────────────────────────────────────────── */}
+        <div>
+          {filteredTopics.map((topic) => {
+            const topicSubs = topic.subtopics || [];
+            const isOpen = !!expandedTopics[topic.id];
+            return (
+              <div key={topic.id} style={styles.topicItem}>
+                <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
+                  <span>{topic.title}</span>
+                  <span style={{ fontSize: '10px' }}>
+                    {isOpen ? '▼' : '▶'}
+                  </span>
+                </div>
+                {isOpen && topicSubs.map((sub) => {
+                  const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
+                  if (globalIndex === -1) return null;
+                  const isActive = activeSection === globalIndex;
+                  const hasVideo = getVideoUrls(sub).length > 0;
                   return (
-                    <div key={topic.id} style={styles.topicItem}>
-                      <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
-                        <span>{topic.title}</span>
-                        <span style={{ fontSize: '10px' }}>
-                          {isOpen ? '▼' : '▶'}
+                    <div key={sub.id}>
+                      <div 
+                        style={styles.subtopicItem(isActive)} 
+                        onClick={() => selectSubtopic(sub, globalIndex)}
+                        onMouseEnter={(e) => {
+                          if (!isActive) e.currentTarget.style.color = DARK.textLight;
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) e.currentTarget.style.color = DARK.textMuted;
+                        }}
+                      >
+                        <span style={{ fontSize: '11px', color: hasVideo ? DARK.accent : 'inherit' }}>
+                          {hasVideo ? '▶' : '●'}
                         </span>
+                        <span style={{ flex: 1 }}>{sub.title}</span>
                       </div>
-                      {isOpen && topicSubs.map((sub) => {
-                        const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
-                        if (globalIndex === -1) return null;
-                        const isActive = activeSection === globalIndex;
-                        const hasVideo = getVideoUrls(sub).length > 0;
-                        return (
-                          <div key={sub.id}>
-                            <div 
-                              style={styles.subtopicItem(isActive)} 
-                              onClick={() => selectSubtopic(sub, globalIndex)}
-                              onMouseEnter={(e) => {
-                                if (!isActive) e.currentTarget.style.color = DARK.textLight;
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!isActive) e.currentTarget.style.color = DARK.textMuted;
-                              }}
-                            >
-                              <span style={{ fontSize: '11px', color: hasVideo ? DARK.accent : 'inherit' }}>
-                                {hasVideo ? '▶' : '●'}
-                              </span>
-                              <span style={{ flex: 1 }}>{sub.title}</span>
-                            </div>
-                            {isActive && (
-                              <div>
-                                {loadingData ? (
-                                  <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: DARK.textMuted }}>Loading…</div>
-                                ) : (
-                                  CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
-                                    <div
-                                      key={t.key}
-                                      style={styles.leafItem(activeContentType === t.key)}
-                                      onClick={() => setActiveContentType(t.key)}
-                                      onMouseEnter={(e) => {
-                                        if (activeContentType !== t.key) {
-                                          e.currentTarget.style.color = DARK.textLight;
-                                        }
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        if (activeContentType !== t.key) {
-                                          e.currentTarget.style.color = DARK.textMuted;
-                                        }
-                                      }}
-                                    >
-                                      <span>{t.icon}</span>
-                                      <span>{t.label}</span>
-                                    </div>
-                                  ))
-                                )}
-                                {!loadingData && availableTypes.length === 0 && (
-                                  <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: DARK.textMuted }}>No content</div>
-                                )}
+                      {isActive && (
+                        <div>
+                          {loadingData ? (
+                            <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: DARK.textMuted }}>Loading…</div>
+                          ) : (
+                            CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
+                              <div
+                                key={t.key}
+                                style={styles.leafItem(activeContentType === t.key)}
+                                onClick={() => setActiveContentType(t.key)}
+                                onMouseEnter={(e) => {
+                                  if (activeContentType !== t.key) {
+                                    e.currentTarget.style.color = DARK.textLight;
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (activeContentType !== t.key) {
+                                    e.currentTarget.style.color = DARK.textMuted;
+                                  }
+                                }}
+                              >
+                                <span>{t.icon}</span>
+                                <span>{t.label}</span>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                            ))
+                          )}
+                          {!loadingData && availableTypes.length === 0 && (
+                            <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: DARK.textMuted }}>No content</div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
-                {filteredTopics.length === 0 && (
-                  <div style={{ padding: '20px', textAlign: 'center', color: DARK.textMuted, fontSize: '13px' }}>
-                    No topics match your search.
-                  </div>
-                )}
               </div>
-            </aside>
-          )}
-
-          {/* ─── Main Content ────────────────────────────────── */}
-          <main style={styles.mainContent}>
-            {/* ─── Content Panel ────────────────────────────────────── */}
-            <div style={styles.contentPanel}>
-              <div
-                style={styles.contentBody}
-                className="fade-in"
-                onCopy={preventCopy}
-                onCut={preventCopy}
-                onContextMenu={preventCopy}
-                onSelectStart={preventCopy}
-              >
-                {renderPanelContent()}
-              </div>
+            );
+          })}
+          {filteredTopics.length === 0 && (
+            <div style={{ padding: '20px', textAlign: 'center', color: DARK.textMuted, fontSize: '13px' }}>
+              No topics match your search.
             </div>
-          </main>
+          )}
         </div>
-      )}
+      </aside>
+    )}
+
+    {/* ─── Main Content ────────────────────────────────── */}
+    <main style={styles.mainContent}>
+      {/* ─── Content Panel ────────────────────────────────────── */}
+      <div style={styles.contentPanel}>
+        <div
+          style={styles.contentBody}
+          className="fade-in"
+          onCopy={preventCopy}
+          onCut={preventCopy}
+          onContextMenu={preventCopy}
+          onSelectStart={preventCopy}
+        >
+          {renderPanelContent()}
+        </div>
+      </div>
+    </main>
+  </div>
+)}
 
       {activeView === 'gallery' && (
         <div style={{ background: LIGHT.surface, borderRadius: '16px', padding: '20px', margin: '16px 24px', border: `1px solid ${LIGHT.border}` }}>
