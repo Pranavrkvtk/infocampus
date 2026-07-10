@@ -461,7 +461,6 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
       textAlign: 'center',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
     }}>
-      {/* ─── Large Icon ─────────────────────────────────────────────── */}
       <div style={{
         width: '80px',
         height: '80px',
@@ -476,7 +475,6 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
         <span style={{ fontSize: '36px' }}>📚</span>
       </div>
 
-      {/* ─── Title ──────────────────────────────────────────────────── */}
       <h1 style={{
         fontSize: isMobile ? '24px' : '32px',
         fontWeight: 700,
@@ -487,7 +485,6 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
         {courseTitle || 'Course'}
       </h1>
 
-      {/* ─── Subtitle ────────────────────────────────────────────────── */}
       <p style={{
         fontSize: isMobile ? '15px' : '18px',
         color: 'rgba(26, 31, 36, 0.5)',
@@ -498,7 +495,6 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
         Select a section from the sidebar to start learning
       </p>
 
-      {/* ─── Stats / Quick Info ────────────────────────────────────── */}
       <div style={{
         display: 'flex',
         gap: '32px',
@@ -549,7 +545,6 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
         </div>
       </div>
 
-      {/* ─── Hint arrow for desktop ────────────────────────────────── */}
       {!isMobile && (
         <div style={{
           marginTop: '40px',
@@ -1387,24 +1382,28 @@ export default function CourseDetailView({
       width: '100%',
       background: SIDEBAR.bg,
     },
+    // ─── SIDEBAR - BORDER REMOVED ──────────────────────────────────
     sidebar: {
       width: '340px',
       minWidth: '340px',
       background: SIDEBAR.bg,
-      borderRight: `1px solid ${SIDEBAR.border}`,
+      borderRight: 'none', // ← REMOVED the border
       color: SIDEBAR.text,
       overflowY: 'auto',
       flexShrink: 0,
+      // ─── HIDE SCROLLBAR ──────────────────────────────────────────
+      scrollbarWidth: 'none',        // Firefox
+      msOverflowStyle: 'none',      // IE/Edge
     },
     sidebarOpen: { left: '0' },
     sidebarHeader: {
       padding: '20px 20px 16px',
-      background: '#4B5563',  // ← Changed to grey
+      background: '#4B5563',
       borderBottom: `1px solid ${SIDEBAR.border}`,
       borderTop: `1px solid rgba(255,255,255,0.05)`,
     },
     sidebarTitle: {
-      fontSize: '18px',      // ← Increased from 20px
+      fontSize: '18px',
       fontWeight: 700,
       color: '#000000',
       lineHeight: 1.2,
@@ -1550,11 +1549,15 @@ export default function CourseDetailView({
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
-        /* Sidebar scrollbar */
-        #mobile-sidebar::-webkit-scrollbar { width: 4px; }
-        #mobile-sidebar::-webkit-scrollbar-track { background: transparent; }
-        #mobile-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-        #mobile-sidebar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        /* ─── SIDEBAR SCROLLBAR - HIDDEN ──────────────────────────── */
+        #mobile-sidebar::-webkit-scrollbar {
+          width: 0;
+          display: none;
+        }
+        #mobile-sidebar {
+          scrollbar-width: none;      /* Firefox */
+          -ms-overflow-style: none;   /* IE/Edge */
+        }
 
         /* Button hover styles */
         .action-btn:hover {
@@ -1585,39 +1588,38 @@ export default function CourseDetailView({
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
       <div style={styles.topBar}>
         <div style={styles.topBarLeft}>
-      {/* ─── LESSONS TOGGLE with MenuIcon ──────────────────────── */}
-<button
-  onClick={toggleSidebar}
-  style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',              // ← Reduced from 10px
-    padding: '0 16px',       // ← Reduced from 0 24px
-    fontSize: '14px',        // ← Reduced from 15px
-    fontWeight: 700,
-    color: TOPBAR.text,
-    cursor: 'pointer',
-    transition: 'background 0.15s, transform 0.15s',
-    background: TOPBAR.lessonsColor,
-    border: 'none',
-    borderRight: `1px solid ${TOPBAR.border}`,
-    height: '100%',
-    textTransform: 'none',
-    letterSpacing: '0.5px',
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.background = TOPBAR.bgHover;
-    e.currentTarget.style.transform = 'translateY(-1px)';
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.background = TOPBAR.lessonsColor;
-    e.currentTarget.style.transform = 'translateY(0)';
-  }}
->
-  <MenuIcon style={{ color: '#FFFFFF', fontSize: 24 }} />  {/* ← Reduced from 28 */}
-  <span>Lessons</span>
-</button>
+          <button
+            onClick={toggleSidebar}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0 16px',
+              fontSize: '14px',
+              fontWeight: 700,
+              color: TOPBAR.text,
+              cursor: 'pointer',
+              transition: 'background 0.15s, transform 0.15s',
+              background: TOPBAR.lessonsColor,
+              border: 'none',
+              borderRight: `1px solid ${TOPBAR.border}`,
+              height: '100%',
+              textTransform: 'none',
+              letterSpacing: '0.5px',
+              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = TOPBAR.lessonsColor;
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <MenuIcon style={{ color: '#FFFFFF', fontSize: 24 }} />
+            <span>Lessons</span>
+          </button>
         </div>
 
         <div style={styles.topBarRight}>
@@ -1722,12 +1724,10 @@ export default function CourseDetailView({
           {/* ─── Sidebar ────────────────────────────────────── */}
           {(!isSidebarCollapsed || isMobile) && (
             <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
-              {/* ─── Sidebar Header with Grey Background ───────────────── */}
               <div style={styles.sidebarHeader}>
                 <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
               </div>
 
-              {/* ─── Search ──────────────────────────────────────────── */}
               <div style={{ padding: '10px 12px' }}>
                 <input
                   type="text"
@@ -1759,7 +1759,6 @@ export default function CourseDetailView({
                 />
               </div>
 
-              {/* ─── Topics ───────────────────────────────────────────── */}
               <div>
                 {filteredTopics.map((topic) => {
                   const topicSubs = topic.subtopics || [];
@@ -1789,7 +1788,6 @@ export default function CourseDetailView({
                         
                         return (
                           <div key={sub.id}>
-                            {/* ─── Subtopic item ────────────────────── */}
                             <div 
                               style={styles.subtopicItem(isActive, hasVideo)}
                               className={isActive ? 'sidebar-item-active' : 'sidebar-item'}
@@ -1813,7 +1811,6 @@ export default function CourseDetailView({
                               <span style={{ flex: 1 }}>{sub.title}</span>
                             </div>
                             
-                            {/* ─── Content types shown inline under subtopic ─── */}
                             {isActive && (
                               <div>
                                 {loadingData ? (
@@ -1863,7 +1860,6 @@ export default function CourseDetailView({
             </aside>
           )}
 
-          {/* ─── Main Content ────────────────────────────────── */}
           <main style={styles.mainContent}>
             <div style={styles.contentPanel}>
               <div
