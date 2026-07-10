@@ -9,6 +9,14 @@ import {
 } from '../api/UserApi';
 import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 
+// ─── Material UI Icons ──────────────────────────────────────────────────
+import ShareIcon from '@mui/icons-material/Share';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import LogoutIcon from '@mui/icons-material/Logout';
+import LoginIcon from '@mui/icons-material/Login';
+
 // ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
@@ -45,14 +53,16 @@ const LIGHT = {
   successBg: '#dcfce7',
 };
 
-// ─── Grey Top Bar Colors ──────────────────────────────────────────────
+// ─── Grey Top Bar Colors (Odoo-style Dark Gradient) ──────────────────
 const TOPBAR = {
-  bg: '#323D49',
-  bgActive: '#1F2933',
-  bgHover: '#3E4A58',
-  border: '#465260',
+  bg: '#2C3540',
+  bgGradient: 'linear-gradient(180deg, #2C3540 0%, #1F2933 100%)',
+  bgActive: '#1A232E',
+  bgHover: '#3A4553',
+  border: '#3E4A58',
   text: '#FFFFFF',
   muted: '#C9D2DC',
+  lessonsColor: '#47525f',
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────
@@ -413,8 +423,6 @@ const buildOdooStyles = (colors) => `
 
 // ─── Tab Components ──────────────────────────────────────────────────
 
-
-
 function NotesTab({ content, config }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -465,8 +473,6 @@ function NotesTab({ content, config }) {
     </div>
   );
 }
-
-
 
 function VideoTab({ videoUrls, config, title, courseTitle }) {
   const [currentVideo, setCurrentVideo] = useState(0);
@@ -1161,14 +1167,15 @@ export default function CourseDetailView({
     },
     // ─── Top Grey Navigation Bar ──────────────────────────────────────
     topBar: {
-      height: '44px',
-      background: TOPBAR.bg,
+      height: '64px',
+      background: TOPBAR.bgGradient,
       borderBottom: `1px solid ${TOPBAR.border}`,
       display: 'flex',
       alignItems: 'stretch',
       justifyContent: 'space-between',
       padding: 0,
       color: TOPBAR.text,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
     },
     topBarLeft: {
       display: 'flex',
@@ -1185,10 +1192,10 @@ export default function CourseDetailView({
     topBarNavItem: {
       display: 'flex',
       alignItems: 'center',
-      gap: '6px',
-      padding: '0 16px',
-      fontSize: '14px',
-      fontWeight: 600,
+      gap: '10px',
+      padding: '0 24px',
+      fontSize: '16px',
+      fontWeight: 700,
       color: TOPBAR.text,
       cursor: 'pointer',
       transition: 'background 0.15s',
@@ -1196,6 +1203,8 @@ export default function CourseDetailView({
       border: 'none',
       borderRight: `1px solid ${TOPBAR.border}`,
       height: '100%',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
     },
     topBarSeparator: {
       color: TOPBAR.muted,
@@ -1219,10 +1228,10 @@ export default function CourseDetailView({
     actionButton: {
       display: 'flex',
       alignItems: 'center',
-      gap: '6px',
-      padding: '0 14px',
-      fontSize: '13px',
-      fontWeight: 500,
+      gap: '10px',
+      padding: '0 24px',
+      fontSize: '15px',
+      fontWeight: 600,
       border: 'none',
       borderLeft: `1px solid ${TOPBAR.border}`,
       cursor: 'pointer',
@@ -1234,13 +1243,14 @@ export default function CourseDetailView({
     },
     shell: {
       display: 'flex',
-      height: 'calc(100% - 44px)',
+      height: 'calc(100% - 64px)',
       width: '100%',
+      background: 'linear-gradient(180deg, #1F2933 0%, #222B34 100%)',
     },
     sidebar: {
       width: '340px',
       minWidth: '340px',
-      background: '#222B34',
+      background: 'linear-gradient(180deg, #1F2933 0%, #222B34 100%)',
       borderRight: '1px solid #111820',
       color: '#fff',
       overflowY: 'auto',
@@ -1249,7 +1259,7 @@ export default function CourseDetailView({
     sidebarOpen: { left: '0' },
     sidebarHeader: {
       padding: '20px 20px 16px',
-      background: 'transparent',
+      background: 'linear-gradient(135deg, #1F2933 0%, #2C3540 100%)',
       borderBottom: `1px solid ${DARK.border}`,
     },
     sidebarTitle: {
@@ -1257,9 +1267,12 @@ export default function CourseDetailView({
       fontWeight: 700,
       color: DARK.text,
       lineHeight: 1.2,
+      textShadow: '0 1px 2px rgba(0,0,0,0.2)',
     },
     topicItem: {
       borderBottom: `1px solid ${DARK.border}`,
+      background: 'transparent',
+      transition: 'background 0.2s',
     },
     topicHeader: (isOpen) => ({
       display: 'flex',
@@ -1272,8 +1285,9 @@ export default function CourseDetailView({
       letterSpacing: '0.06em',
       textTransform: 'uppercase',
       color: isOpen ? DARK.textLight : DARK.textMuted,
-      background: 'transparent',
+      background: isOpen ? 'rgba(255,255,255,0.03)' : 'transparent',
       transition: '0.2s',
+      borderLeft: isOpen ? `3px solid ${DARK.accent}` : '3px solid transparent',
     }),
     subtopicItem: (isActive) => ({
       display: 'flex',
@@ -1284,8 +1298,9 @@ export default function CourseDetailView({
       fontSize: '14px',
       fontWeight: isActive ? '700' : '400',
       color: isActive ? DARK.text : DARK.textMuted,
-      background: 'transparent',
+      background: isActive ? 'rgba(247, 201, 72, 0.08)' : 'transparent',
       transition: '0.2s',
+      borderLeft: isActive ? `3px solid ${DARK.accent}` : '3px solid transparent',
     }),
     leafItem: (isActive) => ({
       display: 'flex',
@@ -1295,14 +1310,16 @@ export default function CourseDetailView({
       fontSize: '13px',
       cursor: 'pointer',
       color: isActive ? DARK.accent : DARK.textMuted,
-      background: 'transparent',
+      background: isActive ? 'rgba(247, 201, 72, 0.06)' : 'transparent',
       transition: '0.2s',
       fontWeight: isActive ? 600 : 400,
+      borderRadius: '4px',
+      margin: '2px 8px',
     }),
     mainContent: {
       flex: 1,
       minWidth: 0,
-      background: '#222B34',
+      background: 'linear-gradient(180deg, #1F2933 0%, #222B34 100%)',
       display: 'flex',
       flexDirection: 'column',
     },
@@ -1350,41 +1367,64 @@ export default function CourseDetailView({
         body { overscroll-behavior: none; touch-action: pan-y; margin: 0; padding: 0; background: #222B34; }
         .odoo-content { font-family: 'Inter', system-ui, sans-serif; }
         
-        /* Premium scrollbar - light */
+        /* Premium scrollbar - dark theme */
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: ${LIGHT.hover}; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb { background: ${LIGHT.border}; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: ${LIGHT.textMuted}; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
         /* Sidebar scrollbar */
         #mobile-sidebar::-webkit-scrollbar { width: 4px; }
         #mobile-sidebar::-webkit-scrollbar-track { background: transparent; }
-        #mobile-sidebar::-webkit-scrollbar-thumb { background: ${DARK.border}; border-radius: 2px; }
-        #mobile-sidebar::-webkit-scrollbar-thumb:hover { background: ${DARK.textMuted}; }
+        #mobile-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        #mobile-sidebar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
         /* Button hover styles */
         .action-btn:hover {
           background: ${TOPBAR.bgHover};
           transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .action-btn:active {
           transform: translateY(0);
+          box-shadow: none;
         }
       `}</style>
 
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
       <div style={styles.topBar}>
         <div style={styles.topBarLeft}>
-          {/* ─── LESSONS TOGGLE (replaces breadcrumb) ─────────────── */}
+          {/* ─── LESSONS TOGGLE (always shows #47525f) ─────────────── */}
           <button
             onClick={toggleSidebar}
-            className="action-btn"
             style={{
-              ...styles.topBarNavItem,
-              background: isSidebarOpen ? TOPBAR.bgActive : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '0 24px',
+              fontSize: '17px',
+              fontWeight: 700,
+              color: TOPBAR.text,
+              cursor: 'pointer',
+              transition: 'background 0.15s, transform 0.15s',
+              background: TOPBAR.lessonsColor,
+              border: 'none',
+              borderRight: `1px solid ${TOPBAR.border}`,
+              height: '100%',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = TOPBAR.lessonsColor;
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <span style={{ fontSize: '14px' }}>☰</span> Lessons
+            <MenuBookIcon style={{ fontSize: '22px' }} />
+            <span>Lessons</span>
           </button>
         </div>
 
@@ -1401,7 +1441,8 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <span style={{ fontSize: '13px', filter: 'grayscale(1) brightness(1.8)' }}>📤</span> Share
+            <ShareIcon style={{ fontSize: '20px' }} />
+            <span>Share</span>
           </button>
 
           {/* ─── FULLSCREEN BUTTON ────────────────────────────────── */}
@@ -1416,7 +1457,8 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <span style={{ fontSize: '13px' }}>⛶</span> Fullscreen
+            <FullscreenIcon style={{ fontSize: '20px' }} />
+            <span>Fullscreen</span>
           </button>
 
           {/* ─── HOME BUTTON ────────────────────────────────────── */}
@@ -1431,7 +1473,8 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <span style={{ fontSize: '13px', filter: 'grayscale(1) brightness(1.8)' }}>🏠</span> Home
+            <HomeOutlinedIcon style={{ fontSize: '20px' }} />
+            <span>Home</span>
           </button>
 
           {isLoggedIn ? (
@@ -1441,10 +1484,10 @@ export default function CourseDetailView({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '0 14px',
-                fontSize: '13px',
-                fontWeight: 500,
+                gap: '10px',
+                padding: '0 24px',
+                fontSize: '15px',
+                fontWeight: 600,
                 border: 'none',
                 borderLeft: `1px solid ${TOPBAR.border}`,
                 cursor: 'pointer',
@@ -1461,7 +1504,8 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <span style={{ fontSize: '13px', filter: 'grayscale(1) brightness(1.8)' }}>🚪</span> Logout
+              <LogoutIcon style={{ fontSize: '20px' }} />
+              <span>Logout</span>
             </button>
           ) : (
             <button
@@ -1470,10 +1514,10 @@ export default function CourseDetailView({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '0 14px',
-                fontSize: '13px',
-                fontWeight: 500,
+                gap: '10px',
+                padding: '0 24px',
+                fontSize: '15px',
+                fontWeight: 600,
                 border: 'none',
                 borderLeft: `1px solid ${TOPBAR.border}`,
                 cursor: 'pointer',
@@ -1490,7 +1534,8 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <span style={{ fontSize: '13px' }}>🔐</span> Sign In
+              <LoginIcon style={{ fontSize: '20px' }} />
+              <span>Sign In</span>
             </button>
           )}
         </div>
@@ -1519,19 +1564,21 @@ export default function CourseDetailView({
                     padding: '12px 14px',
                     borderRadius: '12px',
                     border: `1px solid ${DARK.border}`,
-                    background: DARK.inputBg,
+                    background: 'rgba(255,255,255,0.05)',
                     fontSize: '14px',
                     outline: 'none',
-                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                    transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
                     color: DARK.text,
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = DARK.accent;
-                    e.target.style.boxShadow = `0 0 0 3px rgba(247, 201, 72, 0.2)`;
+                    e.target.style.boxShadow = `0 0 0 3px rgba(247, 201, 72, 0.15)`;
+                    e.target.style.background = 'rgba(255,255,255,0.08)';
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = DARK.border;
                     e.target.style.boxShadow = 'none';
+                    e.target.style.background = 'rgba(255,255,255,0.05)';
                   }}
                 />
               </div>
