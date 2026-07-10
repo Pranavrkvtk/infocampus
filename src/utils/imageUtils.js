@@ -1,5 +1,5 @@
 // src/utils/imageUtils.js
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8082/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
@@ -9,17 +9,22 @@ export const getImageUrl = (imagePath) => {
     return imagePath;
   }
   
+  // If it's a data URI, return as-is
+  if (imagePath.startsWith('data:image/')) {
+    return imagePath;
+  }
+  
   // Remove any duplicate /api prefix and leading slashes
   let cleanPath = imagePath;
   
-  // Remove /api/ prefix if present
+  // Remove /api/ prefix if present (5 characters: /api/)
   if (cleanPath.startsWith('/api/')) {
-    cleanPath = cleanPath.substring(4); // Remove '/api'
+    cleanPath = cleanPath.substring(5); // Remove '/api/'
   }
   
-  // Remove /api prefix if present
+  // Remove api/ prefix if present (4 characters: api/)
   if (cleanPath.startsWith('api/')) {
-    cleanPath = cleanPath.substring(3); // Remove 'api/'
+    cleanPath = cleanPath.substring(4); // Remove 'api/'
   }
   
   // Remove any leading slashes
@@ -27,12 +32,17 @@ export const getImageUrl = (imagePath) => {
     cleanPath = cleanPath.substring(1);
   }
   
+  // ✅ CRITICAL FIX: If it starts with 'uploads/', add 'admin/' in the path
+  if (cleanPath.startsWith('uploads/')) {
+    cleanPath = 'admin/' + cleanPath;
+  }
+  
   // Ensure path starts with /
   if (!cleanPath.startsWith('/')) {
     cleanPath = '/' + cleanPath;
   }
   
-  // Return the full URL without duplicating /api
+  // Return the full URL
   return `${API_BASE_URL}${cleanPath}`;
 };
 
@@ -40,12 +50,14 @@ export const getApiUrl = (endpoint) => {
   // Remove any duplicate /api prefix
   let cleanEndpoint = endpoint;
   
+  // Remove /api/ prefix if present (5 characters)
   if (cleanEndpoint.startsWith('/api/')) {
-    cleanEndpoint = cleanEndpoint.substring(4);
+    cleanEndpoint = cleanEndpoint.substring(5);
   }
   
+  // Remove api/ prefix if present (4 characters)
   if (cleanEndpoint.startsWith('api/')) {
-    cleanEndpoint = cleanEndpoint.substring(3);
+    cleanEndpoint = cleanEndpoint.substring(4);
   }
   
   // Remove any leading slashes
@@ -83,3 +95,5 @@ export const handleImageError = (e) => {
   e.target.src = getFallbackImage();
   e.target.onerror = null; // Prevent infinite loop
 };
+
+export default getImageUrl;

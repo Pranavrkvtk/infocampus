@@ -4,42 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
 import axiosInstance, { API_BASE_URL } from '../../api/axios';
-
-// ✅ FULLY FIXED: Build correct URL for admin‑uploaded images
-const getFullImageUrl = (imageUrl) => {
-  if (!imageUrl) return null;
-
-  // Already absolute or data URI
-  if (
-    imageUrl.startsWith('http://') ||
-    imageUrl.startsWith('https://') ||
-    imageUrl.startsWith('data:image/')
-  ) {
-    return imageUrl;
-  }
-
-  // Remove leading slash for consistent processing
-  let clean = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-
-  // If it already contains '/api/admin/uploads/', keep it as is
-  if (clean.startsWith('api/admin/uploads/')) {
-    return `${API_BASE_URL}/${clean}`;
-  }
-
-  // If it starts with 'api/uploads/' (missing admin), add admin
-  if (clean.startsWith('api/uploads/')) {
-    clean = clean.replace('api/uploads/', 'api/admin/uploads/');
-    return `${API_BASE_URL}/${clean}`;
-  }
-
-  // If it starts with 'uploads/', add 'admin/'
-  if (clean.startsWith('uploads/')) {
-    return `${API_BASE_URL}/admin/${clean}`;
-  }
-
-  // For any other relative path (fallback), just prepend base
-  return `${API_BASE_URL}/${clean}`;
-};
+import { getImageUrl } from '../../utils/imageUtils';
 
 // Thin wrapper for axios
 const api = {
@@ -198,16 +163,53 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE IMAGE UPLOADER
+// COURSE IMAGE UPLOADER - FIXED (removed Content-Type header)
+// ═══════════════════════════════════════════════════════════════════════════════
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const handleImageUpload = async (event) => {
-    // ... (same as before, unchanged)
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.show('Please upload an image file', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.show('Image must be less than 5MB', 'error');
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      // ✅ IMPORTANT: Do NOT set Content-Type header manually
+      // Let axios set it automatically with the correct boundary
+      const response = await axiosInstance.post(
+        `/admin/courses/${course.id}/upload-image`,
+        formData
+      );
+
+      const updatedCourse = { ...course, imageUrl: response.data.imageUrl };
+      onImageUploaded(updatedCourse);
+      setImageError(false);
+      toast.show('Course image uploaded successfully!', 'success');
+    } catch (error) {
+      console.error('Upload error:', error);
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to upload image';
+      toast.show(errorMsg, 'error');
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
   };
 
-  const imageSrc = getFullImageUrl(course.imageUrl);
+  const imageSrc = getImageUrl(course.imageUrl);
 
   return (
     <div style={{ padding: '16px', background: clr.faint, borderRadius: 10, border: `1px solid ${clr.border}`, marginBottom: 16 }}>
@@ -238,7 +240,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
               setImageError(true);
             }}
             onLoad={() => {
-              // If it loads successfully, ensure error state is false
               setImageError(false);
             }}
           />
@@ -289,8 +290,8 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
     setImageErrors(prev => ({ ...prev, [courseId]: true }));
   };
 
-  const getImageUrl = (course) => {
-    return getFullImageUrl(course.imageUrl);
+  const getImageUrlForCourse = (course) => {
+    return getImageUrl(course.imageUrl);
   };
 
   return (
@@ -310,7 +311,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
               ? <div style={{ padding: 24, textAlign: 'center', color: clr.muted }}>No courses yet.</div>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
                   {filtered.map(c => {
-                    const imageUrl = getImageUrl(c);
+                    const imageUrl = getImageUrlForCourse(c);
                     const hasError = imageErrors[c.id];
                     
                     return (
@@ -858,28 +859,15 @@ function LabTab({ subtopicId, toast, onUpdate, initialData }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARKDOWN IMAGE COMPONENT - Using getImageUrl from imageUtils
+// ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   const [hasError, setHasError] = useState(false);
 
   if (!src) return null;
 
-  let fullSrc;
-  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:image/')) {
-    fullSrc = src;
-  } else {
-    let clean = src.startsWith('/') ? src.substring(1) : src;
-    if (clean.startsWith('api/admin/uploads/')) {
-      fullSrc = `${API_BASE_URL}/${clean}`;
-    } else if (clean.startsWith('api/uploads/')) {
-      clean = clean.replace('api/uploads/', 'api/admin/uploads/');
-      fullSrc = `${API_BASE_URL}/${clean}`;
-    } else if (clean.startsWith('uploads/')) {
-      fullSrc = `${API_BASE_URL}/admin/${clean}`;
-    } else {
-      if (clean.startsWith('api/')) clean = clean.substring(4);
-      fullSrc = `${API_BASE_URL}/${clean}`;
-    }
-  }
+  const fullSrc = getImageUrl(src);
 
   if (hasError) {
     return (
@@ -1017,7 +1005,11 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const response = await axiosInstance.post(`/admin/subtopics/${subtopicId}/upload-pdf`, formData);
+      // ✅ IMPORTANT: Do NOT set Content-Type header manually for FormData
+      const response = await axiosInstance.post(
+        `/admin/subtopics/${subtopicId}/upload-pdf`,
+        formData
+      );
       const data = response.data;
       const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
       setNotes(refreshedSub.content || '');
@@ -1026,7 +1018,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
       toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
     } catch (err) {
       console.error('Upload error:', err);
-      // ✅ FIXED: Safely extract a string message
       const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
       toast.show(msg, 'error');
     } finally {
