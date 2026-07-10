@@ -12,6 +12,7 @@ import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 // ─── Material UI Icons ──────────────────────────────────────────────────
 import ShareIcon from '@mui/icons-material/Share';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -433,7 +434,6 @@ const buildOdooStyles = (colors) => `
     background: #94a3b8;
   }
 `;
-
 
 // ─── Tab Components ──────────────────────────────────────────────────
 
@@ -882,7 +882,6 @@ function LabsTab({ labs, config }) {
   );
 }
 
-
 // ─── Main CourseDetailView ────────────────────────────────────────────
 
 export default function CourseDetailView({
@@ -936,6 +935,7 @@ export default function CourseDetailView({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [authImageUrls, setAuthImageUrls] = useState({});
   const authImageUrlsRef = useRef({});
+  const [isFullscreen, setIsFullscreen] = useState(false); // ← NEW STATE
 
   // ─── Check if user is logged in ─────────────────────────────────────
   const isLoggedIn = !!localStorage.getItem('token');
@@ -952,6 +952,25 @@ export default function CourseDetailView({
       const navbar = document.querySelector('nav');
       if (navbar) navbar.style.display = '';
       document.body.style.paddingTop = '';
+    };
+  }, []);
+
+  // ─── Fullscreen change listener ─────────────────────────────────────
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, []);
 
@@ -1279,7 +1298,7 @@ export default function CourseDetailView({
     sidebarTitle: {
       fontSize: '20px',
       fontWeight: 700,
-  color: '#111827',  // ← Changed to black
+      color: '#111827',
       lineHeight: 1.2,
       textShadow: '0 1px 2px rgba(0,0,0,0.2)',
     },
@@ -1444,41 +1463,41 @@ export default function CourseDetailView({
 
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
       <div style={styles.topBar}>
-       <div style={styles.topBarLeft}>
-  {/* ─── LESSONS TOGGLE with MenuIcon ──────────────────────── */}
-  <button
-    onClick={toggleSidebar}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      padding: '0 24px',
-      fontSize: '17px',
-      fontWeight: 700,
-      color: TOPBAR.text,
-      cursor: 'pointer',
-      transition: 'background 0.15s, transform 0.15s',
-      background: TOPBAR.lessonsColor,
-      border: 'none',
-      borderRight: `1px solid ${TOPBAR.border}`,
-      height: '100%',
-      textTransform: 'none',  // ← Changed from 'uppercase' to 'none'
-      letterSpacing: '0.5px',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.background = TOPBAR.bgHover;
-      e.currentTarget.style.transform = 'translateY(-1px)';
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.background = TOPBAR.lessonsColor;
-      e.currentTarget.style.transform = 'translateY(0)';
-    }}
-  >
-    <MenuIcon style={{ color: '#FFFFFF', fontSize: 28 }} />
-    <span>Lessons</span>
-  </button>
-</div>
+        <div style={styles.topBarLeft}>
+          {/* ─── LESSONS TOGGLE with MenuIcon ──────────────────────── */}
+          <button
+            onClick={toggleSidebar}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '0 24px',
+              fontSize: '17px',
+              fontWeight: 700,
+              color: TOPBAR.text,
+              cursor: 'pointer',
+              transition: 'background 0.15s, transform 0.15s',
+              background: TOPBAR.lessonsColor,
+              border: 'none',
+              borderRight: `1px solid ${TOPBAR.border}`,
+              height: '100%',
+              textTransform: 'none',
+              letterSpacing: '0.5px',
+              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = TOPBAR.lessonsColor;
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <MenuIcon style={{ color: '#FFFFFF', fontSize: 28 }} />
+            <span>Lessons</span>
+          </button>
+        </div>
 
         <div style={styles.topBarRight}>
           <button
@@ -1496,6 +1515,7 @@ export default function CourseDetailView({
             <span>Share</span>
           </button>
 
+          {/* ─── UPDATED FULLSCREEN BUTTON ─────────────────────────── */}
           <button
             onClick={handleFullscreen}
             className="action-btn"
@@ -1507,8 +1527,17 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <FullscreenIcon style={{ fontSize: '20px' }} />
-            <span>Fullscreen</span>
+            {isFullscreen ? (
+              <>
+                <FullscreenIcon style={{ fontSize: '20px', transform: 'rotate(180deg)' }} />
+                <span>Exit Fullscreen</span>
+              </>
+            ) : (
+              <>
+                <FullscreenIcon style={{ fontSize: '20px' }} />
+                <span>Fullscreen</span>
+              </>
+            )}
           </button>
 
           <button
