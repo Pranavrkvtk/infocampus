@@ -9,6 +9,14 @@ import {
 } from '../api/UserApi';
 import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 
+// ─── Material UI Icons ──────────────────────────────────────────────────
+import ShareIcon from '@mui/icons-material/Share';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import LogoutIcon from '@mui/icons-material/Logout';
+import LoginIcon from '@mui/icons-material/Login';
+
 // ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
@@ -413,8 +421,6 @@ const buildOdooStyles = (colors) => `
 
 // ─── Tab Components ──────────────────────────────────────────────────
 
-
-
 function NotesTab({ content, config }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -465,8 +471,6 @@ function NotesTab({ content, config }) {
     </div>
   );
 }
-
-
 
 function VideoTab({ videoUrls, config, title, courseTitle }) {
   const [currentVideo, setCurrentVideo] = useState(0);
@@ -1178,17 +1182,17 @@ export default function CourseDetailView({
     },
     topBarRight: {
       display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      paddingRight: '16px',
+      alignItems: 'stretch',
+      gap: '0px',
+      height: '100%',
     },
     topBarNavItem: {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
       padding: '0 22px',
-      fontSize: '20px',
-      fontWeight: 700,
+      fontSize: '16px',
+      fontWeight: 600,
       color: TOPBAR.text,
       cursor: 'pointer',
       transition: 'background 0.15s',
@@ -1196,6 +1200,8 @@ export default function CourseDetailView({
       border: 'none',
       borderRight: `1px solid ${TOPBAR.border}`,
       height: '100%',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
     },
     topBarSeparator: {
       color: TOPBAR.muted,
@@ -1217,18 +1223,20 @@ export default function CourseDetailView({
       color: TOPBAR.text,
     },
     actionButton: {
-      padding: '8px 16px',
-      borderRadius: '6px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '0 20px',
       fontSize: '14px',
       fontWeight: 500,
       border: 'none',
+      borderLeft: `1px solid ${TOPBAR.border}`,
       cursor: 'pointer',
-      transition: 'all 0.2s',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      background: 'transparent',
+      transition: 'background 0.15s',
+      background: TOPBAR.bgActive,
       color: TOPBAR.text,
+      height: '100%',
+      borderRadius: 0,
     },
     shell: {
       display: 'flex',
@@ -1379,16 +1387,22 @@ export default function CourseDetailView({
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
       <div style={styles.topBar}>
         <div style={styles.topBarLeft}>
-          {/* ─── LESSONS TOGGLE (replaces breadcrumb) ─────────────── */}
+          {/* ─── LESSONS TOGGLE ─────────────────────────────── */}
           <button
             onClick={toggleSidebar}
-            className="action-btn"
             style={{
               ...styles.topBarNavItem,
               background: isSidebarOpen ? TOPBAR.bgActive : 'transparent',
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isSidebarOpen ? TOPBAR.bgActive : TOPBAR.bgHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isSidebarOpen ? TOPBAR.bgActive : 'transparent';
+            }}
           >
-            <span style={{ fontSize: '18px' }}>☰</span> Lessons
+            <MenuBookIcon style={{ fontSize: '20px' }} />
+            <span>Lessons</span>
           </button>
         </div>
 
@@ -1402,10 +1416,11 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgHover;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <span style={{ fontSize: '16px' }}>📤</span> Share
+            <ShareIcon style={{ fontSize: '18px' }} />
+            <span>Share</span>
           </button>
 
           {/* ─── FULLSCREEN BUTTON ────────────────────────────────── */}
@@ -1417,10 +1432,11 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgHover;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <span style={{ fontSize: '16px' }}>⛶</span> Fullscreen
+            <FullscreenIcon style={{ fontSize: '18px' }} />
+            <span>Fullscreen</span>
           </button>
 
           {/* ─── HOME BUTTON ────────────────────────────────────── */}
@@ -1432,69 +1448,48 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgHover;
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <span style={{ fontSize: '16px' }}>🏠</span> Home
+            <HomeOutlinedIcon style={{ fontSize: '18px' }} />
+            <span>Home</span>
           </button>
 
           {isLoggedIn ? (
             <button
               onClick={handleLogout}
+              className="action-btn"
               style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: 500,
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: '#fee2e2',
-                color: '#dc2626',
-                border: '1px solid #fca5a5',
+                ...styles.actionButton,
+                color: '#ff6b6b',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#fecaca';
-                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.background = TOPBAR.bgHover;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#fee2e2';
-                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <span style={{ fontSize: '16px' }}>🚪</span> Logout
+              <LogoutIcon style={{ fontSize: '18px' }} />
+              <span>Logout</span>
             </button>
           ) : (
             <button
               onClick={handleLogin}
+              className="action-btn"
               style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: 500,
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: DARK.accent,
-                color: DARK.bg,
-                boxShadow: '0 2px 8px rgba(247, 201, 72, 0.3)',
+                ...styles.actionButton,
+                color: DARK.accent,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 16px rgba(247, 201, 72, 0.4)';
+                e.currentTarget.style.background = TOPBAR.bgHover;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(247, 201, 72, 0.3)';
+                e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <span style={{ fontSize: '16px' }}>🔐</span> Sign In
+              <LoginIcon style={{ fontSize: '18px' }} />
+              <span>Sign In</span>
             </button>
           )}
         </div>
