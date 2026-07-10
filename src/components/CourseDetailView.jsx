@@ -21,14 +21,15 @@ import LoginIcon from '@mui/icons-material/Login';
 // ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-// ─── Odoo eLearning Color Palette ────────────────────────────────────
+// ─── Odoo eLearning Color Palette (UPDATED) ──────────────────────────
 const SIDEBAR = {
-  bg: 'linear-gradient(180deg, #4D5865 0%, #404B58 100%)',
+  bg: '#394451',
   header: '#505C69',
-  item: '#36404C',
-  hover: '#495563',
-  active: '#465362',
-  border: '#4F5B68',
+  item: '#313B47',
+  itemOpen: '#394451',
+  hover: '#465362',
+  active: '#4A5665',
+  border: 'rgba(255,255,255,0.06)',
   text: '#FFFFFF',
   textLight: '#D7DDE5',
   textMuted: '#A8B3BF',
@@ -935,7 +936,7 @@ export default function CourseDetailView({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [authImageUrls, setAuthImageUrls] = useState({});
   const authImageUrlsRef = useRef({});
-  const [isFullscreen, setIsFullscreen] = useState(false); // ← NEW STATE
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // ─── Check if user is logged in ─────────────────────────────────────
   const isLoggedIn = !!localStorage.getItem('token');
@@ -1302,25 +1303,28 @@ export default function CourseDetailView({
       lineHeight: 1.2,
       textShadow: '0 1px 2px rgba(0,0,0,0.2)',
     },
+    // ─── UPDATED Odoo-style topicItem ──────────────────────────────
     topicItem: {
-      margin: '2px 4px',
-      background: 'transparent',
-      transition: 'background 0.2s',
+      margin: 0,
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
     },
+    // ─── UPDATED Odoo-style topicHeader ────────────────────────────
     topicHeader: (isOpen) => ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '10px 14px',
+      padding: '12px 16px',
       cursor: 'pointer',
       fontWeight: isOpen ? 700 : 600,
       fontSize: '12px',
       letterSpacing: '0.03em',
       textTransform: 'uppercase',
       color: isOpen ? SIDEBAR.textLight : SIDEBAR.text,
-      background: SIDEBAR.item,
-      borderRadius: '4px',
-      transition: 'all 0.2s ease',
+      background: isOpen ? '#394451' : '#313B47',
+      borderRadius: 0,
+      borderTop: '1px solid rgba(255,255,255,0.04)',
+      borderBottom: '1px solid rgba(0,0,0,0.25)',
+      transition: 'background 0.2s ease',
       borderLeft: isOpen ? `3px solid ${SIDEBAR.accent}` : '3px solid transparent',
     }),
     subtopicItem: (isActive) => ({
@@ -1451,14 +1455,6 @@ export default function CourseDetailView({
           transform: translateY(0);
           box-shadow: none;
         }
-
-        /* Sidebar hover states - no hover on topic headers */
-        .sidebar-item:hover {
-          background: ${SIDEBAR.hover} !important;
-        }
-        .sidebar-item-active {
-          background: ${SIDEBAR.active} !important;
-        }
       `}</style>
 
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
@@ -1529,7 +1525,7 @@ export default function CourseDetailView({
           >
             {isFullscreen ? (
               <>
-                <FullscreenIcon style={{ fontSize: '20px', transform: 'rotate(180deg)' }} />
+                <FullscreenExitIcon style={{ fontSize: '20px' }} />
                 <span>Exit Fullscreen</span>
               </>
             ) : (
@@ -1646,8 +1642,14 @@ export default function CourseDetailView({
                   return (
                     <div key={topic.id} style={styles.topicItem}>
                       <div 
-                        style={styles.topicHeader(isOpen)} 
+                        style={styles.topicHeader(isOpen)}
                         onClick={() => toggleTopic(topic.id)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = SIDEBAR.hover;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = isOpen ? SIDEBAR.itemOpen : SIDEBAR.item;
+                        }}
                       >
                         <span>{topic.title}</span>
                         <span style={{ fontSize: '10px' }}>
