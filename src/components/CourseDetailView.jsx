@@ -1238,8 +1238,8 @@ export default function CourseDetailView({
       width: '100%',
     },
     sidebar: {
-      width: '380px',
-      minWidth: '380px',
+      width: '340px',
+      minWidth: '340px',
       background: '#222B34',
       borderRight: '1px solid #111820',
       color: '#fff',
@@ -1248,62 +1248,56 @@ export default function CourseDetailView({
     },
     sidebarOpen: { left: '0' },
     sidebarHeader: {
-      padding: '22px 20px 36px',
-      background: '#3A4653',
-      borderBottom: '1px solid #465260',
+      padding: '20px 20px 16px',
+      background: 'transparent',
+      borderBottom: `1px solid ${DARK.border}`,
     },
     sidebarTitle: {
-      fontSize: '26px',
-      fontWeight: 800,
-      color: '#0B1726',
+      fontSize: '20px',
+      fontWeight: 700,
+      color: DARK.text,
       lineHeight: 1.2,
     },
     topicItem: {
-      margin: '10px',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      border: `1px solid ${DARK.border}`,
-      background: DARK.surface,
+      borderBottom: `1px solid ${DARK.border}`,
     },
     topicHeader: (isOpen) => ({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '14px 18px',
+      padding: '14px 20px',
       cursor: 'pointer',
-      fontWeight: 600,
-      fontSize: '15px',
-      color: isOpen ? DARK.textLight : DARK.text,
-      background: isOpen ? DARK.surfaceLight : 'transparent',
-      transition: '0.25s',
-      borderBottom: isOpen ? `1px solid ${DARK.border}` : 'none',
+      fontWeight: 700,
+      fontSize: '11px',
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      color: isOpen ? DARK.textLight : DARK.textMuted,
+      background: 'transparent',
+      transition: '0.2s',
     }),
     subtopicItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
       gap: '10px',
-      padding: '12px 18px 12px 32px',
+      padding: '9px 20px 9px 28px',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: isActive ? '600' : '500',
-      color: isActive ? DARK.textLight : DARK.text,
-      background: isActive ? DARK.surfaceLight : 'transparent',
-      borderLeft: isActive ? `4px solid ${DARK.accent}` : '4px solid transparent',
+      fontWeight: isActive ? '700' : '400',
+      color: isActive ? DARK.text : DARK.textMuted,
+      background: 'transparent',
       transition: '0.2s',
     }),
     leafItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      padding: '10px 18px 10px 52px',
+      padding: '7px 20px 7px 48px',
       fontSize: '13px',
       cursor: 'pointer',
-      borderRadius: '8px',
-      margin: '4px 10px',
-      color: isActive ? DARK.textLight : DARK.textMuted,
-      background: isActive ? DARK.surfaceLight : 'transparent',
+      color: isActive ? DARK.accent : DARK.textMuted,
+      background: 'transparent',
       transition: '0.2s',
-      fontWeight: isActive ? 600 : 500,
+      fontWeight: isActive ? 600 : 400,
     }),
     mainContent: {
       flex: 1,
@@ -1550,8 +1544,8 @@ export default function CourseDetailView({
                   return (
                     <div key={topic.id} style={styles.topicItem}>
                       <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
-                        <span style={{ color: DARK.text }}>📚 {topic.title}</span>
-                        <span style={{ fontSize: '12px', color: isOpen ? DARK.textLight : DARK.textMuted }}>
+                        <span>{topic.title}</span>
+                        <span style={{ fontSize: '10px' }}>
                           {isOpen ? '▼' : '▶'}
                         </span>
                       </div>
@@ -1566,21 +1560,21 @@ export default function CourseDetailView({
                               style={styles.subtopicItem(isActive)} 
                               onClick={() => selectSubtopic(sub, globalIndex)}
                               onMouseEnter={(e) => {
-                                if (!isActive) e.currentTarget.style.background = DARK.surfaceLight;
+                                if (!isActive) e.currentTarget.style.color = DARK.textLight;
                               }}
                               onMouseLeave={(e) => {
-                                if (!isActive) e.currentTarget.style.background = 'transparent';
+                                if (!isActive) e.currentTarget.style.color = DARK.textMuted;
                               }}
                             >
-                              <span style={{ fontSize: '12px', color: hasVideo ? DARK.accent : DARK.textMuted }}>
+                              <span style={{ fontSize: '11px', color: hasVideo ? DARK.accent : 'inherit' }}>
                                 {hasVideo ? '▶' : '●'}
                               </span>
-                              <span style={{ flex: 1, color: isActive ? DARK.textLight : DARK.text }}>{sub.title}</span>
+                              <span style={{ flex: 1 }}>{sub.title}</span>
                             </div>
                             {isActive && (
                               <div>
                                 {loadingData ? (
-                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: DARK.textMuted }}>Loading…</div>
+                                  <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: DARK.textMuted }}>Loading…</div>
                                 ) : (
                                   CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
                                     <div
@@ -1589,13 +1583,11 @@ export default function CourseDetailView({
                                       onClick={() => setActiveContentType(t.key)}
                                       onMouseEnter={(e) => {
                                         if (activeContentType !== t.key) {
-                                          e.currentTarget.style.background = DARK.surfaceLight;
                                           e.currentTarget.style.color = DARK.textLight;
                                         }
                                       }}
                                       onMouseLeave={(e) => {
                                         if (activeContentType !== t.key) {
-                                          e.currentTarget.style.background = 'transparent';
                                           e.currentTarget.style.color = DARK.textMuted;
                                         }
                                       }}
@@ -1606,7 +1598,7 @@ export default function CourseDetailView({
                                   ))
                                 )}
                                 {!loadingData && availableTypes.length === 0 && (
-                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: DARK.textMuted }}>No content</div>
+                                  <div style={{ padding: '4px 20px 4px 48px', fontSize: '11px', color: DARK.textMuted }}>No content</div>
                                 )}
                               </div>
                             )}
