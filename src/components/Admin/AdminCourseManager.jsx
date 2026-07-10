@@ -165,6 +165,9 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // COURSE IMAGE UPLOADER - FIXED (removed Content-Type header)
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// COURSE IMAGE UPLOADER - FIXED (use 'file' as parameter name)
+// ═══════════════════════════════════════════════════════════════════════════════
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -185,11 +188,10 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 
     setUploading(true);
     const formData = new FormData();
-    formData.append('image', file);
+    // ✅ FIXED: Use 'file' as the parameter name (not 'image')
+    formData.append('file', file);
 
     try {
-      // ✅ IMPORTANT: Do NOT set Content-Type header manually
-      // Let axios set it automatically with the correct boundary
       const response = await axiosInstance.post(
         `/admin/courses/${course.id}/upload-image`,
         formData
@@ -990,40 +992,40 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     onUpdate(patch);
   };
 
-  const uploadDocument = async (file) => {
-    if (!file) return;
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      toast.show('Only PDF, DOC and DOCX files are allowed', 'error');
-      return;
-    }
-    setUploadingDoc(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      // ✅ IMPORTANT: Do NOT set Content-Type header manually for FormData
-      const response = await axiosInstance.post(
-        `/admin/subtopics/${subtopicId}/upload-pdf`,
-        formData
-      );
-      const data = response.data;
-      const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
-      setNotes(refreshedSub.content || '');
-      setVideoUrl(refreshedSub.videoUrl || '');
-      onUpdate(refreshedSub);
-      toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
-    } catch (err) {
-      console.error('Upload error:', err);
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
-      toast.show(msg, 'error');
-    } finally {
-      setUploadingDoc(false);
-    }
-  };
+const uploadDocument = async (file) => {
+  if (!file) return;
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ];
+  if (!allowedTypes.includes(file.type)) {
+    toast.show('Only PDF, DOC and DOCX files are allowed', 'error');
+    return;
+  }
+  setUploadingDoc(true);
+  const formData = new FormData();
+  // ✅ FIXED: Use 'file' as the parameter name (not 'document' or anything else)
+  formData.append('file', file);
+  try {
+    const response = await axiosInstance.post(
+      `/admin/subtopics/${subtopicId}/upload-pdf`,
+      formData
+    );
+    const data = response.data;
+    const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
+    setNotes(refreshedSub.content || '');
+    setVideoUrl(refreshedSub.videoUrl || '');
+    onUpdate(refreshedSub);
+    toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
+  } catch (err) {
+    console.error('Upload error:', err);
+    const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
+    toast.show(msg, 'error');
+  } finally {
+    setUploadingDoc(false);
+  }
+};
 
   const embedUrl = videoUrl?.includes('watch?v=')
     ? videoUrl.replace('watch?v=', 'embed/')
