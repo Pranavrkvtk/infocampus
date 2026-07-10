@@ -1,5 +1,5 @@
 // src/components/CourseDetailView.jsx
-// Premium Odoo-style learning UI - Dark Sidebar + White Content
+// Premium Odoo-style learning UI - Dark Sidebar + Dark Content
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -12,22 +12,22 @@ import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 // ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-// ─── Dark Theme Colors for Sidebar ────────────────────────────────────
+// ─── Dark Theme Colors for Sidebar (Odoo-style Dark Blue-Gray) ──────
 const DARK = {
-  bg: '#0f172a',
-  surface: '#1e293b',
-  surfaceLight: '#334155',
-  border: '#334155',
-  text: '#e2e8f0',
-  textMuted: '#94a3b8',
-  textLight: '#f1f5f9',
-  accent: '#4f46e5',
-  accentSoft: '#312e81',
+  bg: '#262C35',
+  surface: '#303743',
+  surfaceLight: '#3A4959',
+  border: '#444E5A',
+  text: '#FFFFFF',
+  textMuted: '#A8AEB1',
+  textLight: '#DADDDD',
+  accent: '#F7C948',
+  accentSoft: '#3A4959',
   success: '#22c55e',
   successBg: '#052e16',
-  hover: '#1e293b',
-  cardBg: '#1e293b',
-  inputBg: '#0f172a',
+  hover: '#3A4959',
+  cardBg: '#303743',
+  inputBg: '#262C35',
 };
 
 // ─── Light Theme Colors for Content ──────────────────────────────────
@@ -39,10 +39,20 @@ const LIGHT = {
   textMuted: '#64748b',
   textLight: '#1e293b',
   hover: '#f1f5f9',
-  accent: '#4f46e5',
+  accent: '#F7C948',
   accentSoft: '#eef2ff',
   success: '#22c55e',
   successBg: '#dcfce7',
+};
+
+// ─── Grey Top Bar Colors ──────────────────────────────────────────────
+const TOPBAR = {
+  bg: '#323D49',
+  bgActive: '#1F2933',
+  bgHover: '#3E4A58',
+  border: '#465260',
+  text: '#FFFFFF',
+  muted: '#C9D2DC',
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────
@@ -238,20 +248,21 @@ const renderOdooContent = (text) => {
 };
 
 // ─── Odoo Content Styles (Light Theme) ──────────────────────────────
-
 const buildOdooStyles = (colors) => `
   .odoo-content {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    color: ${LIGHT.text};
+    color: #1a1a1a !important;
     font-size: 16px;
     line-height: 1.8;
     padding: 4px 0;
     max-width: 100%;
+    background: #ffffff !important;
+    min-height: 100%;
   }
   .odoo-main-heading {
     font-size: 32px;
     font-weight: 800;
-    color: ${LIGHT.textLight};
+    color: #1a1a1a !important;
     margin: 0 0 24px 0;
     padding: 0;
     line-height: 1.2;
@@ -260,7 +271,7 @@ const buildOdooStyles = (colors) => `
   .odoo-sub-heading {
     font-size: 24px;
     font-weight: 700;
-    color: ${LIGHT.textLight};
+    color: #1a1a1a !important;
     margin: 32px 0 16px 0;
     padding: 0;
     line-height: 1.3;
@@ -269,7 +280,7 @@ const buildOdooStyles = (colors) => `
   .odoo-section-header {
     font-size: 15px;
     font-weight: 700;
-    color: #64748B;
+    color: #4a5568 !important;
     margin: 20px 0 8px 0;
     padding: 0;
     letter-spacing: 0.02em;
@@ -284,14 +295,14 @@ const buildOdooStyles = (colors) => `
     padding: 6px 0 6px 28px;
     position: relative;
     font-size: 15px;
-    color: ${LIGHT.text};
+    color: #2d3748 !important;
     line-height: 1.7;
   }
   .odoo-list-item::before {
     content: "●";
     position: absolute;
     left: 4px;
-    color: ${colors.accent || '#4f46e5'};
+    color: ${colors.accent || '#F7C948'};
     font-weight: 700;
     font-size: 12px;
   }
@@ -301,35 +312,35 @@ const buildOdooStyles = (colors) => `
     align-items: flex-start;
     margin: 28px 0 12px 0;
     padding: 16px 20px;
-    background: ${LIGHT.hover};
+    background: #f7fafc !important;
     border-radius: 12px;
-    border-left: 4px solid ${colors.accent || '#4f46e5'};
+    border-left: 4px solid ${colors.accent || '#F7C948'};
   }
   .odoo-question-number {
     font-size: 16px;
     font-weight: 700;
-    color: ${LIGHT.textLight};
+    color: #1a1a1a !important;
     min-width: 28px;
     flex-shrink: 0;
   }
   .odoo-question-text {
     font-size: 16px;
     font-weight: 600;
-    color: ${LIGHT.textLight};
+    color: #1a1a1a !important;
     line-height: 1.6;
   }
   .odoo-signin-text {
     font-size: 15px;
     font-weight: 500;
-    color: ${LIGHT.textMuted};
+    color: #4a5568 !important;
     margin: 20px 0 10px 0;
     padding: 0;
     text-align: center;
   }
   .odoo-xp-badge {
     display: inline-block;
-    background: ${colors.accent || '#4f46e5'};
-    color: #fff;
+    background: ${colors.accent || '#F7C948'};
+    color: #262C35;
     font-size: 14px;
     font-weight: 700;
     padding: 6px 20px;
@@ -338,31 +349,31 @@ const buildOdooStyles = (colors) => `
   }
   .odoo-divider {
     border: none;
-    border-top: 1px solid ${LIGHT.border};
+    border-top: 1px solid #e2e8f0 !important;
     margin: 24px 0;
   }
   .odoo-paragraph {
     font-size: 15px;
-    color: ${LIGHT.text};
+    color: #2d3748 !important;
     line-height: 1.8;
     margin: 0 0 18px 0;
   }
   .note-link {
-    color: ${colors.accent || '#4f46e5'};
+    color: ${colors.accent || '#F7C948'};
     text-decoration: underline;
     text-underline-offset: 2px;
     font-weight: 500;
   }
   .note-link:hover {
-    color: ${colors.accentDark || '#818cf8'};
+    color: #e6b83a;
   }
   .note-code {
-    background: ${LIGHT.hover};
+    background: #f7fafc !important;
     padding: 2px 10px;
     border-radius: 6px;
     font-size: 14px;
     font-family: 'JetBrains Mono', monospace;
-    color: ${LIGHT.textLight};
+    color: #2d3748 !important;
   }
   .note-image {
     max-width: 100%;
@@ -384,21 +395,25 @@ const buildOdooStyles = (colors) => `
     -webkit-user-select: none !important;
   }
   .odoo-content::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
   }
   .odoo-content::-webkit-scrollbar-track {
-    background: transparent;
+    background: #f1f1f1;
+    border-radius: 4px;
   }
   .odoo-content::-webkit-scrollbar-thumb {
-    background: #CBD5E1;
-    border-radius: 3px;
+    background: #cbd5e1;
+    border-radius: 4px;
   }
   .odoo-content::-webkit-scrollbar-thumb:hover {
-    background: #94A3B8;
+    background: #94a3b8;
   }
 `;
 
-// ─── Tab Components (Light Theme) ──────────────────────────────────
+
+// ─── Tab Components ──────────────────────────────────────────────────
+
+
 
 function NotesTab({ content, config }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -410,25 +425,36 @@ function NotesTab({ content, config }) {
   }, []);
 
   if (!content) {
-    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.emptyStates?.notes || 'No notes available'}</div>;
+    return <div style={{ padding: '20px', color: '#4a5568', textAlign: 'center' }}>No notes available</div>;
   }
 
   const html = renderOdooContent(content);
   const styleTag = buildOdooStyles(config.colors);
 
   return (
-    <div style={{ position: 'relative', height: '100%' }}>
+    <div style={{ 
+      position: 'relative', 
+      height: '100%', 
+      width: '100%',
+      background: '#ffffff',
+      overflow: 'hidden',
+    }}>
       <div
         className="odoo-content fade-in"
         dangerouslySetInnerHTML={{ __html: html }}
         style={{
-          padding: isMobile ? '12px 8px 60px 8px' : '16px 24px 80px 24px',
-          overflowY: 'visible',
+          padding: isMobile ? '12px 8px 60px 8px' : '24px 32px 80px 32px',
+          height: '100%',
+          overflowY: 'auto',
           overflowX: 'hidden',
           userSelect: 'none',
           WebkitUserSelect: 'none',
           scrollBehavior: 'smooth',
           WebkitOverflowScrolling: 'touch',
+          color: '#1a1a1a',
+          background: '#ffffff',
+          maxHeight: '100%',
+          minHeight: '100%',
         }}
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
@@ -440,59 +466,129 @@ function NotesTab({ content, config }) {
   );
 }
 
-function VideoTab({ videoUrls, config }) {
+
+
+function VideoTab({ videoUrls, config, title, courseTitle }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
 
   if (urls.length === 0) {
-    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.emptyStates?.video || 'No videos available'}</div>;
+    return <div style={{ padding: 24, color: '#C9D2DC', textAlign: 'center' }}>No videos available</div>;
   }
 
-  const currentUrl = urls[currentVideo];
-  const embed = getEmbedUrl(currentUrl);
+  const embed = getEmbedUrl(urls[currentVideo]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{
+      height: '100%',
+      minHeight: 0,
+      background: 'linear-gradient(180deg, #321B2B 0%, #7B4A6D 100%)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        opacity: 0.22,
+        background:
+          'repeating-radial-gradient(ellipse at top right, transparent 0 70px, rgba(255,255,255,.22) 72px 74px)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{
+        position: 'absolute',
+        top: 18,
+        left: 36,
+        right: 36,
+        zIndex: 2,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        color: '#fff',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 46,
+            height: 46,
+            borderRadius: '50%',
+            background: '#fff',
+            color: '#875A7B',
+            display: 'grid',
+            placeItems: 'center',
+            fontWeight: 800,
+            fontSize: 13,
+          }}>
+            odoo
+          </div>
+
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.15 }}>
+              {title || 'Course Video'}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, opacity: 0.9 }}>
+              {courseTitle || 'Course'}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 16, fontSize: 24 }}>
+          <span>vol</span>
+          <span>cc</span>
+          <span>gear</span>
+        </div>
+      </div>
+
+      <div style={{
+        height: '100%',
+        display: 'grid',
+        placeItems: 'center',
+        padding: '86px 36px 56px',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        <iframe
+          src={embed}
+          title={`Video ${currentVideo + 1}`}
+          frameBorder="0"
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          style={{
+            width: '100%',
+            height: '100%',
+            maxHeight: 'calc(100vh - 150px)',
+            aspectRatio: '16 / 9',
+            border: 0,
+            background: 'transparent',
+          }}
+        />
+      </div>
+
       {urls.length > 1 && (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{
+          position: 'absolute',
+          left: 36,
+          bottom: 24,
+          zIndex: 3,
+          display: 'flex',
+          gap: 8,
+        }}>
           {urls.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentVideo(idx)}
               style={{
-                padding: '6px 16px',
-                borderRadius: '16px',
-                border: idx === currentVideo ? `2px solid ${config.colors?.accent || '#4f46e5'}` : `1px solid ${LIGHT.border}`,
-                background: idx === currentVideo ? (config.colors?.accent || '#4f46e5') : 'transparent',
-                color: idx === currentVideo ? '#fff' : LIGHT.textMuted,
-                fontWeight: idx === currentVideo ? 600 : 500,
-                fontSize: '12px',
+                border: 0,
+                borderRadius: 999,
+                padding: '8px 14px',
+                background: idx === currentVideo ? '#875A7B' : 'rgba(0,0,0,.35)',
+                color: '#fff',
+                fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
-              ▶ Video {idx + 1}
+              Video {idx + 1}
             </button>
           ))}
-        </div>
-      )}
-
-      {embed && (
-        <div style={{ 
-          position: 'relative', 
-          paddingBottom: '56.25%', 
-          height: 0, 
-          overflow: 'hidden', 
-          borderRadius: '12px', 
-          background: '#000' 
-        }}>
-          <iframe
-            src={embed}
-            title={`Video ${currentVideo + 1}`}
-            frameBorder="0"
-            allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-          />
         </div>
       )}
     </div>
@@ -504,7 +600,7 @@ function InterviewTab({ questions, config }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   if (!questions || questions.length === 0) {
-    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.emptyStates?.interview || 'No interview questions available'}</div>;
+    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No interview questions available</div>;
   }
 
   return (
@@ -512,7 +608,7 @@ function InterviewTab({ questions, config }) {
       <div style={{ marginBottom: '16px' }}>
         <input
           type="text"
-          placeholder={config.labels?.searchQuestionsPlaceholder || 'Search questions...'}
+          placeholder="Search questions..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
@@ -584,7 +680,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
   const [score, setScore] = useState(null);
 
   if (!questions || questions.length === 0) {
-    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.emptyStates?.exam || 'No exam questions available'}</div>;
+    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No exam questions available</div>;
   }
 
   const handleSubmit = () => {
@@ -611,15 +707,15 @@ function ExamTab({ questions, config, onScoreUpdate }) {
         gap: '8px',
       }}>
         <span style={{ fontWeight: 700, fontSize: '15px', color: LIGHT.textLight }}>
-          {config.labels?.quizTitleText || 'Quiz'}
+          Quiz
         </span>
         {!submitted && (
           <button
             onClick={handleSubmit}
             style={{
               padding: '8px 20px',
-              background: config.colors?.accent || '#4f46e5',
-              color: '#fff',
+              background: config.colors?.accent || '#F7C948',
+              color: '#262C35',
               border: 'none',
               borderRadius: '20px',
               fontWeight: 600,
@@ -627,7 +723,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
               cursor: 'pointer',
             }}
           >
-            {config.labels?.submitQuizText || 'Submit Quiz'}
+            Submit Quiz
           </button>
         )}
       </div>
@@ -659,7 +755,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
                     padding: '8px 14px',
                     borderRadius: '8px',
                     background: isSelected ? LIGHT.accentSoft : 'transparent',
-                    border: isSelected ? `1px solid ${config.colors?.accent || '#4f46e5'}` : `1px solid transparent`,
+                    border: isSelected ? `1px solid ${config.colors?.accent || '#F7C948'}` : `1px solid transparent`,
                     cursor: submitted ? 'default' : 'pointer',
                   }}
                 >
@@ -670,7 +766,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
                     checked={isSelected}
                     onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
                     disabled={submitted}
-                    style={{ accentColor: config.colors?.accent || '#4f46e5' }}
+                    style={{ accentColor: config.colors?.accent || '#F7C948' }}
                   />
                   <span style={{ fontSize: '14px', color: LIGHT.text }}>
                     <strong style={{ color: LIGHT.textMuted, marginRight: '4px' }}>{opt}.</strong>
@@ -689,7 +785,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
               fontSize: '13px',
               color: answers[q.id] === q.correctAnswer ? LIGHT.success : '#dc2626',
             }}>
-              {answers[q.id] === q.correctAnswer ? (config.labels?.correctText || '✅ Correct!') : (config.labels?.incorrectText || '❌ Incorrect')}
+              {answers[q.id] === q.correctAnswer ? '✅ Correct!' : '❌ Incorrect'}
             </div>
           )}
         </div>
@@ -719,7 +815,7 @@ function LabsTab({ labs, config }) {
   const [activeLab, setActiveLab] = useState(null);
 
   if (!labs || labs.length === 0) {
-    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.emptyStates?.labs || 'No labs available'}</div>;
+    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No labs available</div>;
   }
 
   return (
@@ -766,6 +862,7 @@ function LabsTab({ labs, config }) {
   );
 }
 
+
 // ─── Main CourseDetailView ────────────────────────────────────────────
 
 export default function CourseDetailView({
@@ -801,7 +898,7 @@ export default function CourseDetailView({
     key,
     icon: config.contentTypes?.[key]?.icon || key,
     label: config.contentTypes?.[key]?.label || key,
-    color: config.contentTypes?.[key]?.color || '#000',
+    color: config.contentTypes?.[key]?.color || '#F7C948',
   }));
 
   const [expandedTopics, setExpandedTopics] = useState(() => {
@@ -941,12 +1038,20 @@ export default function CourseDetailView({
     : topics;
 
   const renderPanelContent = () => {
-    if (!currentSub) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.labels?.selectSectionText || 'Select a section'}</div>;
-    if (loadingData) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.labels?.loadingContentText || 'Loading...'}</div>;
-    if (availableTypes.length === 0) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>{config.labels?.noContentText || 'No content available'}</div>;
+    if (!currentSub) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>Select a section</div>;
+    if (loadingData) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>Loading...</div>;
+    if (availableTypes.length === 0) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No content available</div>;
 
     switch (activeContentType) {
-      case 'video': return <VideoTab videoUrls={videoUrls} config={config} />;
+      case 'video':
+        return (
+          <VideoTab
+            videoUrls={videoUrls}
+            config={config}
+            title={currentSub?.title}
+            courseTitle={selectedCourse?.title}
+          />
+        );
       case 'notes': return <NotesTab content={currentSub.content} config={config} />;
       case 'interview': return <InterviewTab questions={interviewQuestions} config={config} />;
       case 'exam': return <ExamTab questions={examQuestions} config={config} />;
@@ -955,7 +1060,15 @@ export default function CourseDetailView({
     }
   };
 
-  const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setShowSidebar((prev) => !prev);
+    } else {
+      setIsSidebarCollapsed((prev) => !prev);
+    }
+  };
+
+  const isSidebarOpen = isMobile ? showSidebar : !isSidebarCollapsed;
 
   // ─── Handle Logout ──────────────────────────────────────────────────
   const handleLogout = () => {
@@ -970,58 +1083,178 @@ export default function CourseDetailView({
     window.location.href = '/login';
   };
 
+  // ─── Handle Home Navigation ──────────────────────────────────────
+  const handleHomeClick = () => {
+    if (handleBack) {
+      handleBack();
+    } else {
+      window.location.href = '/courses';
+    }
+  };
+
+  // ─── Handle Share ──────────────────────────────────────────────────
+  const handleShare = async () => {
+    const shareData = {
+      title: selectedCourse?.title || 'Course',
+      text: `Check out this course: ${selectedCourse?.title || 'Course'}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard!');
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error sharing:', error);
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          alert('Link copied to clipboard!');
+        } catch (clipError) {
+          console.error('Failed to copy:', clipError);
+        }
+      }
+    }
+  };
+
+  // ─── Handle Fullscreen ──────────────────────────────────────────────
+  const handleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error('Error attempting to enable fullscreen:', err);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   if (contentLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px', background: DARK.bg, minHeight: '100vh' }}>
-        <div style={{ width: '40px', height: '40px', border: `3px solid ${DARK.border}`, borderTopColor: config.colors?.accent || '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
-        <p style={{ color: DARK.textMuted, fontSize: '15px' }}>{config.labels?.loadingCourseText || 'Loading course...'}</p>
+        <div style={{ width: '40px', height: '40px', border: `3px solid ${DARK.border}`, borderTopColor: DARK.accent, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+        <p style={{ color: DARK.textMuted, fontSize: '15px' }}>Loading course...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
-  // ─── Dark Sidebar + Light Content Styles ────────────────────────────
+  // ─── Odoo Styles ────────────────────────────────────────────────────
 
   const isMobileDevice = window.innerWidth < 768;
 
+  // ─── Get current course name and topic name for breadcrumb ─────────
+  const courseName = selectedCourse?.title || 'Course';
+  const topicName = currentTopic?.title || '';
+  const subtopicName = currentSub?.title || '';
+
   const styles = {
     page: {
-      background: LIGHT.bg,
+      background: '#222B34',
       height: '100vh',
       overflow: 'hidden',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      paddingTop: '0',
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+    },
+    // ─── Top Grey Navigation Bar ──────────────────────────────────────
+    topBar: {
+      height: '72px',
+      background: TOPBAR.bg,
+      borderBottom: `1px solid ${TOPBAR.border}`,
+      display: 'flex',
+      alignItems: 'stretch',
+      justifyContent: 'space-between',
+      padding: 0,
+      color: TOPBAR.text,
+    },
+    topBarLeft: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0px',
+      flexWrap: 'wrap',
+    },
+    topBarRight: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      paddingRight: '16px',
+    },
+    topBarNavItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '0 22px',
+      fontSize: '20px',
+      fontWeight: 700,
+      color: TOPBAR.text,
+      cursor: 'pointer',
+      transition: 'background 0.15s',
+      background: 'transparent',
+      border: 'none',
+      borderRight: `1px solid ${TOPBAR.border}`,
+      height: '100%',
+    },
+    topBarSeparator: {
+      color: TOPBAR.muted,
+      fontSize: '18px',
+      fontWeight: 300,
+      padding: '0 4px',
+    },
+    topBarBreadcrumb: {
+      fontSize: '16px',
+      color: TOPBAR.muted,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      flexWrap: 'wrap',
+      padding: '0 12px',
+    },
+    topBarBreadcrumbActive: {
+      fontWeight: 600,
+      color: TOPBAR.text,
+    },
+    actionButton: {
+      padding: '8px 16px',
+      borderRadius: '6px',
+      fontSize: '14px',
+      fontWeight: 500,
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      background: 'transparent',
+      color: TOPBAR.text,
     },
     shell: {
       display: 'flex',
-      height: '100%',
+      height: 'calc(100% - 72px)',
       width: '100%',
     },
     sidebar: {
-      width: '320px',
-      minWidth: '320px',
-      background: DARK.bg,
-      borderRight: `1px solid ${DARK.border}`,
-      height: '100vh',
+      width: '380px',
+      minWidth: '380px',
+      background: '#222B34',
+      borderRight: '1px solid #111820',
+      color: '#fff',
       overflowY: 'auto',
       flexShrink: 0,
     },
     sidebarOpen: { left: '0' },
     sidebarHeader: {
-      padding: '20px',
-      borderBottom: `1px solid ${DARK.border}`,
-      background: DARK.surface,
+      padding: '22px 20px 36px',
+      background: '#3A4653',
+      borderBottom: '1px solid #465260',
     },
     sidebarTitle: {
-      fontSize: '20px',
-      fontWeight: 700,
-      color: DARK.textLight,
-      lineHeight: '1.3',
-    },
-    sidebarSubtitle: {
-      fontSize: '13px',
-      color: DARK.textMuted,
-      marginTop: '6px',
+      fontSize: '26px',
+      fontWeight: 800,
+      color: '#0B1726',
+      lineHeight: 1.2,
     },
     topicItem: {
       margin: '10px',
@@ -1038,8 +1271,8 @@ export default function CourseDetailView({
       cursor: 'pointer',
       fontWeight: 600,
       fontSize: '15px',
-      color: isOpen ? (config.colors?.accent || '#4f46e5') : DARK.text,
-      background: isOpen ? DARK.accentSoft : 'transparent',
+      color: isOpen ? DARK.textLight : DARK.text,
+      background: isOpen ? DARK.surfaceLight : 'transparent',
       transition: '0.25s',
       borderBottom: isOpen ? `1px solid ${DARK.border}` : 'none',
     }),
@@ -1051,9 +1284,9 @@ export default function CourseDetailView({
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: isActive ? '600' : '500',
-      color: isActive ? '#fff' : DARK.text,
-      background: isActive ? (config.colors?.accent || '#4f46e5') : 'transparent',
-      borderLeft: isActive ? `4px solid ${config.colors?.accent || '#4f46e5'}` : '4px solid transparent',
+      color: isActive ? DARK.textLight : DARK.text,
+      background: isActive ? DARK.surfaceLight : 'transparent',
+      borderLeft: isActive ? `4px solid ${DARK.accent}` : '4px solid transparent',
       transition: '0.2s',
     }),
     leafItem: (isActive) => ({
@@ -1065,99 +1298,32 @@ export default function CourseDetailView({
       cursor: 'pointer',
       borderRadius: '8px',
       margin: '4px 10px',
-      color: isActive ? '#fff' : DARK.textMuted,
-      background: isActive ? (config.colors?.accent || '#4f46e5') : 'transparent',
+      color: isActive ? DARK.textLight : DARK.textMuted,
+      background: isActive ? DARK.surfaceLight : 'transparent',
       transition: '0.2s',
       fontWeight: isActive ? 600 : 500,
     }),
     mainContent: {
       flex: 1,
+      minWidth: 0,
+      background: '#222B34',
       display: 'flex',
       flexDirection: 'column',
-      background: LIGHT.bg,
-      overflow: 'hidden',
-      padding: '20px',
-    },
-    contentHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: '12px',
-      padding: isMobileDevice ? '8px 4px 12px 4px' : '8px 0 16px 0',
-      flexWrap: 'wrap',
-      position: 'sticky',
-      top: 0,
-      zIndex: 5,
-      background: LIGHT.bg,
-    },
-    headerLeft: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      flexWrap: 'wrap',
-    },
-    headerRight: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-    },
-    backBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      background: LIGHT.surface,
-      border: `1px solid ${LIGHT.border}`,
-      borderRadius: '8px',
-      padding: '8px 16px',
-      fontSize: '13px',
-      fontWeight: 600,
-      color: LIGHT.text,
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-    },
-    contentTitle: {
-      fontSize: isMobileDevice ? '16px' : '20px',
-      fontWeight: 700,
-      color: LIGHT.textLight,
-    },
-    // ─── Auth Buttons ──────────────────────────────────────────────────
-    authBtn: {
-      padding: '8px 20px',
-      borderRadius: '8px',
-      fontSize: '13px',
-      fontWeight: 600,
-      border: 'none',
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-    },
-    signInBtn: {
-      background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-      color: '#fff',
-      boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
-    },
-    logoutBtn: {
-      background: '#fee2e2',
-      color: '#dc2626',
-      border: '1px solid #fca5a5',
     },
     contentPanel: {
       flex: 1,
-      background: LIGHT.surface,
-      borderRadius: '12px',
+      background: 'transparent',
+      borderRadius: 0,
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
-      border: `1px solid ${LIGHT.border}`,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      border: 'none',
+      boxShadow: 'none',
     },
     contentBody: {
       flex: 1,
-      overflowY: 'auto',
-      padding: '20px',
+      overflow: 'hidden',
+      padding: 0,
       userSelect: 'none',
       WebkitUserSelect: 'none',
       WebkitTouchCallout: 'none',
@@ -1185,7 +1351,7 @@ export default function CourseDetailView({
       <style>{`
         * { -webkit-touch-callout: none !important; -webkit-user-select: none !important; user-select: none !important; }
         input, textarea, select { -webkit-user-select: auto !important; user-select: auto !important; }
-        body { overscroll-behavior: none; touch-action: pan-y; margin: 0; padding: 0; background: ${LIGHT.bg}; }
+        body { overscroll-behavior: none; touch-action: pan-y; margin: 0; padding: 0; background: #222B34; }
         .odoo-content { font-family: 'Inter', system-ui, sans-serif; }
         
         /* Premium scrollbar - light */
@@ -1193,25 +1359,163 @@ export default function CourseDetailView({
         ::-webkit-scrollbar-track { background: ${LIGHT.hover}; border-radius: 3px; }
         ::-webkit-scrollbar-thumb { background: ${LIGHT.border}; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: ${LIGHT.textMuted}; }
+
+        /* Sidebar scrollbar */
+        #mobile-sidebar::-webkit-scrollbar { width: 4px; }
+        #mobile-sidebar::-webkit-scrollbar-track { background: transparent; }
+        #mobile-sidebar::-webkit-scrollbar-thumb { background: ${DARK.border}; border-radius: 2px; }
+        #mobile-sidebar::-webkit-scrollbar-thumb:hover { background: ${DARK.textMuted}; }
+
+        /* Button hover styles */
+        .action-btn:hover {
+          background: ${TOPBAR.bgHover};
+          transform: translateY(-1px);
+        }
+        .action-btn:active {
+          transform: translateY(0);
+        }
       `}</style>
+
+      {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
+      <div style={styles.topBar}>
+        <div style={styles.topBarLeft}>
+          {/* ─── LESSONS TOGGLE (replaces breadcrumb) ─────────────── */}
+          <button
+            onClick={toggleSidebar}
+            className="action-btn"
+            style={{
+              ...styles.topBarNavItem,
+              background: isSidebarOpen ? TOPBAR.bgActive : 'transparent',
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>☰</span> Lessons
+          </button>
+        </div>
+
+        <div style={styles.topBarRight}>
+          {/* ─── SHARE BUTTON ────────────────────────────────────── */}
+          <button
+            onClick={handleShare}
+            className="action-btn"
+            style={styles.actionButton}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>📤</span> Share
+          </button>
+
+          {/* ─── FULLSCREEN BUTTON ────────────────────────────────── */}
+          <button
+            onClick={handleFullscreen}
+            className="action-btn"
+            style={styles.actionButton}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>⛶</span> Fullscreen
+          </button>
+
+          {/* ─── HOME BUTTON ────────────────────────────────────── */}
+          <button
+            onClick={handleHomeClick}
+            className="action-btn"
+            style={styles.actionButton}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>🏠</span> Home
+          </button>
+
+          {isLoggedIn ? (
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#fee2e2',
+                color: '#dc2626',
+                border: '1px solid #fca5a5',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fecaca';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#fee2e2';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>🚪</span> Logout
+            </button>
+          ) : (
+            <button
+              onClick={handleLogin}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: DARK.accent,
+                color: DARK.bg,
+                boxShadow: '0 2px 8px rgba(247, 201, 72, 0.3)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(247, 201, 72, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(247, 201, 72, 0.3)';
+              }}
+            >
+              <span style={{ fontSize: '16px' }}>🔐</span> Sign In
+            </button>
+          )}
+        </div>
+      </div>
 
       {activeView === 'split' && (
         <div style={styles.shell}>
           {isMobile && showSidebar && <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />}
 
-          {/* ─── Sidebar (DARK) ────────────────────────────────────── */}
+          {/* ─── Sidebar ────────────────────────────────────── */}
           {(!isSidebarCollapsed || isMobile) && (
             <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
               <div style={styles.sidebarHeader}>
                 <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
-                <div style={styles.sidebarSubtitle}>{subtopics.length} {config.labels?.lessonsSuffix || 'lessons'}</div>
               </div>
 
               {/* ─── Search ──────────────────────────────────────────── */}
               <div style={{ padding: '10px 12px' }}>
                 <input
                   type="text"
-                  placeholder={config.labels?.searchTopicsPlaceholder || 'Search topics...'}
+                  placeholder="Search topics..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -1226,8 +1530,8 @@ export default function CourseDetailView({
                     color: DARK.text,
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = config.colors?.accent || '#4f46e5';
-                    e.target.style.boxShadow = `0 0 0 3px ${config.colors?.accent || '#4f46e5'}33`;
+                    e.target.style.borderColor = DARK.accent;
+                    e.target.style.boxShadow = `0 0 0 3px rgba(247, 201, 72, 0.2)`;
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = DARK.border;
@@ -1245,7 +1549,7 @@ export default function CourseDetailView({
                     <div key={topic.id} style={styles.topicItem}>
                       <div style={styles.topicHeader(isOpen)} onClick={() => toggleTopic(topic.id)}>
                         <span style={{ color: DARK.text }}>📚 {topic.title}</span>
-                        <span style={{ fontSize: '12px', color: isOpen ? (config.colors?.accent || '#4f46e5') : DARK.textMuted }}>
+                        <span style={{ fontSize: '12px', color: isOpen ? DARK.textLight : DARK.textMuted }}>
                           {isOpen ? '▼' : '▶'}
                         </span>
                       </div>
@@ -1266,10 +1570,10 @@ export default function CourseDetailView({
                                 if (!isActive) e.currentTarget.style.background = 'transparent';
                               }}
                             >
-                              <span style={{ fontSize: '12px', color: hasVideo ? (config.colors?.accent || '#4f46e5') : DARK.textMuted }}>
+                              <span style={{ fontSize: '12px', color: hasVideo ? DARK.accent : DARK.textMuted }}>
                                 {hasVideo ? '▶' : '●'}
                               </span>
-                              <span style={{ flex: 1, color: isActive ? '#fff' : DARK.text }}>{sub.title}</span>
+                              <span style={{ flex: 1, color: isActive ? DARK.textLight : DARK.text }}>{sub.title}</span>
                             </div>
                             {isActive && (
                               <div>
@@ -1300,7 +1604,7 @@ export default function CourseDetailView({
                                   ))
                                 )}
                                 {!loadingData && availableTypes.length === 0 && (
-                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: DARK.textMuted }}>{config.labels?.noSectionDataText || 'No content'}</div>
+                                  <div style={{ padding: '4px 16px 4px 44px', fontSize: '11px', color: DARK.textMuted }}>No content</div>
                                 )}
                               </div>
                             )}
@@ -1319,105 +1623,8 @@ export default function CourseDetailView({
             </aside>
           )}
 
-          {/* ─── Main Content (LIGHT) ────────────────────────────────── */}
+          {/* ─── Main Content ────────────────────────────────── */}
           <main style={styles.mainContent}>
-            {/* ─── Header ────────────────────────────────────────────── */}
-            <div style={styles.contentHeader}>
-              <div style={styles.headerLeft}>
-                {/* ✅ Home button with icon */}
-                <button
-                  onClick={handleBack}
-                  style={styles.backBtn}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = LIGHT.hover;
-                    e.currentTarget.style.borderColor = LIGHT.textMuted;
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = LIGHT.surface;
-                    e.currentTarget.style.borderColor = LIGHT.border;
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  🏠 Home
-                </button>
-
-                <span style={styles.contentTitle}>
-                  {currentSub ? currentSub.title : 'Select a section'}
-                </span>
-              </div>
-
-              <div style={styles.headerRight}>
-                {isLoggedIn ? (
-                  // ✅ Logout Button - Attractive
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      ...styles.authBtn,
-                      ...styles.logoutBtn,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#fecaca';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '#fee2e2';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    🚪 Logout
-                  </button>
-                ) : (
-                  // ✅ Sign In Button - Attractive Gradient
-                  <button
-                    onClick={handleLogin}
-                    style={{
-                      ...styles.authBtn,
-                      ...styles.signInBtn,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(79, 70, 229, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(79, 70, 229, 0.3)';
-                    }}
-                  >
-                    🔐 Sign In
-                  </button>
-                )}
-
-                {isMobile && (
-                  <button
-                    onClick={() => setShowSidebar(!showSidebar)}
-                    style={{
-                      background: LIGHT.surface,
-                      border: `1px solid ${LIGHT.border}`,
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '18px',
-                      cursor: 'pointer',
-                      color: LIGHT.text,
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = LIGHT.hover;
-                      e.currentTarget.style.borderColor = LIGHT.textMuted;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = LIGHT.surface;
-                      e.currentTarget.style.borderColor = LIGHT.border;
-                    }}
-                  >
-                    ☰
-                  </button>
-                )}
-              </div>
-            </div>
-
             {/* ─── Content Panel ────────────────────────────────────── */}
             <div style={styles.contentPanel}>
               <div
