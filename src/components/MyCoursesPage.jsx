@@ -143,7 +143,7 @@ const getApiUrl = () => {
   return process.env.REACT_APP_API_URL || "http://localhost:8082/api";
 };
 
-// ─── Helper: Resolve Image URL (FIXED - keeps /api/admin) ─────────────
+// ─── Helper: Resolve Image URL (FIXED - NO /admin/ prefix) ──────────
 const resolveImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
 
@@ -160,22 +160,25 @@ const resolveImageUrl = (imageUrl) => {
   const BASE_URL = API_URL.replace(/\/api\/?$/, '');
   let normalizedPath = imageUrl;
 
+  // Remove /api/ prefix if present
   if (normalizedPath.startsWith('/api/')) {
     normalizedPath = normalizedPath.substring(4);
   }
   if (normalizedPath.startsWith('api/')) {
     normalizedPath = normalizedPath.substring(4);
   }
+  
+  // Remove leading slash
   if (normalizedPath.startsWith('/')) {
     normalizedPath = normalizedPath.substring(1);
   }
 
-  if (normalizedPath.startsWith('uploads/')) {
-    normalizedPath = `admin/${normalizedPath}`;
-  }
-
+  // ✅ KEEP PATH AS-IS - No admin/ prefix added
+  // If it starts with uploads/, keep it as uploads/
+  
+  // Ensure path has a slash if it's just a filename
   if (!normalizedPath.includes('/')) {
-    normalizedPath = `admin/uploads/${normalizedPath}`;
+    normalizedPath = `uploads/${normalizedPath}`;
   }
 
   return `${BASE_URL}/${normalizedPath}`;
@@ -278,17 +281,21 @@ function MyCoursesPage() {
     window.location.href = '/login';
   };
 
-  // ─── Get Course Image ──────────────────────────────────────────────
+  // ─── Get Course Image (Uses imageUrl from API) ────────────────────
   const getCourseImage = useCallback((course) => {
-    if (!course?.imageUrl) {
-      const name = course?.title?.toLowerCase() || '';
-      for (const [key, url] of Object.entries(COURSE_IMAGES)) {
-        if (name.includes(key)) return url;
-      }
-      return COURSE_IMAGES.default;
+    // ✅ First try to use the real uploaded image from the API
+    if (course?.imageUrl) {
+      const resolved = resolveImageUrl(course.imageUrl);
+      if (resolved) return resolved;
     }
 
-    return resolveImageUrl(course.imageUrl);
+    // ✅ Fallback: stock photo based on title keyword match
+    const name = course?.title?.toLowerCase() || '';
+    for (const [key, url] of Object.entries(COURSE_IMAGES)) {
+      if (name.includes(key)) return url;
+    }
+
+    return COURSE_IMAGES.default;
   }, []);
 
   // ─── Get Subtopic Image URL ───────────────────────────────────────
@@ -331,26 +338,26 @@ function MyCoursesPage() {
     }
   }, [isLoggedIn, getCourseImage]);
 
-  // ─── Fetch All Courses ─────────────────────────────────────────────
+  // ─── Fetch All Courses (Uses Public API) ──────────────────────────
   const fetchAllCourses = useCallback(async () => {
     setLoadingAllCourses(true);
     try {
-      const data = await getCourses();
+      // ✅ Use public API directly for catalog
+      const data = await getPublicCourses();
       setAllCourses(data);
       
       data.forEach(course => {
-        if (course.imageUrl && !course.imageUrl.startsWith('data:image/')) {
-          const img = new Image();
-          img.src = getCourseImage(course);
-        }
+        const img = new Image();
+        img.src = getCourseImage(course);
       });
     } catch (error) {
-      console.error('Error fetching courses:', error);
+      console.error('Error fetching public courses:', error);
+      // Fallback to authenticated endpoint
       try {
-        const publicData = await getPublicCourses();
-        setAllCourses(publicData);
-      } catch (publicError) {
-        console.error('Public fallback also failed:', publicError);
+        const fallbackData = await getCourses();
+        setAllCourses(fallbackData);
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
         setAllCourses([]);
         Swal.fire('Error', 'Could not load course catalog', 'error');
       }
@@ -404,11 +411,19 @@ function MyCoursesPage() {
       const token = localStorage.getItem('token');
       
       if (token) {
-        data = await getCourseDetails(courseId);
+        // ✅ Authenticated: Try private API first
+        try {
+          data = await getCourseDetails(courseId);
+        } catch (authError) {
+          console.log('Auth API failed, falling back to public:', authError);
+          data = await getPublicCourseData(courseId);
+        }
       } else {
+        // ✅ Public: Use public API
         data = await getPublicCourseData(courseId);
       }
 
+      // Process topics and subtopics
       const allTopics = Array.isArray(data) ? data : (data.topics || []);
       
       const allSubtopics = [];
@@ -423,6 +438,7 @@ function MyCoursesPage() {
             videoUrl: sub.videoUrl,
             videoUrls: sub.videoUrls || [],
             imageUrl: sub.imageUrl,
+            images: sub.images || [],
             ...sub
           });
         });
@@ -430,6 +446,7 @@ function MyCoursesPage() {
       setSubtopics(allSubtopics);
       setTopics(allTopics);
 
+      // Load progress for logged-in users
       if (token) {
         const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
         if (savedCompleted) {
@@ -1264,7 +1281,16 @@ function MyCoursesPage() {
                     alt={course.title}
                     style={styles.cardImage}
                     onError={(e) => {
-                      e.target.src = COURSE_IMAGES.default;
+                      // ✅ Fallback to stock image if real image fails
+                      const name = course?.title?.toLowerCase() || '';
+                      let fallback = COURSE_IMAGES.default;
+                      for (const [key, url] of Object.entries(COURSE_IMAGES)) {
+                        if (name.includes(key)) {
+                          fallback = url;
+                          break;
+                        }
+                      }
+                      e.target.src = fallback;
                     }}
                   />
                   {isEnrolled && (

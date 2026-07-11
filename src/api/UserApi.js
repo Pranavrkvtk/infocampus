@@ -1,7 +1,9 @@
 // src/api/UserApi.js
 import api from "./axios";
 
-// ========== PUBLIC ENDPOINTS (no auth required) ==========
+// =========================================================================
+//  PUBLIC ENDPOINTS (No Auth Required)
+// =========================================================================
 
 /**
  * Get all courses (public)
@@ -34,6 +36,7 @@ export const getPublicCourseById = async (courseId) => {
 /**
  * Get public course data with topics (first topic full, others limited)
  * No authentication required
+ * This returns topics with subtopics, including images for public viewing
  */
 export const getPublicCourseData = async (courseId) => {
   try {
@@ -73,7 +76,9 @@ export const getPublicSubtopicImages = async (subtopicId) => {
   }
 };
 
-// ========== COURSE CATALOG ==========
+// =========================================================================
+//  COURSE CATALOG
+// =========================================================================
 
 /**
  * Get courses - attempts authenticated first, falls back to public
@@ -94,12 +99,20 @@ export const getCourses = async () => {
   return getPublicCourses();
 };
 
-// ========== GET COURSES WITH IMAGES (Alias for getCourses) ==========
+/**
+ * Get courses with images (alias for getCourses)
+ */
 export const getCoursesWithImages = async () => {
   return getCourses();
 };
 
-// ========== COURSE IMAGE UPLOAD (Admin) ==========
+// =========================================================================
+//  COURSE IMAGE UPLOAD (Admin Only)
+// =========================================================================
+
+/**
+ * Upload course image - requires admin authentication
+ */
 export const uploadCourseImage = async (courseId, file) => {
   const formData = new FormData();
   formData.append('file', file);
@@ -118,7 +131,9 @@ export const uploadCourseImage = async (courseId, file) => {
   }
 };
 
-// ========== ENROLLMENT ==========
+// =========================================================================
+//  ENROLLMENT
+// =========================================================================
 
 /**
  * Get enrolled courses - requires login
@@ -155,7 +170,9 @@ export const enrollInCourse = async (courseId) => {
   }
 };
 
-// ========== ENROLLMENT COUNT ==========
+/**
+ * Get enrollment count for a course
+ */
 export const getEnrollmentCount = async (courseId) => {
   try {
     const response = await api.get(`/users/courses/${courseId}/enrollment-count`);
@@ -166,9 +183,13 @@ export const getEnrollmentCount = async (courseId) => {
   }
 };
 
-// ========== INSTRUCTOR APIs ==========
+// =========================================================================
+//  INSTRUCTOR APIs
+// =========================================================================
 
-// Get instructor details for a specific course
+/**
+ * Get instructor details for a specific course
+ */
 export const getCourseInstructor = async (courseId) => {
   try {
     const response = await api.get(`/users/courses/${courseId}/instructor`);
@@ -179,7 +200,9 @@ export const getCourseInstructor = async (courseId) => {
   }
 };
 
-// Get all instructors
+/**
+ * Get all instructors
+ */
 export const getAllInstructors = async () => {
   try {
     const response = await api.get("/users/instructors");
@@ -190,7 +213,9 @@ export const getAllInstructors = async () => {
   }
 };
 
-// Get instructor by ID
+/**
+ * Get instructor by ID
+ */
 export const getInstructorById = async (instructorId) => {
   try {
     const response = await api.get(`/users/instructors/${instructorId}`);
@@ -201,7 +226,9 @@ export const getInstructorById = async (instructorId) => {
   }
 };
 
-// Get courses by instructor
+/**
+ * Get courses by instructor
+ */
 export const getInstructorCourses = async (instructorId) => {
   try {
     const response = await api.get(`/users/instructors/${instructorId}/courses`);
@@ -212,7 +239,9 @@ export const getInstructorCourses = async (instructorId) => {
   }
 };
 
-// ========== COURSE CONTENT ==========
+// =========================================================================
+//  COURSE CONTENT
+// =========================================================================
 
 /**
  * Get course details - attempts authenticated first, falls back to public
@@ -262,6 +291,9 @@ export const getCourseTopics = async (courseId) => {
   }
 };
 
+/**
+ * Get subtopic interview questions
+ */
 export const getSubtopicInterviewQuestions = async (subtopicId) => {
   try {
     const response = await api.get(`/users/subtopics/${subtopicId}/interview-questions`);
@@ -272,6 +304,9 @@ export const getSubtopicInterviewQuestions = async (subtopicId) => {
   }
 };
 
+/**
+ * Get subtopic exam questions
+ */
 export const getSubtopicExamQuestions = async (subtopicId) => {
   try {
     const response = await api.get(`/users/subtopics/${subtopicId}/exam-questions`);
@@ -282,6 +317,9 @@ export const getSubtopicExamQuestions = async (subtopicId) => {
   }
 };
 
+/**
+ * Get subtopic labs
+ */
 export const getSubtopicLabs = async (subtopicId) => {
   try {
     const response = await api.get(`/users/subtopics/${subtopicId}/labs`);
@@ -292,6 +330,9 @@ export const getSubtopicLabs = async (subtopicId) => {
   }
 };
 
+/**
+ * Get topic subtopics
+ */
 export const getTopicSubtopics = async (topicId) => {
   try {
     const response = await api.get(`/users/topics/${topicId}/subtopics`);
@@ -302,6 +343,9 @@ export const getTopicSubtopics = async (topicId) => {
   }
 };
 
+/**
+ * Get subtopic details
+ */
 export const getSubtopic = async (subtopicId) => {
   try {
     const response = await api.get(`/users/subtopics/${subtopicId}`);
@@ -338,7 +382,13 @@ export const getSubtopicImages = async (subtopicId) => {
   }
 };
 
-// ========== PROGRESS TRACKING (requires login) ==========
+// =========================================================================
+//  PROGRESS TRACKING (Requires Login)
+// =========================================================================
+
+/**
+ * Update course progress - requires login
+ */
 export const updateProgress = async (courseId, completedLessons) => {
   try {
     const token = localStorage.getItem('token');
@@ -353,7 +403,27 @@ export const updateProgress = async (courseId, completedLessons) => {
   }
 };
 
-// ========== DEFAULT EXPORT ==========
+/**
+ * Get course progress - requires login
+ */
+export const getCourseProgress = async (courseId) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return { progress: 0, completedLessons: [] };
+    }
+    const response = await api.get(`/users/progress/${courseId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching course progress:', error);
+    return { progress: 0, completedLessons: [] };
+  }
+};
+
+// =========================================================================
+//  DEFAULT EXPORT
+// =========================================================================
+
 const userApi = {
   // Public endpoints
   getPublicCourses,
@@ -390,6 +460,7 @@ const userApi = {
   
   // Progress
   updateProgress,
+  getCourseProgress,
 };
 
 export default userApi;
