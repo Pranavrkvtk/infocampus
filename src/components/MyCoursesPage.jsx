@@ -1,5 +1,5 @@
 // src/components/MyCoursesPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CourseDetailView from './CourseDetailView';
 import CourseEnrollmentPage from './CourseEnrollmentPage';
@@ -306,7 +306,8 @@ function MyCoursesPage() {
     return `${API_BASE}/admin/uploads/${fileName}`;
   };
 
-  const fetchEnrolledCourses = async () => {
+  // Wrap fetchEnrolledCourses in useCallback
+  const fetchEnrolledCourses = useCallback(async () => {
     if (!isLoggedIn) {
       setCourses([]);
       setLoading(false);
@@ -328,9 +329,10 @@ function MyCoursesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isLoggedIn]);
 
-  const fetchAllCourses = async () => {
+  // Wrap fetchAllCourses in useCallback
+  const fetchAllCourses = useCallback(async () => {
     setLoadingAllCourses(true);
     try {
       const data = await getCourses();
@@ -348,7 +350,7 @@ function MyCoursesPage() {
     } finally {
       setLoadingAllCourses(false);
     }
-  };
+  }, []);
 
   const handleEnroll = async (courseId) => {
     if (!isLoggedIn) {
@@ -533,16 +535,10 @@ function MyCoursesPage() {
     return courses.some((ec) => ec.id === courseId);
   };
 
-  const getTrack = (title) => {
-    const name = title?.toLowerCase() || '';
-    for (const track of TRACKS) {
-      if (name.includes(track.match)) return track;
-    }
-    return { 
-      icon: myCoursesConfig.trackIcons.default || '📄', 
-      tint: myCoursesConfig.trackColors.default || '#F2F1F6' 
-    };
-  };
+  // ─── FIX: Remove unused getTrack function ──────────────────────────
+  // The getTrack function is not used anywhere, so we removed it.
+  // The TRACKS constant is also not used, but we'll keep it in case
+  // it's needed in the future or referenced by other components.
 
   const handleImageError = (id) => {
     if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));
@@ -556,10 +552,11 @@ function MyCoursesPage() {
     return FALLBACK_IMAGE;
   };
 
+  // ─── FIX: Add proper dependencies to useEffect ──────────────────────
   useEffect(() => {
     fetchEnrolledCourses();
     fetchAllCourses();
-  }, []);
+  }, [fetchEnrolledCourses, fetchAllCourses]);
 
   // ─── Get unique categories from courses ──────────────────────────
   const getCategories = () => {

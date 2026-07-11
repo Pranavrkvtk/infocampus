@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
-import axiosInstance, { API_BASE_URL } from '../../api/axios';
+import axiosInstance from '../../api/axios'; // Removed API_BASE_URL
 import { getImageUrl } from '../../utils/imageUtils';
 
 import ExamTab from './ExamTab';
@@ -97,11 +97,7 @@ const Inp = ({ value, onChange, placeholder, type = 'text', onKeyDown, onBlur })
   />
 );
 
-const Txta = ({ value, onChange, placeholder, rows = 4 }) => (
-  <textarea value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-    style={{ width: '100%', padding: '10px 12px', fontSize: 13, border: `1px solid ${clr.border}`, borderRadius: 8, outline: 'none', resize: 'vertical', background: clr.white, color: clr.text, fontFamily: 'inherit', lineHeight: 1.6 }}
-  />
-);
+// Txta component removed as it was unused
 
 const Btn = ({ children, onClick, variant = 'primary', size = 'md', disabled, style: extra, as: Component = 'button' }) => {
   const base = { display: 'inline-flex', alignItems: 'center', gap: 6, cursor: disabled ? 'not-allowed' : 'pointer', border: 'none', borderRadius: 8, fontWeight: 600, opacity: disabled ? 0.5 : 1 };

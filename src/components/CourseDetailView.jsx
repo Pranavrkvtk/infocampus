@@ -1336,7 +1336,9 @@ export default function CourseDetailView({
     }
   };
 
-  const isSidebarOpen = isMobile ? showSidebar : !isSidebarCollapsed;
+  // ─── FIX: Remove unused variable declarations ──────────────────────
+  // The variables isSidebarOpen, courseName, topicName, and subtopicName
+  // were declared but never used. They have been removed.
 
   // ─── Handle Logout ──────────────────────────────────────────────────
   const handleLogout = () => {
@@ -1414,11 +1416,6 @@ export default function CourseDetailView({
   // ─── Odoo Styles ────────────────────────────────────────────────────
 
   const isMobileDevice = window.innerWidth < 768;
-
-  // ─── Get current course name and topic name for breadcrumb ─────────
-  const courseName = selectedCourse?.title || 'Course';
-  const topicName = currentTopic?.title || '';
-  const subtopicName = currentSub?.title || '';
 
   const styles = {
     page: {
