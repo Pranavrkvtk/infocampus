@@ -146,7 +146,7 @@ const getApiUrl = () => {
 // ─── Helper: Resolve Image URL (FIXED - keeps /api/admin) ─────────────
 const resolveImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
-  
+
   // If already a full URL, return as is
   if (
     imageUrl.startsWith("data:image/") ||
@@ -155,37 +155,30 @@ const resolveImageUrl = (imageUrl) => {
   ) {
     return imageUrl;
   }
-  
+
   const API_URL = getApiUrl();
-  const BASE_URL = API_URL.replace('/api', '');
-  
-  // If it already has /api/admin, use it as is
-  if (imageUrl.startsWith('/api/admin')) {
-    return `${BASE_URL}${imageUrl}`;
+  const BASE_URL = API_URL.replace(/\/api\/?$/, '');
+  let normalizedPath = imageUrl;
+
+  if (normalizedPath.startsWith('/api/')) {
+    normalizedPath = normalizedPath.substring(4);
   }
-  
-  // If it has /api but not /admin
-  if (imageUrl.startsWith('/api/')) {
-    return `${BASE_URL}${imageUrl}`;
+  if (normalizedPath.startsWith('api/')) {
+    normalizedPath = normalizedPath.substring(4);
   }
-  
-  // ✅ For /uploads/ paths, add /api/admin
-  if (imageUrl.startsWith('/uploads/')) {
-    return `${API_URL}/admin${imageUrl}`;
+  if (normalizedPath.startsWith('/')) {
+    normalizedPath = normalizedPath.substring(1);
   }
-  
-  // For uploads/ (no leading slash)
-  if (imageUrl.startsWith('uploads/')) {
-    return `${API_URL}/admin/${imageUrl}`;
+
+  if (normalizedPath.startsWith('uploads/')) {
+    normalizedPath = `admin/${normalizedPath}`;
   }
-  
-  // If it's just a filename, assume it's in uploads
-  if (!imageUrl.includes('/')) {
-    return `${API_URL}/admin/uploads/${imageUrl}`;
+
+  if (!normalizedPath.includes('/')) {
+    normalizedPath = `admin/uploads/${normalizedPath}`;
   }
-  
-  // Default fallback
-  return `${API_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+
+  return `${BASE_URL}/${normalizedPath}`;
 };
 
 function MyCoursesPage() {
