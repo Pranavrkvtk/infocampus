@@ -6,6 +6,9 @@ import AddCourseModal from './AddCourseModal';
 import axiosInstance, { API_BASE_URL } from '../../api/axios';
 import { getImageUrl } from '../../utils/imageUtils';
 
+import ExamTab from './ExamTab';
+import InterviewTab from './InterviewTab';
+
 // Thin wrapper for axios
 const api = {
   get: (url) => axiosInstance.get(url).then(r => r.data),
@@ -163,10 +166,7 @@ function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// COURSE IMAGE UPLOADER - FIXED (removed Content-Type header)
-// ═══════════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════════
-// COURSE IMAGE UPLOADER - FIXED (use 'file' as parameter name)
+// COURSE IMAGE UPLOADER
 // ═══════════════════════════════════════════════════════════════════════════════
 function CourseImageUploader({ course, onImageUploaded, toast }) {
   const [uploading, setUploading] = useState(false);
@@ -188,7 +188,6 @@ function CourseImageUploader({ course, onImageUploaded, toast }) {
 
     setUploading(true);
     const formData = new FormData();
-    // ✅ FIXED: Use 'file' as the parameter name (not 'image')
     formData.append('file', file);
 
     try {
@@ -630,239 +629,7 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INTERVIEW QUESTIONS TAB
-// ═══════════════════════════════════════════════════════════════════════════════
-function InterviewTab({ subtopicId, toast, onUpdate, initialData }) {
-  const [questions, setQuestions] = useState(initialData || []);
-  const [addForm, setAddForm] = useState({ question: '', answer: '' });
-  const [adding, setAdding] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-
-  const loadQuestions = useCallback(() => {
-    if (!subtopicId) return;
-    api.get(`/admin/subtopics/${subtopicId}/interview-questions`)
-      .then(data => { const arr = Array.isArray(data) ? data : []; setQuestions(arr); onUpdate({ interviewQuestions: arr }); })
-      .catch(console.error);
-  }, [subtopicId, onUpdate]);
-
-  useEffect(() => {
-    loadQuestions();
-  }, [loadQuestions]);
-
-  const addQ = async () => {
-    if (!addForm.question.trim()) return;
-    setAdding(true);
-    try {
-      const data = await api.post(`/admin/subtopics/${subtopicId}/interview-questions`, addForm);
-      const updated = [...questions, { id: data.questionId, ...addForm }];
-      setQuestions(updated); onUpdate({ interviewQuestions: updated });
-      setAddForm({ question: '', answer: '' }); setShowAdd(false);
-      toast.show('Interview question added');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setAdding(false); }
-  };
-
-  const delQ = async (id) => {
-    if (!window.confirm('Delete this question?')) return;
-    try {
-      await api.delete(`/admin/interview-questions/${id}`);
-      const updated = questions.filter(q => q.id !== id);
-      setQuestions(updated); onUpdate({ interviewQuestions: updated });
-      toast.show('Question deleted');
-    } catch (e) { toast.show(e.message, 'error'); }
-  };
-
-  return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(true)} disabled={!subtopicId}>＋ Add Question</Btn>
-      </div>
-      {showAdd && (
-        <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
-          <div><Lbl>Question</Lbl><Inp value={addForm.question} onChange={v => setAddForm(f => ({ ...f, question: v }))} placeholder="e.g. Explain OSPF?" /></div>
-          <div style={{ marginTop: 10 }}><Lbl>Answer</Lbl><Txta value={addForm.answer} onChange={v => setAddForm(f => ({ ...f, answer: v }))} rows={3} /></div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-            <Btn size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>
-            <Btn size="sm" onClick={addQ} disabled={adding || !addForm.question.trim()}>{adding ? '…' : 'Add'}</Btn>
-          </div>
-        </div>
-      )}
-      {questions.length === 0 && !showAdd && <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No interview questions yet.</div>}
-      {questions.map((q, i) => (
-        <div key={q.id} style={{ background: clr.faint, borderRadius: 10, padding: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>Q{i + 1}</span>
-            <Btn size="sm" variant="danger" onClick={() => delQ(q.id)}>🗑</Btn>
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{q.question}</div>
-          <div style={{ fontSize: 13, color: clr.muted }}>{q.answer}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// EXAM QUESTIONS TAB
-// ═══════════════════════════════════════════════════════════════════════════════
-function ExamTab({ subtopicId, toast, onUpdate, initialData }) {
-  const [questions, setQuestions] = useState(initialData || []);
-  const [addForm, setAddForm] = useState({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
-  const [adding, setAdding] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-
-  const loadQuestions = useCallback(() => {
-    if (!subtopicId) return;
-    api.get(`/admin/subtopics/${subtopicId}/exam-questions`)
-      .then(data => { const arr = Array.isArray(data) ? data : []; setQuestions(arr); onUpdate({ examQuestions: arr }); })
-      .catch(console.error);
-  }, [subtopicId, onUpdate]);
-
-  useEffect(() => {
-    loadQuestions();
-  }, [loadQuestions]);
-
-  const addQ = async () => {
-    if (!addForm.question.trim()) return;
-    setAdding(true);
-    try {
-      const data = await api.post(`/admin/subtopics/${subtopicId}/exam-questions`, addForm);
-      const updated = [...questions, { id: data.questionId, ...addForm }];
-      setQuestions(updated); onUpdate({ examQuestions: updated });
-      setAddForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A' });
-      setShowAdd(false); toast.show('MCQ added');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setAdding(false); }
-  };
-
-  const delQ = async (id) => {
-    if (!window.confirm('Delete this MCQ?')) return;
-    try {
-      await api.delete(`/admin/exam-questions/${id}`);
-      const updated = questions.filter(q => q.id !== id);
-      setQuestions(updated); onUpdate({ examQuestions: updated });
-      toast.show('MCQ deleted');
-    } catch (e) { toast.show(e.message, 'error'); }
-  };
-
-  return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(true)} disabled={!subtopicId}>＋ Add MCQ</Btn>
-      </div>
-      {showAdd && (
-        <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
-          <div><Lbl>Question</Lbl><Txta value={addForm.question} onChange={v => setAddForm(f => ({ ...f, question: v }))} rows={2} placeholder="Enter MCQ question" /></div>
-          {['A', 'B', 'C', 'D'].map(opt => (
-            <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              <input type="radio" name={`correct-${subtopicId}`} checked={addForm.correctAnswer === opt} onChange={() => setAddForm(f => ({ ...f, correctAnswer: opt }))} style={{ accentColor: clr.success }} />
-              <Inp value={addForm[`option${opt}`]} onChange={v => setAddForm(f => ({ ...f, [`option${opt}`]: v }))} placeholder={`Option ${opt}`} />
-            </div>
-          ))}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-            <Btn size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>
-            <Btn size="sm" onClick={addQ} disabled={adding || !addForm.question.trim()}>{adding ? '…' : 'Add'}</Btn>
-          </div>
-        </div>
-      )}
-      {questions.length === 0 && !showAdd && <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No exam questions yet.</div>}
-      {questions.map((q, i) => (
-        <div key={q.id} style={{ background: clr.faint, borderRadius: 10, padding: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: clr.muted }}>MCQ {i + 1}</span>
-            <Btn size="sm" variant="danger" onClick={() => delQ(q.id)}>🗑</Btn>
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{q.question}</div>
-          {['A', 'B', 'C', 'D'].map(opt => (
-            <div key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, padding: '4px 8px', background: q.correctAnswer === opt ? clr.successLight : 'transparent', borderRadius: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, width: 20 }}>{opt}.</span>
-              <span style={{ fontSize: 13 }}>{q[`option${opt}`]}</span>
-              {q.correctAnswer === opt && <span style={{ fontSize: 11, color: clr.success, marginLeft: 'auto' }}>✓ Correct</span>}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LAB EXERCISES TAB
-// ═══════════════════════════════════════════════════════════════════════════════
-function LabTab({ subtopicId, toast, onUpdate, initialData }) {
-  const [labs, setLabs] = useState(initialData || []);
-  const [addForm, setAddForm] = useState({ title: '', instructions: '' });
-  const [adding, setAdding] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-
-  const loadLabs = useCallback(() => {
-    if (!subtopicId) return;
-    api.get(`/admin/subtopics/${subtopicId}/labs`)
-      .then(data => { const arr = Array.isArray(data) ? data : []; setLabs(arr); onUpdate({ labExercises: arr }); })
-      .catch(console.error);
-  }, [subtopicId, onUpdate]);
-
-  useEffect(() => {
-    loadLabs();
-  }, [loadLabs]);
-
-  const addLab = async () => {
-    if (!addForm.title.trim()) return;
-    setAdding(true);
-    try {
-      const data = await api.post(`/admin/subtopics/${subtopicId}/labs`, addForm);
-      const updated = [...labs, { id: data.labId, ...addForm }];
-      setLabs(updated); onUpdate({ labExercises: updated });
-      setAddForm({ title: '', instructions: '' }); setShowAdd(false);
-      toast.show('Lab step added');
-    } catch (e) { toast.show(e.message, 'error'); }
-    finally { setAdding(false); }
-  };
-
-  const delLab = async (id) => {
-    if (!window.confirm('Delete this lab step?')) return;
-    try {
-      await api.delete(`/admin/labs/${id}`);
-      const updated = labs.filter(l => l.id !== id);
-      setLabs(updated); onUpdate({ labExercises: updated });
-      toast.show('Lab step deleted');
-    } catch (e) { toast.show(e.message, 'error'); }
-  };
-
-  return (
-    <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Btn size="sm" variant="dashed" onClick={() => setShowAdd(true)} disabled={!subtopicId}>＋ Add Lab Step</Btn>
-      </div>
-      {showAdd && (
-        <div style={{ background: clr.faint, borderRadius: 10, padding: 16 }}>
-          <div><Lbl>Step Title</Lbl><Inp value={addForm.title} onChange={v => setAddForm(f => ({ ...f, title: v }))} placeholder="e.g. Configure VLAN" /></div>
-          <div style={{ marginTop: 10 }}><Lbl>Instructions</Lbl><Txta value={addForm.instructions} onChange={v => setAddForm(f => ({ ...f, instructions: v }))} rows={4} /></div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
-            <Btn size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>
-            <Btn size="sm" onClick={addLab} disabled={adding || !addForm.title.trim()}>{adding ? '…' : 'Add'}</Btn>
-          </div>
-        </div>
-      )}
-      {labs.length === 0 && !showAdd && <div style={{ textAlign: 'center', color: clr.muted, fontSize: 13, padding: 24 }}>No lab exercises yet.</div>}
-      {labs.map((lab, i) => (
-        <div key={lab.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: clr.accentLight, color: clr.accentText, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
-          <div style={{ flex: 1, background: clr.faint, borderRadius: 10, padding: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{lab.title}</span>
-              <Btn size="sm" variant="danger" onClick={() => delLab(lab.id)}>🗑</Btn>
-            </div>
-            <div style={{ fontSize: 13, color: clr.muted }}>{lab.instructions}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE COMPONENT - Using getImageUrl from imageUtils
+// MARKDOWN IMAGE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   const [hasError, setHasError] = useState(false);
@@ -907,11 +674,10 @@ function MarkdownImage({ src, alt }) {
 function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSearchTerm }) {
   const [notes, setNotes] = useState(sub.content || '');
   const [videoUrl, setVideoUrl] = useState(sub.videoUrl || '');
+  const [examContent, setExamContent] = useState(sub.examContent || '');
+  const [interviewContent, setInterviewContent] = useState(sub.interviewContent || '');
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('notes');
-  const [interviewQuestions, setInterviewQuestions] = useState(sub.interviewQuestions || []);
-  const [examQuestions, setExamQuestions] = useState(sub.examQuestions || []);
-  const [labExercises, setLabExercises] = useState(sub.labExercises || []);
   const [uploadingDoc, setUploadingDoc] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -933,7 +699,7 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
       return;
     }
     const regex = new RegExp(searchTerm, 'gi');
-    const text = notes;
+    const text = activeTab === 'notes' ? notes : activeTab === 'exam' ? examContent : interviewContent;
     const found = [];
     let match;
     while ((match = regex.exec(text)) !== null) {
@@ -941,13 +707,14 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     }
     setMatches(found);
     setCurrentMatchIndex(found.length > 0 ? 0 : -1);
-  }, [searchTerm, notes]);
+  }, [searchTerm, notes, examContent, interviewContent, activeTab]);
 
   const goToMatch = (index) => {
     if (index < 0 || index >= matches.length) return;
     const match = matches[index];
     setCurrentMatchIndex(index);
-    const textarea = document.getElementById('notes-editor');
+    const editorId = activeTab === 'notes' ? 'notes-editor' : activeTab === 'exam' ? 'exam-editor' : 'interview-editor';
+    const textarea = document.getElementById(editorId);
     if (textarea) {
       textarea.focus();
       textarea.setSelectionRange(match.start, match.end);
@@ -957,17 +724,37 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     }
   };
 
+  // Update state when sub prop changes
   useEffect(() => {
     setNotes(sub.content || '');
     setVideoUrl(sub.videoUrl || '');
-    setInterviewQuestions(sub.interviewQuestions || []);
-    setExamQuestions(sub.examQuestions || []);
-    setLabExercises(sub.labExercises || []);
+    setExamContent(sub.examContent || '');
+    setInterviewContent(sub.interviewContent || '');
   }, [sub]);
+
+  // ─── Clear Notes ONLY ─────────────────────────────────────────────
+  const clearNotes = async () => {
+    if (!window.confirm('Are you sure you want to clear all notes content?')) return;
+    
+    setSaving(true);
+    try {
+      // ✅ FIX: Use the correct endpoint for notes (update entire subtopic)
+      await api.put(`/admin/subtopics/${subtopicId}`, { content: '' });
+      setNotes('');
+      onUpdate({ content: '' });
+      toast.show('Notes cleared successfully!', 'success');
+    } catch (e) {
+      console.error('Clear notes error:', e);
+      toast.show(e.message || 'Failed to clear notes', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const saveNotes = async () => {
     setSaving(true);
     try {
+      // ✅ FIX: Use the correct endpoint for notes (update entire subtopic)
       await api.put(`/admin/subtopics/${subtopicId}`, { content: notes });
       onUpdate({ content: notes });
       toast.show('Notes saved');
@@ -986,46 +773,54 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
   };
 
   const handleTabUpdate = (patch) => {
-    if (patch.interviewQuestions !== undefined) setInterviewQuestions(patch.interviewQuestions);
-    if (patch.examQuestions !== undefined) setExamQuestions(patch.examQuestions);
-    if (patch.labExercises !== undefined) setLabExercises(patch.labExercises);
+    console.log('🟡 handleTabUpdate received:', patch);
+    
+    if (patch.examContent !== undefined) {
+      setExamContent(patch.examContent);
+    }
+    if (patch.interviewContent !== undefined) {
+      console.log('🟡 Setting interviewContent to:', patch.interviewContent);
+      setInterviewContent(patch.interviewContent);
+    }
+    
     onUpdate(patch);
   };
 
-const uploadDocument = async (file) => {
-  if (!file) return;
-  const allowedTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  ];
-  if (!allowedTypes.includes(file.type)) {
-    toast.show('Only PDF, DOC and DOCX files are allowed', 'error');
-    return;
-  }
-  setUploadingDoc(true);
-  const formData = new FormData();
-  // ✅ FIXED: Use 'file' as the parameter name (not 'document' or anything else)
-  formData.append('file', file);
-  try {
-    const response = await axiosInstance.post(
-      `/admin/subtopics/${subtopicId}/upload-pdf`,
-      formData
-    );
-    const data = response.data;
-    const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
-    setNotes(refreshedSub.content || '');
-    setVideoUrl(refreshedSub.videoUrl || '');
-    onUpdate(refreshedSub);
-    toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
-  } catch (err) {
-    console.error('Upload error:', err);
-    const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
-    toast.show(msg, 'error');
-  } finally {
-    setUploadingDoc(false);
-  }
-};
+  const uploadDocument = async (file) => {
+    if (!file) return;
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.show('Only PDF, DOC and DOCX files are allowed', 'error');
+      return;
+    }
+    setUploadingDoc(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await axiosInstance.post(
+        `/admin/subtopics/${subtopicId}/upload-pdf`,
+        formData
+      );
+      const data = response.data;
+      const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
+      setNotes(refreshedSub.content || '');
+      setVideoUrl(refreshedSub.videoUrl || '');
+      setExamContent(refreshedSub.examContent || '');
+      setInterviewContent(refreshedSub.interviewContent || '');
+      onUpdate(refreshedSub);
+      toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
+    } catch (err) {
+      console.error('Upload error:', err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
+      toast.show(msg, 'error');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
 
   const embedUrl = videoUrl?.includes('watch?v=')
     ? videoUrl.replace('watch?v=', 'embed/')
@@ -1036,9 +831,8 @@ const uploadDocument = async (file) => {
   const tabs = [
     { key: 'notes', label: '📝 Notes' },
     { key: 'video', label: '🎬 Video' },
+    { key: 'exam', label: '📋 Exam Content' },
     { key: 'interview', label: '🎤 Interview Qs' },
-    { key: 'exam', label: '📋 Exam Qs' },
-    { key: 'lab', label: '🧪 Lab Steps' },
   ];
 
   const markdownComponents = {
@@ -1067,13 +861,19 @@ const uploadDocument = async (file) => {
       </div>
 
       <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 340px)' }}>
+        {/* ─── NOTES TAB ─── */}
         {activeTab === 'notes' && (
           <div style={{ padding: 22 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Lbl>📝 Markdown Editor (Admin Editable)</Lbl>
-              <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">
-                {saving ? 'Saving…' : '💾 Save Notes'}
-              </Btn>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Btn size="sm" onClick={clearNotes} disabled={saving || !notes} variant="danger">
+                  {saving ? 'Clearing…' : '🗑️ Clear Content'}
+                </Btn>
+                <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">
+                  {saving ? 'Saving…' : '💾 Save Notes'}
+                </Btn>
+              </div>
             </div>
 
             <DocumentUploadButton
@@ -1200,6 +1000,7 @@ const uploadDocument = async (file) => {
           </div>
         )}
 
+        {/* ─── VIDEO TAB ─── */}
         {activeTab === 'video' && (
           <div style={{ padding: 22 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -1223,14 +1024,24 @@ const uploadDocument = async (file) => {
           </div>
         )}
 
-        {activeTab === 'interview' && (
-          <InterviewTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={interviewQuestions} />
-        )}
+        {/* ─── EXAM TAB ─── */}
         {activeTab === 'exam' && (
-          <ExamTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={examQuestions} />
+          <ExamTab 
+            subtopicId={subtopicId} 
+            toast={toast} 
+            onUpdate={handleTabUpdate} 
+            initialData={{ examContent: examContent }}
+          />
         )}
-        {activeTab === 'lab' && (
-          <LabTab subtopicId={subtopicId} toast={toast} onUpdate={handleTabUpdate} initialData={labExercises} />
+
+        {/* ─── INTERVIEW TAB ─── */}
+        {activeTab === 'interview' && (
+          <InterviewTab 
+            subtopicId={subtopicId} 
+            toast={toast} 
+            onUpdate={handleTabUpdate} 
+            initialData={{ interviewContent: interviewContent }}
+          />
         )}
       </div>
     </Card>
@@ -1384,7 +1195,6 @@ export default function AdminCourseManager() {
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
       <style>{`* { box-sizing: border-box; } button { font-family: inherit; }`}</style>
 
-      {/* ── Header ── */}
       <div style={{ background: clr.sidebar, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>🏫 Course Manager</div>
         {selectedCourse && (
@@ -1408,7 +1218,6 @@ export default function AdminCourseManager() {
         </div>
       </div>
 
-      {/* ── Course selector view ── */}
       {view === 'course' && (
         <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 24px' }}>
           <Card>
@@ -1418,19 +1227,16 @@ export default function AdminCourseManager() {
         </div>
       )}
 
-      {/* ── Content management view ── */}
       {view === 'manage' && selectedCourse && (
         <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 0, minHeight: 'calc(100vh - 57px)' }}>
           <div style={{ borderRight: `1px solid ${clr.border}`, background: clr.white, overflowY: 'auto' }}>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* ── Course Image Upload ── */}
               <CourseImageUploader 
                 course={selectedCourse} 
                 onImageUploaded={handleCourseUpdate} 
                 toast={toast} 
               />
 
-              {/* ── Global search ── */}
               <div style={{ position: 'relative' }}>
                 <input
                   type="text"

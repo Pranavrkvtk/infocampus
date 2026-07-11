@@ -615,6 +615,112 @@ function NotesTab({ content, config }) {
   );
 }
 
+// ─── EXAM CONTENT TAB (PDF Content) ──────────────────────────────────
+
+function ExamContentTab({ content, config }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  if (!content) {
+    return <div style={{ padding: '20px', color: '#4a5568', textAlign: 'center' }}>No exam content available</div>;
+  }
+
+  const html = renderOdooContent(content);
+  const styleTag = buildOdooStyles(config.colors);
+
+  return (
+    <div style={{ 
+      position: 'relative', 
+      height: '100%', 
+      width: '100%',
+      background: '#ffffff',
+      overflow: 'hidden',
+    }}>
+      <div
+        className="odoo-content fade-in"
+        dangerouslySetInnerHTML={{ __html: html }}
+        style={{
+          padding: isMobile ? '12px 8px 60px 8px' : '24px 32px 80px 32px',
+          height: '100%',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          scrollBehavior: 'smooth',
+          WebkitOverflowScrolling: 'touch',
+          color: '#1a1a1a',
+          background: '#ffffff',
+          maxHeight: '100%',
+          minHeight: '100%',
+        }}
+        onCopy={(e) => e.preventDefault()}
+        onCut={(e) => e.preventDefault()}
+        onContextMenu={(e) => e.preventDefault()}
+        onSelect={(e) => e.preventDefault()}
+      />
+      <style>{styleTag}</style>
+    </div>
+  );
+}
+
+// ─── INTERVIEW CONTENT TAB (PDF Content) ─────────────────────────────
+
+function InterviewContentTab({ content, config }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  if (!content) {
+    return <div style={{ padding: '20px', color: '#4a5568', textAlign: 'center' }}>No interview content available</div>;
+  }
+
+  const html = renderOdooContent(content);
+  const styleTag = buildOdooStyles(config.colors);
+
+  return (
+    <div style={{ 
+      position: 'relative', 
+      height: '100%', 
+      width: '100%',
+      background: '#ffffff',
+      overflow: 'hidden',
+    }}>
+      <div
+        className="odoo-content fade-in"
+        dangerouslySetInnerHTML={{ __html: html }}
+        style={{
+          padding: isMobile ? '12px 8px 60px 8px' : '24px 32px 80px 32px',
+          height: '100%',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          scrollBehavior: 'smooth',
+          WebkitOverflowScrolling: 'touch',
+          color: '#1a1a1a',
+          background: '#ffffff',
+          maxHeight: '100%',
+          minHeight: '100%',
+        }}
+        onCopy={(e) => e.preventDefault()}
+        onCut={(e) => e.preventDefault()}
+        onContextMenu={(e) => e.preventDefault()}
+        onSelect={(e) => e.preventDefault()}
+      />
+      <style>{styleTag}</style>
+    </div>
+  );
+}
+
 function VideoTab({ videoUrls, config, title, courseTitle }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
@@ -1004,15 +1110,18 @@ export default function CourseDetailView({
   const config = getCourseDetailConfig();
 
   // ─── Define the display order of content types ──────────────────────
-  const typeOrder = ['notes', 'video', 'interview', 'exam', 'labs'];
+  const typeOrder = ['notes', 'video', 'exam-content', 'interview-content', 'interview', 'exam', 'labs'];
 
   // ─── Build content types from config in the desired order ──────────
-  const CONTENT_TYPES = typeOrder.map((key) => ({
-    key,
-    icon: config.contentTypes?.[key]?.icon || key,
-    label: config.contentTypes?.[key]?.label || key,
-    color: config.contentTypes?.[key]?.color || '#714b67',
-  }));
+  const CONTENT_TYPES = [
+    { key: 'notes', icon: '📝', label: 'Notes', color: '#714b67' },
+    { key: 'video', icon: '🎬', label: 'Video', color: '#3b82f6' },
+    { key: 'exam-content', icon: '📋', label: 'Exam Content', color: '#16a34a' },
+    { key: 'interview-content', icon: '🎤', label: 'Interview Content', color: '#8b5cf6' },
+    { key: 'interview', icon: '💬', label: 'Interview Q&A', color: '#8b5cf6' },
+    { key: 'exam', icon: '✏️', label: 'Exam Quiz', color: '#16a34a' },
+    { key: 'labs', icon: '🔬', label: 'Labs', color: '#f59e0b' },
+  ];
 
   const [expandedTopics, setExpandedTopics] = useState(() => {
     const t = topics.find((tp) => (tp.subtopics || []).some((s, i) => true));
@@ -1138,6 +1247,8 @@ export default function CourseDetailView({
     const out = [];
     if (videoUrls.length > 0) out.push('video');
     if (currentSub?.content) out.push('notes');
+    if (currentSub?.examContent) out.push('exam-content');
+    if (currentSub?.interviewContent) out.push('interview-content');
     if (interviewQuestions.length > 0) out.push('interview');
     if (examQuestions.length > 0) out.push('exam');
     if (labs.length > 0) out.push('labs');
@@ -1148,7 +1259,10 @@ export default function CourseDetailView({
   useEffect(() => {
     if (loadingData) return;
     if (availableTypes.length > 0) {
-      const preferred = availableTypes.includes('notes') ? 'notes' : availableTypes[0];
+      const preferred = availableTypes.includes('notes') ? 'notes' :
+                        availableTypes.includes('exam-content') ? 'exam-content' :
+                        availableTypes.includes('interview-content') ? 'interview-content' :
+                        availableTypes[0];
       if (!availableTypes.includes(activeContentType)) setActiveContentType(preferred);
     }
   }, [loadingData, availableTypes, activeContentType]);
@@ -1160,7 +1274,11 @@ export default function CourseDetailView({
     setCurrentSubtopic(sub);
     await loadSubtopicImages(sub.id);
     if (isMobile) setShowSidebar(false);
+    // Set default content type based on available content
     if (sub?.content) setActiveContentType('notes');
+    else if (sub?.examContent) setActiveContentType('exam-content');
+    else if (sub?.interviewContent) setActiveContentType('interview-content');
+    else if (availableTypes.length > 0) setActiveContentType(availableTypes[0]);
   };
 
   const filteredTopics = searchQuery
@@ -1193,11 +1311,20 @@ export default function CourseDetailView({
             courseTitle={selectedCourse?.title}
           />
         );
-      case 'notes': return <NotesTab content={currentSub.content} config={config} />;
-      case 'interview': return <InterviewTab questions={interviewQuestions} config={config} />;
-      case 'exam': return <ExamTab questions={examQuestions} config={config} />;
-      case 'labs': return <LabsTab labs={labs} config={config} />;
-      default: return null;
+      case 'notes': 
+        return <NotesTab content={currentSub.content} config={config} />;
+      case 'exam-content':
+        return <ExamContentTab content={currentSub.examContent} config={config} />;
+      case 'interview-content':
+        return <InterviewContentTab content={currentSub.interviewContent} config={config} />;
+      case 'interview': 
+        return <InterviewTab questions={interviewQuestions} config={config} />;
+      case 'exam': 
+        return <ExamTab questions={examQuestions} config={config} />;
+      case 'labs': 
+        return <LabsTab labs={labs} config={config} />;
+      default: 
+        return null;
     }
   };
 
@@ -1382,18 +1509,16 @@ export default function CourseDetailView({
       width: '100%',
       background: SIDEBAR.bg,
     },
-    // ─── SIDEBAR - BORDER REMOVED ──────────────────────────────────
     sidebar: {
       width: '340px',
       minWidth: '340px',
       background: SIDEBAR.bg,
-      borderRight: 'none', // ← REMOVED the border
+      borderRight: 'none',
       color: SIDEBAR.text,
       overflowY: 'auto',
       flexShrink: 0,
-      // ─── HIDE SCROLLBAR ──────────────────────────────────────────
-      scrollbarWidth: 'none',        // Firefox
-      msOverflowStyle: 'none',      // IE/Edge
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
     },
     sidebarOpen: { left: '0' },
     sidebarHeader: {
@@ -1410,12 +1535,10 @@ export default function CourseDetailView({
       textShadow: '0 1px 2px rgba(0,0,0,0.2)',
       letterSpacing: '-0.01em',
     },
-    // ─── UPDATED Odoo-style topicItem ──────────────────────────────
     topicItem: {
       margin: 0,
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     },
-    // ─── UPDATED Odoo-style topicHeader ────────────────────────────
     topicHeader: (isOpen) => ({
       display: 'flex',
       alignItems: 'center',
@@ -1434,7 +1557,6 @@ export default function CourseDetailView({
       transition: 'background 0.2s ease',
       borderLeft: isOpen ? `3px solid ${SIDEBAR.accent}` : '3px solid transparent',
     }),
-    // ─── UPDATED: Subtopic items - REDUCED GAP ──────────────────────
     subtopicItem: (isActive, hasVideo) => ({
       display: 'flex',
       alignItems: 'center',
@@ -1450,7 +1572,6 @@ export default function CourseDetailView({
       borderRadius: '3px',
       margin: '0px 0',
     }),
-    // ─── Content type items - REDUCED GAP ──────────────────────────
     contentTypeItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
