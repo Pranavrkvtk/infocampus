@@ -158,23 +158,6 @@ export default function AdminDashboard() {
 
   const handleViewCourse = (pdf) => { setSelectedCoursePdf(pdf); setActiveTab("course-view"); };
 
-  const handleDeleteCourse = async (courseId, courseTitle) => {
-    const result = await Swal.fire({
-      title: "Delete Course?",
-      html: `<p>Delete <strong>${courseTitle}</strong>? This cannot be undone!</p>`,
-      icon: "warning", showCancelButton: true,
-      confirmButtonText: "Yes, Delete", confirmButtonColor: "#E8644A",
-    });
-    if (result.isConfirmed) {
-      Swal.fire({ title: "Deleting...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      try {
-        await deleteAdminCourse(courseId); await fetchCourses();
-        Swal.fire({ title: "Deleted!", icon: "success", timer: 2000, showConfirmButton: false });
-      } catch (error) {
-        Swal.fire({ title: "Failed!", text: error.response?.data?.message || "Failed to delete course", icon: "error" });
-      }
-    }
-  };
 
   const handleToggleStatus = async (studentId, currentStatus) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
