@@ -10,6 +10,8 @@ import {
   getSubtopicImages,
   getCourses,
   enrollInCourse,
+  getPublicCourseData,  // ✅ Added
+  getPublicCourses,     // ✅ Added
 } from '../api/UserApi';
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
@@ -157,13 +159,6 @@ function MyCoursesPage() {
   
   const myCoursesConfig = getMyCoursesConfig() || DEFAULT_MY_COURSES_CONFIG;
   
-  // ✅ FIX 1: Removed unused TRACKS variable (commented out instead of deleted)
-  // const TRACKS = Object.entries(myCoursesConfig.trackIcons).map(([key, icon]) => ({
-  //   match: key,
-  //   icon: icon,
-  //   tint: myCoursesConfig.trackColors[key] || myCoursesConfig.trackColors.default || '#F2F1F6'
-  // }));
-  
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -257,7 +252,7 @@ function MyCoursesPage() {
     window.location.href = '/login';
   };
 
-  // ✅ FIX 2: Wrap getCourseImage in useCallback with API_BASE dependency
+  // ✅ FIX: Wrap getCourseImage in useCallback with API_BASE dependency
   const getCourseImage = useCallback((course) => {
     if (!course.imageUrl) {
       const name = course.title?.toLowerCase() || '';
@@ -308,7 +303,7 @@ function MyCoursesPage() {
     return `${API_BASE}/admin/uploads/${fileName}`;
   };
 
-  // ✅ FIX 3: Add getCourseImage to dependencies
+  // ✅ FIX: Add getCourseImage to dependencies
   const fetchEnrolledCourses = useCallback(async () => {
     if (!isLoggedIn) {
       setCourses([]);
@@ -333,11 +328,11 @@ function MyCoursesPage() {
     }
   }, [isLoggedIn, getCourseImage]);
 
-  // ✅ FIX 4: Add getCourseImage to dependencies
+  // ✅ FIX: Add getCourseImage to dependencies and handle public fallback
   const fetchAllCourses = useCallback(async () => {
     setLoadingAllCourses(true);
     try {
-      const data = await getCourses();
+      const data = await getCourses(); // This now handles both auth and public
       setAllCourses(data);
       
       data.forEach(course => {
@@ -348,7 +343,15 @@ function MyCoursesPage() {
       });
     } catch (error) {
       console.error('Error fetching courses:', error);
-      Swal.fire('Error', 'Could not load course catalog', 'error');
+      // Try public fallback
+      try {
+        const publicData = await getPublicCourses();
+        setAllCourses(publicData);
+      } catch (publicError) {
+        console.error('Public fallback also failed:', publicError);
+        setAllCourses([]);
+        Swal.fire('Error', 'Could not load course catalog', 'error');
+      }
     } finally {
       setLoadingAllCourses(false);
     }
@@ -390,15 +393,29 @@ function MyCoursesPage() {
     }
   };
 
+  // ✅ FIX: Handle both public and authenticated course details
   const loadCourseDetails = async (courseId) => {
     setContentLoading(true);
     try {
-      const data = await getCourseDetails(courseId);
-      const allTopics = data.topics || [];
+      let data;
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        // Authenticated user - get full course details with enrollment info
+        data = await getCourseDetails(courseId);
+      } else {
+        // Public user - get public course data
+        data = await getPublicCourseData(courseId);
+      }
 
+      // Handle both response formats (array or object with topics)
+      const allTopics = Array.isArray(data) ? data : (data.topics || []);
+      
       const allSubtopics = [];
       allTopics.forEach(topic => {
-        (topic.subtopics || []).forEach(sub => {
+        // Handle both subTopics and subtopics property names
+        const subs = topic.subTopics || topic.subtopics || [];
+        subs.forEach(sub => {
           allSubtopics.push({
             id: sub.id,
             title: sub.title,
@@ -414,15 +431,22 @@ function MyCoursesPage() {
       setSubtopics(allSubtopics);
       setTopics(allTopics);
 
-      const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
-      if (savedCompleted) {
-        const completed = JSON.parse(savedCompleted);
-        setCompletedSections(completed);
-        setProgress((completed.length / allSubtopics.length) * 100);
+      // Only load progress if user is logged in
+      if (token) {
+        const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
+        if (savedCompleted) {
+          const completed = JSON.parse(savedCompleted);
+          setCompletedSections(completed);
+          setProgress((completed.length / allSubtopics.length) * 100);
+        } else {
+          setCompletedSections([]);
+          setProgress(0);
+        }
       } else {
         setCompletedSections([]);
         setProgress(0);
       }
+      
       setActiveSection(0);
       if (allSubtopics.length > 0) {
         await loadSubtopicImages(allSubtopics[0].id);
@@ -430,7 +454,23 @@ function MyCoursesPage() {
       }
     } catch (error) {
       console.error('Error loading course details:', error);
-      Swal.fire('Error', 'Could not load course content', 'error');
+      if (!localStorage.getItem('token')) {
+        // Show login prompt for public users
+        Swal.fire({
+          title: 'Login for Full Access',
+          text: 'Login to access all course content, track progress, and enroll.',
+          icon: 'info',
+          showCancelButton: true,
+          confirmButtonText: 'Login',
+          cancelButtonText: 'View Limited Content',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/login');
+          }
+        });
+      } else {
+        Swal.fire('Error', 'Could not load course content', 'error');
+      }
     } finally {
       setContentLoading(false);
     }
@@ -446,6 +486,7 @@ function MyCoursesPage() {
     }
   };
 
+  // ✅ FIX: Handle public view with login prompt
   const handleViewCourse = async (course) => {
     setSelectedCourse(course);
     setActiveView('enrollment');
@@ -453,10 +494,27 @@ function MyCoursesPage() {
       await loadCourseDetails(course.id);
     } catch (error) {
       console.error('Error pre-loading course:', error);
+      // Even if details fail, show the course page with basic info
     }
   };
 
+  // ✅ FIX: Require login for continuing learning
   const handleContinueLearning = async (course) => {
+    if (!isLoggedIn) {
+      Swal.fire({
+        title: 'Login Required',
+        text: 'Please login to continue learning.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Login',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/login');
+        }
+      });
+      return;
+    }
+    
     setSelectedCourse(course);
     setActiveView('split');
     try {
@@ -467,7 +525,23 @@ function MyCoursesPage() {
     }
   };
 
+  // ✅ FIX: Require login for starting learning
   const handleStartLearning = async () => {
+    if (!isLoggedIn) {
+      Swal.fire({
+        title: 'Login Required',
+        text: 'Please login to start learning.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Login',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/login');
+        }
+      });
+      return;
+    }
+    
     if (!isCourseEnrolled(selectedCourse?.id)) {
       Swal.fire({
         title: 'Not Enrolled',
@@ -549,7 +623,6 @@ function MyCoursesPage() {
     return FALLBACK_IMAGE;
   };
 
-  // ✅ FIX 5: Dependencies are now correct
   useEffect(() => {
     fetchEnrolledCourses();
     fetchAllCourses();
