@@ -235,7 +235,6 @@ export default function AdminDashboard() {
     { label: "Total Students",    value: dashboardStats.totalStudents?.toLocaleString() || "0",  iconBg: colors.primarySoft, icon: "👨‍🎓" },
     { label: "Total Courses",     value: dashboardStats.totalCourses?.toString() || "0",          iconBg: colors.tealSoft,    icon: "🌐"  },
     { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0",iconBg: colors.amberSoft,   icon: "📚"  },
-    { label: "Total Instructors", value: dashboardStats.totalInstructors?.toString() || "0",      iconBg: colors.purpleSoft,  icon: "👨‍🏫" },
   ] : [];
 
   const renderContent = () => {
@@ -255,7 +254,7 @@ export default function AdminDashboard() {
     );
     switch (activeTab) {
       case "dashboard":   return <DashboardTab kpis={kpis} loading={loading} isMobile={isMobile} onNavigate={setActiveTab} />;
-      case "courses":     return <CoursesTab courses={courses} isMobile={isMobile} handleDeleteCourse={handleDeleteCourse} setSelectedCourse={setSelectedCourse} setIsEditCourseModalOpen={setIsEditCourseModalOpen} setIsAddCourseModalOpen={setIsAddCourseModalOpen} fetchCourses={fetchCourses} />;
+      case "courses":     return <CoursesTab courses={courses} isMobile={isMobile} setSelectedCourse={setSelectedCourse} setIsEditCourseModalOpen={setIsEditCourseModalOpen} setIsAddCourseModalOpen={setIsAddCourseModalOpen} fetchCourses={fetchCourses} />;
       case "students":    return <StudentsTab students={students} searchTerm={searchTerm} handleSearchChange={handleSearchChange} handleToggleStatus={handleToggleStatus} handleDeleteStudent={handleDeleteStudent} isMobile={isMobile} />;
       case "enrollments": return <EnrollmentsTab isMobile={isMobile} />;
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
@@ -292,7 +291,7 @@ export default function AdminDashboard() {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
     students:        "View and manage all enrolled students",
-    enrollments:     "View all student enrollments and progress",
+    enrollments:     "View all student enrollments",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
     "my-courses-editor": "Customize all text, icons, and content on the My Courses page",

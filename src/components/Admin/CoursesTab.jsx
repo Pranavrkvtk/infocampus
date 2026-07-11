@@ -4,14 +4,11 @@ import Swal from "sweetalert2";
 import { colors, Badge } from "./AdminStyles";
 import { 
   deleteAdminCourse, 
-  updateAdminCourse, 
-  getAllInstructors 
+  updateAdminCourse 
 } from "../../api/adminApi";
 import { 
-  getAvailableCourses, 
-  assignCourseToInstructor,
-  updateInstructorCourse,
-  deleteInstructorCourse
+  deleteInstructorCourse,
+  updateInstructorCourse
 } from "../../api/instructorApi";
 
 export default function CoursesTab({
@@ -23,88 +20,17 @@ export default function CoursesTab({
   fetchCourses,
   isInstructor = false
 }) {
-  const [availableCourses, setAvailableCourses] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [instructors, setInstructors] = useState([]);
   const [editingCourse, setEditingCourse] = useState(null);
   const [updating, setUpdating] = useState(false);
-  const [loadingInstructors, setLoadingInstructors] = useState(false);
   
   // ✅ Filter states
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterInstructor, setFilterInstructor] = useState("ALL");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
-
-  // ✅ Use useCallback to prevent unnecessary re-renders
-  const fetchAvailableCourses = useCallback(async () => {
-    try {
-      const response = await getAvailableCourses();
-      setAvailableCourses(response.data || []);
-    } catch (error) {
-      console.error('Error fetching available courses:', error);
-    }
-  }, []);
-
-  const fetchInstructors = useCallback(async () => {
-    setLoadingInstructors(true);
-    try {
-      const response = await getAllInstructors();
-      console.log('Full response from getAllInstructors:', response);
-      
-      let instructorsData = [];
-      
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          instructorsData = response.data;
-        } else if (response.data.content && Array.isArray(response.data.content)) {
-          instructorsData = response.data.content;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          instructorsData = response.data.data;
-        } else if (response.data.instructors && Array.isArray(response.data.instructors)) {
-          instructorsData = response.data.instructors;
-        }
-      } else if (Array.isArray(response)) {
-        instructorsData = response;
-      } else if (response && response.content && Array.isArray(response.content)) {
-        instructorsData = response.content;
-      }
-      
-      const validInstructors = instructorsData.filter(inst => 
-        inst && (inst.id || inst._id) && (inst.name || inst.email)
-      );
-      
-      console.log('Valid instructors found:', validInstructors);
-      setInstructors(validInstructors);
-      
-      if (validInstructors.length === 0) {
-        console.warn('No valid instructors found in response');
-      }
-    } catch (error) {
-      console.error('Error fetching instructors:', error);
-      setInstructors([]);
-    } finally {
-      setLoadingInstructors(false);
-    }
-  }, []);
-
-  // Fetch available courses for instructor
-  useEffect(() => {
-    if (isInstructor) {
-      fetchAvailableCourses();
-    }
-  }, [isInstructor, fetchAvailableCourses]);
-
-  // Fetch instructors for dropdown (only for admin)
-  useEffect(() => {
-    if (!isInstructor) {
-      fetchInstructors();
-    }
-  }, [isInstructor, fetchInstructors]);
 
   // Reset selection when courses change
   useEffect(() => {
@@ -116,7 +42,7 @@ export default function CoursesTab({
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterInstructor]);
+  }, [searchTerm]);
 
   const handleSelectCourse = (courseId) => {
     setSelectedCourses(prev => {
@@ -188,7 +114,6 @@ export default function CoursesTab({
       setSelectAll(false);
 
       if (fetchCourses) await fetchCourses();
-      if (isInstructor) await fetchAvailableCourses();
 
       Swal.fire({
         title: "Deleted!",
@@ -227,7 +152,6 @@ export default function CoursesTab({
           await deleteAdminCourse(courseId);
         }
         if (fetchCourses) await fetchCourses();
-        if (isInstructor) await fetchAvailableCourses();
         Swal.fire({ title: 'Deleted!', icon: 'success', timer: 2000, showConfirmButton: false });
       } catch (error) {
         console.error("Delete error:", error);
@@ -236,51 +160,9 @@ export default function CoursesTab({
     }
   };
 
-  const handleAssignCourse = async (courseId, courseTitle) => {
-    const result = await Swal.fire({
-      title: 'Assign Course?',
-      html: `Do you want to assign <strong>${courseTitle}</strong> to yourself?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Assign',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#4CAF50'
-    });
-
-    if (result.isConfirmed) {
-      setLoading(true);
-      try {
-        await assignCourseToInstructor(courseId);
-        Swal.fire('Success!', 'Course assigned successfully!', 'success');
-        await fetchCourses();
-        await fetchAvailableCourses();
-      } catch (error) {
-        Swal.fire('Error', error.response?.data?.error || 'Failed to assign course', 'error');
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
   const handleInlineEdit = (course) => {
-    let instructorId = null;
-    if (course.instructorId) {
-      instructorId = course.instructorId;
-    } else if (course.instructor && typeof course.instructor === 'object') {
-      instructorId = course.instructor.id;
-    } else if (typeof course.instructor === 'string' && !isNaN(course.instructor)) {
-      instructorId = parseInt(course.instructor);
-    } else if (typeof course.instructor === 'string') {
-      const foundInstructor = instructors.find(i => 
-        i.name === course.instructor || 
-        i.email === course.instructor
-      );
-      instructorId = foundInstructor?.id || null;
-    }
-    
     setEditingCourse({ 
       ...course, 
-      instructorId: instructorId,
       description: course.description || ''
     });
   };
@@ -303,16 +185,6 @@ export default function CoursesTab({
         videoUrl: editingCourse.videoUrl || "",
         imageUrl: editingCourse.imageUrl || ""
       };
-
-      if (!isInstructor) {
-        if (editingCourse.instructorId) {
-          updateData.instructor = String(editingCourse.instructorId);
-        } else {
-          updateData.instructor = null;
-        }
-      } else {
-        updateData.instructor = editingCourse.instructor || String(editingCourse.instructorId) || null;
-      }
 
       console.log('Sending update data:', updateData);
       
@@ -343,40 +215,12 @@ export default function CoursesTab({
     }
   };
 
-  // ✅ Get unique instructors for filter
-  const getUniqueInstructors = () => {
-    const instructorNames = new Set();
-    courses.forEach(course => {
-      let name = course.instructor || "Unknown";
-      if (typeof course.instructor === 'object' && course.instructor !== null) {
-        name = course.instructor.name || course.instructor.email || "Unknown";
-      } else if (typeof course.instructor === 'string' && !isNaN(course.instructor)) {
-        const found = instructors.find(i => i.id === parseInt(course.instructor));
-        name = found ? found.name || found.email : `Instructor #${course.instructor}`;
-      }
-      instructorNames.add(name);
-    });
-    return Array.from(instructorNames).sort();
-  };
-
   // ✅ Filter and sort courses
   const filteredAndSortedCourses = [...courses]
     .filter(course => {
       // Filter by search term (course name)
       const matchesSearch = course.title?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
-      
-      // Filter by instructor
-      let instructorName = course.instructor || "Unknown";
-      if (typeof course.instructor === 'object' && course.instructor !== null) {
-        instructorName = course.instructor.name || course.instructor.email || "Unknown";
-      } else if (typeof course.instructor === 'string' && !isNaN(course.instructor)) {
-        const found = instructors.find(i => i.id === parseInt(course.instructor));
-        instructorName = found ? found.name || found.email : `Instructor #${course.instructor}`;
-      }
-      
-      const matchesInstructor = filterInstructor === "ALL" || instructorName === filterInstructor;
-      
-      return matchesSearch && matchesInstructor;
+      return matchesSearch;
     })
     .sort((a, b) => {
       // ✅ Sort by ID descending (newest first)
@@ -416,8 +260,6 @@ export default function CoursesTab({
       }
     }
   };
-
-  const uniqueInstructors = getUniqueInstructors();
 
   return (
     <div style={{
@@ -489,7 +331,7 @@ export default function CoursesTab({
         </div>
       </div>
 
-      {/* ✅ Search and Filter Bar */}
+      {/* ✅ Search Bar */}
       <div style={{
         display: "flex",
         flexWrap: "wrap",
@@ -519,31 +361,9 @@ export default function CoursesTab({
           />
         </div>
 
-        <select
-          value={filterInstructor}
-          onChange={(e) => setFilterInstructor(e.target.value)}
-          style={{
-            padding: "8px 14px",
-            borderRadius: "8px",
-            border: `1px solid ${colors.borderLight}`,
-            fontSize: "13px",
-            outline: "none",
-            background: "var(--surface)",
-            color: "var(--text-primary)",
-            cursor: "pointer",
-            minWidth: "150px"
-          }}
-        >
-          <option value="ALL">👨‍🏫 All Instructors</option>
-          {uniqueInstructors.map((name, index) => (
-            <option key={index} value={name}>{name}</option>
-          ))}
-        </select>
-
         <button
           onClick={() => {
             setSearchTerm("");
-            setFilterInstructor("ALL");
           }}
           style={{
             padding: "8px 14px",
@@ -564,7 +384,7 @@ export default function CoursesTab({
         className="courses-table-container"
         style={{ overflowX: "auto", marginBottom: isInstructor ? 30 : 0 }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 850 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 750 }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${colors.borderLight}`, background: colors.bgBase }}>
               <th style={{ padding: "12px", textAlign: "center", width: "40px" }}>
@@ -583,7 +403,6 @@ export default function CoursesTab({
               <th style={{ padding: "12px", textAlign: "left" }}>ID</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Course Name</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Description</th>
-              <th style={{ padding: "12px", textAlign: "left" }}>Instructor</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Price</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Status</th>
               <th style={{ padding: "12px", textAlign: "center" }}>Actions</th>
@@ -592,7 +411,7 @@ export default function CoursesTab({
           <tbody>
             {filteredAndSortedCourses.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ padding: "40px", textAlign: "center", color: colors.textMuted }}>
+                <td colSpan="7" style={{ padding: "40px", textAlign: "center", color: colors.textMuted }}>
                   {isInstructor ? 'No courses assigned yet.' : 'No courses available.'}
                 </td>
               </tr>
@@ -600,14 +419,6 @@ export default function CoursesTab({
               currentItems.map((c, idx) => {
                 const isSelected = selectedCourses.includes(c.id);
                 const isEditing = editingCourse?.id === c.id;
-                
-                let instructorName = c.instructor || "—";
-                if (typeof c.instructor === 'object' && c.instructor !== null) {
-                  instructorName = c.instructor.name || c.instructor.email || "—";
-                } else if (typeof c.instructor === 'string' && !isNaN(c.instructor)) {
-                  const foundInstructor = instructors.find(i => i.id === parseInt(c.instructor));
-                  instructorName = foundInstructor ? foundInstructor.name || foundInstructor.email : `Instructor #${c.instructor}`;
-                }
                 
                 return (
                   <tr 
@@ -681,44 +492,6 @@ export default function CoursesTab({
                         }}>
                           {c.description || "—"}
                         </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "12px", color: colors.textSecondary }}>
-                      {isEditing && !isInstructor ? (
-                        <select
-                          value={editingCourse.instructorId || ''}
-                          onChange={(e) => setEditingCourse({ 
-                            ...editingCourse, 
-                            instructorId: e.target.value ? parseInt(e.target.value) : null 
-                          })}
-                          style={{
-                            width: "100%",
-                            padding: "4px 8px",
-                            border: `1px solid ${colors.primary}`,
-                            borderRadius: 4,
-                            fontSize: "13px",
-                            background: "#fff",
-                          }}
-                          disabled={loadingInstructors}
-                        >
-                          <option value="">Unassigned</option>
-                          {loadingInstructors ? (
-                            <option value="" disabled>Loading instructors...</option>
-                          ) : (
-                            instructors.length > 0 ? (
-                              instructors.map(instructor => (
-                                <option key={instructor.id} value={instructor.id}>
-                                  {instructor.name || instructor.email || `Instructor #${instructor.id}`}
-                                  {instructor.coursesCount !== undefined && ` (${instructor.coursesCount} courses)`}
-                                </option>
-                              ))
-                            ) : (
-                              <option value="" disabled>No instructors available</option>
-                            )
-                          )}
-                        </select>
-                      ) : (
-                        instructorName
                       )}
                     </td>
                     <td style={{ padding: "12px", color: colors.teal, fontWeight: 600 }}>
@@ -929,77 +702,6 @@ export default function CoursesTab({
           </div>
         )}
       </div>
-
-      {/* Available Courses Section (Only for Instructor) */}
-      {isInstructor && (
-        <div style={{ marginTop: 30, borderTop: `2px solid ${colors.borderLight}`, paddingTop: 20 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
-            📋 Available Courses to Assign ({availableCourses.length})
-          </h3>
-          
-          {availableCourses.length === 0 ? (
-            <div style={{ 
-              padding: 20, 
-              background: '#f5f5f5', 
-              borderRadius: 8,
-              textAlign: 'center',
-              color: '#666',
-              fontSize: 13
-            }}>
-              ✅ All courses are assigned to you or other instructors.
-            </div>
-          ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: 16 
-            }}>
-              {availableCourses.map(course => (
-                <div key={course.id} style={{
-                  background: '#fff8e1',
-                  borderRadius: 12,
-                  padding: 16,
-                  border: '1px dashed #ffb300',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                }}>
-                  <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-                    {course.title}
-                  </h4>
-                  <p style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4 }}>
-                    Instructor: {course.instructor || 'Not Assigned'}
-                  </p>
-                  <p style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4 }}>
-                    Price: ${course.price || 0}
-                  </p>
-                  <p style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>
-                    Duration: {course.duration || 'N/A'}
-                  </p>
-                  
-                  <button
-                    onClick={() => handleAssignCourse(course.id, course.title)}
-                    disabled={loading}
-                    style={{
-                      padding: '6px 16px',
-                      background: '#4CAF50',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      opacity: loading ? 0.6 : 1,
-                      width: '100%',
-                      transition: 'opacity 0.2s'
-                    }}
-                  >
-                    {loading ? 'Assigning...' : '📋 Assign to Me'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

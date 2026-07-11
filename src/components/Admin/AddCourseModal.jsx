@@ -1,16 +1,10 @@
 // src/components/Admin/AddCourseModal.jsx
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import Swal from "sweetalert2";
 import { colors } from "./AdminStyles";
-import { createAdminCourse, getAllInstructors } from "../../api/adminApi";
+import { createAdminCourse } from "../../api/adminApi";
 import { createInstructorCourse } from "../../api/instructorApi";
-import axiosInstance from "../../api/axios"; // ✅ Import axiosInstance
-
-// Cache for instructors data - persists across component re-renders
-let instructorsCache = null;
-let isLoadingInstructors = false;
-let fetchPromise = null;
-let hasFetchedOnce = false;
+import axiosInstance from "../../api/axios";
 
 export default function AddCourseModal({ 
   isOpen, 
@@ -22,222 +16,14 @@ export default function AddCourseModal({
     title: "", 
     description: "", 
     price: "", 
-    instructor: "", 
     duration: "", 
     level: ""
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [instructors, setInstructors] = useState([]);
-  const [loadingInstructors, setLoadingInstructors] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
-  
-  // Use ref to track if we've already loaded for this modal instance
-  const hasLoadedRef = useRef(false);
-  const isMountedRef = useRef(false);
-
-  // Modified fetch function with caching
-  const fetchInstructorsOnce = useCallback(async () => {
-    // If we already have cached data, use it
-    if (instructorsCache && Array.isArray(instructorsCache) && instructorsCache.length > 0) {
-      console.log('📦 Using cached instructors:', instructorsCache.length);
-      setInstructors(instructorsCache);
-      return;
-    }
-
-    // If already loading, wait for the existing promise
-    if (isLoadingInstructors && fetchPromise) {
-      console.log('⏳ Waiting for existing fetch...');
-      try {
-        const data = await fetchPromise;
-        setInstructors(data);
-      } catch (error) {
-        console.error('Failed to get instructors from existing promise:', error);
-      }
-      return;
-    }
-
-    // Start new fetch
-    setLoadingInstructors(true);
-    isLoadingInstructors = true;
-    
-    fetchPromise = (async () => {
-      try {
-        console.log('🔄 Fetching instructors from API...');
-        const data = await getAllInstructors();
-        console.log('📥 Raw API response:', data);
-        
-        let instructorsArray = [];
-        
-        if (Array.isArray(data)) {
-          instructorsArray = data;
-        } else if (data && typeof data === 'object') {
-          if (Array.isArray(data.data)) {
-            instructorsArray = data.data;
-          } else if (Array.isArray(data.instructors)) {
-            instructorsArray = data.instructors;
-          } else if (Array.isArray(data.content)) {
-            instructorsArray = data.content;
-          } else {
-            instructorsArray = [data];
-          }
-        }
-        
-        const validInstructors = instructorsArray.filter(inst => 
-          inst && (inst.id || inst._id) && (inst.name || inst.email)
-        );
-        
-        console.log('✅ Processed instructors:', validInstructors.length);
-        
-        // Cache the results
-        instructorsCache = validInstructors;
-        hasFetchedOnce = true;
-        setInstructors(validInstructors);
-        
-        if (validInstructors.length === 0) {
-          console.warn('⚠️ No valid instructors found in response');
-        }
-        
-        return validInstructors;
-      } catch (error) {
-        console.error("❌ Failed to fetch instructors:", error);
-        
-        // Check if it's an authentication error
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          Swal.fire({
-            title: "Authentication Error",
-            text: "Please login again to access instructor list",
-            icon: "error",
-            confirmButtonColor: colors.primary,
-          }).then(() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.reload();
-          });
-        } else {
-          Swal.fire("Error", "Failed to load instructors list: " + (error.message || "Unknown error"), "error");
-        }
-        
-        setInstructors([]);
-        instructorsCache = [];
-        return [];
-      } finally {
-        setLoadingInstructors(false);
-        isLoadingInstructors = false;
-        fetchPromise = null;
-      }
-    })();
-
-    try {
-      await fetchPromise;
-    } catch (error) {
-      // Error already handled in the promise
-    }
-  }, []);
-
-  // ✅ FIXED: useEffect with all dependencies properly included
-  useEffect(() => {
-    // Only run when modal opens
-    if (!isOpen) {
-      return;
-    }
-
-    // Prevent multiple executions
-    if (isMountedRef.current) {
-      console.log('⏭️ Skipping permission check - already mounted');
-      return;
-    }
-
-    isMountedRef.current = true;
-    console.log('🔍 First-time permission check...');
-
-    const token = localStorage.getItem('token');
-    let user = {};
-    
-    try {
-      user = JSON.parse(localStorage.getItem('user') || '{}');
-    } catch (e) {
-      console.error('Failed to parse user from localStorage:', e);
-    }
-    
-    // Check if user is authenticated
-    if (!token) {
-      Swal.fire({
-        title: "Authentication Required",
-        text: "Please login to create courses",
-        icon: "warning",
-        confirmButtonColor: colors.primary,
-      }).then(() => onClose());
-      return;
-    }
-
-    // Check user role
-    const userRole = user.role || 
-                     user.userRole || 
-                     user.roleName || 
-                     user.authorities?.[0] || 
-                     user.type ||
-                     user.roles?.[0] ||
-                     '';
-
-    const isAdmin = userRole === 'admin' || 
-                    userRole === 'ADMIN' || 
-                    userRole === 'super_admin' || 
-                    userRole === 'SUPER_ADMIN' ||
-                    userRole === 'ROLE_ADMIN' ||
-                    userRole === 'ROLE_SUPER_ADMIN' ||
-                    (typeof userRole === 'string' && userRole.toUpperCase().includes('ADMIN'));
-
-    const isInstructorRole = userRole === 'instructor' || 
-                             userRole === 'INSTRUCTOR' || 
-                             userRole === 'ROLE_INSTRUCTOR' ||
-                             (typeof userRole === 'string' && userRole.toUpperCase().includes('INSTRUCTOR'));
-
-    console.log('🔍 Permission Check:', {
-      userRole,
-      isAdmin,
-      isInstructorRole,
-      isInstructorProp: isInstructor,
-      hasLoadedRef: hasLoadedRef.current,
-      hasFetchedOnce
-    });
-
-    const hasPermission = isInstructor || isAdmin || isInstructorRole;
-    
-    if (!hasPermission) {
-      Swal.fire({
-        title: "Access Denied",
-        html: `
-          <p>Only admins can create courses</p>
-          <p style="font-size: 12px; color: #666; margin-top: 8px;">
-            Debug: Role = "${userRole}"<br>
-            Mode: ${isInstructor ? 'Instructor' : 'Admin'}<br>
-            Please contact support if you think this is an error.
-          </p>
-        `,
-        icon: "error",
-        confirmButtonColor: colors.primary,
-      }).then(() => onClose());
-      return;
-    }
-
-    // Fetch instructors only for admin mode and only if not loaded before
-    if (!isInstructor && !hasLoadedRef.current) {
-      console.log('🚀 Starting instructor fetch...');
-      fetchInstructorsOnce();
-      hasLoadedRef.current = true;
-    }
-  }, [isOpen, isInstructor, fetchInstructorsOnce, onClose]);
-
-  // Reset mounted state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      isMountedRef.current = false;
-      resetImageState();
-    }
-  }, [isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -290,7 +76,6 @@ export default function AddCourseModal({
       title: "", 
       description: "", 
       price: "", 
-      instructor: "", 
       duration: "", 
       level: ""
     });
@@ -302,7 +87,6 @@ export default function AddCourseModal({
     onClose(); 
   };
 
-  // ✅ FIXED: handleSubmit with axiosInstance instead of fetch
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -329,10 +113,6 @@ export default function AddCourseModal({
         level: form.level || '',
       };
 
-      if (!isInstructor && form.instructor) {
-        courseData.instructor = form.instructor;
-      }
-
       console.log('📤 STEP 1: Creating course with data:', courseData);
       console.log('📤 Mode:', isInstructor ? 'Instructor' : 'Admin');
       setUploadProgress(30);
@@ -353,7 +133,6 @@ export default function AddCourseModal({
       console.log('✅ Course created with ID:', courseId);
       setUploadProgress(60);
       
-      // ✅ FIXED: Use axiosInstance for image upload
       if (imageFile) {
         console.log('📤 STEP 2: Uploading image for course:', courseId);
         
@@ -361,7 +140,6 @@ export default function AddCourseModal({
         imageFormData.append('file', imageFile);
         
         try {
-          // Use axiosInstance with relative URL - this will work in both dev and production
           const uploadResponse = await axiosInstance.post(
             `/admin/courses/${courseId}/upload-image`,
             imageFormData,
@@ -446,18 +224,6 @@ export default function AddCourseModal({
     fontWeight: 600, 
     marginBottom: 3,
     color: "var(--text-secondary)"
-  };
-
-  const getInstructorId = (instructor) => {
-    return instructor.id || instructor._id;
-  };
-
-  const getInstructorName = (instructor) => {
-    return instructor.name || 
-           instructor.fullName || 
-           instructor.username || 
-           instructor.email || 
-           `Instructor ${getInstructorId(instructor)}`;
   };
 
   return (
@@ -669,42 +435,6 @@ export default function AddCourseModal({
                 placeholder="0"
               />
             </div>
-            
-            {!isInstructor && (
-              <div style={{ flex: 1 }}>
-                <label style={label}>Instructor (Optional)</label>
-                <select 
-                  name="instructor" 
-                  value={form.instructor} 
-                  onChange={handleChange} 
-                  style={input}
-                  disabled={loadingInstructors}
-                >
-                  <option value="">Unassigned</option>
-                  {Array.isArray(instructors) && instructors.length > 0 ? (
-                    instructors.map((instructor) => {
-                      const id = getInstructorId(instructor);
-                      const displayName = getInstructorName(instructor);
-                      
-                      return (
-                        <option key={id} value={id}>
-                          {displayName}
-                        </option>
-                      );
-                    })
-                  ) : (
-                    !loadingInstructors && (
-                      <option value="" disabled>No instructors available</option>
-                    )
-                  )}
-                </select>
-                {!loadingInstructors && instructors.length === 0 && (
-                  <div style={{ fontSize: 10, color: '#e74c3c', marginTop: 4 }}>
-                    No instructors found. Please add instructors first.
-                  </div>
-                )}
-              </div>
-            )}
             
             {isInstructor && (
               <div style={{ flex: 1 }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { colors } from "./AdminStyles";
 import Swal from "sweetalert2";
-import { getAllEnrollments, deleteEnrollmentById, getAllInstructors } from "../../api/adminApi";
+import { getAllEnrollments, deleteEnrollmentById } from "../../api/adminApi";
 
 export default function EnrollmentsTab({ isMobile }) {
   const [enrollments, setEnrollments] = useState([]);
@@ -17,57 +17,10 @@ export default function EnrollmentsTab({ isMobile }) {
     inactive: 0
   });
   const [courses, setCourses] = useState([]);
-  const [instructors, setInstructors] = useState([]);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
-
-  // Fetch instructors
-  const fetchInstructors = async () => {
-    try {
-      const response = await getAllInstructors();
-      let instructorsData = [];
-      
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          instructorsData = response.data;
-        } else if (response.data.content && Array.isArray(response.data.content)) {
-          instructorsData = response.data.content;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          instructorsData = response.data.data;
-        }
-      } else if (Array.isArray(response)) {
-        instructorsData = response;
-      } else if (response && response.content && Array.isArray(response.content)) {
-        instructorsData = response.content;
-      }
-      
-      setInstructors(instructorsData);
-    } catch (error) {
-      console.error("Error fetching instructors:", error);
-    }
-  };
-
-  // Get instructor name by ID or name
-  const getInstructorName = (instructorValue) => {
-    if (!instructorValue) return "No instructor";
-    
-    if (typeof instructorValue === 'string' && isNaN(instructorValue)) {
-      return instructorValue;
-    }
-    
-    const id = typeof instructorValue === 'string' ? parseInt(instructorValue) : instructorValue;
-    
-    if (!isNaN(id)) {
-      const instructor = instructors.find(inst => inst.id === id);
-      if (instructor) {
-        return instructor.name || instructor.email || `Instructor #${id}`;
-      }
-    }
-    
-    return instructorValue || "No instructor";
-  };
 
   // Fetch enrollments
   const fetchEnrollments = async () => {
@@ -117,7 +70,6 @@ export default function EnrollmentsTab({ isMobile }) {
 
   useEffect(() => {
     fetchEnrollments();
-    fetchInstructors();
   }, []);
 
   // Reset to first page when filters change
@@ -235,12 +187,6 @@ export default function EnrollmentsTab({ isMobile }) {
     return statusMap[status] || statusMap["ACTIVE"];
   };
 
-  const getProgressColor = (progress) => {
-    if (progress >= 80) return "#10b981";
-    if (progress >= 50) return "#f59e0b";
-    return "#ef4444";
-  };
-
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: "40px" }}>
@@ -271,7 +217,7 @@ export default function EnrollmentsTab({ isMobile }) {
       {/* Stats Cards */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
         gap: "16px",
         marginBottom: "24px"
       }}>
@@ -325,24 +271,10 @@ export default function EnrollmentsTab({ isMobile }) {
           textAlign: "center"
         }}>
           <div style={{ fontSize: "24px", fontWeight: 700, color: "#991b1b" }}>
-            {stats.dropped}
+            {stats.dropped + stats.inactive}
           </div>
           <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-            ❌ Dropped
-          </div>
-        </div>
-        <div style={{
-          background: "var(--surface)",
-          padding: "16px",
-          borderRadius: "12px",
-          border: "1px solid var(--border-light)",
-          textAlign: "center"
-        }}>
-          <div style={{ fontSize: "24px", fontWeight: 700, color: "#92400e" }}>
-            {stats.inactive}
-          </div>
-          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-            ⚪ Inactive
+            ❌ Inactive
           </div>
         </div>
       </div>
@@ -468,7 +400,7 @@ export default function EnrollmentsTab({ isMobile }) {
             <table style={{
               width: "100%",
               borderCollapse: "collapse",
-              minWidth: "700px"
+              minWidth: "500px"
             }}>
               <thead>
                 <tr style={{
@@ -480,9 +412,6 @@ export default function EnrollmentsTab({ isMobile }) {
                   </th>
                   <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
                     Course
-                  </th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
-                    Progress
                   </th>
                   <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>
                     Status
@@ -499,12 +428,8 @@ export default function EnrollmentsTab({ isMobile }) {
                 {currentItems.map((enrollment, index) => {
                   const student = enrollment.user || {};
                   const course = enrollment.course || {};
-                  const progress = enrollment.progress || 0;
                   const status = enrollment.status || "ACTIVE";
                   const statusBadge = getStatusBadge(status);
-                  const progressColor = getProgressColor(progress);
-                  
-                  const instructorName = course.instructor ? getInstructorName(course.instructor) : "No instructor";
 
                   // Format enrollment date
                   let enrolledDate = "N/A";
@@ -541,35 +466,8 @@ export default function EnrollmentsTab({ isMobile }) {
                         </div>
                       </td>
                       <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                        <div>
-                          <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>
-                            {course.title || "Unknown Course"}
-                          </div>
-                          <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                            <span style={{ fontWeight: 500, color: "var(--text-primary)" }}>Instructor:</span> {instructorName}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
-                          <div style={{
-                            flex: 1,
-                            maxWidth: "100px",
-                            height: "6px",
-                            background: "var(--bg-base)",
-                            borderRadius: "3px",
-                            overflow: "hidden"
-                          }}>
-                            <div style={{
-                              width: `${progress}%`,
-                              height: "100%",
-                              background: progressColor,
-                              borderRadius: "3px"
-                            }} />
-                          </div>
-                          <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)", minWidth: "40px" }}>
-                            {progress}%
-                          </span>
+                        <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>
+                          {course.title || "Unknown Course"}
                         </div>
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>

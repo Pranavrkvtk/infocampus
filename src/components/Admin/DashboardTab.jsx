@@ -2,15 +2,13 @@
 import React from "react";
 import {
   colors,
-  // ✅ Remove unused import
-  // KpiCard,  
 } from "./AdminStyles";
 
 export default function DashboardTab({
   kpis,
   loading,
   isMobile,
-  onNavigate, // ✅ Add this prop
+  onNavigate,
 }) {
   // ✅ Map KPI cards to their respective tabs
   const getNavigationTarget = (index) => {
@@ -18,7 +16,6 @@ export default function DashboardTab({
       0: "students",      // Total Students → Students tab
       1: "courses",       // Total Courses → Courses tab
       2: "enrollments",   // Total Enrollments → Enrollments tab
-      3: "instructors",   // Total Instructors → Instructors tab
     };
     return targets[index] || null;
   };
@@ -28,7 +25,6 @@ export default function DashboardTab({
     if (label.includes("Students")) return "👨‍🎓";
     if (label.includes("Courses")) return "📚";
     if (label.includes("Enrollments")) return "📋";
-    if (label.includes("Instructors")) return "👨‍🏫";
     return "📊";
   };
 
@@ -36,8 +32,7 @@ export default function DashboardTab({
   const getKpiDescription = (label) => {
     if (label.includes("Students")) return "View and manage all students";
     if (label.includes("Courses")) return "View and manage all courses";
-    if (label.includes("Enrollments")) return "View all enrollments and progress";
-    if (label.includes("Instructors")) return "View and manage instructors";
+    if (label.includes("Enrollments")) return "View all enrollments";
     return "View details";
   };
 
@@ -46,7 +41,6 @@ export default function DashboardTab({
     if (label.includes("Students")) return colors.primarySoft;
     if (label.includes("Courses")) return colors.tealSoft;
     if (label.includes("Enrollments")) return colors.amberSoft;
-    if (label.includes("Instructors")) return colors.purpleSoft;
     return colors.primarySoft;
   };
 
@@ -66,7 +60,7 @@ export default function DashboardTab({
           display: "grid",
           gridTemplateColumns: isMobile
             ? "repeat(2, 1fr)"
-            : "repeat(4, 1fr)",
+            : "repeat(3, 1fr)",
           gap: isMobile ? 12 : 20,
           marginBottom: 24,
         }}
@@ -258,7 +252,7 @@ export default function DashboardTab({
             display: "grid",
             gridTemplateColumns: isMobile
               ? "1fr"
-              : "repeat(4, 1fr)",
+              : "repeat(3, 1fr)",
             gap: 16,
             marginTop: 28,
           }}
@@ -283,13 +277,6 @@ export default function DashboardTab({
             description="View enrollments"
             onClick={() => onNavigate && onNavigate("enrollments")}
             color={colors.amberSoft}
-          />
-          <QuickActionCard
-            icon="👨‍🏫"
-            label="Instructors"
-            description="Manage instructors"
-            onClick={() => onNavigate && onNavigate("instructors")}
-            color={colors.purpleSoft}
           />
         </div>
       </div>
