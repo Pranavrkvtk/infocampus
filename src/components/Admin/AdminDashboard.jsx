@@ -5,7 +5,6 @@ import {
   getAllStudents,
   getAdminCoursesSimple,
   searchUsersByName,
-  deleteAdminCourse,
   updateUserStatus,
   getAllEnrollments,
   deleteUser,
