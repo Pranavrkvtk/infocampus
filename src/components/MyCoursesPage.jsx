@@ -10,8 +10,8 @@ import {
   getSubtopicImages,
   getCourses,
   enrollInCourse,
-  getPublicCourseData,  // ✅ Added
-  getPublicCourses,     // ✅ Added
+  getPublicCourseData,
+  getPublicCourses,
 } from '../api/UserApi';
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
@@ -138,9 +138,16 @@ const COURSE_IMAGES = {
   'default': 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=250&fit=crop'
 };
 
-// ─── Helper: Resolve image URL ──────────────────────────────────────
+// ─── Helper: Get API URL ──────────────────────────────────────────────
+const getApiUrl = () => {
+  return process.env.REACT_APP_API_URL || "http://localhost:8082/api";
+};
+
+// ─── Helper: Resolve Image URL (FIXED - keeps /api/admin) ─────────────
 const resolveImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
+  
+  // If already a full URL, return as is
   if (
     imageUrl.startsWith("data:image/") ||
     imageUrl.startsWith("http://") ||
@@ -148,10 +155,37 @@ const resolveImageUrl = (imageUrl) => {
   ) {
     return imageUrl;
   }
-  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8082/api";
-  if (imageUrl.startsWith("/uploads/")) return `${API_BASE}/admin${imageUrl}`;
-  if (imageUrl.startsWith("uploads/")) return `${API_BASE}/admin/${imageUrl}`;
-  return `${API_BASE}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+  
+  const API_URL = getApiUrl();
+  const BASE_URL = API_URL.replace('/api', '');
+  
+  // If it already has /api/admin, use it as is
+  if (imageUrl.startsWith('/api/admin')) {
+    return `${BASE_URL}${imageUrl}`;
+  }
+  
+  // If it has /api but not /admin
+  if (imageUrl.startsWith('/api/')) {
+    return `${BASE_URL}${imageUrl}`;
+  }
+  
+  // ✅ For /uploads/ paths, add /api/admin
+  if (imageUrl.startsWith('/uploads/')) {
+    return `${API_URL}/admin${imageUrl}`;
+  }
+  
+  // For uploads/ (no leading slash)
+  if (imageUrl.startsWith('uploads/')) {
+    return `${API_URL}/admin/${imageUrl}`;
+  }
+  
+  // If it's just a filename, assume it's in uploads
+  if (!imageUrl.includes('/')) {
+    return `${API_URL}/admin/uploads/${imageUrl}`;
+  }
+  
+  // Default fallback
+  return `${API_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
 };
 
 function MyCoursesPage() {
@@ -181,7 +215,6 @@ function MyCoursesPage() {
   const isMobile = window.innerWidth < 768;
   const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
   const isSmallDesktop = window.innerWidth >= 1024 && window.innerWidth < 1280;
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
   const isLoggedIn = !!localStorage.getItem('token');
 
@@ -252,58 +285,35 @@ function MyCoursesPage() {
     window.location.href = '/login';
   };
 
-  // ✅ FIX: Wrap getCourseImage in useCallback with API_BASE dependency
+  // ─── Get Course Image ──────────────────────────────────────────────
   const getCourseImage = useCallback((course) => {
-    if (!course.imageUrl) {
-      const name = course.title?.toLowerCase() || '';
+    if (!course?.imageUrl) {
+      const name = course?.title?.toLowerCase() || '';
       for (const [key, url] of Object.entries(COURSE_IMAGES)) {
         if (name.includes(key)) return url;
       }
       return COURSE_IMAGES.default;
     }
 
-    const imageUrl = course.imageUrl;
+    return resolveImageUrl(course.imageUrl);
+  }, []);
 
-    if (imageUrl.startsWith('data:image/') || 
-        imageUrl.startsWith('http://') || 
-        imageUrl.startsWith('https://')) {
-      return imageUrl;
-    }
-
-    if (imageUrl.startsWith('/uploads/')) {
-      return `${API_BASE}/admin${imageUrl}`;
-    }
-
-    if (imageUrl.startsWith('/api/')) {
-      const baseUrl = API_BASE.replace('/api', '');
-      return `${baseUrl}${imageUrl}`;
-    }
-
-    if (imageUrl.startsWith('uploads/')) {
-      return `${API_BASE}/admin/${imageUrl}`;
-    }
-
-    return `${API_BASE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-  }, [API_BASE]);
-
-  const getSubtopicImageUrl = (subtopicId, fileName) => {
+  // ─── Get Subtopic Image URL ───────────────────────────────────────
+  const getSubtopicImageUrl = useCallback((subtopicId, fileName) => {
     if (!subtopicId || !fileName) return FALLBACK_IMAGE;
 
-    if (fileName.startsWith('http://') || fileName.startsWith('https://') || fileName.startsWith('data:image/')) {
+    if (
+      fileName.startsWith('http://') || 
+      fileName.startsWith('https://') || 
+      fileName.startsWith('data:image/')
+    ) {
       return fileName;
     }
 
-    if (fileName.startsWith('/uploads/')) {
-      return `${API_BASE}/admin${fileName}`;
-    }
-    if (fileName.startsWith('uploads/')) {
-      return `${API_BASE}/admin/${fileName}`;
-    }
+    return resolveImageUrl(fileName);
+  }, []);
 
-    return `${API_BASE}/admin/uploads/${fileName}`;
-  };
-
-  // ✅ FIX: Add getCourseImage to dependencies
+  // ─── Fetch Enrolled Courses ────────────────────────────────────────
   const fetchEnrolledCourses = useCallback(async () => {
     if (!isLoggedIn) {
       setCourses([]);
@@ -328,11 +338,11 @@ function MyCoursesPage() {
     }
   }, [isLoggedIn, getCourseImage]);
 
-  // ✅ FIX: Add getCourseImage to dependencies and handle public fallback
+  // ─── Fetch All Courses ─────────────────────────────────────────────
   const fetchAllCourses = useCallback(async () => {
     setLoadingAllCourses(true);
     try {
-      const data = await getCourses(); // This now handles both auth and public
+      const data = await getCourses();
       setAllCourses(data);
       
       data.forEach(course => {
@@ -343,7 +353,6 @@ function MyCoursesPage() {
       });
     } catch (error) {
       console.error('Error fetching courses:', error);
-      // Try public fallback
       try {
         const publicData = await getPublicCourses();
         setAllCourses(publicData);
@@ -357,6 +366,7 @@ function MyCoursesPage() {
     }
   }, [getCourseImage]);
 
+  // ─── Handle Enroll ──────────────────────────────────────────────────
   const handleEnroll = async (courseId) => {
     if (!isLoggedIn) {
       Swal.fire({
@@ -393,7 +403,7 @@ function MyCoursesPage() {
     }
   };
 
-  // ✅ FIX: Handle both public and authenticated course details
+  // ─── Load Course Details ───────────────────────────────────────────
   const loadCourseDetails = async (courseId) => {
     setContentLoading(true);
     try {
@@ -401,19 +411,15 @@ function MyCoursesPage() {
       const token = localStorage.getItem('token');
       
       if (token) {
-        // Authenticated user - get full course details with enrollment info
         data = await getCourseDetails(courseId);
       } else {
-        // Public user - get public course data
         data = await getPublicCourseData(courseId);
       }
 
-      // Handle both response formats (array or object with topics)
       const allTopics = Array.isArray(data) ? data : (data.topics || []);
       
       const allSubtopics = [];
       allTopics.forEach(topic => {
-        // Handle both subTopics and subtopics property names
         const subs = topic.subTopics || topic.subtopics || [];
         subs.forEach(sub => {
           allSubtopics.push({
@@ -431,7 +437,6 @@ function MyCoursesPage() {
       setSubtopics(allSubtopics);
       setTopics(allTopics);
 
-      // Only load progress if user is logged in
       if (token) {
         const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
         if (savedCompleted) {
@@ -455,7 +460,6 @@ function MyCoursesPage() {
     } catch (error) {
       console.error('Error loading course details:', error);
       if (!localStorage.getItem('token')) {
-        // Show login prompt for public users
         Swal.fire({
           title: 'Login for Full Access',
           text: 'Login to access all course content, track progress, and enroll.',
@@ -476,6 +480,7 @@ function MyCoursesPage() {
     }
   };
 
+  // ─── Load Subtopic Images ──────────────────────────────────────────
   const loadSubtopicImages = async (subtopicId) => {
     try {
       const data = await getSubtopicImages(subtopicId);
@@ -486,7 +491,7 @@ function MyCoursesPage() {
     }
   };
 
-  // ✅ FIX: Handle public view with login prompt
+  // ─── Handle View Course ────────────────────────────────────────────
   const handleViewCourse = async (course) => {
     setSelectedCourse(course);
     setActiveView('enrollment');
@@ -494,11 +499,10 @@ function MyCoursesPage() {
       await loadCourseDetails(course.id);
     } catch (error) {
       console.error('Error pre-loading course:', error);
-      // Even if details fail, show the course page with basic info
     }
   };
 
-  // ✅ FIX: Require login for continuing learning
+  // ─── Handle Continue Learning ──────────────────────────────────────
   const handleContinueLearning = async (course) => {
     if (!isLoggedIn) {
       Swal.fire({
@@ -525,7 +529,7 @@ function MyCoursesPage() {
     }
   };
 
-  // ✅ FIX: Require login for starting learning
+  // ─── Handle Start Learning ─────────────────────────────────────────
   const handleStartLearning = async () => {
     if (!isLoggedIn) {
       Swal.fire({
@@ -557,6 +561,7 @@ function MyCoursesPage() {
     }
   };
 
+  // ─── Handle Back to Catalog ────────────────────────────────────────
   const handleBackToCatalog = () => {
     setSelectedCourse(null);
     setActiveView('catalog');
@@ -567,10 +572,12 @@ function MyCoursesPage() {
     setCurrentSubtopic(null);
   };
 
+  // ─── Handle Back from Enrollment ───────────────────────────────────
   const handleBackFromEnrollment = () => {
     handleBackToCatalog();
   };
 
+  // ─── Mark Section Complete ─────────────────────────────────────────
   const markSectionComplete = (index) => {
     if (!selectedCourse) return;
     if (!completedSections.includes(index)) {
@@ -588,6 +595,7 @@ function MyCoursesPage() {
     }
   };
 
+  // ─── Reset Progress ────────────────────────────────────────────────
   const resetProgress = () => {
     if (!selectedCourse) return;
     Swal.fire({
@@ -607,14 +615,17 @@ function MyCoursesPage() {
     });
   };
 
+  // ─── Check if Course is Enrolled ───────────────────────────────────
   const isCourseEnrolled = (courseId) => {
     return courses.some((ec) => ec.id === courseId);
   };
 
+  // ─── Handle Image Error ────────────────────────────────────────────
   const handleImageError = (id) => {
     if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));
   };
 
+  // ─── Get Image Source ──────────────────────────────────────────────
   const getImageSrc = (sid, fn, id) => {
     if (imageErrors[id]) return FALLBACK_IMAGE;
     if (fn) {
@@ -671,7 +682,6 @@ function MyCoursesPage() {
       color: COLORS.ink 
     },
 
-    // ─── TOP NAVIGATION BAR ──────────────────────────────────────
     topBar: {
       height: '64px',
       background: TOPBAR.bgGradient,
@@ -757,10 +767,6 @@ function MyCoursesPage() {
       alignItems: 'center',
       gap: '8px',
       transition: 'transform 0.2s, box-shadow 0.2s',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 14px 30px -8px rgba(0,0,0,0.5)',
-      }
     },
     heroImage: {
       width: isMobile ? '100%' : '260px',
@@ -814,13 +820,8 @@ function MyCoursesPage() {
       background: COLORS.paper, 
       color: COLORS.ink,
       transition: 'border-color 0.2s, box-shadow 0.2s',
-      '&:focus': {
-        borderColor: COLORS.accent,
-        boxShadow: `0 0 0 4px ${COLORS.accent}20`,
-      }
     },
 
-    // ─── Category Tabs ──────────────────────────────────────────────
     categoryTabs: {
       display: 'flex',
       gap: '8px',
@@ -841,13 +842,8 @@ function MyCoursesPage() {
       cursor: 'pointer',
       transition: 'all 0.2s',
       whiteSpace: 'nowrap',
-      '&:hover': {
-        transform: 'scale(1.02)',
-        boxShadow: active ? '0 4px 12px rgba(113, 75, 103, 0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
-      }
     }),
 
-    // ─── Grid - 4 columns ──────────────────────────────────────────
     grid: { 
       display: 'grid', 
       gridTemplateColumns: getGridColumns(),
@@ -857,7 +853,6 @@ function MyCoursesPage() {
       margin: '0 auto' 
     },
 
-    // ─── Compact Odoo-style Card ──────────────────────────────────
     card: { 
       background: COLORS.paper, 
       borderRadius: '16px', 
@@ -868,10 +863,6 @@ function MyCoursesPage() {
       flexDirection: 'column',
       boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
       border: '1px solid rgba(0,0,0,0.04)',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: '0 12px 36px rgba(0,0,0,0.12)',
-      }
     },
     cardImageWrapper: {
       position: 'relative',
@@ -887,9 +878,6 @@ function MyCoursesPage() {
       height: '100%',
       objectFit: 'cover',
       transition: 'transform 0.3s ease',
-      '&:hover': {
-        transform: 'scale(1.02)',
-      }
     },
     cardBody: { 
       padding: '14px 16px 10px', 
@@ -961,11 +949,6 @@ function MyCoursesPage() {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '6px',
-      '&:hover': {
-        background: COLORS.accent,
-        color: '#fff',
-        boxShadow: '0 4px 12px rgba(113, 75, 103, 0.25)',
-      }
     },
     continueBtn: { 
       width: '100%', 
@@ -982,10 +965,6 @@ function MyCoursesPage() {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '6px',
-      '&:hover': {
-        background: COLORS.plumDark,
-        boxShadow: '0 4px 12px rgba(113, 75, 103, 0.3)',
-      }
     },
 
     enrolledBadge: {
