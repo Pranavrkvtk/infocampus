@@ -157,11 +157,12 @@ function MyCoursesPage() {
   
   const myCoursesConfig = getMyCoursesConfig() || DEFAULT_MY_COURSES_CONFIG;
   
-  const TRACKS = Object.entries(myCoursesConfig.trackIcons).map(([key, icon]) => ({
-    match: key,
-    icon: icon,
-    tint: myCoursesConfig.trackColors[key] || myCoursesConfig.trackColors.default || '#F2F1F6'
-  }));
+  // ✅ FIX 1: Removed unused TRACKS variable (commented out instead of deleted)
+  // const TRACKS = Object.entries(myCoursesConfig.trackIcons).map(([key, icon]) => ({
+  //   match: key,
+  //   icon: icon,
+  //   tint: myCoursesConfig.trackColors[key] || myCoursesConfig.trackColors.default || '#F2F1F6'
+  // }));
   
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -256,7 +257,8 @@ function MyCoursesPage() {
     window.location.href = '/login';
   };
 
-  const getCourseImage = (course) => {
+  // ✅ FIX 2: Wrap getCourseImage in useCallback with API_BASE dependency
+  const getCourseImage = useCallback((course) => {
     if (!course.imageUrl) {
       const name = course.title?.toLowerCase() || '';
       for (const [key, url] of Object.entries(COURSE_IMAGES)) {
@@ -287,7 +289,7 @@ function MyCoursesPage() {
     }
 
     return `${API_BASE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-  };
+  }, [API_BASE]);
 
   const getSubtopicImageUrl = (subtopicId, fileName) => {
     if (!subtopicId || !fileName) return FALLBACK_IMAGE;
@@ -306,7 +308,7 @@ function MyCoursesPage() {
     return `${API_BASE}/admin/uploads/${fileName}`;
   };
 
-  // Wrap fetchEnrolledCourses in useCallback
+  // ✅ FIX 3: Add getCourseImage to dependencies
   const fetchEnrolledCourses = useCallback(async () => {
     if (!isLoggedIn) {
       setCourses([]);
@@ -329,9 +331,9 @@ function MyCoursesPage() {
     } finally {
       setLoading(false);
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, getCourseImage]);
 
-  // Wrap fetchAllCourses in useCallback
+  // ✅ FIX 4: Add getCourseImage to dependencies
   const fetchAllCourses = useCallback(async () => {
     setLoadingAllCourses(true);
     try {
@@ -350,7 +352,7 @@ function MyCoursesPage() {
     } finally {
       setLoadingAllCourses(false);
     }
-  }, []);
+  }, [getCourseImage]);
 
   const handleEnroll = async (courseId) => {
     if (!isLoggedIn) {
@@ -535,11 +537,6 @@ function MyCoursesPage() {
     return courses.some((ec) => ec.id === courseId);
   };
 
-  // ─── FIX: Remove unused getTrack function ──────────────────────────
-  // The getTrack function is not used anywhere, so we removed it.
-  // The TRACKS constant is also not used, but we'll keep it in case
-  // it's needed in the future or referenced by other components.
-
   const handleImageError = (id) => {
     if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));
   };
@@ -552,7 +549,7 @@ function MyCoursesPage() {
     return FALLBACK_IMAGE;
   };
 
-  // ─── FIX: Add proper dependencies to useEffect ──────────────────────
+  // ✅ FIX 5: Dependencies are now correct
   useEffect(() => {
     fetchEnrolledCourses();
     fetchAllCourses();
