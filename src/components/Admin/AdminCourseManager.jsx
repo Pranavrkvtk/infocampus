@@ -625,18 +625,31 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE COMPONENT
+// MARKDOWN IMAGE COMPONENT - FIXED
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   const [hasError, setHasError] = useState(false);
+  const [imageUrl, setImageUrl] = useState(null);
 
-  if (!src) return null;
+  useEffect(() => {
+    if (!src) {
+      setImageUrl(null);
+      return;
+    }
+    const fullSrc = getImageUrl(src);
+    setImageUrl(fullSrc);
+    setHasError(false);
+  }, [src]);
 
-  const fullSrc = getImageUrl(src);
+  if (!src || !imageUrl) {
+    return null;
+  }
 
   if (hasError) {
+    // ✅ Use a fragment or span instead of div to avoid nesting issues
     return (
-      <div style={{
+      <span style={{
+        display: 'block',
         padding: '16px',
         textAlign: 'center',
         color: '#dc2626',
@@ -647,18 +660,36 @@ function MarkdownImage({ src, alt }) {
         margin: '12px 0',
       }}>
         ⚠️ Image not found: {alt || 'image'}
-      </div>
+        <br />
+        <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+          URL: {imageUrl}
+        </span>
+      </span>
     );
   }
 
+  // ✅ Direct img tag - no wrapper div
   return (
     <img
-      src={fullSrc}
+      src={imageUrl}
       alt={alt || 'image'}
-      style={{ maxWidth: '100%', height: 'auto', margin: '12px 0', borderRadius: 8, display: 'block' }}
+      style={{ 
+        maxWidth: '100%', 
+        height: 'auto', 
+        borderRadius: 8, 
+        display: 'block',
+        border: '1px solid #e5e7eb',
+        padding: '4px',
+        background: '#f9fafb',
+        margin: '12px 0'
+      }}
       onError={() => {
-        console.error('❌ Markdown image load error:', fullSrc);
+        console.error('❌ Markdown image load error:', imageUrl);
+        console.error('   Original src:', src);
         setHasError(true);
+      }}
+      onLoad={() => {
+        console.log('✅ Image loaded successfully:', imageUrl);
       }}
     />
   );
