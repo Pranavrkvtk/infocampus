@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CourseDetailView from './CourseDetailView';
-import CourseEnrollmentPage from './CourseEnrollmentPage';
 import Swal from 'sweetalert2';
 import {
   getEnrolledCourses,
@@ -27,6 +26,8 @@ import BookmarkIcon from '@mui/icons-material/Bookmark';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
+// ❌ REMOVE THIS LINE - it's not needed and causes circular dependency
+// import CourseEnrollmentPage from './CourseEnrollmentPage';
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
@@ -143,11 +144,10 @@ const getApiUrl = () => {
   return process.env.REACT_APP_API_URL || "http://localhost:8082/api";
 };
 
-// ─── Helper: Resolve Image URL (FIXED - NO /admin/ prefix) ──────────
+// ─── Helper: Resolve Image URL ──────────────────────────────────────
 const resolveImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
 
-  // If already a full URL, return as is
   if (
     imageUrl.startsWith("data:image/") ||
     imageUrl.startsWith("http://") ||
@@ -160,7 +160,6 @@ const resolveImageUrl = (imageUrl) => {
   const BASE_URL = API_URL.replace(/\/api\/?$/, '');
   let normalizedPath = imageUrl;
 
-  // Remove /api/ prefix if present
   if (normalizedPath.startsWith('/api/')) {
     normalizedPath = normalizedPath.substring(4);
   }
@@ -168,15 +167,10 @@ const resolveImageUrl = (imageUrl) => {
     normalizedPath = normalizedPath.substring(4);
   }
   
-  // Remove leading slash
   if (normalizedPath.startsWith('/')) {
     normalizedPath = normalizedPath.substring(1);
   }
 
-  // ✅ KEEP PATH AS-IS - No admin/ prefix added
-  // If it starts with uploads/, keep it as uploads/
-  
-  // Ensure path has a slash if it's just a filename
   if (!normalizedPath.includes('/')) {
     normalizedPath = `uploads/${normalizedPath}`;
   }
@@ -207,6 +201,7 @@ function MyCoursesPage() {
   const [allCourses, setAllCourses] = useState([]);
   const [loadingAllCourses, setLoadingAllCourses] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [apiError, setApiError] = useState(null);
 
   const isMobile = window.innerWidth < 768;
   const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
@@ -215,7 +210,7 @@ function MyCoursesPage() {
   const isLoggedIn = !!localStorage.getItem('token');
 
   useEffect(() => {
-    if (activeView === 'split' || activeView === 'enrollment') {
+    if (activeView === 'split') {
       document.body.classList.add('hide-main-navbar');
     } else {
       document.body.classList.remove('hide-main-navbar');
@@ -281,15 +276,13 @@ function MyCoursesPage() {
     window.location.href = '/login';
   };
 
-  // ─── Get Course Image (Uses imageUrl from API) ────────────────────
+  // ─── Get Course Image ────────────────────────────────────────────
   const getCourseImage = useCallback((course) => {
-    // ✅ First try to use the real uploaded image from the API
     if (course?.imageUrl) {
       const resolved = resolveImageUrl(course.imageUrl);
       if (resolved) return resolved;
     }
 
-    // ✅ Fallback: stock photo based on title keyword match
     const name = course?.title?.toLowerCase() || '';
     for (const [key, url] of Object.entries(COURSE_IMAGES)) {
       if (name.includes(key)) return url;
@@ -332,17 +325,20 @@ function MyCoursesPage() {
       });
     } catch (error) {
       console.error('Error fetching enrolled courses:', error);
-      Swal.fire('Error', 'Could not load your courses', 'error');
+      if (error.response?.status !== 403) {
+        Swal.fire('Error', 'Could not load your courses', 'error');
+      }
     } finally {
       setLoading(false);
     }
   }, [isLoggedIn, getCourseImage]);
 
-  // ─── Fetch All Courses (Uses Public API) ──────────────────────────
+  // ─── Fetch All Courses ──────────────────────────────────────────
   const fetchAllCourses = useCallback(async () => {
     setLoadingAllCourses(true);
+    setApiError(null);
+    
     try {
-      // ✅ Use public API directly for catalog
       const data = await getPublicCourses();
       setAllCourses(data);
       
@@ -352,14 +348,31 @@ function MyCoursesPage() {
       });
     } catch (error) {
       console.error('Error fetching public courses:', error);
-      // Fallback to authenticated endpoint
-      try {
-        const fallbackData = await getCourses();
-        setAllCourses(fallbackData);
-      } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+      
+      if (error.response?.status === 403 || error.message?.includes('403')) {
+        const token = localStorage.getItem('token');
+        
+        if (token) {
+          try {
+            const fallbackData = await getCourses();
+            setAllCourses(fallbackData);
+            
+            fallbackData.forEach(course => {
+              const img = new Image();
+              img.src = getCourseImage(course);
+            });
+          } catch (fallbackError) {
+            console.error('Fallback also failed:', fallbackError);
+            setAllCourses([]);
+            setApiError('Unable to load courses. Please try again later.');
+          }
+        } else {
+          setAllCourses([]);
+          setApiError('Please login to view courses');
+        }
+      } else {
         setAllCourses([]);
-        Swal.fire('Error', 'Could not load course catalog', 'error');
+        setApiError('Unable to load courses. Please try again later.');
       }
     } finally {
       setLoadingAllCourses(false);
@@ -411,7 +424,6 @@ function MyCoursesPage() {
       const token = localStorage.getItem('token');
       
       if (token) {
-        // ✅ Authenticated: Try private API first
         try {
           data = await getCourseDetails(courseId);
         } catch (authError) {
@@ -419,11 +431,9 @@ function MyCoursesPage() {
           data = await getPublicCourseData(courseId);
         }
       } else {
-        // ✅ Public: Use public API
         data = await getPublicCourseData(courseId);
       }
 
-      // Process topics and subtopics
       const allTopics = Array.isArray(data) ? data : (data.topics || []);
       
       const allSubtopics = [];
@@ -446,7 +456,6 @@ function MyCoursesPage() {
       setSubtopics(allSubtopics);
       setTopics(allTopics);
 
-      // Load progress for logged-in users
       if (token) {
         const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
         if (savedCompleted) {
@@ -501,19 +510,40 @@ function MyCoursesPage() {
     }
   };
 
-  // ─── Handle View Course ────────────────────────────────────────────
-  const handleViewCourse = async (course) => {
-    setSelectedCourse(course);
-    setActiveView('enrollment');
-    try {
-      await loadCourseDetails(course.id);
-    } catch (error) {
-      console.error('Error pre-loading course:', error);
-    }
+// src/components/MyCoursesPage.jsx - handleViewCourse function
+const handleViewCourse = (course) => {
+  console.log('📤 Viewing course:', course);
+  
+  const formattedCourse = {
+    id: course.id,
+    title: course.title || 'Course',
+    description: course.description || 'No description available',
+    level: course.level || 'All Levels',
+    imageUrl: course.imageUrl || '',
+    duration: course.duration || 'Self-paced',
+    price: course.price || 49,
+    instructor: course.instructor || 'Expert Instructor',
+    members: course.members || 0,
+    language: course.language || 'English',
+    category: course.category || 'General',
+    color: course.color || '#3abf94',
+    icon: course.icon || '📚',
+    lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
   };
+  
+  console.log('📤 Formatted course:', formattedCourse);
+  
+  navigate('/enroll', { 
+    state: { 
+      course: formattedCourse,
+      isEnrolled: isCourseEnrolled(course.id),
+      from: 'my-courses'
+    } 
+  });
+};
 
-  // ─── Handle Continue Learning ──────────────────────────────────────
-  const handleContinueLearning = async (course) => {
+  // ✅ Navigate to /enroll route with course data in state
+  const handleContinueLearning = (course) => {
     if (!isLoggedIn) {
       Swal.fire({
         title: 'Login Required',
@@ -529,14 +559,30 @@ function MyCoursesPage() {
       return;
     }
     
-    setSelectedCourse(course);
-    setActiveView('split');
-    try {
-      await loadCourseDetails(course.id);
-    } catch (error) {
-      console.error('Error loading course:', error);
-      Swal.fire('Error', 'Could not load course content', 'error');
-    }
+    const formattedCourse = {
+      id: course.id,
+      title: course.title || 'Course',
+      description: course.description || 'No description available',
+      level: course.level || 'All Levels',
+      imageUrl: course.imageUrl || '',
+      duration: course.duration || 'Self-paced',
+      price: course.price || 49,
+      instructor: course.instructor || 'Expert Instructor',
+      members: course.members || 0,
+      language: course.language || 'English',
+      category: course.category || 'General',
+      color: course.color || '#3abf94',
+      icon: course.icon || '📚',
+      lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
+    };
+    
+    navigate('/enroll', { 
+      state: { 
+        course: formattedCourse,
+        isEnrolled: true,
+        from: 'my-courses'
+      } 
+    });
   };
 
   // ─── Handle Start Learning ─────────────────────────────────────────
@@ -580,11 +626,7 @@ function MyCoursesPage() {
     setImages([]);
     setImageErrors({});
     setCurrentSubtopic(null);
-  };
-
-  // ─── Handle Back from Enrollment ───────────────────────────────────
-  const handleBackFromEnrollment = () => {
-    handleBackToCatalog();
+    navigate('/my-courses');
   };
 
   // ─── Mark Section Complete ─────────────────────────────────────────
@@ -1053,56 +1095,6 @@ function MyCoursesPage() {
     );
   }
 
-  // ─── Render: Enrollment Page ──────────────────────────────────────────
-  if (selectedCourse && activeView === 'enrollment') {
-    const enrollmentCourseData = {
-      id: selectedCourse.id,
-      title: selectedCourse.title || 'Course',
-      subtitle: selectedCourse.subtitle || 'Learn with expert instructors',
-      rating: selectedCourse.rating || 4.8,
-      reviews: selectedCourse.reviews || 1247,
-      students: selectedCourse.students || 168902,
-      lastUpdate: selectedCourse.lastUpdate || '06/05/2026',
-      duration: selectedCourse.duration || '5 hours 48 minutes',
-      level: selectedCourse.level || 'Intermediate',
-      language: selectedCourse.language || 'English',
-      certificate: selectedCourse.certificate || 'Yes',
-      price: selectedCourse.price || 49.99,
-      image: getCourseImage(selectedCourse),
-      description: selectedCourse.description || 'Master networking fundamentals with this comprehensive course.',
-      objectives: selectedCourse.objectives || [],
-      trainer: selectedCourse.trainer || {
-        name: 'Expert Instructor',
-        title: 'Senior Network Engineer',
-        bio: 'Experienced network engineer with years of industry expertise.',
-        avatar: '',
-        experience: '10+ years',
-        certifications: ['CCNA', 'CCNP', 'CCIE'],
-        company: 'Cisco Systems',
-        students: 45000,
-        courses: 12,
-        rating: 4.9,
-      },
-      syllabus: selectedCourse.syllabus || [],
-      requirements: selectedCourse.requirements || [],
-      targetAudience: selectedCourse.targetAudience || [],
-    };
-
-    const isEnrolled = isCourseEnrolled(selectedCourse.id);
-
-    return (
-      <CourseEnrollmentPage
-        course={enrollmentCourseData}
-        isEnrolled={isEnrolled}
-        onEnroll={() => handleEnroll(selectedCourse.id)}
-        onBack={handleBackFromEnrollment}
-        onStartLearning={handleStartLearning}
-        viewOnly={!isEnrolled}
-        isLoggedIn={isLoggedIn}
-      />
-    );
-  }
-
   // ─── Render: Course Detail View ──────────────────────────────────────
   if (selectedCourse && activeView === 'split') {
     return (
@@ -1261,11 +1253,24 @@ function MyCoursesPage() {
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
           <h3 style={styles.emptyTitle}>
-            {allCourses.length === 0 ? myCoursesConfig.emptyStateTitle : 'No courses in this category'}
+            {apiError ? 'Unable to load courses' : (allCourses.length === 0 ? myCoursesConfig.emptyStateTitle : 'No courses in this category')}
           </h3>
           <p style={styles.emptyText}>
-            {allCourses.length === 0 ? myCoursesConfig.emptyStateText : 'Try selecting a different category.'}
+            {apiError || (allCourses.length === 0 ? myCoursesConfig.emptyStateText : 'Try selecting a different category.')}
           </p>
+          {apiError && !isLoggedIn && (
+            <button 
+              onClick={handleLogin}
+              style={{
+                ...styles.heroBtn,
+                background: COLORS.accent,
+                color: '#fff',
+                marginTop: '16px',
+              }}
+            >
+              Login to View Courses
+            </button>
+          )}
         </div>
       ) : (
         <div style={styles.grid}>
@@ -1281,7 +1286,6 @@ function MyCoursesPage() {
                     alt={course.title}
                     style={styles.cardImage}
                     onError={(e) => {
-                      // ✅ Fallback to stock image if real image fails
                       const name = course?.title?.toLowerCase() || '';
                       let fallback = COURSE_IMAGES.default;
                       for (const [key, url] of Object.entries(COURSE_IMAGES)) {
