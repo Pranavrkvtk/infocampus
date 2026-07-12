@@ -24,6 +24,8 @@ import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
 import MyCoursesEditorTab from "./MyCoursesEditorTab";
 import CourseDetailEditorTab from "./CourseDetailEditorTab";
+// ✅ ADD THIS IMPORT
+import CourseEnrollmentEditorTab from "./CourseEnrollmentEditorTab";
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -219,6 +221,7 @@ export default function AdminDashboard() {
     { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0",iconBg: colors.amberSoft,   icon: "📚"  },
   ] : [];
 
+  // ✅ ADD renderContent case for enrollment-editor
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
     if (error) return (
@@ -244,10 +247,13 @@ export default function AdminDashboard() {
       case "course-manager": return <AdminCourseManager />;
       case "my-courses-editor": return <MyCoursesEditorTab />;
       case "course-detail-editor": return <CourseDetailEditorTab />;
+      // ✅ ADD THIS CASE
+      case "enrollment-editor": return <CourseEnrollmentEditorTab />;
       default: return null;
     }
   };
 
+  // ✅ ADD enrollment-editor to navItems
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
@@ -256,8 +262,11 @@ export default function AdminDashboard() {
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
     { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" },
     { icon: "📄", label: "Course Detail Editor", id: "course-detail-editor" },
+    // ✅ ADD THIS
+    { icon: "🎟️", label: "Enrollment Page Editor", id: "enrollment-editor" },
   ];
 
+  // ✅ ADD enrollment-editor to PAGE_TITLES
   const PAGE_TITLES = {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
@@ -267,8 +276,11 @@ export default function AdminDashboard() {
     "course-manager":"Course Manager",
     "my-courses-editor": "My Courses Editor",
     "course-detail-editor": "Course Detail Editor",
+    // ✅ ADD THIS
+    "enrollment-editor": "Enrollment Page Editor",
   };
 
+  // ✅ ADD enrollment-editor to PAGE_SUBS
   const PAGE_SUBS = {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
@@ -278,6 +290,8 @@ export default function AdminDashboard() {
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
     "my-courses-editor": "Customize all text, icons, and content on the My Courses page",
     "course-detail-editor": "Customize the course detail page layout, colors, and content",
+    // ✅ ADD THIS
+    "enrollment-editor": "Customize text, colors, and content on the course enrollment page",
   };
 
   // ===================== SIDEBAR NAV ITEM (dark theme) =====================
