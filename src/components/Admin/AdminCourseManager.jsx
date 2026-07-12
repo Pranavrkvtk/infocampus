@@ -1,9 +1,9 @@
 // src/components/Admin/AdminCourseManager.jsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
-import axiosInstance from '../../api/axios'; // Removed API_BASE_URL
+import axiosInstance from '../../api/axios';
 import { getImageUrl } from '../../utils/imageUtils';
 
 import ExamTab from './ExamTab';
@@ -28,14 +28,18 @@ const clr = {
 const uid = () => Math.random().toString(36).slice(2, 8);
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
+// ✅ FIX: Use useCallback and useMemo to stabilize the toast object
 function useToast() {
   const [toasts, setToasts] = useState([]);
-  const show = (msg, type = 'success') => {
+  
+  const show = useCallback((msg, type = 'success') => {
     const id = uid();
     setToasts(t => [...t, { id, msg, type }]);
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000);
-  };
-  return { toasts, show };
+  }, []);
+  
+  // ✅ Return stable object with useMemo
+  return useMemo(() => ({ toasts, show }), [toasts, show]);
 }
 
 function ToastContainer({ toasts }) {
@@ -96,8 +100,6 @@ const Inp = ({ value, onChange, placeholder, type = 'text', onKeyDown, onBlur })
     style={{ width: '100%', padding: '8px 11px', fontSize: 13, border: `1px solid ${clr.border}`, borderRadius: 8, outline: 'none', background: clr.white, color: clr.text }}
   />
 );
-
-// Txta component removed as it was unused
 
 const Btn = ({ children, onClick, variant = 'primary', size = 'md', disabled, style: extra, as: Component = 'button' }) => {
   const base = { display: 'inline-flex', alignItems: 'center', gap: 6, cursor: disabled ? 'not-allowed' : 'pointer', border: 'none', borderRadius: 8, fontWeight: 600, opacity: disabled ? 0.5 : 1 };
@@ -262,12 +264,20 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
   const [search, setSearch] = useState('');
   const [imageErrors, setImageErrors] = useState({});
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const hasLoaded = useRef(false);
 
   const loadCourses = async () => {
+    if (hasLoaded.current) {
+      console.log('📦 Courses already loaded, skipping API call');
+      return;
+    }
+    
     setLoading(true);
     try {
+      console.log('📡 Loading courses (ONCE)');
       const data = await api.get('/admin/courses');
       setCourses(Array.isArray(data) ? data : []);
+      hasLoaded.current = true;
     } catch (error) { 
       console.error('Error loading courses:', error);
     }
@@ -277,6 +287,7 @@ function CourseSelector({ selectedCourse, onSelect, toast }) {
   useEffect(() => { loadCourses(); }, []);
 
   const handleCourseCreated = async () => {
+    hasLoaded.current = false;
     await loadCourses();
     toast.show('Course created successfully!', 'success');
   };
@@ -625,50 +636,13 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE COMPONENT - FIXED
+// MARKDOWN IMAGE COMPONENT - ✅ FIXED (No useState, No useEffect)
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
-  const [hasError, setHasError] = useState(false);
-  const [imageUrl, setImageUrl] = useState(null);
+  if (!src) return null;
 
-  useEffect(() => {
-    if (!src) {
-      setImageUrl(null);
-      return;
-    }
-    const fullSrc = getImageUrl(src);
-    setImageUrl(fullSrc);
-    setHasError(false);
-  }, [src]);
+  const imageUrl = getImageUrl(src);
 
-  if (!src || !imageUrl) {
-    return null;
-  }
-
-  if (hasError) {
-    // ✅ Use a fragment or span instead of div to avoid nesting issues
-    return (
-      <span style={{
-        display: 'block',
-        padding: '16px',
-        textAlign: 'center',
-        color: '#dc2626',
-        fontSize: '13px',
-        background: '#fef2f2',
-        borderRadius: '8px',
-        border: '2px dashed #dc2626',
-        margin: '12px 0',
-      }}>
-        ⚠️ Image not found: {alt || 'image'}
-        <br />
-        <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
-          URL: {imageUrl}
-        </span>
-      </span>
-    );
-  }
-
-  // ✅ Direct img tag - no wrapper div
   return (
     <img
       src={imageUrl}
@@ -685,8 +659,6 @@ function MarkdownImage({ src, alt }) {
       }}
       onError={() => {
         console.error('❌ Markdown image load error:', imageUrl);
-        console.error('   Original src:', src);
-        setHasError(true);
       }}
       onLoad={() => {
         console.log('✅ Image loaded successfully:', imageUrl);
@@ -696,13 +668,19 @@ function MarkdownImage({ src, alt }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR
+// SUBTOPIC CONTENT EDITOR - ✅ FIXED (Simplified)
 // ═══════════════════════════════════════════════════════════════════════════════
-function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSearchTerm }) {
-  const [notes, setNotes] = useState(sub.content || '');
-  const [videoUrl, setVideoUrl] = useState(sub.videoUrl || '');
-  const [examContent, setExamContent] = useState(sub.examContent || '');
-  const [interviewContent, setInterviewContent] = useState(sub.interviewContent || '');
+const SubtopicContentEditor = React.memo(function SubtopicContentEditor({ 
+  sub, 
+  subtopicId, 
+  toast, 
+  onUpdate, 
+  highlightSearchTerm 
+}) {
+  const [notes, setNotes] = useState(sub?.content || '');
+  const [videoUrl, setVideoUrl] = useState(sub?.videoUrl || '');
+  const [examContent, setExamContent] = useState(sub?.examContent || '');
+  const [interviewContent, setInterviewContent] = useState(sub?.interviewContent || '');
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('notes');
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -710,6 +688,16 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
   const [searchTerm, setSearchTerm] = useState('');
   const [matches, setMatches] = useState([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
+
+  // ✅ Simplified - just update when sub changes
+  useEffect(() => {
+    if (sub && sub.id) {
+      setNotes(sub.content || '');
+      setVideoUrl(sub.videoUrl || '');
+      setExamContent(sub.examContent || '');
+      setInterviewContent(sub.interviewContent || '');
+    }
+  }, [sub]);
 
   useEffect(() => {
     if (highlightSearchTerm && highlightSearchTerm.trim()) {
@@ -751,21 +739,11 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     }
   };
 
-  // Update state when sub prop changes
-  useEffect(() => {
-    setNotes(sub.content || '');
-    setVideoUrl(sub.videoUrl || '');
-    setExamContent(sub.examContent || '');
-    setInterviewContent(sub.interviewContent || '');
-  }, [sub]);
-
-  // ─── Clear Notes ONLY ─────────────────────────────────────────────
   const clearNotes = async () => {
     if (!window.confirm('Are you sure you want to clear all notes content?')) return;
     
     setSaving(true);
     try {
-      // ✅ FIX: Use the correct endpoint for notes (update entire subtopic)
       await api.put(`/admin/subtopics/${subtopicId}`, { content: '' });
       setNotes('');
       onUpdate({ content: '' });
@@ -781,7 +759,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
   const saveNotes = async () => {
     setSaving(true);
     try {
-      // ✅ FIX: Use the correct endpoint for notes (update entire subtopic)
       await api.put(`/admin/subtopics/${subtopicId}`, { content: notes });
       onUpdate({ content: notes });
       toast.show('Notes saved');
@@ -862,9 +839,10 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
     { key: 'interview', label: '🎤 Interview Qs' },
   ];
 
-  const markdownComponents = {
+  // ✅ FIX: memoize markdownComponents to prevent re-creation
+  const markdownComponents = useMemo(() => ({
     img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
-  };
+  }), []);
 
   const highlightText = (text) => {
     if (!searchTerm.trim()) return text;
@@ -888,7 +866,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
       </div>
 
       <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 340px)' }}>
-        {/* ─── NOTES TAB ─── */}
         {activeTab === 'notes' && (
           <div style={{ padding: 22 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -1027,7 +1004,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
           </div>
         )}
 
-        {/* ─── VIDEO TAB ─── */}
         {activeTab === 'video' && (
           <div style={{ padding: 22 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -1051,7 +1027,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
           </div>
         )}
 
-        {/* ─── EXAM TAB ─── */}
         {activeTab === 'exam' && (
           <ExamTab 
             subtopicId={subtopicId} 
@@ -1061,7 +1036,6 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
           />
         )}
 
-        {/* ─── INTERVIEW TAB ─── */}
         {activeTab === 'interview' && (
           <InterviewTab 
             subtopicId={subtopicId} 
@@ -1073,7 +1047,9 @@ function SubtopicContentEditor({ sub, subtopicId, toast, onUpdate, highlightSear
       </div>
     </Card>
   );
-}
+});
+
+SubtopicContentEditor.displayName = 'SubtopicContentEditor';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -1207,16 +1183,32 @@ export default function AdminCourseManager() {
       : t));
   };
 
-  const updateActiveSub = (patch) => {
+  const updateActiveSub = useCallback((patch) => {
     setTopics(ts => ts.map(t => ({
       ...t,
       subtopics: (t.subtopics || []).map(s => s.id === activeSubId ? { ...s, ...patch } : s),
     })));
-  };
+  }, [activeSubId]);
 
   const toggleTopic = (topicId) => {
     setExpandedTopics(prev => ({ ...prev, [topicId]: !prev[topicId] }));
   };
+
+  // ✅ Memoize the subtopic editor - REMOVED toast from dependencies
+  const subtopicEditor = useMemo(() => {
+    if (!activeSub) return null;
+    console.log('🔄 Creating SubtopicContentEditor for:', activeSub.id);
+    return (
+      <SubtopicContentEditor
+        key={activeSub.id}
+        sub={activeSub}
+        subtopicId={activeSub.id}
+        toast={toast}
+        onUpdate={updateActiveSub}
+        highlightSearchTerm={highlightSearchTerm}
+      />
+    );
+  }, [activeSub, updateActiveSub, highlightSearchTerm]); // ✅ Removed toast from deps
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
@@ -1350,16 +1342,7 @@ export default function AdminCourseManager() {
           </div>
 
           <div style={{ overflowY: 'auto', padding: 20 }}>
-            {activeSub ? (
-              <SubtopicContentEditor
-                key={activeSub.id}
-                sub={activeSub}
-                subtopicId={activeSub.id}
-                toast={toast}
-                onUpdate={updateActiveSub}
-                highlightSearchTerm={highlightSearchTerm}
-              />
-            ) : (
+            {subtopicEditor || (
               <div style={{ textAlign: 'center', color: clr.muted, padding: 60 }}>
                 {activeTopic ? 'Select a subtopic to edit its content' : 'Select a topic first, then choose a subtopic'}
               </div>

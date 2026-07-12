@@ -1,5 +1,5 @@
-const API_BASE_URL =
-  (process.env.REACT_APP_API_URL || "http://localhost:8082/api").replace(/\/$/, "");
+// src/utils/imageUtils.js
+import { API_ROOT_URL } from '../api/axios';
 
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
@@ -15,72 +15,83 @@ export const getImageUrl = (imagePath) => {
 
   let path = imagePath.trim();
 
-  // ✅ FIX: If DB stores "/api/subtopic-images/..." - keep as is
+  // ============================================================
+  // PDF EXTRACTED IMAGES (SUPTOPIC IMAGES)
+  // ============================================================
+
+  // If DB stores "/api/subtopic-images/..."
   if (path.startsWith("/api/subtopic-images/")) {
-    return `${API_BASE_URL}${path.replace("/api", "")}`;
+    return `${API_ROOT_URL}${path}`;
   }
 
-  // ✅ FIX: If DB stores "api/subtopic-images/..." 
+  // If DB stores "api/subtopic-images/..."
   if (path.startsWith("api/subtopic-images/")) {
-    return `${API_BASE_URL}/${path}`;
+    return `${API_ROOT_URL}/${path}`;
   }
 
-  // ✅ FIX: If DB stores "/subtopic-images/..." (without /api)
+  // If DB stores "/subtopic-images/..." (without /api)
   if (path.startsWith("/subtopic-images/")) {
-    return `${API_BASE_URL}${path}`;
+    return `${API_ROOT_URL}${path}`;
   }
 
-  // ✅ FIX: If DB stores "subtopic-images/..."
+  // If DB stores "subtopic-images/..."
   if (path.startsWith("subtopic-images/")) {
-    return `${API_BASE_URL}/${path}`;
+    return `${API_ROOT_URL}/${path}`;
   }
 
-  // ✅ FIX: If DB stores "uploads/subtopic_images/..."
+  // If DB stores "uploads/subtopic_images/..." (old format)
   if (path.includes("uploads/subtopic_images/")) {
-    // Convert to /api/subtopic-images/{subtopicId}/{filename}
     const match = path.match(/subtopic_images\/(\d+)\/(.+)$/);
     if (match) {
       const subtopicId = match[1];
       const filename = match[2];
-      return `${API_BASE_URL}/subtopic-images/${subtopicId}/${filename}`;
+      return `${API_ROOT_URL}/api/subtopic-images/${subtopicId}/${filename}`;
     }
   }
 
-  // ✅ FIX: If DB stores "/uploads/subtopic_images/..."
+  // If DB stores "/uploads/subtopic_images/..." (old format)
   if (path.includes("/uploads/subtopic_images/")) {
     const match = path.match(/subtopic_images\/(\d+)\/(.+)$/);
     if (match) {
       const subtopicId = match[1];
       const filename = match[2];
-      return `${API_BASE_URL}/subtopic-images/${subtopicId}/${filename}`;
+      return `${API_ROOT_URL}/api/subtopic-images/${subtopicId}/${filename}`;
     }
   }
 
-  // ✅ FIX: If DB stores "/uploads/..." (course images)
-  if (path.startsWith("/uploads/")) {
-    return `http://localhost:8082${path}`;
-  }
-
-  // ✅ FIX: If DB stores "uploads/..." (course images)
-  if (path.startsWith("uploads/")) {
-    return `http://localhost:8082/${path}`;
-  }
-
-  // ✅ FIX: If DB stores "/api/admin/uploads/subtopic_..." (old format)
+  // If DB stores "/api/admin/uploads/subtopic_..." (very old format)
   if (path.includes("/api/admin/uploads/subtopic_")) {
     const match = path.match(/subtopic_(\d+)\/images\/(.+)$/);
     if (match) {
       const subtopicId = match[1];
       const filename = match[2];
-      return `${API_BASE_URL}/subtopic-images/${subtopicId}/${filename}`;
+      return `${API_ROOT_URL}/api/subtopic-images/${subtopicId}/${filename}`;
     }
   }
+
+  // ============================================================
+  // COURSE IMAGES
+  // ============================================================
+
+  // If DB stores "/uploads/..." (course images)
+  if (path.startsWith("/uploads/")) {
+    return `${API_ROOT_URL}${path}`;
+  }
+
+  // If DB stores "uploads/..." (course images)
+  if (path.startsWith("uploads/")) {
+    return `${API_ROOT_URL}/${path}`;
+  }
+
+  // ============================================================
+  // FALLBACK
+  // ============================================================
 
   // Otherwise use API base
   path = path.replace(/^\/?api\//, "");
   path = path.replace(/^\/+/, "");
 
-  return `${API_BASE_URL}/${path}`;
+  return `${API_ROOT_URL}/${path}`;
 };
 
 export default getImageUrl;
