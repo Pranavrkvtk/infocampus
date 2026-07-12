@@ -28,7 +28,7 @@ const clr = {
 const uid = () => Math.random().toString(36).slice(2, 8);
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
-// ✅ FIX: Use useCallback and useMemo to stabilize the toast object
+// ✅ FIXED: Stable toast with useCallback and useMemo
 function useToast() {
   const [toasts, setToasts] = useState([]);
   
@@ -38,7 +38,6 @@ function useToast() {
     setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000);
   }, []);
   
-  // ✅ Return stable object with useMemo
   return useMemo(() => ({ toasts, show }), [toasts, show]);
 }
 
@@ -636,7 +635,7 @@ function SubtopicManager({ topic, subtopics, setSubtopics, activeSubId, setActiv
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKDOWN IMAGE COMPONENT - ✅ FIXED (No useState, No useEffect)
+// MARKDOWN IMAGE COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 function MarkdownImage({ src, alt }) {
   if (!src) return null;
@@ -668,7 +667,7 @@ function MarkdownImage({ src, alt }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR - ✅ FIXED (Simplified)
+// SUBTOPIC CONTENT EDITOR
 // ═══════════════════════════════════════════════════════════════════════════════
 const SubtopicContentEditor = React.memo(function SubtopicContentEditor({ 
   sub, 
@@ -689,7 +688,6 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
   const [matches, setMatches] = useState([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
 
-  // ✅ Simplified - just update when sub changes
   useEffect(() => {
     if (sub && sub.id) {
       setNotes(sub.content || '');
@@ -839,7 +837,6 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
     { key: 'interview', label: '🎤 Interview Qs' },
   ];
 
-  // ✅ FIX: memoize markdownComponents to prevent re-creation
   const markdownComponents = useMemo(() => ({
     img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
   }), []);
@@ -1056,6 +1053,15 @@ SubtopicContentEditor.displayName = 'SubtopicContentEditor';
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function AdminCourseManager() {
   const toast = useToast();
+  
+  // ✅ FIX: Create a ref to store the toast object
+  const toastRef = useRef(toast);
+  
+  // ✅ FIX: Update ref when toast changes
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+  
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [topics, setTopics] = useState([]);
   const [activeTopicId, setActiveTopicId] = useState(null);
@@ -1194,7 +1200,7 @@ export default function AdminCourseManager() {
     setExpandedTopics(prev => ({ ...prev, [topicId]: !prev[topicId] }));
   };
 
-  // ✅ Memoize the subtopic editor - REMOVED toast from dependencies
+  // ✅ FIXED: Use toastRef.current in useMemo and remove toast from dependencies
   const subtopicEditor = useMemo(() => {
     if (!activeSub) return null;
     console.log('🔄 Creating SubtopicContentEditor for:', activeSub.id);
@@ -1203,12 +1209,12 @@ export default function AdminCourseManager() {
         key={activeSub.id}
         sub={activeSub}
         subtopicId={activeSub.id}
-        toast={toast}
+        toast={toastRef.current}  // ← Use ref instead of direct toast
         onUpdate={updateActiveSub}
         highlightSearchTerm={highlightSearchTerm}
       />
     );
-  }, [activeSub, updateActiveSub, highlightSearchTerm]); // ✅ Removed toast from deps
+  }, [activeSub, updateActiveSub, highlightSearchTerm]); // ← toast removed from deps
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
