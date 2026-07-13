@@ -1,19 +1,17 @@
 // src/components/EnrollPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import CourseDetailView from './CourseDetailView';
+import userApi from '../api/UserApi';
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
-import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
-import RadioButtonUncheckedRoundedIcon from '@mui/icons-material/RadioButtonUncheckedRounded';
 
-// ─── Design tokens (shared with MyCoursesPage) ──────────────────────────
+// ─── Design tokens ───────────────────────────────────────────────────────
 const COLORS = {
   plumDark: '#3B2340',
   plumMid: '#5B3A63',
@@ -35,6 +33,27 @@ const TOPBAR = {
   text: '#FFFFFF',
 };
 
+const FALLBACK_IMAGE =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
+
+// ─── Helper ──────────────────────────────────────────────────────────────
+const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
+
+const resolveImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith('data:image/') || imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  const API_URL = getApiUrl();
+  const BASE_URL = API_URL.replace(/\/api\/?$/, '');
+  let normalizedPath = imageUrl;
+  if (normalizedPath.startsWith('/api/')) normalizedPath = normalizedPath.substring(4);
+  if (normalizedPath.startsWith('api/')) normalizedPath = normalizedPath.substring(4);
+  if (normalizedPath.startsWith('/')) normalizedPath = normalizedPath.substring(1);
+  if (!normalizedPath.includes('/')) normalizedPath = `uploads/${normalizedPath}`;
+  return `${BASE_URL}/${normalizedPath}`;
+};
+
 export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -44,26 +63,38 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [openTopics, setOpenTopics] = useState({});
+
+  // ─── Learning view state ──────────────────────────────────────────────
+  const [activeView, setActiveView] = useState('split');
+  const [topics, setTopics] = useState([]);
+  const [subtopics, setSubtopics] = useState([]);
+  const [images, setImages] = useState([]);
+  const [activeSection, setActiveSection] = useState(0);
+  const [completedSections, setCompletedSections] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [currentSubtopic, setCurrentSubtopic] = useState(null);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
 
   const isMobile = typeof isMobileProp === 'boolean' ? isMobileProp : window.innerWidth < 768;
 
-  // Check login status
+  // ─── Check login status ──────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
     setIsLoggedIn(!!token && !!userId);
   }, []);
 
-  // Load course data
+  // ─── Load course data ────────────────────────────────────────────────
   useEffect(() => {
-    const loadCourse = () => {
+    const loadCourse = async () => {
       setLoading(true);
       setError(null);
 
       try {
         let courseData = null;
 
+        // 1. Get course from state
         if (state?.course) {
           courseData = state.course;
         } else {
@@ -77,38 +108,114 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
           }
         }
 
-        if (courseData) {
-          const formattedCourse = {
-            id: courseData.id || 0,
-            title: courseData.title || 'Course',
-            description: courseData.description || 'No description available',
-            level: courseData.level || 'All Levels',
-            duration: courseData.duration || 'Self-paced',
-            price: courseData.price || 49,
-            imageUrl: courseData.imageUrl || '',
-            instructor: courseData.instructor || 'Expert Instructor',
-            members: courseData.members || 0,
-            language: courseData.language || 'English',
-            category: courseData.category || 'General',
-            color: courseData.color || COLORS.plumMid,
-            icon: courseData.icon || '📚',
-            lastUpdate: courseData.lastUpdate || new Date().toLocaleDateString(),
-            certificate: courseData.certificate ?? true,
-            topics: courseData.topics || courseData.subTopics || [],
-          };
-
-          setCourse(formattedCourse);
-
-          // Default-open the first topic
-          if (formattedCourse.topics.length > 0) {
-            setOpenTopics({ 0: true });
-          }
-        } else {
+        if (!courseData) {
           setError('No course data found. Please go back and select a course.');
+          setLoading(false);
+          return;
         }
+
+        // 2. Fetch course content from API - use public endpoint
+        const apiData = await userApi.getPublicCourseById(courseData.id);
+        console.log('📥 Course data loaded:', apiData);
+
+        // 3. Format course data
+        const formattedCourse = {
+          id: apiData.id || courseData.id || 0,
+          title: apiData.title || courseData.title || 'Course',
+          description: apiData.description || courseData.description || 'No description available',
+          level: apiData.level || courseData.level || 'All Levels',
+          duration: apiData.duration || courseData.duration || 'Self-paced',
+          price: apiData.price || courseData.price || 49,
+          imageUrl: apiData.imageUrl || courseData.imageUrl || '',
+          instructor: apiData.instructor || courseData.instructor || 'Expert Instructor',
+          members: apiData.members || courseData.members || 0,
+          language: apiData.language || courseData.language || 'English',
+          category: apiData.category || courseData.category || 'General',
+          color: courseData.color || '#714B67',
+          icon: courseData.icon || '📚',
+          lastUpdate: apiData.lastUpdate || courseData.lastUpdate || new Date().toLocaleDateString(),
+          certificate: apiData.certificate ?? courseData.certificate ?? true,
+        };
+
+        setCourse(formattedCourse);
+
+        // 4. Process topics - CRITICAL for first topic free
+        let rawTopics = apiData.topics || [];
+        
+        console.log('📚 Raw topics from API:', rawTopics);
+        console.log('📚 Topics count:', rawTopics?.length || 0);
+
+        // Ensure rawTopics is an array
+        if (!Array.isArray(rawTopics)) {
+          if (typeof rawTopics === 'object' && rawTopics !== null) {
+            rawTopics = Object.values(rawTopics);
+          } else {
+            rawTopics = [];
+          }
+        }
+
+        const allSubtopics = [];
+        const normalizedTopics = rawTopics.map((topic, idx) => {
+          // Handle both 'subTopics' and 'subtopics' field names
+          const subs = topic.subTopics || topic.subtopics || [];
+          const subsArray = Array.isArray(subs) ? subs : [];
+          
+          subsArray.forEach((sub) => {
+            allSubtopics.push({
+              id: sub.id,
+              title: sub.title || 'Untitled',
+              topicTitle: topic.title || `Topic ${idx + 1}`,
+              content: sub.content || '',
+              videoUrl: sub.videoUrl || '',
+              videoUrls: sub.videoUrls || [],
+              imageUrl: sub.imageUrl || '',
+              images: sub.images || [],
+              isFree: sub.isFree || topic.isFirstTopic || idx === 0,
+              ...sub,
+            });
+          });
+          
+          return {
+            id: topic.id || idx,
+            title: topic.title || `Topic ${idx + 1}`,
+            displayOrder: topic.displayOrder || idx,
+            isFirstTopic: topic.isFirstTopic || idx === 0,
+            subtopics: subsArray,
+          };
+        });
+
+        console.log('📚 Normalized topics (for CourseDetailView):', normalizedTopics);
+        console.log('📚 All subtopics:', allSubtopics);
+
+        // ✅ Set topics state - this is what gets passed to CourseDetailView
+        setTopics(normalizedTopics);
+        setSubtopics(allSubtopics);
+
+        // Auto-select first subtopic
+        if (allSubtopics.length > 0) {
+          setActiveSection(0);
+          setCurrentSubtopic(allSubtopics[0]);
+          
+          // Load images for first subtopic
+          try {
+            const imagesData = await userApi.getSubtopicImages(allSubtopics[0].id);
+            setImages(imagesData);
+          } catch (imgError) {
+            console.warn('Could not load images:', imgError);
+          }
+        }
+
+        // Always show learning view
+        setActiveView('split');
+
+        // If no topics, show message
+        if (rawTopics.length === 0) {
+          setError('No lessons available yet');
+        }
+
       } catch (err) {
         console.error('❌ Error loading course:', err);
-        setError('Failed to load course data');
+        setError(err.message || 'Failed to load course data');
       } finally {
         setLoading(false);
       }
@@ -117,43 +224,78 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
     loadCourse();
   }, [state, courseId]);
 
-  // Handle enroll
-  const handleEnroll = () => {
-    if (!isLoggedIn) {
-      Swal.fire({
-        title: 'Login Required',
-        text: 'Please login to enroll in this course.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Login',
-        cancelButtonText: 'Cancel',
-      }).then((result) => {
-        if (result.isConfirmed) navigate('/login');
-      });
-      return;
+  // ─── Resolve subtopic image URL ─────────────────────────────────────
+  const getSubtopicImageUrl = useCallback((subtopicId, fileName) => {
+    if (!subtopicId || !fileName) return FALLBACK_IMAGE;
+    if (fileName.startsWith('http://') || fileName.startsWith('https://') || fileName.startsWith('data:image/')) {
+      return fileName;
     }
+    return resolveImageUrl(fileName);
+  }, []);
 
+  const getImageSrc = useCallback(
+    (sid, fn, id) => {
+      if (imageErrors[id]) return FALLBACK_IMAGE;
+      if (fn) return getSubtopicImageUrl(sid, fn);
+      return FALLBACK_IMAGE;
+    },
+    [imageErrors, getSubtopicImageUrl]
+  );
+
+  const handleImageError = useCallback((id) => {
+    setImageErrors((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
+  }, []);
+
+  // ─── Load subtopic images ────────────────────────────────────────────
+  const loadSubtopicImagesData = useCallback(async (subtopicId) => {
+    try {
+      const data = await userApi.getSubtopicImages(subtopicId);
+      setImages(data);
+    } catch (err) {
+      console.error('Error loading subtopic images:', err);
+      setImages([]);
+    }
+  }, []);
+
+  // ─── Mark section complete ─────────────────────────────────────────
+  const markSectionComplete = (index) => {
+    if (!course) return;
+    if (!completedSections.includes(index)) {
+      const newCompleted = [...completedSections, index];
+      setCompletedSections(newCompleted);
+      localStorage.setItem(`course_completed_${course.id}`, JSON.stringify(newCompleted));
+      setProgress(subtopics.length ? (newCompleted.length / subtopics.length) * 100 : 0);
+      Swal.fire({
+        title: 'Section Completed! 🎉',
+        text: `${Math.round((newCompleted.length / subtopics.length) * 100)}% complete`,
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
+  };
+
+  // ─── Reset progress ────────────────────────────────────────────────
+  const resetProgress = () => {
+    if (!course) return;
     Swal.fire({
-      title: 'Enroll Now',
-      text: `You are about to enroll in "${course?.title}"`,
-      icon: 'question',
+      title: 'Reset Progress?',
+      text: 'This will clear all your completed sections.',
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Enroll',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: 'Yes, reset',
+      confirmButtonColor: '#ef4444',
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire({
-          title: 'Enrolled! 🎉',
-          text: 'You are now enrolled in this course!',
-          icon: 'success',
-          timer: 2000,
-          showConfirmButton: false,
-        });
+        localStorage.removeItem(`course_completed_${course.id}`);
+        setCompletedSections([]);
+        setProgress(0);
+        Swal.fire('Reset!', 'Progress reset.', 'success');
       }
     });
   };
 
-  // Handle share
+  // ─── Handle share ─────────────────────────────────────────────────
   const handleShare = () => {
     const shareData = {
       title: course?.title || 'Course',
@@ -174,12 +316,10 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
     }
   };
 
-  // Handle home
-  const handleHome = () => {
-    navigate('/my-courses');
-  };
+  // ─── Handle home ────────────────────────────────────────────────────
+  const handleHome = () => navigate('/my-courses');
 
-  // Handle logout
+  // ─── Handle logout ──────────────────────────────────────────────────
   const handleLogout = () => {
     Swal.fire({
       title: 'Are you sure?',
@@ -198,11 +338,12 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
     });
   };
 
-  const toggleTopic = (idx) => {
-    setOpenTopics((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  // ─── Handle login ──────────────────────────────────────────────────
+  const handleLogin = () => {
+    navigate('/login');
   };
 
-  // ─── Top bar (shared look with MyCoursesPage) ─────────────────────────
+  // ─── Top bar ──────────────────────────────────────────────────────────
   const TopBar = () => {
     const actionButtonStyle = {
       display: 'flex',
@@ -265,7 +406,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
             </button>
           ) : (
             <button
-              onClick={() => navigate('/login')}
+              onClick={handleLogin}
               style={{ ...actionButtonStyle, color: '#F7C948' }}
               onMouseEnter={(e) => (e.currentTarget.style.background = TOPBAR.bgHover)}
               onMouseLeave={(e) => (e.currentTarget.style.background = TOPBAR.bgActive)}
@@ -280,7 +421,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
   };
 
   // ─── Loading state ─────────────────────────────────────────────────────
-  if (loading) {
+  if (loading || contentLoading) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.canvas }}>
         <TopBar />
@@ -304,7 +445,9 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
               animation: 'spin 0.9s linear infinite',
             }}
           />
-          <div style={{ color: COLORS.slate }}>Loading course details...</div>
+          <div style={{ color: COLORS.slate }}>
+            {contentLoading ? 'Loading course content...' : 'Loading course details...'}
+          </div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
@@ -325,12 +468,16 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
           }}
         >
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+              {error === 'No lessons available yet' ? '📚' : '🔍'}
+            </div>
             <h2 style={{ fontSize: '24px', marginBottom: '8px', color: COLORS.ink }}>
               {error || 'Course not found'}
             </h2>
             <p style={{ fontSize: '16px', color: COLORS.slate, marginBottom: '24px' }}>
-              Please go back and select a course from the catalog.
+              {error === 'No lessons available yet' 
+                ? 'This course has no lessons yet. Check back later!' 
+                : 'Please go back and select a course from the catalog.'}
             </p>
             <button
               onClick={() => navigate('/my-courses')}
@@ -353,301 +500,29 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
     );
   }
 
-  const topics = course.topics || [];
-
+  // ─── Pass topics to CourseDetailView ──────────────────────────────────
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", minHeight: '100vh', background: COLORS.canvas }}>
-      <TopBar />
-
-      {/* ─── Hero / breadcrumb ─────────────────────────────────────────── */}
-      <div
-        style={{
-          background: `linear-gradient(120deg, ${COLORS.plumDark} 0%, ${COLORS.plumMid} 55%, ${COLORS.plumLight} 100%)`,
-          padding: isMobile ? '48px 20px' : '64px 48px',
-          minHeight: isMobile ? '180px' : '280px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          color: '#fff',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: isMobile ? '26px' : '36px',
-            fontWeight: 800,
-            letterSpacing: '-0.5px',
-            margin: 0,
-            marginBottom: '10px',
-          }}
-        >
-          {course.title}
-        </h1>
-        <div style={{ fontSize: '14px', opacity: 0.85 }}>
-          <span style={{ cursor: 'pointer' }} onClick={() => navigate('/my-courses')}>
-            Courses
-          </span>
-          <span style={{ margin: '0 8px' }}>/</span>
-          <span>{course.title}</span>
-        </div>
-      </div>
-
-      {/* ─── Body ───────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: isMobile ? '24px 16px 48px' : '32px 40px 64px',
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '340px 1fr',
-          gap: '24px',
-          alignItems: 'start',
-        }}
-      >
-        {/* Left column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Join card */}
-          <div
-            style={{
-              background: COLORS.accent,
-              borderRadius: '16px',
-              padding: '16px',
-              boxShadow: '0 12px 28px -12px rgba(59,35,64,0.5)',
-            }}
-          >
-            <button
-              onClick={handleEnroll}
-              disabled={!isLoggedIn}
-              style={{
-                width: '100%',
-                background: '#fff',
-                color: !isLoggedIn ? COLORS.slate : COLORS.accent,
-                border: 'none',
-                borderRadius: '10px',
-                padding: '14px',
-                fontSize: '15px',
-                fontWeight: 800,
-                letterSpacing: '0.4px',
-                textTransform: 'uppercase',
-                cursor: !isLoggedIn ? 'not-allowed' : 'pointer',
-                marginBottom: '10px',
-              }}
-            >
-              {!isLoggedIn ? 'Login to Enroll' : 'Join This Course'}
-            </button>
-
-            {!isLoggedIn && (
-              <div
-                style={{
-                  textAlign: 'center',
-                  fontSize: '12px',
-                  color: 'rgba(255,255,255,0.85)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  marginBottom: '12px',
-                }}
-              >
-                <LockRoundedIcon style={{ fontSize: '14px' }} />
-                Login required to enroll
-              </div>
-            )}
-
-            <button
-              onClick={handleShare}
-              style={{
-                width: '100%',
-                background: 'rgba(255,255,255,0.12)',
-                border: '1px solid rgba(255,255,255,0.35)',
-                borderRadius: '10px',
-                padding: '10px',
-                color: '#fff',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Share this course
-            </button>
-          </div>
-
-          {/* Course information card */}
-          <div
-            style={{
-              background: COLORS.paper,
-              borderRadius: '16px',
-              padding: '20px',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-              border: `1px solid ${COLORS.line}`,
-            }}
-          >
-            <h3 style={{ margin: 0, marginBottom: '14px', fontSize: '16px', color: COLORS.ink }}>
-              Course Information
-            </h3>
-            <InfoRow label="Last Update" value={course.lastUpdate} />
-            <InfoRow label="Completion" value={course.duration} />
-            <InfoRow label="Members" value={course.members} />
-            <InfoRow label="Level" value={course.level} />
-            <InfoRow label="Language" value={course.language} />
-            <InfoRow label="Certificate" value={course.certificate ? 'Yes' : 'No'} last />
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div
-          style={{
-            background: COLORS.paper,
-            borderRadius: '16px',
-            padding: isMobile ? '20px' : '28px',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-            border: `1px solid ${COLORS.line}`,
-          }}
-        >
-          <div
-            style={{
-              fontSize: '12px',
-              fontWeight: 700,
-              letterSpacing: '0.6px',
-              textTransform: 'uppercase',
-              color: COLORS.accent,
-              paddingBottom: '12px',
-              marginBottom: '20px',
-              borderBottom: `2px solid ${COLORS.line}`,
-            }}
-          >
-            Overview
-          </div>
-
-          <h4 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.ink, marginBottom: '8px' }}>
-            Course Description
-          </h4>
-          <p style={{ color: COLORS.slate, lineHeight: 1.6, marginBottom: '28px', fontSize: '14px' }}>
-            {course.description}
-          </p>
-
-          <h4 style={{ fontSize: '14px', fontWeight: 700, color: COLORS.ink, marginBottom: '14px' }}>
-            Lessons · {topics.length} {topics.length === 1 ? 'lesson' : 'lessons'}
-          </h4>
-
-          {topics.length === 0 ? (
-            <div
-              style={{
-                padding: '20px',
-                textAlign: 'center',
-                color: COLORS.slate,
-                fontSize: '13px',
-                background: COLORS.canvas,
-                borderRadius: '10px',
-                border: `1px dashed ${COLORS.line}`,
-              }}
-            >
-              No lessons available yet
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {topics.map((topic, idx) => {
-                const subs = topic.subTopics || topic.subtopics || [];
-                const isOpen = !!openTopics[idx];
-                return (
-                  <div
-                    key={topic.id || idx}
-                    style={{ border: `1px solid ${COLORS.line}`, borderRadius: '10px', overflow: 'hidden' }}
-                  >
-                    <div
-                      onClick={() => toggleTopic(idx)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '12px 16px',
-                        cursor: 'pointer',
-                        background: COLORS.canvas,
-                      }}
-                    >
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.ink }}>
-                        #{idx + 1} {topic.title || `Topic ${idx + 1}`}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '12px', color: COLORS.slate }}>
-                          {subs.length} {subs.length === 1 ? 'lesson' : 'lessons'}
-                        </span>
-                        <ExpandMoreRoundedIcon
-                          style={{
-                            fontSize: '18px',
-                            color: COLORS.slate,
-                            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.2s',
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {isOpen && (
-                      <div style={{ padding: subs.length ? '6px 16px 12px' : '0 16px 12px' }}>
-                        {subs.length === 0 ? (
-                          <div style={{ fontSize: '13px', color: COLORS.slate, padding: '6px 0' }}>
-                            No lessons available yet
-                          </div>
-                        ) : (
-                          subs.map((sub) => (
-                            <div
-                              key={sub.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '8px 0',
-                                borderTop: `1px solid ${COLORS.line}`,
-                                fontSize: '13px',
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: COLORS.ink }}>
-                                {sub.completed ? (
-                                  <CheckCircleRoundedIcon style={{ fontSize: '16px', color: COLORS.success }} />
-                                ) : (
-                                  <RadioButtonUncheckedRoundedIcon style={{ fontSize: '16px', color: COLORS.line }} />
-                                )}
-                                {sub.title}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: COLORS.slate }}>
-                                {sub.preview && (
-                                  <span style={{ color: COLORS.accent, fontWeight: 600, fontSize: '12px' }}>
-                                    Preview
-                                  </span>
-                                )}
-                                {sub.xp && <span style={{ fontSize: '12px' }}>{sub.xp} XP</span>}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Small row helper for the Course Information card ─────────────────────
-function InfoRow({ label, value, last }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '9px 0',
-        borderBottom: last ? 'none' : `1px solid ${COLORS.line}`,
-        fontSize: '13px',
-      }}
-    >
-      <span style={{ color: COLORS.slate }}>{label}</span>
-      <span style={{ color: COLORS.ink, fontWeight: 600 }}>{value}</span>
-    </div>
+    <CourseDetailView
+      selectedCourse={course}
+      topics={topics}           // ✅ This is the key - passing topics
+      subtopics={subtopics}
+      images={images}
+      progress={progress}
+      activeView={activeView}
+      activeSection={activeSection}
+      completedSections={completedSections}
+      currentSubtopic={currentSubtopic}
+      contentLoading={contentLoading}
+      handleBack={() => navigate('/my-courses')}
+      setActiveView={setActiveView}
+      setActiveSection={setActiveSection}
+      setCurrentSubtopic={setCurrentSubtopic}
+      loadSubtopicImages={loadSubtopicImagesData}
+      resetProgress={resetProgress}
+      markSectionComplete={markSectionComplete}
+      getImageSrc={getImageSrc}
+      getImageUrl={getSubtopicImageUrl}
+      handleImageError={handleImageError}
+    />
   );
 }

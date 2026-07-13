@@ -20,12 +20,14 @@ export const getPublicCourses = async () => {
 };
 
 /**
- * Get single course details (public)
+ * Get single course details (public) with first topic free
  * No authentication required
+ * ✅ Endpoint: /public/courses/{courseId}
  */
 export const getPublicCourseById = async (courseId) => {
   try {
     const response = await api.get(`/public/courses/${courseId}`);
+    console.log('📥 Public course data:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching public course:', error);
@@ -36,11 +38,13 @@ export const getPublicCourseById = async (courseId) => {
 /**
  * Get public course data with topics (first topic full, others limited)
  * No authentication required
- * This returns topics with subtopics, including images for public viewing
+ * ✅ FIXED: Uses the same endpoint as getPublicCourseById
  */
 export const getPublicCourseData = async (courseId) => {
   try {
-    const response = await api.get(`/public/courses/${courseId}/public`);
+    // ✅ FIXED: Remove the extra /public at the end
+    const response = await api.get(`/public/courses/${courseId}`);
+    console.log('📥 Public course data:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching public course data:', error);

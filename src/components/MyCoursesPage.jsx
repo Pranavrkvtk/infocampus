@@ -26,8 +26,6 @@ import BookmarkIcon from '@mui/icons-material/Bookmark';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
-// ❌ REMOVE THIS LINE - it's not needed and causes circular dependency
-// import CourseEnrollmentPage from './CourseEnrollmentPage';
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
@@ -315,16 +313,20 @@ function MyCoursesPage() {
     }
     try {
       const data = await getEnrolledCourses();
-      setCourses(data);
+      // ✅ Ensure data is always an array
+      setCourses(Array.isArray(data) ? data : []);
       
-      data.forEach(course => {
-        if (course.imageUrl) {
-          const img = new Image();
-          img.src = getCourseImage(course);
-        }
-      });
+      if (Array.isArray(data)) {
+        data.forEach(course => {
+          if (course.imageUrl) {
+            const img = new Image();
+            img.src = getCourseImage(course);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error fetching enrolled courses:', error);
+      setCourses([]); // ✅ Set to empty array on error
       if (error.response?.status !== 403) {
         Swal.fire('Error', 'Could not load your courses', 'error');
       }
@@ -340,14 +342,18 @@ function MyCoursesPage() {
     
     try {
       const data = await getPublicCourses();
-      setAllCourses(data);
+      // ✅ Ensure data is always an array
+      setAllCourses(Array.isArray(data) ? data : []);
       
-      data.forEach(course => {
-        const img = new Image();
-        img.src = getCourseImage(course);
-      });
+      if (Array.isArray(data)) {
+        data.forEach(course => {
+          const img = new Image();
+          img.src = getCourseImage(course);
+        });
+      }
     } catch (error) {
       console.error('Error fetching public courses:', error);
+      setAllCourses([]); // ✅ Set to empty array on error
       
       if (error.response?.status === 403 || error.message?.includes('403')) {
         const token = localStorage.getItem('token');
@@ -355,12 +361,14 @@ function MyCoursesPage() {
         if (token) {
           try {
             const fallbackData = await getCourses();
-            setAllCourses(fallbackData);
+            setAllCourses(Array.isArray(fallbackData) ? fallbackData : []);
             
-            fallbackData.forEach(course => {
-              const img = new Image();
-              img.src = getCourseImage(course);
-            });
+            if (Array.isArray(fallbackData)) {
+              fallbackData.forEach(course => {
+                const img = new Image();
+                img.src = getCourseImage(course);
+              });
+            }
           } catch (fallbackError) {
             console.error('Fallback also failed:', fallbackError);
             setAllCourses([]);
@@ -510,39 +518,49 @@ function MyCoursesPage() {
     }
   };
 
-// src/components/MyCoursesPage.jsx - handleViewCourse function
-const handleViewCourse = (course) => {
-  console.log('📤 Viewing course:', course);
-  
-  const formattedCourse = {
-    id: course.id,
-    title: course.title || 'Course',
-    description: course.description || 'No description available',
-    level: course.level || 'All Levels',
-    imageUrl: course.imageUrl || '',
-    duration: course.duration || 'Self-paced',
-    price: course.price || 49,
-    instructor: course.instructor || 'Expert Instructor',
-    members: course.members || 0,
-    language: course.language || 'English',
-    category: course.category || 'General',
-    color: course.color || '#3abf94',
-    icon: course.icon || '📚',
-    lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
+  // ─── Check if Course is Enrolled ───────────────────────────────────
+  // ✅ FIXED: Ensure courses is always an array
+  const isCourseEnrolled = (courseId) => {
+    const coursesArray = Array.isArray(courses) ? courses : [];
+    return coursesArray.some((ec) => ec.id === courseId);
   };
-  
-  console.log('📤 Formatted course:', formattedCourse);
-  
-  navigate('/enroll', { 
-    state: { 
-      course: formattedCourse,
-      isEnrolled: isCourseEnrolled(course.id),
-      from: 'my-courses'
-    } 
-  });
-};
 
-  // ✅ Navigate to /enroll route with course data in state
+  // ─── Handle View Course ────────────────────────────────────────────
+  // ✅ FIXED: Navigate with course ID in URL
+  const handleViewCourse = (course) => {
+    console.log('📤 Viewing course:', course);
+    
+    const formattedCourse = {
+      id: course.id,
+      title: course.title || 'Course',
+      description: course.description || 'No description available',
+      level: course.level || 'All Levels',
+      imageUrl: course.imageUrl || '',
+      duration: course.duration || 'Self-paced',
+      price: course.price || 49,
+      instructor: course.instructor || 'Expert Instructor',
+      members: course.members || 0,
+      language: course.language || 'English',
+      category: course.category || 'General',
+      color: course.color || '#3abf94',
+      icon: course.icon || '📚',
+      lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
+    };
+    
+    console.log('📤 Formatted course:', formattedCourse);
+    
+    // ✅ Navigate with course ID in URL
+    navigate(`/enroll/${course.id}`, { 
+      state: { 
+        course: formattedCourse,
+        isEnrolled: isCourseEnrolled(course.id),
+        from: 'my-courses'
+      } 
+    });
+  };
+
+  // ─── Handle Continue Learning ──────────────────────────────────────
+  // ✅ FIXED: Navigate with course ID in URL
   const handleContinueLearning = (course) => {
     if (!isLoggedIn) {
       Swal.fire({
@@ -576,7 +594,8 @@ const handleViewCourse = (course) => {
       lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
     };
     
-    navigate('/enroll', { 
+    // ✅ Navigate with course ID in URL
+    navigate(`/enroll/${course.id}`, { 
       state: { 
         course: formattedCourse,
         isEnrolled: true,
@@ -667,11 +686,6 @@ const handleViewCourse = (course) => {
     });
   };
 
-  // ─── Check if Course is Enrolled ───────────────────────────────────
-  const isCourseEnrolled = (courseId) => {
-    return courses.some((ec) => ec.id === courseId);
-  };
-
   // ─── Handle Image Error ────────────────────────────────────────────
   const handleImageError = (id) => {
     if (!imageErrors[id]) setImageErrors(prev => ({ ...prev, [id]: true }));
@@ -694,7 +708,8 @@ const handleViewCourse = (course) => {
   // ─── Get unique categories from courses ──────────────────────────
   const getCategories = () => {
     const cats = new Set();
-    allCourses.forEach(course => {
+    const coursesArray = Array.isArray(allCourses) ? allCourses : [];
+    coursesArray.forEach(course => {
       if (course.category) {
         cats.add(course.category);
       }
@@ -706,16 +721,20 @@ const handleViewCourse = (course) => {
 
   // ─── Filter courses by category ──────────────────────────────────
   const getFilteredCourses = () => {
+    const coursesArray = Array.isArray(allCourses) ? allCourses : [];
     if (activeCategory === 'all') {
-      return allCourses;
+      return coursesArray;
     }
-    return allCourses.filter(course => course.category === activeCategory);
+    return coursesArray.filter(course => course.category === activeCategory);
   };
 
   const filteredCourses = getFilteredCourses();
-  const visibleCourses = filteredCourses.filter((c) => 
-    c.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ✅ Ensure visibleCourses is always an array
+  const visibleCourses = Array.isArray(filteredCourses) 
+    ? filteredCourses.filter((c) => 
+        c.title?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   // ─── Get grid columns based on screen size ──────────────────────
   const getGridColumns = () => {
@@ -1275,7 +1294,8 @@ const handleViewCourse = (course) => {
       ) : (
         <div style={styles.grid}>
           {visibleCourses.map((course) => {
-            const isEnrolled = isLoggedIn && courses.some((ec) => ec.id === course.id);
+            // ✅ Ensure isEnrolled is a boolean
+            const isEnrolled = isLoggedIn && isCourseEnrolled(course.id);
             const imageUrl = getCourseImage(course);
             
             return (
