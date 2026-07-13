@@ -19,7 +19,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import SchoolIcon from '@mui/icons-material/School';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
@@ -386,42 +385,6 @@ function MyCoursesPage() {
     }
   }, [getCourseImage]);
 
-  // ─── Handle Enroll ──────────────────────────────────────────────────
-  const handleEnroll = async (courseId) => {
-    if (!isLoggedIn) {
-      Swal.fire({
-        title: 'Login Required',
-        text: 'Please login to enroll in courses',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Go to Login',
-      }).then((result) => {
-        if (result.isConfirmed) navigate('/login');
-      });
-      return;
-    }
-    try {
-      await enrollInCourse(courseId);
-      await fetchEnrolledCourses();
-      
-      const enrolledCourse = allCourses.find(c => c.id === courseId);
-      if (enrolledCourse) {
-        setSelectedCourse(enrolledCourse);
-        await loadCourseDetails(courseId);
-        setActiveView('split');
-      }
-      
-      Swal.fire({
-        title: 'Enrolled! 🎉',
-        text: 'You are now enrolled in this course. Start learning now!',
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      Swal.fire('Error', 'Could not enroll. Please try again.', 'error');
-    }
-  };
 
   // ─── Load Course Details ───────────────────────────────────────────
   const loadCourseDetails = async (courseId) => {
@@ -596,37 +559,7 @@ function MyCoursesPage() {
     });
   };
 
-  // ─── Handle Start Learning ─────────────────────────────────────────
-  const handleStartLearning = async () => {
-    if (!isLoggedIn) {
-      Swal.fire({
-        title: 'Login Required',
-        text: 'Please login to start learning.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Login',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate('/login');
-        }
-      });
-      return;
-    }
-    
-    if (!isCourseEnrolled(selectedCourse?.id)) {
-      Swal.fire({
-        title: 'Not Enrolled',
-        text: 'Please enroll in this course first to start learning.',
-        icon: 'info',
-        confirmButtonText: 'OK',
-      });
-      return;
-    }
-    setActiveView('split');
-    if (selectedCourse) {
-      await loadCourseDetails(selectedCourse.id);
-    }
-  };
+ 
 
   // ─── Handle Back to Catalog ────────────────────────────────────────
   const handleBackToCatalog = () => {

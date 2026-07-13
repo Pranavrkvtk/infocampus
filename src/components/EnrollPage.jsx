@@ -168,7 +168,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
   const [completedSections, setCompletedSections] = useState([]);
   const [progress, setProgress] = useState(0);
   const [currentSubtopic, setCurrentSubtopic] = useState(null);
-  const [contentLoading, setContentLoading] = useState(false);
+  // ✅ REMOVED: setContentLoading is not used - removed from state
   const [imageErrors, setImageErrors] = useState({});
   const [openTopics, setOpenTopics] = useState({});
 
@@ -553,7 +553,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
   };
 
   // ─── Loading state ─────────────────────────────────────────────────────
-  if (loading || contentLoading) {
+  if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: COLORS.canvas }}>
         <TopBar />
@@ -577,9 +577,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
               animation: 'spin 0.9s linear infinite',
             }}
           />
-          <div style={{ color: COLORS.slate }}>
-            {contentLoading ? 'Loading course content...' : 'Loading course details...'}
-          </div>
+          <div style={{ color: COLORS.slate }}>Loading course details...</div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
@@ -645,7 +643,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
         activeSection={activeSection}
         completedSections={completedSections}
         currentSubtopic={currentSubtopic}
-        contentLoading={contentLoading}
+        contentLoading={false}
         handleBack={() => setActiveView('landing')}
         setActiveView={setActiveView}
         setActiveSection={setActiveSection}

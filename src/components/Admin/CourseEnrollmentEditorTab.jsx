@@ -1,5 +1,5 @@
 // src/components/Admin/CourseEnrollmentEditorTab.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   getEnrollmentConfigById, 
   updateEnrollmentConfig, 
@@ -29,13 +29,8 @@ export default function CourseEnrollmentEditorTab({ courseId, onSave }) {
   const [saving, setSaving] = useState(false);
   const [configExists, setConfigExists] = useState(false);
 
-  useEffect(() => {
-    if (courseId) {
-      loadConfig();
-    }
-  }, [courseId]);
-
-  const loadConfig = async () => {
+  // ✅ Wrap loadConfig in useCallback to stabilize it
+  const loadConfig = useCallback(async () => {
     if (!courseId) {
       console.warn('No courseId provided');
       return;
@@ -61,10 +56,10 @@ export default function CourseEnrollmentEditorTab({ courseId, onSave }) {
         } catch (defaultError) {
           console.error('Error loading default config:', defaultError);
           // Use local defaults
-          setConfig({
-            ...config,
+          setConfig(prev => ({
+            ...prev,
             courseId: courseId
-          });
+          }));
           setConfigExists(false);
         }
       } else {
@@ -77,7 +72,14 @@ export default function CourseEnrollmentEditorTab({ courseId, onSave }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]); // ✅ Add courseId as dependency
+
+  // ✅ Now include loadConfig in the dependency array
+  useEffect(() => {
+    if (courseId) {
+      loadConfig();
+    }
+  }, [courseId, loadConfig]); // ✅ Added loadConfig to dependencies
 
   const handleSave = async () => {
     if (!courseId) {
