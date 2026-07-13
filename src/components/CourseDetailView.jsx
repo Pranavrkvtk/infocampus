@@ -10,6 +10,7 @@ import {
   getSubtopicLabs,
 } from '../api/UserApi';
 import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
+import { getImageUrl } from '../utils/imageUtils'; // ✅ ADDED IMPORT
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
 import ShareIcon from '@mui/icons-material/Share';
@@ -28,6 +29,7 @@ const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 const SIDEBAR = {
   bg: '#1d2228',
   header: '#1a1f24',
+  headerBg: '#4B5563',
   item: '#252b32',
   itemOpen: '#1d2228',
   hover: '#2c333a',
@@ -134,16 +136,11 @@ const fetchImageWithAuth = async (url) => {
   }
 };
 
+// ─── Updated buildImgSrc to use getImageUrl utility ──────────────────
 const buildImgSrc = (src) => {
   if (!src) return '';
-  if (src.startsWith('http://') || src.startsWith('https://')) return src;
-  let cleanSrc = src;
-  if (cleanSrc.startsWith('/api/')) cleanSrc = cleanSrc.substring(4);
-  if (cleanSrc.startsWith('api/')) cleanSrc = cleanSrc.substring(4);
-  if (!cleanSrc.startsWith('/')) cleanSrc = '/' + cleanSrc;
-  let url = `${API_BASE}${cleanSrc}`;
-  url = url.replace(/([^:]\/)\/+/g, "$1");
-  return url;
+  // Use the imported getImageUrl utility from imageUtils
+  return getImageUrl(src) || '';
 };
 
 const buildImageTag = (alt, src) => {
@@ -1537,7 +1534,7 @@ export default function CourseDetailView({
     },
     topicItem: {
       margin: 0,
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      borderBottom: '1px solid rgba(42, 40, 40, 0.39)',
     },
     topicHeader: (isOpen) => ({
       display: 'flex',
@@ -1871,6 +1868,7 @@ export default function CourseDetailView({
 
           {(!isSidebarCollapsed || isMobile) && (
             <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
+              {/* Course Name Header - Updated background */}
               <div style={styles.sidebarHeader}>
                 <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
               </div>

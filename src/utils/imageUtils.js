@@ -15,83 +15,33 @@ export const getImageUrl = (imagePath) => {
 
   let path = imagePath.trim();
 
-  // ============================================================
-  // PDF EXTRACTED IMAGES (SUPTOPIC IMAGES)
-  // ============================================================
-
-  // If DB stores "/api/subtopic-images/..."
-  if (path.startsWith("/api/subtopic-images/")) {
-    return `${API_ROOT_URL}${path}`;
+  // ✅ Remove leading slash if present (fix for existing data)
+  if (path.startsWith('/')) {
+    path = path.substring(1);
   }
 
-  // If DB stores "api/subtopic-images/..."
-  if (path.startsWith("api/subtopic-images/")) {
+  // ✅ Remove any /api/ prefix if present
+  if (path.startsWith('api/')) {
+    path = path.substring(4);
+  }
+
+  // ✅ Remove any /admin/ prefix if present
+  if (path.startsWith('admin/')) {
+    path = path.substring(6);
+  }
+
+  // If it already has the correct format (uploads/ or subtopic-images/)
+  if (path.startsWith('uploads/') || path.startsWith('subtopic-images/')) {
     return `${API_ROOT_URL}/${path}`;
   }
 
-  // If DB stores "/subtopic-images/..." (without /api)
-  if (path.startsWith("/subtopic-images/")) {
-    return `${API_ROOT_URL}${path}`;
+  // If it's just a filename, assume it's in uploads/courses/
+  if (!path.includes('/') && path.includes('.')) {
+    return `${API_ROOT_URL}/uploads/courses/${path}`;
   }
 
-  // If DB stores "subtopic-images/..."
-  if (path.startsWith("subtopic-images/")) {
-    return `${API_ROOT_URL}/${path}`;
-  }
-
-  // If DB stores "uploads/subtopic_images/..." (old format)
-  if (path.includes("uploads/subtopic_images/")) {
-    const match = path.match(/subtopic_images\/(\d+)\/(.+)$/);
-    if (match) {
-      const subtopicId = match[1];
-      const filename = match[2];
-      return `${API_ROOT_URL}/api/subtopic-images/${subtopicId}/${filename}`;
-    }
-  }
-
-  // If DB stores "/uploads/subtopic_images/..." (old format)
-  if (path.includes("/uploads/subtopic_images/")) {
-    const match = path.match(/subtopic_images\/(\d+)\/(.+)$/);
-    if (match) {
-      const subtopicId = match[1];
-      const filename = match[2];
-      return `${API_ROOT_URL}/api/subtopic-images/${subtopicId}/${filename}`;
-    }
-  }
-
-  // If DB stores "/api/admin/uploads/subtopic_..." (very old format)
-  if (path.includes("/api/admin/uploads/subtopic_")) {
-    const match = path.match(/subtopic_(\d+)\/images\/(.+)$/);
-    if (match) {
-      const subtopicId = match[1];
-      const filename = match[2];
-      return `${API_ROOT_URL}/api/subtopic-images/${subtopicId}/${filename}`;
-    }
-  }
-
-  // ============================================================
-  // COURSE IMAGES
-  // ============================================================
-
-  // If DB stores "/uploads/..." (course images)
-  if (path.startsWith("/uploads/")) {
-    return `${API_ROOT_URL}${path}`;
-  }
-
-  // If DB stores "uploads/..." (course images)
-  if (path.startsWith("uploads/")) {
-    return `${API_ROOT_URL}/${path}`;
-  }
-
-  // ============================================================
-  // FALLBACK
-  // ============================================================
-
-  // Otherwise use API base
-  path = path.replace(/^\/?api\//, "");
-  path = path.replace(/^\/+/, "");
-
-  return `${API_ROOT_URL}/${path}`;
+  // Fallback: assume it's in uploads/
+  return `${API_ROOT_URL}/uploads/${path}`;
 };
 
 export default getImageUrl;

@@ -1,5 +1,5 @@
 // src/api/authApi.js
-import api from "./axios";
+import api, { API_ROOT_URL } from "./axios";
 
 // ==================== AUTHENTICATION APIs ====================
 
@@ -8,7 +8,7 @@ export const register = (userData) => {
   return api.post("/auth/register", userData);
 };
 
-// ✅ FIXED: Login user with proper data storage
+// Login user with proper data storage
 export const login = async (credentials) => {
   try {
     const response = await api.post("/auth/login", credentials);
@@ -17,12 +17,12 @@ export const login = async (credentials) => {
     
     const data = response.data;
     
-    // ✅ Store token
+    // Store token
     if (data.token) {
       localStorage.setItem("token", data.token);
     }
     
-    // ✅ Store individual fields
+    // Store individual fields
     const role = data.role || "USER";
     const userId = data.userId || data.id;
     const name = data.name || "User";
@@ -35,7 +35,7 @@ export const login = async (credentials) => {
     localStorage.setItem("userEmail", email);
     localStorage.setItem("userStatus", status);
     
-    // ✅ CRITICAL: Store complete user object with role
+    // Store complete user object with role
     const userData = {
       id: userId,
       userId: userId,
@@ -59,24 +59,18 @@ export const login = async (credentials) => {
   }
 };
 
-// ✅ FIXED: Logout user with complete cleanup
+// Logout user with complete cleanup
 export const logout = () => {
-  // ✅ Clear all auth-related items
+  // Clear all auth-related items
   localStorage.removeItem("token");
   localStorage.removeItem("role");
   localStorage.removeItem("userId");
   localStorage.removeItem("userName");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userStatus");
-  localStorage.removeItem("user"); // ✅ Important: Remove the user object
-  
-  // ✅ Optional: Clear other app-specific items if needed
-  // localStorage.removeItem("recentColors");
-  // localStorage.removeItem("myCoursesConfig");
-  // localStorage.removeItem("homeConfig");
+  localStorage.removeItem("user");
   
   return api.post("/auth/logout").catch(() => {
-    // Ignore logout endpoint errors - just clear local storage
     console.log("Logout successful (local)");
   });
 };
@@ -116,6 +110,8 @@ export const refreshToken = () => {
   return api.post("/auth/refresh-token");
 };
 
+// ==================== AUTH STATE HELPERS ====================
+
 // Check if user is authenticated
 export const isAuthenticated = () => {
   const token = localStorage.getItem("token");
@@ -132,7 +128,7 @@ export const getUserId = () => {
   return localStorage.getItem("userId");
 };
 
-// ✅ NEW: Get full user object
+// Get full user object
 export const getUser = () => {
   try {
     const userStr = localStorage.getItem("user");
@@ -143,17 +139,17 @@ export const getUser = () => {
   }
 };
 
-// ✅ NEW: Get user name
+// Get user name
 export const getUserName = () => {
   return localStorage.getItem("userName") || "User";
 };
 
-// ✅ NEW: Get user email
+// Get user email
 export const getUserEmail = () => {
   return localStorage.getItem("userEmail") || "";
 };
 
-// ✅ NEW: Update user in localStorage
+// Update user in localStorage
 export const updateUser = (userData) => {
   const currentUser = getUser() || {};
   const updatedUser = { ...currentUser, ...userData };
@@ -168,28 +164,62 @@ export const updateUser = (userData) => {
   return updatedUser;
 };
 
-// ✅ NEW: Check if user has specific role
+// Check if user has specific role
 export const hasRole = (role) => {
   const userRole = localStorage.getItem("role");
   if (!userRole) return false;
   return userRole.toUpperCase() === role.toUpperCase();
 };
 
-// ✅ NEW: Check if user is admin
+// Check if user is admin
 export const isAdmin = () => {
   const role = localStorage.getItem("role");
   return role === "ADMIN" || role === "SUPER_ADMIN";
 };
 
-// ✅ NEW: Check if user is instructor
+// Check if user is instructor
 export const isInstructor = () => {
   const role = localStorage.getItem("role");
   return role === "INSTRUCTOR";
 };
 
+// ==================== ASSET URL HELPERS (using API_ROOT_URL) ====================
+
+// Generic asset URL builder
+export const getAssetUrl = (path) => {
+  if (!path) return null;
+  // Remove leading slash if present
+  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+  return `${API_ROOT_URL}/${cleanPath}`;
+};
+
+// Get profile image URL
+export const getProfileImageUrl = (filename) => {
+  if (!filename) return null;
+  return getAssetUrl(`uploads/profile/${filename}`);
+};
+
+// Get course image URL
+export const getCourseImageUrl = (filename) => {
+  if (!filename) return null;
+  return getAssetUrl(`uploads/courses/${filename}`);
+};
+
+// Get document URL
+export const getDocumentUrl = (filename) => {
+  if (!filename) return null;
+  return getAssetUrl(`uploads/documents/${filename}`);
+};
+
+// Get redirect URL (for OAuth, etc.)
+export const getRedirectUrl = (path) => {
+  return getAssetUrl(path);
+};
+
 // ==================== EXPORT ALL ====================
 
 const authApi = {
+  // Auth functions
   register,
   login,
   logout,
@@ -200,16 +230,25 @@ const authApi = {
   resetPassword,
   verifyEmail,
   refreshToken,
+  
+  // Auth state helpers
   isAuthenticated,
   getUserRole,
   getUserId,
-  getUser,           // ✅ Added
-  getUserName,       // ✅ Added
-  getUserEmail,      // ✅ Added
-  updateUser,        // ✅ Added
-  hasRole,           // ✅ Added
-  isAdmin,           // ✅ Added
-  isInstructor,      // ✅ Added
+  getUser,
+  getUserName,
+  getUserEmail,
+  updateUser,
+  hasRole,
+  isAdmin,
+  isInstructor,
+  
+  // Asset URL helpers
+  getAssetUrl,
+  getProfileImageUrl,
+  getCourseImageUrl,
+  getDocumentUrl,
+  getRedirectUrl,
 };
 
 export default authApi;
