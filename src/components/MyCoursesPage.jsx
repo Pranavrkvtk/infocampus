@@ -26,6 +26,7 @@ import BookmarkIcon from '@mui/icons-material/Bookmark';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
+import GridViewIcon from '@mui/icons-material/GridView';
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
@@ -313,7 +314,6 @@ function MyCoursesPage() {
     }
     try {
       const data = await getEnrolledCourses();
-      // ✅ Ensure data is always an array
       setCourses(Array.isArray(data) ? data : []);
       
       if (Array.isArray(data)) {
@@ -326,7 +326,7 @@ function MyCoursesPage() {
       }
     } catch (error) {
       console.error('Error fetching enrolled courses:', error);
-      setCourses([]); // ✅ Set to empty array on error
+      setCourses([]);
       if (error.response?.status !== 403) {
         Swal.fire('Error', 'Could not load your courses', 'error');
       }
@@ -342,7 +342,6 @@ function MyCoursesPage() {
     
     try {
       const data = await getPublicCourses();
-      // ✅ Ensure data is always an array
       setAllCourses(Array.isArray(data) ? data : []);
       
       if (Array.isArray(data)) {
@@ -353,7 +352,7 @@ function MyCoursesPage() {
       }
     } catch (error) {
       console.error('Error fetching public courses:', error);
-      setAllCourses([]); // ✅ Set to empty array on error
+      setAllCourses([]);
       
       if (error.response?.status === 403 || error.message?.includes('403')) {
         const token = localStorage.getItem('token');
@@ -519,14 +518,12 @@ function MyCoursesPage() {
   };
 
   // ─── Check if Course is Enrolled ───────────────────────────────────
-  // ✅ FIXED: Ensure courses is always an array
   const isCourseEnrolled = (courseId) => {
     const coursesArray = Array.isArray(courses) ? courses : [];
     return coursesArray.some((ec) => ec.id === courseId);
   };
 
   // ─── Handle View Course ────────────────────────────────────────────
-  // ✅ FIXED: Navigate with course ID in URL
   const handleViewCourse = (course) => {
     console.log('📤 Viewing course:', course);
     
@@ -541,7 +538,6 @@ function MyCoursesPage() {
       instructor: course.instructor || 'Expert Instructor',
       members: course.members || 0,
       language: course.language || 'English',
-      category: course.category || 'General',
       color: course.color || '#3abf94',
       icon: course.icon || '📚',
       lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
@@ -549,7 +545,6 @@ function MyCoursesPage() {
     
     console.log('📤 Formatted course:', formattedCourse);
     
-    // ✅ Navigate with course ID in URL
     navigate(`/enroll/${course.id}`, { 
       state: { 
         course: formattedCourse,
@@ -560,7 +555,6 @@ function MyCoursesPage() {
   };
 
   // ─── Handle Continue Learning ──────────────────────────────────────
-  // ✅ FIXED: Navigate with course ID in URL
   const handleContinueLearning = (course) => {
     if (!isLoggedIn) {
       Swal.fire({
@@ -588,13 +582,11 @@ function MyCoursesPage() {
       instructor: course.instructor || 'Expert Instructor',
       members: course.members || 0,
       language: course.language || 'English',
-      category: course.category || 'General',
       color: course.color || '#3abf94',
       icon: course.icon || '📚',
       lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
     };
     
-    // ✅ Navigate with course ID in URL
     navigate(`/enroll/${course.id}`, { 
       state: { 
         course: formattedCourse,
@@ -710,7 +702,7 @@ function MyCoursesPage() {
     const cats = new Set();
     const coursesArray = Array.isArray(allCourses) ? allCourses : [];
     coursesArray.forEach(course => {
-      if (course.category) {
+      if (course.category && course.category !== 'General' && course.category !== 'general' && course.category !== '') {
         cats.add(course.category);
       }
     });
@@ -729,7 +721,6 @@ function MyCoursesPage() {
   };
 
   const filteredCourses = getFilteredCourses();
-  // ✅ Ensure visibleCourses is always an array
   const visibleCourses = Array.isArray(filteredCourses) 
     ? filteredCourses.filter((c) => 
         c.title?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -1056,21 +1047,6 @@ function MyCoursesPage() {
       gap: '4px',
     },
 
-    categoryTag: {
-      position: 'absolute',
-      bottom: '12px',
-      left: '12px',
-      background: 'rgba(0,0,0,0.65)',
-      backdropFilter: 'blur(6px)',
-      color: '#fff',
-      fontSize: '10px',
-      fontWeight: 600,
-      padding: '3px 12px',
-      borderRadius: '16px',
-      letterSpacing: '0.4px',
-      textTransform: 'uppercase',
-    },
-
     emptyState: { 
       textAlign: 'center', 
       padding: '60px 20px', 
@@ -1239,8 +1215,19 @@ function MyCoursesPage() {
       {/* ─── Section Bar ──────────────────────────────────────────────── */}
       <div style={styles.sectionBar} id="courses-section">
         <div style={styles.sectionTitle}>
-          <SchoolIcon style={{ fontSize: '24px', color: COLORS.accent }} />
-          {myCoursesConfig.sectionTitle}
+          <GridViewIcon style={{ fontSize: '28px', color: COLORS.accent }} />
+          <span style={{ marginLeft: '8px' }}>All Courses</span>
+          <span style={{ 
+            fontSize: '14px', 
+            fontWeight: 400, 
+            color: COLORS.slate,
+            marginLeft: '12px',
+            background: COLORS.line,
+            padding: '2px 12px',
+            borderRadius: '20px',
+          }}>
+            {allCourses.length}
+          </span>
         </div>
         <div style={styles.searchWrap}>
           <SearchIcon style={styles.searchIcon} />
@@ -1255,27 +1242,29 @@ function MyCoursesPage() {
       </div>
 
       {/* ─── Category Tabs ────────────────────────────────────────────── */}
-      <div style={styles.categoryTabs}>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            style={styles.categoryTab(activeCategory === cat)}
-            onClick={() => setActiveCategory(cat)}
-          >
-            {formatCategoryName(cat)}
-          </button>
-        ))}
-      </div>
+      {categories.length > 1 && (
+        <div style={styles.categoryTabs}>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              style={styles.categoryTab(activeCategory === cat)}
+              onClick={() => setActiveCategory(cat)}
+            >
+              {formatCategoryName(cat)}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ─── Courses Grid ────────────────────────────────────────────── */}
       {visibleCourses.length === 0 ? (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
           <h3 style={styles.emptyTitle}>
-            {apiError ? 'Unable to load courses' : (allCourses.length === 0 ? myCoursesConfig.emptyStateTitle : 'No courses in this category')}
+            {apiError ? 'Unable to load courses' : (allCourses.length === 0 ? 'No courses available' : 'No courses in this category')}
           </h3>
           <p style={styles.emptyText}>
-            {apiError || (allCourses.length === 0 ? myCoursesConfig.emptyStateText : 'Try selecting a different category.')}
+            {apiError || (allCourses.length === 0 ? 'Check back later for new courses.' : 'Try selecting a different category.')}
           </p>
           {apiError && !isLoggedIn && (
             <button 
@@ -1294,7 +1283,6 @@ function MyCoursesPage() {
       ) : (
         <div style={styles.grid}>
           {visibleCourses.map((course) => {
-            // ✅ Ensure isEnrolled is a boolean
             const isEnrolled = isLoggedIn && isCourseEnrolled(course.id);
             const imageUrl = getCourseImage(course);
             
@@ -1321,11 +1309,6 @@ function MyCoursesPage() {
                     <span style={styles.enrolledBadge}>
                       <BookmarkIcon style={{ fontSize: '12px' }} />
                       {myCoursesConfig.enrolledBadgeText}
-                    </span>
-                  )}
-                  {course.category && (
-                    <span style={styles.categoryTag}>
-                      {course.category}
                     </span>
                   )}
                 </div>

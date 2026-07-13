@@ -1108,6 +1108,7 @@ export default function CourseDetailView({
   getImageSrc,
   getImageUrl,
   handleImageError,
+  isGuest = false,
 }) {
   // ─── Use navigate hook ──────────────────────────────────────────────
   const navigate = useNavigate();
@@ -1150,10 +1151,14 @@ export default function CourseDetailView({
   const isLoggedIn = !!localStorage.getItem('token');
 
   // ─── Guest access is limited to the first topic only ────────────────
-  const firstTopicId = topics[0]?.id;
   const isTopicLocked = useCallback(
-    (topicId) => !isLoggedIn && firstTopicId !== undefined && topicId !== firstTopicId,
-    [isLoggedIn, firstTopicId]
+    (topicId) => {
+      if (isLoggedIn) return false;
+      const topic = topics.find(t => t.id === topicId);
+      if (!topic) return true;
+      return topic.isFirstTopic !== true;
+    },
+    [isLoggedIn, topics]
   );
 
   const currentSub = subtopics[activeSection];
@@ -1351,6 +1356,20 @@ export default function CourseDetailView({
     });
   };
 
+  // ─── Handle Home Navigation - Always go to My Courses ──────────────
+  const handleHomeClick = () => {
+    navigate('/my-courses');
+  };
+
+  // ─── Handle Back Navigation - Go back to landing page or previous ──
+  const handleBackClick = () => {
+    if (handleBack) {
+      handleBack(); // This calls setActiveView('landing') from EnrollPage
+    } else {
+      navigate(-1); // Or go back in history
+    }
+  };
+
   const selectSubtopic = async (sub, globalIndex, topicId) => {
     if (isTopicLocked(topicId)) {
       promptLoginForLockedContent();
@@ -1428,15 +1447,6 @@ export default function CourseDetailView({
     localStorage.removeItem('role');
     localStorage.removeItem('userId');
     navigate('/login');
-  };
-
-  // ─── Handle Home Navigation ──────────────────────────────────────
-  const handleHomeClick = () => {
-    if (handleBack) {
-      handleBack();
-    } else {
-      navigate('/my-courses');
-    }
   };
 
   // ─── Handle Share ──────────────────────────────────────────────────
@@ -1820,6 +1830,35 @@ export default function CourseDetailView({
             <MenuIcon style={{ color: '#FFFFFF', fontSize: 24 }} />
             <span>Lessons</span>
           </button>
+
+          {/* ✅ BACK BUTTON - Goes back to landing page */}
+          <button
+            onClick={handleBackClick}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0 16px',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: TOPBAR.text,
+              cursor: 'pointer',
+              transition: 'background 0.15s, transform 0.15s',
+              background: 'transparent',
+              border: 'none',
+              borderRight: `1px solid ${TOPBAR.border}`,
+              height: '100%',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>←</span>
+            <span>Back</span>
+          </button>
         </div>
 
         <div style={styles.topBarRight}>
@@ -1888,10 +1927,15 @@ export default function CourseDetailView({
             <span>ARE YOU WANT JOIN THIS COURSE ?</span>
           </button>
 
+          {/* ✅ HOME BUTTON - Always goes to /my-courses */}
           <button
             onClick={handleHomeClick}
             className="action-btn"
-            style={styles.actionButton}
+            style={{
+              ...styles.actionButton,
+              color: '#FCD34D',
+              fontWeight: 700,
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = TOPBAR.bgHover;
             }}

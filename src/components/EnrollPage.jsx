@@ -15,12 +15,9 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
-import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
-import WorkspacePremiumRoundedIcon from '@mui/icons-material/WorkspacePremiumRounded';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
-import StarHalfRoundedIcon from '@mui/icons-material/StarHalfRounded';
 
 // ─── Design tokens ───────────────────────────────────────────────────────
 const COLORS = {
@@ -81,7 +78,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // ─── Learning view state ──────────────────────────────────────────────
-  const [activeView, setActiveView] = useState('landing'); // 'landing' | 'split'
+  const [activeView, setActiveView] = useState('landing');
   const [topics, setTopics] = useState([]);
   const [subtopics, setSubtopics] = useState([]);
   const [images, setImages] = useState([]);
@@ -111,12 +108,10 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
       try {
         let courseData = null;
 
-        // 1. Get course from state
         if (state?.course) {
           courseData = state.course;
           console.log('📥 Course from state:', courseData);
         } else if (courseId) {
-          // 2. Fetch from API using courseId
           console.log('📥 Fetching course by ID:', courseId);
           try {
             const apiData = await userApi.getPublicCourseById(courseId);
@@ -133,7 +128,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
               instructor: apiData.instructor || 'Expert Instructor',
               members: apiData.members || 0,
               language: apiData.language || 'English',
-              category: apiData.category || 'General',
+              category: apiData.category || '',
               color: '#714B67',
               icon: '📚',
               lastUpdate: apiData.lastUpdate || new Date().toLocaleDateString(),
@@ -146,7 +141,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
             return;
           }
         } else {
-          // 3. Fallback to localStorage
           const savedCourse = localStorage.getItem('lastViewedCourse');
           if (savedCourse) {
             try {
@@ -164,12 +158,10 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
           return;
         }
 
-        // Fetch full course content (topics, subtopics) from API
         console.log('📥 Fetching full course content for ID:', courseData.id);
         const apiData = await userApi.getPublicCourseById(courseData.id);
         console.log('📥 Course content loaded:', apiData);
 
-        // Format course data
         const formattedCourse = {
           id: apiData.id || courseData.id || 0,
           title: apiData.title || courseData.title || 'Course',
@@ -181,7 +173,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
           instructor: apiData.instructor || courseData.instructor || 'Expert Instructor',
           members: apiData.members || courseData.members || 0,
           language: apiData.language || courseData.language || 'English',
-          category: apiData.category || courseData.category || 'General',
+          category: '',
           color: courseData.color || '#714B67',
           icon: courseData.icon || '📚',
           lastUpdate: apiData.lastUpdate || courseData.lastUpdate || new Date().toLocaleDateString(),
@@ -190,7 +182,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
 
         setCourse(formattedCourse);
 
-        // Process topics
         let rawTopics = apiData.topics || [];
         
         console.log('📚 Raw topics from API:', rawTopics);
@@ -243,7 +234,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
           setOpenTopics({ 0: true });
         }
 
-        // Auto-select first subtopic
         if (allSubtopics.length > 0) {
           setActiveSection(0);
           setCurrentSubtopic(allSubtopics[0]);
@@ -259,7 +249,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
           setError('No lessons available yet');
         }
 
-        // ✅ STAY ON LANDING PAGE - Don't force split view
         setActiveView('landing');
 
       } catch (err) {
@@ -346,7 +335,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
 
   // ─── Handle Join Free ──────────────────────────────────────────────
   const handleJoinFree = () => {
-    // ✅ No login check here - just switch to learning view
     setActiveView('split');
   };
 
@@ -591,13 +579,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
 
   // ─── Landing Page (Enroll Page UI) ──────────────────────────────────
   const hasTopics = topics && topics.length > 0;
-
-  // Calculate total lessons
   const totalLessons = subtopics.length;
-
-  // Calculate rating (dummy for now)
-  const rating = 4.5;
-  const totalReviews = 1234;
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", minHeight: '100vh', background: COLORS.canvas }}>
@@ -646,19 +628,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
                 backdropFilter: 'blur(10px)',
               }}
             >
-              {course.category || 'Course'}
-            </span>
-            <span 
-              style={{ 
-                fontSize: '12px', 
-                fontWeight: 600,
-                color: 'rgba(255,255,255,0.7)',
-                background: 'rgba(255,255,255,0.1)',
-                padding: '4px 16px',
-                borderRadius: '20px',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
               {course.level || 'All Levels'}
             </span>
           </div>
@@ -684,12 +653,12 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
                   key={i}
                   style={{
                     fontSize: '18px',
-                    color: i < Math.floor(rating) ? COLORS.gold : 'rgba(255,255,255,0.3)',
+                    color: i < 4 ? COLORS.gold : 'rgba(255,255,255,0.3)',
                   }}
                 />
               ))}
               <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', marginLeft: '4px' }}>
-                {rating} ({totalReviews.toLocaleString()} reviews)
+                4.5 (1.2k reviews)
               </span>
             </div>
           </div>
@@ -706,16 +675,16 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>
-              <PersonRoundedIcon style={{ fontSize: '18px' }} />
-              <span>Created by {course.instructor || 'Expert Instructor'}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>
               <AccessTimeRoundedIcon style={{ fontSize: '18px' }} />
               <span>{course.duration || 'Self-paced'}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>
               <SchoolRoundedIcon style={{ fontSize: '18px' }} />
               <span>{totalLessons} {totalLessons === 1 ? 'Lesson' : 'Lessons'}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>
+              <LanguageRoundedIcon style={{ fontSize: '18px' }} />
+              <span>{course.language || 'English'}</span>
             </div>
           </div>
         </div>
@@ -735,7 +704,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
       >
         {/* Left column - Join Card */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* ✅ Join Free Card */}
           <div
             style={{
               background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDark})`,
@@ -751,7 +719,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
               <span style={{ fontSize: '16px', fontWeight: 400, opacity: 0.7 }}> / lifetime</span>
             </div>
             
-            {/* ✅ Join Free Button - No login required */}
             <button
               onClick={handleJoinFree}
               style={{
@@ -784,10 +751,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
 
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', opacity: 0.9, marginBottom: '6px' }}>
-                <WorkspacePremiumRoundedIcon style={{ fontSize: '18px' }} />
-                <span>Certificate of Completion</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', opacity: 0.9 }}>
                 <SchoolRoundedIcon style={{ fontSize: '18px' }} />
                 <span>{topics.length} Topics · {totalLessons} Lessons</span>
               </div>
@@ -839,10 +802,8 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
             </h3>
             <InfoRow icon={<EventNoteRoundedIcon />} label="Last Update" value={course.lastUpdate} />
             <InfoRow icon={<AccessTimeRoundedIcon />} label="Duration" value={course.duration} />
-            <InfoRow icon={<PersonRoundedIcon />} label="Instructor" value={course.instructor} />
             <InfoRow icon={<SchoolRoundedIcon />} label="Level" value={course.level} />
             <InfoRow icon={<LanguageRoundedIcon />} label="Language" value={course.language} />
-            <InfoRow icon={<WorkspacePremiumRoundedIcon />} label="Certificate" value={course.certificate ? 'Yes' : 'No'} last />
           </div>
         </div>
 
@@ -901,7 +862,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
                 const subs = topic.subtopics || [];
                 const isOpen = !!openTopics[idx];
                 const isFirst = idx === 0;
-                const isLocked = !isFirst; // Only first topic is free
+                const isLocked = !isFirst;
                 
                 return (
                   <div
@@ -1066,24 +1027,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
                   First topic is free to preview!
                 </span>
               </div>
-            </div>
-          )}
-          
-          {/* Enroll message for logged-in but not enrolled */}
-          {isLoggedIn && !isLoggedIn && hasTopics && (
-            <div
-              style={{
-                marginTop: '20px',
-                padding: '16px 20px',
-                background: 'linear-gradient(135deg, #DBEAFE, #93C5FD)',
-                borderRadius: '12px',
-                border: '1px solid #3B82F6',
-                textAlign: 'center',
-              }}
-            >
-              <span style={{ color: '#1E40AF', fontWeight: 600 }}>
-                Click "Join Free" above to start learning
-              </span>
             </div>
           )}
         </div>
