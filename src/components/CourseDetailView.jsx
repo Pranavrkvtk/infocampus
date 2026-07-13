@@ -24,7 +24,7 @@ import LockIcon from '@mui/icons-material/Lock';
 // ─── API Base ──────────────────────────────────────────────────────────
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-// ─── Odoo eLearning Color Palette (UPDATED) ──────────────────────────
+// ─── Odoo eLearning Color Palette ────────────────────────────────────
 const SIDEBAR = {
   bg: '#1d2228',
   header: '#1a1f24',
@@ -39,7 +39,6 @@ const SIDEBAR = {
   accent: '#714b67',
 };
 
-// ─── Dark Theme Colors for Sidebar (Legacy - kept for compatibility) ─
 const DARK = {
   bg: '#1d2228',
   surface: '#252b32',
@@ -57,7 +56,6 @@ const DARK = {
   inputBg: '#1d2228',
 };
 
-// ─── Light Theme Colors for Content ──────────────────────────────────
 const LIGHT = {
   bg: '#f8fafc',
   surface: '#ffffff',
@@ -72,7 +70,6 @@ const LIGHT = {
   successBg: '#dcfce7',
 };
 
-// ─── Top Bar Colors ──────────────────────────────────────────────────
 const TOPBAR = {
   bg: '#2C3540',
   bgGradient: 'linear-gradient(180deg, #2C3540 0%, #1F2933 100%)',
@@ -166,7 +163,7 @@ const inlineFormat = (str) => {
   return out;
 };
 
-// ─── Odoo-style Markdown Renderer (Light Theme Content) ──────────────
+// ─── Odoo-style Markdown Renderer ────────────────────────────────────
 
 const renderOdooContent = (text) => {
   if (!text) return '';
@@ -276,7 +273,6 @@ const renderOdooContent = (text) => {
   return html;
 };
 
-// ─── Odoo Content Styles (Light Theme) ──────────────────────────────
 const buildOdooStyles = (colors) => `
   .odoo-content {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -618,7 +614,7 @@ function NotesTab({ content, config }) {
   );
 }
 
-// ─── EXAM CONTENT TAB (PDF Content) ──────────────────────────────────
+// ─── EXAM CONTENT TAB ──────────────────────────────────────────────────
 
 function ExamContentTab({ content, config }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -671,7 +667,7 @@ function ExamContentTab({ content, config }) {
   );
 }
 
-// ─── INTERVIEW CONTENT TAB (PDF Content) ─────────────────────────────
+// ─── INTERVIEW CONTENT TAB ─────────────────────────────────────────────
 
 function InterviewContentTab({ content, config }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -1302,72 +1298,10 @@ export default function CourseDetailView({
       confirmButtonText: 'Login',
       cancelButtonText: 'Not now',
     }).then((result) => {
-      if (result.isConfirmed) handleLogin();
+      if (result.isConfirmed) {
+        handleLogin();
+      }
     });
-  };
-
-  // ─── Handle Join Course - Navigate to Enroll Page ──────────────────
-  const handleJoinCourse = () => {
-    // Check if user is logged in
-    const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
-    
-    if (!token || !userId) {
-      Swal.fire({
-        title: 'Login Required',
-        text: 'Please login to enroll in this course.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Login',
-        cancelButtonText: 'Cancel',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate('/login');
-        }
-      });
-      return;
-    }
-
-    // Prepare course data to pass to enroll page
-    const courseData = {
-      id: selectedCourse?.id,
-      title: selectedCourse?.title,
-      description: selectedCourse?.description,
-      level: selectedCourse?.level,
-      duration: selectedCourse?.duration,
-      price: selectedCourse?.price,
-      imageUrl: selectedCourse?.imageUrl,
-      instructor: selectedCourse?.instructor,
-      members: selectedCourse?.members,
-      language: selectedCourse?.language,
-      category: selectedCourse?.category,
-      color: selectedCourse?.color,
-      icon: selectedCourse?.icon,
-      lastUpdate: selectedCourse?.lastUpdate,
-      certificate: selectedCourse?.certificate,
-    };
-
-    // Navigate to enroll page with course data
-    navigate(`/enroll/${selectedCourse?.id}`, { 
-      state: { 
-        course: courseData,
-        from: 'course-detail-view'
-      } 
-    });
-  };
-
-  // ─── Handle Home Navigation - Always go to My Courses ──────────────
-  const handleHomeClick = () => {
-    navigate('/my-courses');
-  };
-
-  // ─── Handle Back Navigation - Go back to landing page or previous ──
-  const handleBackClick = () => {
-    if (handleBack) {
-      handleBack(); // This calls setActiveView('landing') from EnrollPage
-    } else {
-      navigate(-1); // Or go back in history
-    }
   };
 
   const selectSubtopic = async (sub, globalIndex, topicId) => {
@@ -1449,6 +1383,20 @@ export default function CourseDetailView({
     navigate('/login');
   };
 
+  // ─── Handle Home Navigation - Always go to My Courses ──────────────
+  const handleHomeClick = () => {
+    navigate('/my-courses');
+  };
+
+  // ─── Handle Back Navigation - Go back to landing page or previous ──
+  const handleBackClick = () => {
+    if (handleBack) {
+      handleBack(); // This calls setActiveView('landing') from EnrollPage
+    } else {
+      navigate(-1); // Or go back in history
+    }
+  };
+
   // ─── Handle Share ──────────────────────────────────────────────────
   const handleShare = async () => {
     const shareData = {
@@ -1516,7 +1464,6 @@ export default function CourseDetailView({
       overflow: 'hidden',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     },
-    // ─── Top Navigation Bar ──────────────────────────────────────
     topBar: {
       height: '64px',
       background: TOPBAR.bgGradient,
@@ -1539,42 +1486,6 @@ export default function CourseDetailView({
       alignItems: 'stretch',
       gap: '0px',
       height: '100%',
-    },
-    topBarNavItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      padding: '0 24px',
-      fontSize: '16px',
-      fontWeight: 700,
-      color: TOPBAR.text,
-      cursor: 'pointer',
-      transition: 'background 0.15s',
-      background: 'transparent',
-      border: 'none',
-      borderRight: `1px solid ${TOPBAR.border}`,
-      height: '100%',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-    },
-    topBarSeparator: {
-      color: TOPBAR.muted,
-      fontSize: '18px',
-      fontWeight: 300,
-      padding: '0 4px',
-    },
-    topBarBreadcrumb: {
-      fontSize: '16px',
-      color: TOPBAR.muted,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      flexWrap: 'wrap',
-      padding: '0 12px',
-    },
-    topBarBreadcrumbActive: {
-      fontWeight: 600,
-      color: TOPBAR.text,
     },
     actionButton: {
       display: 'flex',
@@ -1721,7 +1632,6 @@ export default function CourseDetailView({
 
   return (
     <div style={styles.page}>
-      {/* ─── Inter Font Import ────────────────────────────────────── */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -1752,24 +1662,20 @@ export default function CourseDetailView({
         .odoo-content * {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         }
-        
-        /* Premium scrollbar - dark theme */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 3px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
-        /* ─── SIDEBAR SCROLLBAR - HIDDEN ──────────────────────────── */
         #mobile-sidebar::-webkit-scrollbar {
           width: 0;
           display: none;
         }
         #mobile-sidebar {
-          scrollbar-width: none;      /* Firefox */
-          -ms-overflow-style: none;   /* IE/Edge */
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
 
-        /* Button hover styles */
         .action-btn:hover {
           background: ${TOPBAR.bgHover};
           transform: translateY(-1px);
@@ -1780,7 +1686,6 @@ export default function CourseDetailView({
           box-shadow: none;
         }
 
-        /* Sidebar hover states - black background on hover */
         .sidebar-item:hover {
           background: #000000 !important;
           color: #FFFFFF !important;
@@ -1831,7 +1736,6 @@ export default function CourseDetailView({
             <span>Lessons</span>
           </button>
 
-          {/* ✅ BACK BUTTON - Goes back to landing page */}
           <button
             onClick={handleBackClick}
             style={{
@@ -1901,39 +1805,13 @@ export default function CourseDetailView({
             )}
           </button>
 
-          {/* ✅ JOIN COURSE BUTTON - Navigates to Enroll Page */}
-          <button
-            onClick={handleJoinCourse}
-            className="action-btn"
-            style={{
-              ...styles.actionButton,
-              background: '#714b67',
-              color: '#FFFFFF',
-              borderLeft: `1px solid ${TOPBAR.border}`,
-              fontWeight: 700,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#8a5f7a';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(113, 75, 103, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#714b67';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <span style={{ fontSize: '18px' }}>🎯</span>
-            <span>ARE YOU WANT JOIN THIS COURSE ?</span>
-          </button>
-
-          {/* ✅ HOME BUTTON - Always goes to /my-courses */}
+          {/* ✅ HOME BUTTON - White color */}
           <button
             onClick={handleHomeClick}
             className="action-btn"
             style={{
               ...styles.actionButton,
-              color: '#FCD34D',
+              color: '#FFFFFF',
               fontWeight: 700,
             }}
             onMouseEnter={(e) => {
@@ -1991,27 +1869,10 @@ export default function CourseDetailView({
         <div style={styles.shell}>
           {isMobile && showSidebar && <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />}
 
-          {/* ─── Sidebar ────────────────────────────────────── */}
           {(!isSidebarCollapsed || isMobile) && (
             <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
               <div style={styles.sidebarHeader}>
                 <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
-                {!isLoggedIn && (
-                  <div
-                    style={{
-                      marginTop: '8px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: 'rgba(0,0,0,0.65)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <LockIcon style={{ fontSize: '13px' }} />
-                    Previewing first topic — sign in to unlock the rest
-                  </div>
-                )}
               </div>
 
               <div style={{ padding: '10px 12px' }}>

@@ -49,6 +49,88 @@ const TOPBAR = {
 const FALLBACK_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
+// ─── Date Formatting Helpers ────────────────────────────────────────────
+const formatDate = (dateString, format = 'long') => {
+  if (!dateString) return 'N/A';
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
+    
+    const options = {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    };
+    
+    switch (format) {
+      case 'long':
+        return date.toLocaleDateString('en-US', options);
+      case 'short':
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+      case 'medium':
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+      case 'full':
+        return date.toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      case 'relative':
+        return getRelativeTime(date);
+      case 'iso':
+        return date.toISOString().split('T')[0];
+      default:
+        return date.toLocaleDateString('en-US', options);
+    }
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+};
+
+const getRelativeTime = (date) => {
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+  return `${Math.floor(diffDays / 365)} years ago`;
+};
+
+const formatDateField = (dateString) => {
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  } catch {
+    return dateString;
+  }
+};
+
 // ─── Helper ──────────────────────────────────────────────────────────────
 const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
@@ -131,8 +213,9 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
               category: apiData.category || '',
               color: '#714B67',
               icon: '📚',
-              lastUpdate: apiData.lastUpdate || new Date().toLocaleDateString(),
-              certificate: apiData.certificate ?? true,
+              lastUpdate: formatDateField(apiData.lastUpdate || apiData.updatedAt || apiData.createdAt),
+              createdAt: apiData.createdAt,
+              updatedAt: apiData.updatedAt,
             };
           } catch (fetchError) {
             console.error('Error fetching course:', fetchError);
@@ -176,8 +259,9 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
           category: '',
           color: courseData.color || '#714B67',
           icon: courseData.icon || '📚',
-          lastUpdate: apiData.lastUpdate || courseData.lastUpdate || new Date().toLocaleDateString(),
-          certificate: apiData.certificate ?? courseData.certificate ?? true,
+          lastUpdate: formatDateField(apiData.lastUpdate || apiData.updatedAt || apiData.createdAt || courseData.lastUpdate),
+          createdAt: apiData.createdAt || courseData.createdAt,
+          updatedAt: apiData.updatedAt || courseData.updatedAt,
         };
 
         setCourse(formattedCourse);
@@ -581,6 +665,12 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
   const hasTopics = topics && topics.length > 0;
   const totalLessons = subtopics.length;
 
+  // Get the display date for the course
+  const displayDate = course.lastUpdate || 
+                     formatDateField(course.updatedAt) || 
+                     formatDateField(course.createdAt) || 
+                     'N/A';
+
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", minHeight: '100vh', background: COLORS.canvas }}>
       <TopBar />
@@ -630,6 +720,21 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
             >
               {course.level || 'All Levels'}
             </span>
+            {course.lastUpdate && (
+              <span 
+                style={{ 
+                  fontSize: '12px', 
+                  fontWeight: 500, 
+                  color: 'rgba(255,255,255,0.7)',
+                  background: 'rgba(255,255,255,0.08)',
+                  padding: '4px 16px',
+                  borderRadius: '20px',
+                  backdropFilter: 'blur(10px)',
+                }}
+              >
+                Updated: {course.lastUpdate}
+              </span>
+            )}
           </div>
           
           <h1
@@ -787,7 +892,7 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
             </button>
           </div>
 
-          {/* Course Information */}
+          {/* Course Information with Formatted Dates */}
           <div
             style={{
               background: COLORS.paper,
@@ -800,11 +905,60 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
             <h3 style={{ margin: 0, marginBottom: '16px', fontSize: '14px', fontWeight: 700, color: COLORS.ink, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
               Course Information
             </h3>
-            <InfoRow icon={<EventNoteRoundedIcon />} label="Last Update" value={course.lastUpdate} />
-            <InfoRow icon={<AccessTimeRoundedIcon />} label="Duration" value={course.duration} />
-            <InfoRow icon={<SchoolRoundedIcon />} label="Level" value={course.level} />
-            <InfoRow icon={<LanguageRoundedIcon />} label="Language" value={course.language} />
+            <InfoRow 
+              icon={<EventNoteRoundedIcon />} 
+              label="Last Update" 
+              value={displayDate}
+            />
+            <InfoRow 
+              icon={<AccessTimeRoundedIcon />} 
+              label="Duration" 
+              value={course.duration || 'Self-paced'} 
+            />
+            <InfoRow 
+              icon={<SchoolRoundedIcon />} 
+              label="Level" 
+              value={course.level || 'All Levels'} 
+            />
+            <InfoRow 
+              icon={<LanguageRoundedIcon />} 
+              label="Language" 
+              value={course.language || 'English'} 
+              last={true}
+            />
           </div>
+
+          {/* Created/Updated Dates (Optional additional info) */}
+          {(course.createdAt || course.updatedAt) && (
+            <div
+              style={{
+                background: COLORS.paper,
+                borderRadius: '16px',
+                padding: '16px 20px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                border: `1px solid ${COLORS.line}`,
+                fontSize: '12px',
+                color: COLORS.slate,
+              }}
+            >
+              {course.createdAt && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span>Created:</span>
+                  <span style={{ fontWeight: 500, color: COLORS.ink }}>
+                    {formatDate(course.createdAt, 'full')}
+                  </span>
+                </div>
+              )}
+              {course.updatedAt && course.updatedAt !== course.createdAt && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span>Last Updated:</span>
+                  <span style={{ fontWeight: 500, color: COLORS.ink }}>
+                    {formatDate(course.updatedAt, 'full')}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right column - Topics Preview */}
@@ -977,18 +1131,6 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
                                       Free
                                     </span>
                                   )}
-                                  {!isFree && !isLoggedIn && (
-                                    <span style={{ 
-                                      fontSize: '9px', 
-                                      background: '#FEF3C7', 
-                                      color: '#92400E', 
-                                      padding: '1px 8px', 
-                                      borderRadius: '10px',
-                                      fontWeight: 600,
-                                    }}>
-                                      Locked
-                                    </span>
-                                  )}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: COLORS.slate, fontSize: '12px' }}>
                                   {sub.xp && <span>{sub.xp} XP</span>}
@@ -1005,38 +1147,21 @@ export default function EnrollPage({ isMobile: isMobileProp, onBack }) {
               })}
             </div>
           )}
-          
-          {/* Login required message */}
-          {!isLoggedIn && hasTopics && (
-            <div
-              style={{
-                marginTop: '20px',
-                padding: '16px 20px',
-                background: 'linear-gradient(135deg, #FEF3C7, #FDE68A)',
-                borderRadius: '12px',
-                border: '1px solid #F59E0B',
-                textAlign: 'center',
-              }}
-            >
-              <LockRoundedIcon style={{ color: '#D97706', fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }} />
-              <span style={{ color: '#92400E', fontWeight: 600 }}>
-                Login to access all course content and track your progress
-              </span>
-              <div style={{ marginTop: '6px' }}>
-                <span style={{ color: '#92400E', fontSize: '13px' }}>
-                  First topic is free to preview!
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-// ─── InfoRow component ──────────────────────────────────────────────────
+// ─── InfoRow component with date formatting ──────────────────────────────────
 function InfoRow({ icon, label, value, last }) {
+  // Check if the value is a date string that needs formatting
+  const isDateValue = value && typeof value === 'string' && 
+    (value.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(value));
+  
+  // Format the value if it's a date
+  const displayValue = isDateValue ? formatDate(value, 'long') : value;
+  
   return (
     <div
       style={{
@@ -1052,7 +1177,7 @@ function InfoRow({ icon, label, value, last }) {
         {icon}
       </span>
       <span style={{ color: COLORS.slate, flex: 1 }}>{label}</span>
-      <span style={{ color: COLORS.ink, fontWeight: 600 }}>{value}</span>
+      <span style={{ color: COLORS.ink, fontWeight: 600 }}>{displayValue}</span>
     </div>
   );
 }
