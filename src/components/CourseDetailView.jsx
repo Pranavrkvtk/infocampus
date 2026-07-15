@@ -10,7 +10,7 @@ import {
   getSubtopicLabs,
 } from '../api/UserApi';
 import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
-import { getImageUrl } from '../utils/imageUtils'; // ✅ ADDED IMPORT
+import { getImageUrl } from '../utils/imageUtils';
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
 import ShareIcon from '@mui/icons-material/Share';
@@ -20,9 +20,6 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
-import LockIcon from '@mui/icons-material/Lock';
-
-// ─── API Base ──────────────────────────────────────────────────────────
 
 // ─── Odoo eLearning Color Palette ────────────────────────────────────
 const SIDEBAR = {
@@ -135,10 +132,8 @@ const fetchImageWithAuth = async (url) => {
   }
 };
 
-// ─── Updated buildImgSrc to use getImageUrl utility ──────────────────
 const buildImgSrc = (src) => {
   if (!src) return '';
-  // Use the imported getImageUrl utility from imageUtils
   return getImageUrl(src) || '';
 };
 
@@ -610,8 +605,6 @@ function NotesTab({ content, config }) {
   );
 }
 
-// ─── EXAM CONTENT TAB ──────────────────────────────────────────────────
-
 function ExamContentTab({ content, config }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -662,8 +655,6 @@ function ExamContentTab({ content, config }) {
     </div>
   );
 }
-
-// ─── INTERVIEW CONTENT TAB ─────────────────────────────────────────────
 
 function InterviewContentTab({ content, config }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -1142,10 +1133,15 @@ export default function CourseDetailView({
   // ─── Check if user is logged in ─────────────────────────────────────
   const isLoggedIn = !!localStorage.getItem('token');
 
-  // ─── Guest access is limited to the first topic only ────────────────
+  // ─── isTopicLocked - Guests only see first topic ────────────────────
   const isTopicLocked = useCallback(
     (topicId) => {
-      if (isLoggedIn) return false;
+      // Logged in users have access to all content
+      if (isLoggedIn) {
+        return false;
+      }
+      
+      // Guests: only first topic is free
       const topic = topics.find(t => t.id === topicId);
       if (!topic) return true;
       return topic.isFirstTopic !== true;
@@ -1168,7 +1164,6 @@ export default function CourseDetailView({
     };
   }, []);
 
-  // ─── Fullscreen change listener ─────────────────────────────────────
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -1252,7 +1247,7 @@ export default function CourseDetailView({
     }
   }, [currentTopic]);
 
-  // ─── Determine available types and sort them according to typeOrder ─
+  // ─── Determine available types ──────────────────────────────────────
   const availableTypes = (() => {
     const out = [];
     if (videoUrls.length > 0) out.push('video');
@@ -1284,7 +1279,7 @@ export default function CourseDetailView({
     navigate('/login');
   };
 
-  // ─── Prompt guests to log in when they try to open a locked topic ───
+  // ─── Prompt guests to log in ────────────────────────────────────────
   const promptLoginForLockedContent = () => {
     Swal.fire({
       title: 'Login Required',
@@ -1300,16 +1295,34 @@ export default function CourseDetailView({
     });
   };
 
+  // ─── selectSubtopic ──────────────────────────────────────────────────
   const selectSubtopic = async (sub, globalIndex, topicId) => {
+    // If logged in, allow access to ALL content
+    if (isLoggedIn) {
+      setActiveSection(globalIndex);
+      setCurrentSubtopic(sub);
+      await loadSubtopicImages(sub.id);
+      if (isMobile) setShowSidebar(false);
+      
+      // Auto-select content type
+      if (sub?.content) setActiveContentType('notes');
+      else if (sub?.examContent) setActiveContentType('exam-content');
+      else if (sub?.interviewContent) setActiveContentType('interview-content');
+      else if (availableTypes.length > 0) setActiveContentType(availableTypes[0]);
+      return;
+    }
+
+    // Guests: Check if topic is locked
     if (isTopicLocked(topicId)) {
       promptLoginForLockedContent();
       return;
     }
+
+    // Guest with unlocked topic (first topic only)
     setActiveSection(globalIndex);
     setCurrentSubtopic(sub);
     await loadSubtopicImages(sub.id);
     if (isMobile) setShowSidebar(false);
-    // Set default content type based on available content
     if (sub?.content) setActiveContentType('notes');
     else if (sub?.examContent) setActiveContentType('exam-content');
     else if (sub?.interviewContent) setActiveContentType('interview-content');
@@ -1371,7 +1384,6 @@ export default function CourseDetailView({
     }
   };
 
-  // ─── Handle Logout ──────────────────────────────────────────────────
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
@@ -1379,21 +1391,18 @@ export default function CourseDetailView({
     navigate('/login');
   };
 
-  // ─── Handle Home Navigation - Always go to My Courses ──────────────
   const handleHomeClick = () => {
     navigate('/my-courses');
   };
 
-  // ─── Handle Back Navigation - Go back to landing page or previous ──
   const handleBackClick = () => {
     if (handleBack) {
-      handleBack(); // This calls setActiveView('landing') from EnrollPage
+      handleBack();
     } else {
-      navigate(-1); // Or go back in history
+      navigate(-1);
     }
   };
 
-  // ─── Handle Share ──────────────────────────────────────────────────
   const handleShare = async () => {
     const shareData = {
       title: selectedCourse?.title || 'Course',
@@ -1426,7 +1435,6 @@ export default function CourseDetailView({
     }
   };
 
-  // ─── Handle Fullscreen ──────────────────────────────────────────────
   const handleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(err => {
@@ -1448,8 +1456,6 @@ export default function CourseDetailView({
       </div>
     );
   }
-
-  // ─── Odoo Styles ────────────────────────────────────────────────────
 
   const isMobileDevice = window.innerWidth < 768;
 
@@ -1620,7 +1626,6 @@ export default function CourseDetailView({
     },
   };
 
-  // ─── Handlers to prevent copying ────────────────────────────────────
   const preventCopy = (e) => {
     e.preventDefault();
     return false;
@@ -1801,7 +1806,6 @@ export default function CourseDetailView({
             )}
           </button>
 
-          {/* ✅ HOME BUTTON - White color */}
           <button
             onClick={handleHomeClick}
             className="action-btn"
@@ -1867,7 +1871,6 @@ export default function CourseDetailView({
 
           {(!isSidebarCollapsed || isMobile) && (
             <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
-              {/* Course Name Header - Updated background */}
               <div style={styles.sidebarHeader}>
                 <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
               </div>
@@ -1908,6 +1911,7 @@ export default function CourseDetailView({
                   const topicSubs = topic.subtopics || [];
                   const isOpen = !!expandedTopics[topic.id];
                   const locked = isTopicLocked(topic.id);
+                  
                   return (
                     <div key={topic.id} style={styles.topicItem}>
                       <div 
@@ -1920,10 +1924,7 @@ export default function CourseDetailView({
                           e.currentTarget.style.background = isOpen ? SIDEBAR.itemOpen : 'transparent';
                         }}
                       >
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {topic.title}
-                          {locked && <LockIcon style={{ fontSize: '12px', color: SIDEBAR.textMuted }} />}
-                        </span>
+                        <span>{topic.title}</span>
                         <span style={{ fontSize: '10px' }}>
                           {isOpen ? '▼' : '▶'}
                         </span>
@@ -1933,37 +1934,39 @@ export default function CourseDetailView({
                         if (globalIndex === -1) return null;
                         const isActive = activeSection === globalIndex;
                         const hasVideo = getVideoUrls(sub).length > 0;
+                        const subtopicLocked = locked && !isLoggedIn;
                         
                         return (
                           <div key={sub.id}>
                             <div 
                               style={{
                                 ...styles.subtopicItem(isActive, hasVideo),
-                                opacity: locked ? 0.55 : 1,
-                                cursor: locked ? 'not-allowed' : 'pointer',
+                                opacity: subtopicLocked ? 0.5 : 1,
+                                cursor: subtopicLocked ? 'not-allowed' : 'pointer',
                               }}
                               className={isActive ? 'sidebar-item-active' : 'sidebar-item'}
                               onClick={() => selectSubtopic(sub, globalIndex, topic.id)}
                               onMouseEnter={(e) => {
-                                if (!isActive && !locked) {
+                                if (!isActive && !subtopicLocked) {
                                   e.currentTarget.style.color = '#FFFFFF';
                                   e.currentTarget.style.background = '#000000';
                                 }
                               }}
                               onMouseLeave={(e) => {
-                                if (!isActive && !locked) {
+                                if (!isActive && !subtopicLocked) {
                                   e.currentTarget.style.color = SIDEBAR.textMuted;
                                   e.currentTarget.style.background = 'transparent';
                                 }
                               }}
                             >
-                              <span style={{ fontSize: '11px', color: locked ? SIDEBAR.textMuted : (hasVideo ? SIDEBAR.accent : 'inherit') }}>
-                                {locked ? '🔒' : hasVideo ? '▶' : '●'}
+                              <span style={{ fontSize: '11px', color: hasVideo ? SIDEBAR.accent : 'inherit' }}>
+                                {hasVideo ? '▶' : '●'}
                               </span>
                               <span style={{ flex: 1 }}>{sub.title}</span>
                             </div>
                             
-                            {isActive && !locked && (
+                            {/* Show content types only for active, unlocked subtopic */}
+                            {isActive && !subtopicLocked && (
                               <div>
                                 {loadingData ? (
                                   <div style={{ padding: '4px 20px 4px 28px', fontSize: '11px', color: SIDEBAR.textMuted }}>Loading…</div>
