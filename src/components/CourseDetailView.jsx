@@ -111,15 +111,34 @@ const getEmbedUrl = (url) => {
   return url;
 };
 
+// ✅ FIXED: Get video URLs with proper filtering
 const getVideoUrls = (subtopic) => {
   if (!subtopic) return [];
-  if (subtopic.videoUrls && Array.isArray(subtopic.videoUrls) && subtopic.videoUrls.length > 0) {
-    return subtopic.videoUrls;
+  
+  // Check videoUrls array first
+  if (subtopic.videoUrls && Array.isArray(subtopic.videoUrls)) {
+    const validUrls = subtopic.videoUrls.filter(url => url && url.trim() !== '');
+    if (validUrls.length > 0) return validUrls;
   }
+  
+  // Then check single videoUrl
   if (subtopic.videoUrl && subtopic.videoUrl.trim() !== '') {
     return [subtopic.videoUrl];
   }
+  
   return [];
+};
+
+// ✅ FIXED: Check if subtopic has video content
+const hasVideoContent = (subtopic) => {
+  if (!subtopic) return false;
+  return getVideoUrls(subtopic).length > 0;
+};
+
+// ✅ FIXED: Check if subtopic has notes content
+const hasNotesContent = (subtopic) => {
+  if (!subtopic) return false;
+  return !!(subtopic.content && subtopic.content.trim() !== '');
 };
 
 const fetchImageWithAuth = async (url) => {
@@ -1126,6 +1145,11 @@ export default function CourseDetailView({
   const currentSubtopic = propCurrentSubtopic || localCurrentSubtopic || (subtopics.length > 0 ? subtopics[localActiveSection] : null);
   const contentLoading = propContentLoading || loading;
 
+  // ✅ FIX: Determine which active section to use (props or local)
+  const currentActiveSection = typeof propSetActiveSection === 'function'
+    ? activeSection
+    : localActiveSection;
+
   // ─── Wrapper functions for setters ──────────────────────────────────
   const setActiveSection = useCallback((index) => {
     if (typeof propSetActiveSection === 'function') {
@@ -1440,31 +1464,6 @@ export default function CourseDetailView({
     }
   }, [currentTopic]);
 
-  // ─── Determine available types ──────────────────────────────────────
-  const availableTypes = (() => {
-    const out = [];
-    if (videoUrls.length > 0) out.push('video');
-    if (currentSubtopic?.content) out.push('notes');
-    if (currentSubtopic?.examContent) out.push('exam-content');
-    if (currentSubtopic?.interviewContent) out.push('interview-content');
-    if (interviewQuestions.length > 0) out.push('interview');
-    if (examQuestions.length > 0) out.push('exam');
-    if (labs.length > 0) out.push('labs');
-    out.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
-    return out;
-  })();
-
-  useEffect(() => {
-    if (loadingData) return;
-    if (availableTypes.length > 0) {
-      const preferred = availableTypes.includes('notes') ? 'notes' :
-                        availableTypes.includes('exam-content') ? 'exam-content' :
-                        availableTypes.includes('interview-content') ? 'interview-content' :
-                        availableTypes[0];
-      if (!availableTypes.includes(activeContentType)) setActiveContentType(preferred);
-    }
-  }, [loadingData, availableTypes, activeContentType]);
-
   const toggleTopic = (topicId) => setExpandedTopics((prev) => ({ ...prev, [topicId]: !prev[topicId] }));
 
   const handleLogin = () => {
@@ -1488,6 +1487,9 @@ export default function CourseDetailView({
   };
 
   const selectSubtopic = async (sub, globalIndex, topicId) => {
+    console.log("📌 Clicked:", sub.title);
+    console.log("📌 Global Index:", globalIndex);
+
     if (isPreview) {
       const topic = topics.find(t => t.id === topicId);
       if (topic && topic.isFirstTopic !== true) {
@@ -1509,15 +1511,36 @@ export default function CourseDetailView({
     }
 
     if (isLoggedIn) {
+      console.log("✅ Setting active section to:", globalIndex);
       setActiveSection(globalIndex);
       setCurrentSubtopic(sub);
       await loadSubtopicImages(sub.id);
       if (isMobile) setShowSidebar(false);
       
-      if (sub?.content) setActiveContentType('notes');
-      else if (sub?.examContent) setActiveContentType('exam-content');
-      else if (sub?.interviewContent) setActiveContentType('interview-content');
-      else if (availableTypes.length > 0) setActiveContentType(availableTypes[0]);
+      // Check what content is available for THIS subtopic
+      const hasVideo = hasVideoContent(sub);
+      const hasNotes = hasNotesContent(sub);
+      const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
+      const hasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
+      
+      // Build available types for this subtopic
+      const subAvailableTypes = [];
+      if (hasVideo) subAvailableTypes.push('video');
+      if (hasNotes) subAvailableTypes.push('notes');
+      if (hasExam) subAvailableTypes.push('exam-content');
+      if (hasInterview) subAvailableTypes.push('interview-content');
+      
+      // Sort by the global type order
+      subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
+      
+      console.log("📋 Available types for", sub.title, ":", subAvailableTypes);
+      
+      // Set the first available type as active
+      if (subAvailableTypes.length > 0) {
+        setActiveContentType(subAvailableTypes[0]);
+      } else {
+        setActiveContentType('notes'); // fallback
+      }
       return;
     }
 
@@ -1526,14 +1549,36 @@ export default function CourseDetailView({
       return;
     }
 
+    console.log("✅ Setting active section to:", globalIndex);
     setActiveSection(globalIndex);
     setCurrentSubtopic(sub);
     await loadSubtopicImages(sub.id);
     if (isMobile) setShowSidebar(false);
-    if (sub?.content) setActiveContentType('notes');
-    else if (sub?.examContent) setActiveContentType('exam-content');
-    else if (sub?.interviewContent) setActiveContentType('interview-content');
-    else if (availableTypes.length > 0) setActiveContentType(availableTypes[0]);
+    
+    // Check what content is available for THIS subtopic
+    const hasVideo = hasVideoContent(sub);
+    const hasNotes = hasNotesContent(sub);
+    const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
+    const hasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
+    
+    // Build available types for this subtopic
+    const subAvailableTypes = [];
+    if (hasVideo) subAvailableTypes.push('video');
+    if (hasNotes) subAvailableTypes.push('notes');
+    if (hasExam) subAvailableTypes.push('exam-content');
+    if (hasInterview) subAvailableTypes.push('interview-content');
+    
+    // Sort by the global type order
+    subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
+    
+    console.log("📋 Available types for", sub.title, ":", subAvailableTypes);
+    
+    // Set the first available type as active
+    if (subAvailableTypes.length > 0) {
+      setActiveContentType(subAvailableTypes[0]);
+    } else {
+      setActiveContentType('notes'); // fallback
+    }
   };
 
   const filteredTopics = searchQuery
@@ -1555,7 +1600,37 @@ export default function CourseDetailView({
       );
     }
     if (loadingData) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>Loading...</div>;
-    if (availableTypes.length === 0) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No content available</div>;
+    
+    // Get available types for the current subtopic
+    const currentAvailableTypes = (() => {
+      if (!currentSubtopic) return [];
+      const out = [];
+      
+      const hasVideo = hasVideoContent(currentSubtopic);
+      const hasNotes = hasNotesContent(currentSubtopic);
+      const hasExam = !!(currentSubtopic.examContent && currentSubtopic.examContent.trim() !== '');
+      const hasInterview = !!(currentSubtopic.interviewContent && currentSubtopic.interviewContent.trim() !== '');
+      
+      if (hasVideo) out.push('video');
+      if (hasNotes) out.push('notes');
+      if (hasExam) out.push('exam-content');
+      if (hasInterview) out.push('interview-content');
+      
+      // Also check if there are interview questions, exam questions, or labs
+      if (interviewQuestions.length > 0) out.push('interview');
+      if (examQuestions.length > 0) out.push('exam');
+      if (labs.length > 0) out.push('labs');
+      
+      out.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
+      return out;
+    })();
+    
+    if (currentAvailableTypes.length === 0) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No content available</div>;
+
+    // If the active content type isn't available, set it to the first available
+    if (!currentAvailableTypes.includes(activeContentType)) {
+      setActiveContentType(currentAvailableTypes[0]);
+    }
 
     switch (activeContentType) {
       case 'video':
@@ -1653,17 +1728,6 @@ export default function CourseDetailView({
         document.exitFullscreen();
       }
     }
-  };
-
-  // ─── Helper functions to check content types ──────────────────────
-  const hasVideoContent = (subtopic) => {
-    if (!subtopic) return false;
-    return getVideoUrls(subtopic).length > 0;
-  };
-
-  const hasNotesContent = (subtopic) => {
-    if (!subtopic) return false;
-    return !!(subtopic.content || subtopic.notes || subtopic.description || subtopic.text);
   };
 
   if (loading || contentLoading) {
@@ -1807,7 +1871,7 @@ export default function CourseDetailView({
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      padding: '6px 12px 6px 28px',
+      padding: '8px 12px 8px 28px',
       cursor: 'pointer',
       fontSize: '13px',
       fontWeight: isActive ? '600' : '400',
@@ -1822,13 +1886,13 @@ export default function CourseDetailView({
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      padding: '5px 12px 5px 28px',
-      fontSize: '13px',
+      padding: '5px 12px 5px 46px',
+      fontSize: '12px',
       cursor: 'pointer',
       color: isActive ? '#714b67' : SIDEBAR.textMuted,
       background: isActive ? '#000000' : 'transparent',
       transition: 'all 0.2s ease',
-      fontWeight: isActive ? 600 : 500,
+      fontWeight: isActive ? 600 : 400,
       borderLeft: isActive ? `3px solid ${SIDEBAR.accent}` : '3px solid transparent',
       borderRadius: '3px',
       margin: '0px 0',
@@ -2164,6 +2228,7 @@ export default function CourseDetailView({
                 />
               </div>
 
+              {/* ✅ FIXED: Sidebar rendering with subtopic-specific content types */}
               <div>
                 {filteredTopics.map((topic) => {
                   const topicSubs = topic.subTopics || topic.subtopics || [];
@@ -2190,13 +2255,47 @@ export default function CourseDetailView({
                       {isOpen && topicSubs.map((sub) => {
                         const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
                         if (globalIndex === -1) return null;
-                        const isActive = activeSection === globalIndex;
+                        
+                        // ✅ FIX: Use currentActiveSection instead of activeSection
+                        const isActive = currentActiveSection === globalIndex;
                         const subtopicLocked = locked && !isLoggedIn && !isPreview;
                         
-                        // Check content types - ONLY video and notes
-                        const hasVideo = hasVideoContent(sub);
-                        const hasNotes = hasNotesContent(sub);
-                        const hasAnyContent = hasVideo || hasNotes;
+                        // Calculate content types for THIS specific subtopic
+                        const subHasVideo = hasVideoContent(sub);
+                        const subHasNotes = hasNotesContent(sub);
+                        const subHasExam = !!(sub.examContent && sub.examContent.trim() !== '');
+                        const subHasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
+                        
+                        // Build available types for this specific subtopic
+                        const subAvailableTypes = [];
+                        if (subHasVideo) subAvailableTypes.push('video');
+                        if (subHasNotes) subAvailableTypes.push('notes');
+                        if (subHasExam) subAvailableTypes.push('exam-content');
+                        if (subHasInterview) subAvailableTypes.push('interview-content');
+                        
+                        // Also check for interview questions, exam questions, or labs (from API)
+                        if (isActive) {
+                          if (interviewQuestions.length > 0) subAvailableTypes.push('interview');
+                          if (examQuestions.length > 0) subAvailableTypes.push('exam');
+                          if (labs.length > 0) subAvailableTypes.push('labs');
+                        }
+                        
+                        subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
+                        
+                        const hasAnyContentForSub = subHasVideo || subHasNotes || subHasExam || subHasInterview;
+                        
+                        // Log for debugging
+                        console.log(
+                          sub.title,
+                          "globalIndex:",
+                          globalIndex,
+                          "currentActiveSection:",
+                          currentActiveSection,
+                          "isActive:",
+                          isActive,
+                          "subAvailableTypes:",
+                          subAvailableTypes
+                        );
                         
                         return (
                           <div key={sub.id}>
@@ -2239,59 +2338,67 @@ export default function CourseDetailView({
                                 }
                               }}
                             >
-                              {/* ✅ Show ONLY YouTube (red) and Flag (yellow) icons */}
-                              {subtopicLocked || (isPreview && topic.isFirstTopic !== true) ? (
-                                <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
-                              ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                                  {hasVideo && (
-                                    <YouTubeIcon style={{ fontSize: '18px', color: '#FF0000' }} />
-                                  )}
-                                  {hasNotes && (
-                                    <FlagIcon style={{ fontSize: '18px', color: '#FFC107' }} />
-                                  )}
-                                  {!hasAnyContent && (
-                                    <span style={{ fontSize: '11px', color: SIDEBAR.textMuted }}>●</span>
-                                  )}
-                                </div>
-                              )}
-                              <span style={{ flex: 1 }}>{sub.title}</span>
-                              {isPreview && topic.isFirstTopic !== true && (
-                                <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted }} />
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                                {subtopicLocked || (isPreview && topic.isFirstTopic !== true) ? (
+                                  <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                    {subHasVideo && (
+                                      <YouTubeIcon style={{ fontSize: '18px', color: '#FF0000' }} />
+                                    )}
+                                    {subHasNotes && (
+                                      <FlagIcon style={{ fontSize: '18px', color: '#FFC107' }} />
+                                    )}
+                                    {!hasAnyContentForSub && !subtopicLocked && (
+                                      <span style={{ fontSize: '11px', color: SIDEBAR.textMuted }}>●</span>
+                                    )}
+                                  </div>
+                                )}
+                                <span style={{ flex: 1, wordBreak: 'break-word' }}>{sub.title}</span>
+                                {isPreview && topic.isFirstTopic !== true && (
+                                  <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
+                                )}
+                              </div>
                             </div>
                             
+                            {/* Show content type tabs ONLY for the selected subtopic, using subtopic-specific types */}
                             {isActive && !subtopicLocked && !(isPreview && topic.isFirstTopic !== true) && (
-                              <div>
+                              <div style={{ marginLeft: '16px' }}>
                                 {loadingData ? (
-                                  <div style={{ padding: '4px 20px 4px 28px', fontSize: '11px', color: SIDEBAR.textMuted }}>Loading…</div>
+                                  <div style={{ padding: '4px 12px 4px 28px', fontSize: '11px', color: SIDEBAR.textMuted }}>Loading…</div>
                                 ) : (
-                                  CONTENT_TYPES.filter((t) => availableTypes.includes(t.key)).map((t) => (
-                                    <div
-                                      key={t.key}
-                                      style={styles.contentTypeItem(activeContentType === t.key)}
-                                      className={activeContentType === t.key ? 'sidebar-item-active' : 'sidebar-item'}
-                                      onClick={() => setActiveContentType(t.key)}
-                                      onMouseEnter={(e) => {
-                                        if (activeContentType !== t.key) {
-                                          e.currentTarget.style.color = '#FFFFFF';
-                                          e.currentTarget.style.background = '#000000';
-                                        }
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        if (activeContentType !== t.key) {
-                                          e.currentTarget.style.color = SIDEBAR.textMuted;
-                                          e.currentTarget.style.background = 'transparent';
-                                        }
-                                      }}
-                                    >
-                                      <span style={{ fontSize: '13px' }}>{t.icon}</span>
-                                      <span style={{ fontSize: '13px' }}>{t.label}</span>
-                                    </div>
-                                  ))
+                                  CONTENT_TYPES.filter((t) => subAvailableTypes.includes(t.key)).map((t) => {
+                                    const isActiveType = activeContentType === t.key;
+                                    
+                                    return (
+                                      <div
+                                        key={t.key}
+                                        style={{
+                                          ...styles.contentTypeItem(isActiveType),
+                                        }}
+                                        className={isActiveType ? 'sidebar-item-active' : 'sidebar-item'}
+                                        onClick={() => setActiveContentType(t.key)}
+                                        onMouseEnter={(e) => {
+                                          if (!isActiveType) {
+                                            e.currentTarget.style.color = '#FFFFFF';
+                                            e.currentTarget.style.background = '#000000';
+                                          }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          if (!isActiveType) {
+                                            e.currentTarget.style.color = SIDEBAR.textMuted;
+                                            e.currentTarget.style.background = 'transparent';
+                                          }
+                                        }}
+                                      >
+                                        <span style={{ fontSize: '12px', width: '18px', textAlign: 'center' }}>{t.icon}</span>
+                                        <span style={{ fontSize: '12px' }}>{t.label}</span>
+                                      </div>
+                                    );
+                                  })
                                 )}
-                                {!loadingData && availableTypes.length === 0 && (
-                                  <div style={{ padding: '4px 20px 4px 28px', fontSize: '11px', color: SIDEBAR.textMuted }}>No content</div>
+                                {!loadingData && subAvailableTypes.length === 0 && (
+                                  <div style={{ padding: '4px 12px 4px 28px', fontSize: '11px', color: SIDEBAR.textMuted }}>No content</div>
                                 )}
                               </div>
                             )}

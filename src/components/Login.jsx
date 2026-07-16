@@ -21,6 +21,7 @@ function Login() {
         title: "Missing Fields",
         text: "Please enter both email and password",
         confirmButtonColor: "#f59e0b",
+        confirmButtonText: "OK",
       });
       return;
     }
@@ -33,10 +34,7 @@ function Login() {
 
       console.log("🔍 Login Response:", data);
 
-      // ✅ All user data is now stored in the login function
-      // The user object with role is already in localStorage
-
-      // ✅ Get the stored user data
+      // Get the stored user data
       const userStr = localStorage.getItem("user");
       const userData = userStr ? JSON.parse(userStr) : {};
       const role = userData.role || "USER";
@@ -54,7 +52,7 @@ function Login() {
         showConfirmButton: false,
       });
 
-      // ✅ Redirect based on role
+      // Redirect based on role
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin");
       } else if (role === "INSTRUCTOR") {
@@ -85,7 +83,6 @@ function Login() {
           errorTitle = "Account Inactive ⛔";
           if (errorMessage.includes("inactive") || errorMessage.includes("deleted")) {
             errorMessage = "Your account has been deactivated or deleted. Please contact the administrator.";
-            // Clear all localStorage items
             localStorage.clear();
           }
         } else if (status === 401) {
@@ -121,17 +118,19 @@ function Login() {
       <div className="login-box">
         <div className="login-logo">
           <span className="logo-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <circle cx="16" cy="16" r="16" fill="#4a7fb5"/>
-              <path d="M8 22 Q10 12 16 10 Q22 12 24 22" stroke="#f5c842" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-              <circle cx="16" cy="10" r="3" fill="#3abf94"/>
+            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+              <circle cx="18" cy="18" r="18" fill="#4a7fb5"/>
+              <path d="M9 24 Q11 13 18 11 Q25 13 27 24" stroke="#f5c842" strokeWidth="3" fill="none" strokeLinecap="round"/>
+              <circle cx="18" cy="11" r="3.5" fill="#3abf94"/>
+              <path d="M15 18 L21 18" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M18 15 L18 21" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           </span>
           <span className="logo-text">Info<span>campus</span></span>
         </div>
 
         <h2 className="login-heading">Welcome back</h2>
-        <p className="login-sub">Sign in to continue learning</p>
+        <p className="login-sub">Sign in to continue your learning journey</p>
 
         <form onSubmit={handleLogin} autoComplete="off">
           <div className="field-group">
@@ -161,13 +160,14 @@ function Login() {
                 disabled={loading}
                 required
               />
-              <span
+              <button
+                type="button"
                 className="input-toggle"
                 onClick={() => setShowPass(!showPass)}
-                style={{ cursor: "pointer" }}
+                disabled={loading}
               >
                 {showPass ? "Hide" : "Show"}
-              </span>
+              </button>
             </div>
           </div>
 
@@ -180,21 +180,23 @@ function Login() {
           </div>
 
           <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? (
+              <>
+                <span className="spinner" />
+                <span>Signing in...</span>
+              </>
+            ) : (
+              <span>Sign In</span>
+            )}
           </button>
         </form>
-
-        <div className="divider"><span>or continue with</span></div>
-
-        <div className="social-row">
-          <button className="social-btn" disabled={loading}>Google</button>
-          <button className="social-btn" disabled={loading}>GitHub</button>
-        </div>
 
         <div className="signup-prompt">
           <span>Don't have an account? </span>
           <Link to="/free-account">
-            <button type="button" className="signup-btn" disabled={loading}>Sign up for Free</button>
+            <button type="button" className="signup-btn" disabled={loading}>
+              <span>Create Free Account →</span>
+            </button>
           </Link>
         </div>
       </div>
