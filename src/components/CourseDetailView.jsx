@@ -1,6 +1,11 @@
 // src/components/CourseDetailView.jsx
 // Premium Odoo-style learning UI - Dark Sidebar + Dark Content
-
+import YouTubeIcon from '@mui/icons-material/YouTube';
+import DescriptionIcon from '@mui/icons-material/Description';
+import QuizIcon from '@mui/icons-material/Quiz';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import ScienceIcon from '@mui/icons-material/Science';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -24,7 +29,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
 import LockIcon from '@mui/icons-material/Lock';
-import YouTubeIcon from '@mui/icons-material/YouTube';
 import FlagIcon from '@mui/icons-material/Flag';
 
 // ─── Odoo eLearning Color Palette ────────────────────────────────────
@@ -111,17 +115,14 @@ const getEmbedUrl = (url) => {
   return url;
 };
 
-// ✅ FIXED: Get video URLs with proper filtering
 const getVideoUrls = (subtopic) => {
   if (!subtopic) return [];
   
-  // Check videoUrls array first
   if (subtopic.videoUrls && Array.isArray(subtopic.videoUrls)) {
     const validUrls = subtopic.videoUrls.filter(url => url && url.trim() !== '');
     if (validUrls.length > 0) return validUrls;
   }
   
-  // Then check single videoUrl
   if (subtopic.videoUrl && subtopic.videoUrl.trim() !== '') {
     return [subtopic.videoUrl];
   }
@@ -129,13 +130,11 @@ const getVideoUrls = (subtopic) => {
   return [];
 };
 
-// ✅ FIXED: Check if subtopic has video content
 const hasVideoContent = (subtopic) => {
   if (!subtopic) return false;
   return getVideoUrls(subtopic).length > 0;
 };
 
-// ✅ FIXED: Check if subtopic has notes content
 const hasNotesContent = (subtopic) => {
   if (!subtopic) return false;
   return !!(subtopic.content && subtopic.content.trim() !== '');
@@ -1152,6 +1151,7 @@ export default function CourseDetailView({
 
   // ─── Wrapper functions for setters ──────────────────────────────────
   const setActiveSection = useCallback((index) => {
+    console.log("📍 setActiveSection called with index:", index);
     if (typeof propSetActiveSection === 'function') {
       propSetActiveSection(index);
     }
@@ -1159,6 +1159,7 @@ export default function CourseDetailView({
   }, [propSetActiveSection]);
 
   const setCurrentSubtopic = useCallback((subtopic) => {
+    console.log("📍 setCurrentSubtopic called with:", subtopic?.title);
     if (typeof propSetCurrentSubtopic === 'function') {
       propSetCurrentSubtopic(subtopic);
     }
@@ -1187,13 +1188,48 @@ export default function CourseDetailView({
 
   // ─── Build content types from config in the desired order ──────────
   const CONTENT_TYPES = [
-    { key: 'notes', icon: '📝', label: 'Notes', color: '#714b67' },
-    { key: 'video', icon: '🎬', label: 'Video', color: '#3b82f6' },
-    { key: 'exam-content', icon: '📋', label: 'Exam Content', color: '#16a34a' },
-    { key: 'interview-content', icon: '🎤', label: 'Interview Content', color: '#8b5cf6' },
-    { key: 'interview', icon: '💬', label: 'Interview Q&A', color: '#8b5cf6' },
-    { key: 'exam', icon: '✏️', label: 'Exam Quiz', color: '#16a34a' },
-    { key: 'labs', icon: '🔬', label: 'Labs', color: '#f59e0b' },
+    {
+      key: 'notes',
+      icon: <DescriptionIcon sx={{ fontSize: 18, color: '#FFC107' }} />,
+      label: 'Notes',
+      color: '#714b67',
+    },
+    {
+      key: 'video',
+      icon: <YouTubeIcon sx={{ fontSize: 20, color: '#FF0000' }} />,
+      label: 'Video',
+      color: '#3b82f6',
+    },
+    {
+      key: 'exam-content',
+      icon: <QuizIcon sx={{ fontSize: 18, color: '#16a34a' }} />,
+      label: 'Exam Content',
+      color: '#16a34a',
+    },
+    {
+      key: 'interview-content',
+      icon: <RecordVoiceOverIcon sx={{ fontSize: 18, color: '#8b5cf6' }} />,
+      label: 'Interview Content',
+      color: '#8b5cf6',
+    },
+    {
+      key: 'interview',
+      icon: <QuestionAnswerIcon sx={{ fontSize: 18, color: '#8b5cf6' }} />,
+      label: 'Interview Q&A',
+      color: '#8b5cf6',
+    },
+    {
+      key: 'exam',
+      icon: <QuizIcon sx={{ fontSize: 18, color: '#16a34a' }} />,
+      label: 'Exam Quiz',
+      color: '#16a34a',
+    },
+    {
+      key: 'labs',
+      icon: <ScienceIcon sx={{ fontSize: 18, color: '#f59e0b' }} />,
+      label: 'Labs',
+      color: '#f59e0b',
+    },
   ];
 
   // ─── Fetch course data when no props provided ──────────────────────
@@ -1486,10 +1522,13 @@ export default function CourseDetailView({
     });
   };
 
+  // ✅ FIXED: selectSubtopic function with proper active section management
   const selectSubtopic = async (sub, globalIndex, topicId) => {
     console.log("📌 Clicked:", sub.title);
     console.log("📌 Global Index:", globalIndex);
+    console.log("📌 Current active section before:", currentActiveSection);
 
+    // Check preview mode restrictions
     if (isPreview) {
       const topic = topics.find(t => t.id === topicId);
       if (topic && topic.isFirstTopic !== true) {
@@ -1510,63 +1549,50 @@ export default function CourseDetailView({
       }
     }
 
-    if (isLoggedIn) {
-      console.log("✅ Setting active section to:", globalIndex);
-      setActiveSection(globalIndex);
-      setCurrentSubtopic(sub);
-      await loadSubtopicImages(sub.id);
-      if (isMobile) setShowSidebar(false);
-      
-      // Check what content is available for THIS subtopic
-      const hasVideo = hasVideoContent(sub);
-      const hasNotes = hasNotesContent(sub);
-      const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
-      const hasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
-      
-      // Build available types for this subtopic
-      const subAvailableTypes = [];
-      if (hasVideo) subAvailableTypes.push('video');
-      if (hasNotes) subAvailableTypes.push('notes');
-      if (hasExam) subAvailableTypes.push('exam-content');
-      if (hasInterview) subAvailableTypes.push('interview-content');
-      
-      // Sort by the global type order
-      subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
-      
-      console.log("📋 Available types for", sub.title, ":", subAvailableTypes);
-      
-      // Set the first available type as active
-      if (subAvailableTypes.length > 0) {
-        setActiveContentType(subAvailableTypes[0]);
-      } else {
-        setActiveContentType('notes'); // fallback
-      }
-      return;
-    }
-
-    if (isTopicLocked(topicId)) {
+    // Check if the topic is locked
+    if (!isLoggedIn && isTopicLocked(topicId)) {
       promptLoginForLockedContent();
       return;
     }
 
+    // ✅ FIX: Always set the active section to the global index
     console.log("✅ Setting active section to:", globalIndex);
     setActiveSection(globalIndex);
     setCurrentSubtopic(sub);
     await loadSubtopicImages(sub.id);
     if (isMobile) setShowSidebar(false);
     
-    // Check what content is available for THIS subtopic
+    // Determine available content types for this subtopic
     const hasVideo = hasVideoContent(sub);
     const hasNotes = hasNotesContent(sub);
     const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
     const hasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
     
-    // Build available types for this subtopic
     const subAvailableTypes = [];
     if (hasVideo) subAvailableTypes.push('video');
     if (hasNotes) subAvailableTypes.push('notes');
     if (hasExam) subAvailableTypes.push('exam-content');
     if (hasInterview) subAvailableTypes.push('interview-content');
+    
+    // Fetch and check for additional content (interview questions, exam questions, labs)
+    try {
+      const [questions, exams, labList] = await Promise.all([
+        getSubtopicInterviewQuestions(sub.id).catch(() => []),
+        getSubtopicExamQuestions(sub.id).catch(() => []),
+        getSubtopicLabs(sub.id).catch(() => []),
+      ]);
+      
+      if (questions && questions.length > 0) subAvailableTypes.push('interview');
+      if (exams && exams.length > 0) subAvailableTypes.push('exam');
+      if (labList && labList.length > 0) subAvailableTypes.push('labs');
+      
+      // Update state with fetched data
+      setInterviewQuestions(questions || []);
+      setExamQuestions(exams || []);
+      setLabs(labList || []);
+    } catch (err) {
+      console.error('Failed to load subtopic data:', err);
+    }
     
     // Sort by the global type order
     subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
@@ -2228,7 +2254,7 @@ export default function CourseDetailView({
                 />
               </div>
 
-              {/* ✅ FIXED: Sidebar rendering with subtopic-specific content types */}
+              {/* ✅ FIXED: Sidebar rendering with correct active state */}
               <div>
                 {filteredTopics.map((topic) => {
                   const topicSubs = topic.subTopics || topic.subtopics || [];
@@ -2256,7 +2282,7 @@ export default function CourseDetailView({
                         const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
                         if (globalIndex === -1) return null;
                         
-                        // ✅ FIX: Use currentActiveSection instead of activeSection
+                        // ✅ FIX: Use currentActiveSection to determine active state
                         const isActive = currentActiveSection === globalIndex;
                         const subtopicLocked = locked && !isLoggedIn && !isPreview;
                         
@@ -2286,15 +2312,14 @@ export default function CourseDetailView({
                         
                         // Log for debugging
                         console.log(
+                          "📊 Rendering subtopic:",
                           sub.title,
                           "globalIndex:",
                           globalIndex,
                           "currentActiveSection:",
                           currentActiveSection,
                           "isActive:",
-                          isActive,
-                          "subAvailableTypes:",
-                          subAvailableTypes
+                          isActive
                         );
                         
                         return (
@@ -2361,7 +2386,7 @@ export default function CourseDetailView({
                               </div>
                             </div>
                             
-                            {/* Show content type tabs ONLY for the selected subtopic, using subtopic-specific types */}
+                            {/* Show content type tabs ONLY for the selected subtopic */}
                             {isActive && !subtopicLocked && !(isPreview && topic.isFirstTopic !== true) && (
                               <div style={{ marginLeft: '16px' }}>
                                 {loadingData ? (
