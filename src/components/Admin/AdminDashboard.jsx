@@ -24,8 +24,7 @@ import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
 import MyCoursesEditorTab from "./MyCoursesEditorTab";
 import CourseDetailEditorTab from "./CourseDetailEditorTab";
-// ✅ ADD THIS IMPORT
-import CourseEnrollmentEditorTab from "./CourseEnrollmentEditorTab";
+// ❌ REMOVED: import CourseEnrollmentEditorTab from "./CourseEnrollmentEditorTab";
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -42,6 +41,10 @@ export default function AdminDashboard() {
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
+
+  // ❌ REMOVED: Enrollment Editor related state
+  // const [selectedEditorCourseId, setSelectedEditorCourseId] = useState("");
+  // const [editorCourses, setEditorCourses] = useState([]);
 
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -115,6 +118,8 @@ export default function AdminDashboard() {
     }
   };
 
+  // ❌ REMOVED: fetchEditorCourses function
+
   // Search students
   const searchStudents = useCallback(async (name) => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -158,7 +163,6 @@ export default function AdminDashboard() {
   };
 
   const handleViewCourse = (pdf) => { setSelectedCoursePdf(pdf); setActiveTab("course-view"); };
-
 
   const handleToggleStatus = async (studentId, currentStatus) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
@@ -206,6 +210,7 @@ export default function AdminDashboard() {
     else if (activeTab === "courses") fetchCourses();
     else if (activeTab === "students") fetchAllStudents();
     else if (activeTab === "enrollments") fetchEnrollments();
+    // ❌ REMOVED: enrollment-editor case
   }, [activeTab]);
 
   const handleLogout = () => {
@@ -221,7 +226,7 @@ export default function AdminDashboard() {
     { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0",iconBg: colors.amberSoft,   icon: "📚"  },
   ] : [];
 
-  // ✅ ADD renderContent case for enrollment-editor
+  // ❌ UPDATED: removed enrollment-editor case
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
     if (error) return (
@@ -247,13 +252,12 @@ export default function AdminDashboard() {
       case "course-manager": return <AdminCourseManager />;
       case "my-courses-editor": return <MyCoursesEditorTab />;
       case "course-detail-editor": return <CourseDetailEditorTab />;
-      // ✅ ADD THIS CASE
-      case "enrollment-editor": return <CourseEnrollmentEditorTab />;
+      // ❌ REMOVED: enrollment-editor case
       default: return null;
     }
   };
 
-  // ✅ ADD enrollment-editor to navItems
+  // ❌ UPDATED: removed enrollment-editor from navItems
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
@@ -262,11 +266,10 @@ export default function AdminDashboard() {
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
     { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" },
     { icon: "📄", label: "Course Detail Editor", id: "course-detail-editor" },
-    // ✅ ADD THIS
-    { icon: "🎟️", label: "Enrollment Page Editor", id: "enrollment-editor" },
+    // ❌ REMOVED: { icon: "🎟️", label: "Enrollment Page Editor", id: "enrollment-editor" },
   ];
 
-  // ✅ ADD enrollment-editor to PAGE_TITLES
+  // ❌ UPDATED: removed enrollment-editor from PAGE_TITLES
   const PAGE_TITLES = {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
@@ -276,11 +279,10 @@ export default function AdminDashboard() {
     "course-manager":"Course Manager",
     "my-courses-editor": "My Courses Editor",
     "course-detail-editor": "Course Detail Editor",
-    // ✅ ADD THIS
-    "enrollment-editor": "Enrollment Page Editor",
+    // ❌ REMOVED: "enrollment-editor": "Enrollment Page Editor",
   };
 
-  // ✅ ADD enrollment-editor to PAGE_SUBS
+  // ❌ UPDATED: removed enrollment-editor from PAGE_SUBS
   const PAGE_SUBS = {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
@@ -290,11 +292,10 @@ export default function AdminDashboard() {
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
     "my-courses-editor": "Customize all text, icons, and content on the My Courses page",
     "course-detail-editor": "Customize the course detail page layout, colors, and content",
-    // ✅ ADD THIS
-    "enrollment-editor": "Customize text, colors, and content on the course enrollment page",
+    // ❌ REMOVED: "enrollment-editor": "Customize text, colors, and content on the course enrollment page",
   };
 
-  // ===================== SIDEBAR NAV ITEM (dark theme) =====================
+  // ===================== SIDEBAR NAV ITEM =====================
   const SidebarNavItem = ({ icon, label, badge, active, onClick }) => (
     <button
       onClick={onClick}
@@ -390,7 +391,7 @@ export default function AdminDashboard() {
 
       <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-base)", paddingBottom: isMobile ? 70 : 0 }}>
 
-        {/* Hamburger — desktop sidebar closed */}
+        {/* Hamburger */}
         {!isMobile && !sidebarOpen && (
           <button onClick={() => setSidebarOpen(true)} style={{
             position: "fixed", top: 20, left: 20, zIndex: 1100,
@@ -401,11 +402,11 @@ export default function AdminDashboard() {
           }}>☰</button>
         )}
 
-        {/* Desktop Sidebar — dark theme */}
+        {/* Desktop Sidebar */}
         {!isMobile && (
           <nav style={{
             width: sidebarOpen ? 260 : 0,
-            background: "#0f172a",                  // dark slate
+            background: "#0f172a",
             borderRight: sidebarOpen ? "1px solid #1e293b" : "none",
             display: "flex", flexDirection: "column",
             padding: sidebarOpen ? "28px 0" : "0",
@@ -413,7 +414,7 @@ export default function AdminDashboard() {
             overflowY: "auto", overflowX: "hidden",
             transition: "width 0.3s ease",
             whiteSpace: "nowrap", flexShrink: 0,
-            color: "#e2e8f0",                        // light text
+            color: "#e2e8f0",
           }}>
             {sidebarOpen && (
               <>
