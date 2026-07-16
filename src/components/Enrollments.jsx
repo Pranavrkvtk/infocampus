@@ -165,19 +165,11 @@ const Enrollments = ({ isMobile, onBack }) => {
     });
   };
 
-  // ✅ Handle enroll - only for logged-in users
+  // ✅ Handle enroll - NO POPUP, just navigate directly to course
   const handleEnroll = async () => {
-    // If already enrolled, go to course
+    // If already enrolled, go to course directly (no popup)
     if (isEnrolled) {
-      Swal.fire({
-        icon: 'info',
-        title: 'Already Enrolled',
-        text: 'You are already enrolled in this course!',
-        confirmButtonText: 'Go to Course',
-        confirmButtonColor: COLORS.purpleText
-      }).then((result) => {
-        if (result.isConfirmed) navigate(`/course/${courseId}`);
-      });
+      navigate(`/course/${courseId}`);
       return;
     }
 
@@ -188,15 +180,8 @@ const Enrollments = ({ isMobile, onBack }) => {
 
       if (response && response.success !== false) {
         setIsEnrolled(true);
-        Swal.fire({
-          icon: 'success',
-          title: '🎉 Enrolled Successfully!',
-          text: `You have been enrolled in ${course?.title || 'the course'}`,
-          timer: 2000,
-          showConfirmButton: false
-        });
-
-        setTimeout(() => navigate(`/course/${courseId}`), 2000);
+        // ✅ NO POPUP - just navigate directly to course
+        navigate(`/course/${courseId}`);
       } else {
         throw new Error(response?.message || 'Enrollment failed');
       }
@@ -206,16 +191,10 @@ const Enrollments = ({ isMobile, onBack }) => {
 
       if (errorMsg.toLowerCase().includes('already enrolled')) {
         setIsEnrolled(true);
-        Swal.fire({
-          icon: 'info',
-          title: 'Already Enrolled',
-          text: 'You are already enrolled in this course!',
-          confirmButtonText: 'Go to Course',
-          confirmButtonColor: COLORS.purpleText
-        }).then((result) => {
-          if (result.isConfirmed) navigate(`/course/${courseId}`);
-        });
+        // ✅ Direct navigation for already enrolled (no popup)
+        navigate(`/course/${courseId}`);
       } else {
+        // ✅ Show error popup only for actual failures
         Swal.fire({
           icon: 'error',
           title: 'Enrollment Failed',

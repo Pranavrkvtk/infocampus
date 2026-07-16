@@ -55,7 +55,7 @@ const DEFAULT_MY_COURSES_CONFIG = {
   sectionTitleMy: "My Courses",
   sectionTitleAll: "All Courses",
   myCoursesTabText: "My Courses",
-  allCoursesTabText: "Browse All Courses",
+  allCoursesTabText: "All Courses",
   searchPlaceholder: "Search courses...",
   cardDurationLabel: "⏱",
   cardStepsLabel: "📋",
@@ -213,7 +213,7 @@ function MyCoursesPage() {
   const [apiError, setApiError] = useState(null);
   
   // ✅ Tab state: 'my' for enrolled, 'all' for catalog
-  const [activeTab, setActiveTab] = useState('my');
+  const [activeTab, setActiveTab] = useState('all');
 
   const isMobile = window.innerWidth < 768;
   const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
@@ -1206,7 +1206,7 @@ function MyCoursesPage() {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p>{isLoggedIn ? 'Loading your courses...' : 'Loading course catalog...'}</p>
+        <p>{isLoggedIn ? 'Loading your courses...' : 'Loading courses...'}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -1330,7 +1330,7 @@ function MyCoursesPage() {
         <div style={styles.sectionTitle}>
           <GridViewIcon style={{ fontSize: '28px', color: COLORS.accent }} />
           <span style={{ marginLeft: '8px' }}>
-            {activeTab === 'my' && isLoggedIn ? myCoursesConfig.sectionTitleMy : 'Course Catalog'}
+            {activeTab === 'my' && isLoggedIn ? myCoursesConfig.sectionTitleMy : 'All Courses'}
           </span>
           <span style={{ 
             fontSize: '14px', 
@@ -1388,7 +1388,7 @@ function MyCoursesPage() {
             setSearchTerm('');
           }}
         >
-          {isLoggedIn ? myCoursesConfig.allCoursesTabText : 'Browse All Courses'}
+          All Courses
           {allCourses.length > 0 && (
             <span style={{
               fontSize: '11px',
