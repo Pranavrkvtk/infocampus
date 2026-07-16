@@ -24,6 +24,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
 import LockIcon from '@mui/icons-material/Lock';
+import YouTubeIcon from '@mui/icons-material/YouTube';
+import FlagIcon from '@mui/icons-material/Flag';
 
 // ─── Odoo eLearning Color Palette ────────────────────────────────────
 const SIDEBAR = {
@@ -1295,7 +1297,7 @@ export default function CourseDetailView({
     }
   };
 
-  // ─── Rest of the component (expandedTopics, interviewQuestions, etc.) ───
+  // ─── Rest of the component ──────────────────────────────────────────
   const [expandedTopics, setExpandedTopics] = useState(() => {
     if (!topics || !Array.isArray(topics) || topics.length === 0) {
       return {};
@@ -1653,6 +1655,17 @@ export default function CourseDetailView({
     }
   };
 
+  // ─── Helper functions to check content types ──────────────────────
+  const hasVideoContent = (subtopic) => {
+    if (!subtopic) return false;
+    return getVideoUrls(subtopic).length > 0;
+  };
+
+  const hasNotesContent = (subtopic) => {
+    if (!subtopic) return false;
+    return !!(subtopic.content || subtopic.notes || subtopic.description || subtopic.text);
+  };
+
   if (loading || contentLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px', background: DARK.bg, minHeight: '100vh' }}>
@@ -1790,7 +1803,7 @@ export default function CourseDetailView({
       transition: 'background 0.2s ease',
       borderLeft: isOpen ? `3px solid ${SIDEBAR.accent}` : '3px solid transparent',
     }),
-    subtopicItem: (isActive, hasVideo) => ({
+    subtopicItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
@@ -2178,14 +2191,18 @@ export default function CourseDetailView({
                         const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
                         if (globalIndex === -1) return null;
                         const isActive = activeSection === globalIndex;
-                        const hasVideo = getVideoUrls(sub).length > 0;
                         const subtopicLocked = locked && !isLoggedIn && !isPreview;
+                        
+                        // Check content types - ONLY video and notes
+                        const hasVideo = hasVideoContent(sub);
+                        const hasNotes = hasNotesContent(sub);
+                        const hasAnyContent = hasVideo || hasNotes;
                         
                         return (
                           <div key={sub.id}>
                             <div 
                               style={{
-                                ...styles.subtopicItem(isActive, hasVideo),
+                                ...styles.subtopicItem(isActive),
                                 opacity: subtopicLocked || (isPreview && topic.isFirstTopic !== true) ? 0.5 : 1,
                                 cursor: (subtopicLocked || (isPreview && topic.isFirstTopic !== true)) ? 'not-allowed' : 'pointer',
                               }}
@@ -2222,9 +2239,22 @@ export default function CourseDetailView({
                                 }
                               }}
                             >
-                              <span style={{ fontSize: '11px', color: hasVideo ? SIDEBAR.accent : 'inherit' }}>
-                                {hasVideo ? '▶' : '●'}
-                              </span>
+                              {/* ✅ Show ONLY YouTube (red) and Flag (yellow) icons */}
+                              {subtopicLocked || (isPreview && topic.isFirstTopic !== true) ? (
+                                <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                  {hasVideo && (
+                                    <YouTubeIcon style={{ fontSize: '18px', color: '#FF0000' }} />
+                                  )}
+                                  {hasNotes && (
+                                    <FlagIcon style={{ fontSize: '18px', color: '#FFC107' }} />
+                                  )}
+                                  {!hasAnyContent && (
+                                    <span style={{ fontSize: '11px', color: SIDEBAR.textMuted }}>●</span>
+                                  )}
+                                </div>
+                              )}
                               <span style={{ flex: 1 }}>{sub.title}</span>
                               {isPreview && topic.isFirstTopic !== true && (
                                 <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted }} />
