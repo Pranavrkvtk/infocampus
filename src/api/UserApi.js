@@ -106,6 +106,85 @@ export const getCoursesWithImages = async () => {
 };
 
 // =========================================================================
+//  COURSE DATA WITH AUTO-DETECTED AUTHENTICATION
+// =========================================================================
+
+/**
+ * ✅ NEW: Get course data with auto-detected authentication
+ * This endpoint handles both authenticated and guest users automatically
+ * GET /api/users/courses/{courseId}
+ * 
+ * - If authenticated: Returns FULL content for all topics
+ * - If guest: Returns LIMITED content (only first topic free)
+ */
+export const getCourseData = async (courseId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
+    console.log('📥 Fetching course data for ID:', courseId, 'Token:', !!token);
+    
+    const response = await api.get(`/users/courses/${courseId}`, { headers });
+    console.log('📥 Course data response:', response.data);
+    
+    // Handle response format
+    if (response.data && response.data.success) {
+      return response.data.data || response.data;
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching course data:', error);
+    
+    // If authenticated request fails, try public endpoint as fallback
+    if (localStorage.getItem('token')) {
+      console.log('⚠️ Auth endpoint failed, falling back to public');
+      try {
+        return await getPublicCourseData(courseId);
+      } catch (publicError) {
+        console.error('Public fallback also failed:', publicError);
+        throw publicError;
+      }
+    }
+    throw error;
+  }
+};
+
+/**
+ * Get course details - attempts authenticated first, falls back to public
+ */
+export const getCourseDetails = async (courseId) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Authenticated endpoint with enrollment info
+      const response = await api.get(`/users/courses/${courseId}/details`);
+      console.log('📥 Course details response:', response.data);
+      
+      // Handle different response formats
+      if (response.data && response.data.success) {
+        return response.data.data || response.data;
+      }
+      return response.data;
+    } else {
+      // Public endpoint
+      return getPublicCourseData(courseId);
+    }
+  } catch (error) {
+    console.error('Error fetching course details:', error);
+    // If authenticated fails, try public
+    if (localStorage.getItem('token')) {
+      try {
+        return getPublicCourseData(courseId);
+      } catch (publicError) {
+        console.error('Public fallback also failed:', publicError);
+        throw publicError;
+      }
+    }
+    throw error;
+  }
+};
+
+// =========================================================================
 //  COURSE IMAGE UPLOAD (Admin Only)
 // =========================================================================
 
@@ -424,41 +503,6 @@ export const getInstructorCourses = async (instructorId) => {
 // =========================================================================
 
 /**
- * Get course details - attempts authenticated first, falls back to public
- */
-export const getCourseDetails = async (courseId) => {
-  try {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Authenticated endpoint with enrollment info
-      const response = await api.get(`/users/courses/${courseId}/details`);
-      console.log('📥 Course details response:', response.data);
-      
-      // Handle different response formats
-      if (response.data && response.data.success) {
-        return response.data.data || response.data;
-      }
-      return response.data;
-    } else {
-      // Public endpoint
-      return getPublicCourseData(courseId);
-    }
-  } catch (error) {
-    console.error('Error fetching course details:', error);
-    // If authenticated fails, try public
-    if (localStorage.getItem('token')) {
-      try {
-        return getPublicCourseData(courseId);
-      } catch (publicError) {
-        console.error('Public fallback also failed:', publicError);
-        throw publicError;
-      }
-    }
-    throw error;
-  }
-};
-
-/**
  * Get course topics - attempts authenticated first, falls back to public
  */
 export const getCourseTopics = async (courseId) => {
@@ -648,6 +692,9 @@ const userApi = {
   getCourses,
   getCoursesWithImages,
   uploadCourseImage,
+  
+  // ✅ NEW: Auto-detected course data
+  getCourseData,
   
   // Enrollment (✅ FIXED)
   getEnrolledCourses,

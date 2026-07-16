@@ -1,11 +1,6 @@
 // src/components/CourseDetailView.jsx
 // Premium Odoo-style learning UI - Dark Sidebar + Dark Content
-import YouTubeIcon from '@mui/icons-material/YouTube';
-import DescriptionIcon from '@mui/icons-material/Description';
-import QuizIcon from '@mui/icons-material/Quiz';
-import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
-import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
-import ScienceIcon from '@mui/icons-material/Science';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -13,9 +8,9 @@ import {
   getSubtopicInterviewQuestions,
   getSubtopicExamQuestions,
   getSubtopicLabs,
-  getPublicCourseData,
-  getCourseDetails,
+  getCourseData,
   getSubtopicImages,
+  checkEnrollment,
 } from '../api/UserApi';
 import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 import { getImageUrl } from '../utils/imageUtils';
@@ -29,7 +24,13 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
 import LockIcon from '@mui/icons-material/Lock';
+import YouTubeIcon from '@mui/icons-material/YouTube';
 import FlagIcon from '@mui/icons-material/Flag';
+import DescriptionIcon from '@mui/icons-material/Description';
+import QuizIcon from '@mui/icons-material/Quiz';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
+import ScienceIcon from '@mui/icons-material/Science';
 
 // ─── Odoo eLearning Color Palette ────────────────────────────────────
 const SIDEBAR = {
@@ -1130,6 +1131,8 @@ export default function CourseDetailView({
   const [fetchedImages, setFetchedImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   // ─── Local state for sidebar and content ────────────────────────────
   const [localActiveSection, setLocalActiveSection] = useState(activeSection || 0);
@@ -1232,70 +1235,46 @@ export default function CourseDetailView({
     },
   ];
 
-  // ─── Fetch course data when no props provided ──────────────────────
+  // ─── Fetch course data using getCourseData (auto-detects auth) ──────
   useEffect(() => {
-    console.log('🔄 CourseDetailView useEffect - courseId:', courseId, 'propSelectedCourse:', !!propSelectedCourse);
-    if (courseId && !propSelectedCourse) {
+    console.log('🔄 CourseDetailView useEffect - courseId:', courseId);
+    if (courseId) {
       fetchCourseData(courseId);
     } else {
       setLoading(false);
     }
-  }, [courseId, propSelectedCourse]);
+  }, [courseId]);
 
   const fetchCourseData = async (id) => {
     try {
       setLoading(true);
       setFetchError(null);
       
-      const isLoggedIn = !!localStorage.getItem('token');
-      console.log('🔐 isLoggedIn:', isLoggedIn);
+      console.log('📥 Fetching course data for ID:', id);
       
-      let data;
-      let responseData = null;
+      // ✅ Use the new getCourseData function (auto-detects auth)
+      const response = await getCourseData(id);
+      console.log('📚 Course data response:', response);
       
-      if (isLoggedIn) {
-        try {
-          console.log('🔐 Fetching course details with auth for ID:', id);
-          responseData = await getCourseDetails(id);
-          console.log('📚 Auth course data response:', responseData);
-          
-          if (responseData && responseData.data) {
-            data = responseData.data;
-          } else if (responseData && responseData.course) {
-            data = responseData.course;
-          } else {
-            data = responseData;
-          }
-        } catch (authError) {
-          console.log('⚠️ Auth API failed, falling back to public:', authError);
-          responseData = await getPublicCourseData(id);
-          console.log('📚 Public course data response:', responseData);
-          
-          if (responseData && responseData.data) {
-            data = responseData.data;
-          } else {
-            data = responseData;
-          }
-        }
-      } else {
-        responseData = await getPublicCourseData(id);
-        console.log('📚 Public course data response:', responseData);
-        
-        if (responseData && responseData.data) {
-          data = responseData.data;
-        } else {
-          data = responseData;
-        }
+      // Extract data from response
+      let data = response;
+      if (response && response.data) {
+        data = response.data;
       }
-
-      console.log('📚 Extracted course data:', data);
-
+      
       if (!data || !data.id) {
-        console.error('❌ No course data found in response:', responseData);
+        console.error('❌ No course data found:', data);
         setFetchError('Course data not found. Please try again.');
         setLoading(false);
         return;
       }
+
+      // Set authentication and enrollment status
+      setIsAuthenticated(data.isAuthenticated === true);
+      setIsEnrolled(data.isEnrolled === true);
+      
+      console.log('🔐 isAuthenticated:', data.isAuthenticated);
+      console.log('📚 isEnrolled:', data.isEnrolled);
 
       setFetchedCourse(data);
 
@@ -1312,9 +1291,13 @@ export default function CourseDetailView({
           const subs = topic.subTopics || topic.subtopics || [];
           console.log(`📚 Topic ${topicIndex + 1}: ${topic.title}, subtopics: ${subs.length}`);
           
-          const isFirstTopic = topicIndex === 0;
+          const isFirstTopic = topicIndex === 0 || topic.isFirstTopic === true;
           
           subs.forEach(sub => {
+            // Check if this subtopic has content
+            const hasContent = sub.content && sub.content.trim() !== '';
+            const hasVideo = sub.videoUrl && sub.videoUrl.trim() !== '';
+            
             allSubtopics.push({
               id: sub.id,
               title: sub.title || 'Untitled',
@@ -1331,6 +1314,11 @@ export default function CourseDetailView({
               examContent: sub.examContent || '',
               interviewContent: sub.interviewContent || '',
               displayOrder: sub.displayOrder || 0,
+              contentStatus: sub.contentStatus || (isFirstTopic ? 'free_preview' : 'locked'),
+              isAuthenticated: data.isAuthenticated,
+              isEnrolled: data.isEnrolled,
+              hasContent: hasContent,
+              hasVideo: hasVideo,
               ...sub
             });
           });
@@ -1347,6 +1335,17 @@ export default function CourseDetailView({
         setActiveSection(0);
         setCurrentSubtopic(allSubtopics[0]);
         await loadSubtopicImages(allSubtopics[0].id);
+      }
+
+      // Check enrollment status if user is authenticated
+      if (data.isAuthenticated) {
+        try {
+          const enrollmentCheck = await checkEnrollment(id);
+          setIsEnrolled(enrollmentCheck.enrolled);
+          console.log('📚 Enrollment status:', enrollmentCheck);
+        } catch (err) {
+          console.error('Error checking enrollment:', err);
+        }
       }
 
     } catch (err) {
@@ -1383,24 +1382,37 @@ export default function CourseDetailView({
 
   const isLoggedIn = !!localStorage.getItem('token');
 
+  // ✅ FIXED: isTopicLocked uses authentication status from response
   const isTopicLocked = useCallback(
-    (topicId) => {
+    (topicId, topicIndex) => {
+      // If user is authenticated and enrolled, nothing is locked
+      if (isAuthenticated && isEnrolled) {
+        return false;
+      }
+      
+      // If user is authenticated but not enrolled, only first topic is free
+      if (isAuthenticated && !isEnrolled) {
+        return topicIndex !== 0;
+      }
+      
+      // Preview mode - only first topic free
       if (isPreview) {
         const topic = topics.find(t => t.id === topicId);
         if (!topic) return true;
         return topic.isFirstTopic !== true;
       }
-      if (isLoggedIn) {
-        return false;
+      
+      // Guest user - only first topic free
+      if (!isLoggedIn) {
+        return topicIndex !== 0;
       }
-      if (!topics || !Array.isArray(topics) || topics.length === 0) {
-        return true;
-      }
+      
+      // Default - if none of the above, check the topic's isFirstTopic flag
       const topic = topics.find(t => t.id === topicId);
       if (!topic) return true;
       return topic.isFirstTopic !== true;
     },
-    [isLoggedIn, topics, isPreview]
+    [isLoggedIn, isPreview, topics, isAuthenticated, isEnrolled]
   );
 
   // ─── Effects ──────────────────────────────────────────────────────────
@@ -1522,40 +1534,40 @@ export default function CourseDetailView({
     });
   };
 
-  // ✅ FIXED: selectSubtopic function with proper active section management
-  const selectSubtopic = async (sub, globalIndex, topicId) => {
+  const promptEnrollForLockedContent = () => {
+    Swal.fire({
+      title: 'Enrollment Required',
+      text: 'You need to enroll in this course to access all content.',
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'Enroll Now',
+      cancelButtonText: 'Not now',
+      confirmButtonColor: '#714b67',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        navigate(`/courses/${courseId}/enroll`);
+      }
+    });
+  };
+
+  // ✅ FIXED: selectSubtopic function with proper locking logic
+  const selectSubtopic = async (sub, globalIndex, topicId, topicIndex) => {
     console.log("📌 Clicked:", sub.title);
     console.log("📌 Global Index:", globalIndex);
+    console.log("📌 Topic Index:", topicIndex);
     console.log("📌 Current active section before:", currentActiveSection);
 
-    // Check preview mode restrictions
-    if (isPreview) {
-      const topic = topics.find(t => t.id === topicId);
-      if (topic && topic.isFirstTopic !== true) {
-        Swal.fire({
-          title: 'Preview Mode',
-          text: 'Only the first topic is available in preview mode. Sign in to access all content.',
-          icon: 'info',
-          showCancelButton: true,
-          confirmButtonText: 'Sign In',
-          cancelButtonText: 'OK',
-          confirmButtonColor: '#714b67',
-        }).then((result) => {
-          if (result.isConfirmed) {
-            handleLogin();
-          }
-        });
-        return;
-      }
-    }
-
     // Check if the topic is locked
-    if (!isLoggedIn && isTopicLocked(topicId)) {
-      promptLoginForLockedContent();
+    if (isTopicLocked(topicId, topicIndex)) {
+      if (isAuthenticated && !isEnrolled) {
+        promptEnrollForLockedContent();
+      } else {
+        promptLoginForLockedContent();
+      }
       return;
     }
 
-    // ✅ FIX: Always set the active section to the global index
+    // ✅ Set the active section to the global index
     console.log("✅ Setting active section to:", globalIndex);
     setActiveSection(globalIndex);
     setCurrentSubtopic(sub);
@@ -1574,7 +1586,7 @@ export default function CourseDetailView({
     if (hasExam) subAvailableTypes.push('exam-content');
     if (hasInterview) subAvailableTypes.push('interview-content');
     
-    // Fetch and check for additional content (interview questions, exam questions, labs)
+    // Fetch and check for additional content
     try {
       const [questions, exams, labList] = await Promise.all([
         getSubtopicInterviewQuestions(sub.id).catch(() => []),
@@ -1586,7 +1598,6 @@ export default function CourseDetailView({
       if (exams && exams.length > 0) subAvailableTypes.push('exam');
       if (labList && labList.length > 0) subAvailableTypes.push('labs');
       
-      // Update state with fetched data
       setInterviewQuestions(questions || []);
       setExamQuestions(exams || []);
       setLabs(labList || []);
@@ -1603,7 +1614,7 @@ export default function CourseDetailView({
     if (subAvailableTypes.length > 0) {
       setActiveContentType(subAvailableTypes[0]);
     } else {
-      setActiveContentType('notes'); // fallback
+      setActiveContentType('notes');
     }
   };
 
@@ -2207,20 +2218,7 @@ export default function CourseDetailView({
             <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
               <div style={styles.sidebarHeader}>
                 <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
-                {isPreview && (
-                  <div style={{
-                    fontSize: '11px',
-                    color: '#F7C948',
-                    marginTop: '4px',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}>
-                    <span>🔓</span>
-                    <span>Preview Mode - First Topic Free</span>
-                  </div>
-                )}
+                {/* ✅ REMOVED: All status messages - clean header */}
               </div>
 
               <div style={{ padding: '10px 12px' }}>
@@ -2254,12 +2252,12 @@ export default function CourseDetailView({
                 />
               </div>
 
-              {/* ✅ FIXED: Sidebar rendering with correct active state */}
+              {/* Sidebar rendering with correct active state */}
               <div>
-                {filteredTopics.map((topic) => {
+                {filteredTopics.map((topic, topicIndex) => {
                   const topicSubs = topic.subTopics || topic.subtopics || [];
                   const isOpen = !!expandedTopics[topic.id];
-                  const locked = isTopicLocked(topic.id);
+                  const locked = isTopicLocked(topic.id, topicIndex);
                   
                   return (
                     <div key={topic.id} style={styles.topicItem}>
@@ -2284,7 +2282,7 @@ export default function CourseDetailView({
                         
                         // ✅ FIX: Use currentActiveSection to determine active state
                         const isActive = currentActiveSection === globalIndex;
-                        const subtopicLocked = locked && !isLoggedIn && !isPreview;
+                        const subtopicLocked = locked || (isPreview && topic.isFirstTopic !== true);
                         
                         // Calculate content types for THIS specific subtopic
                         const subHasVideo = hasVideoContent(sub);
@@ -2310,61 +2308,41 @@ export default function CourseDetailView({
                         
                         const hasAnyContentForSub = subHasVideo || subHasNotes || subHasExam || subHasInterview;
                         
-                        // Log for debugging
-                        console.log(
-                          "📊 Rendering subtopic:",
-                          sub.title,
-                          "globalIndex:",
-                          globalIndex,
-                          "currentActiveSection:",
-                          currentActiveSection,
-                          "isActive:",
-                          isActive
-                        );
-                        
                         return (
                           <div key={sub.id}>
                             <div 
                               style={{
                                 ...styles.subtopicItem(isActive),
-                                opacity: subtopicLocked || (isPreview && topic.isFirstTopic !== true) ? 0.5 : 1,
-                                cursor: (subtopicLocked || (isPreview && topic.isFirstTopic !== true)) ? 'not-allowed' : 'pointer',
+                                opacity: subtopicLocked ? 0.5 : 1,
+                                cursor: subtopicLocked ? 'not-allowed' : 'pointer',
                               }}
                               className={isActive ? 'sidebar-item-active' : 'sidebar-item'}
                               onClick={() => {
-                                if (isPreview && topic.isFirstTopic !== true) {
-                                  Swal.fire({
-                                    title: 'Preview Mode',
-                                    text: 'Only the first topic is available in preview mode. Sign in to access all content.',
-                                    icon: 'info',
-                                    showCancelButton: true,
-                                    confirmButtonText: 'Sign In',
-                                    cancelButtonText: 'OK',
-                                    confirmButtonColor: '#714b67',
-                                  }).then((result) => {
-                                    if (result.isConfirmed) {
-                                      handleLogin();
-                                    }
-                                  });
+                                if (subtopicLocked) {
+                                  if (isAuthenticated && !isEnrolled) {
+                                    promptEnrollForLockedContent();
+                                  } else {
+                                    promptLoginForLockedContent();
+                                  }
                                   return;
                                 }
-                                selectSubtopic(sub, globalIndex, topic.id);
+                                selectSubtopic(sub, globalIndex, topic.id, topicIndex);
                               }}
                               onMouseEnter={(e) => {
-                                if (!isActive && !subtopicLocked && !(isPreview && topic.isFirstTopic !== true)) {
+                                if (!isActive && !subtopicLocked) {
                                   e.currentTarget.style.color = '#FFFFFF';
                                   e.currentTarget.style.background = '#000000';
                                 }
                               }}
                               onMouseLeave={(e) => {
-                                if (!isActive && !subtopicLocked && !(isPreview && topic.isFirstTopic !== true)) {
+                                if (!isActive && !subtopicLocked) {
                                   e.currentTarget.style.color = SIDEBAR.textMuted;
                                   e.currentTarget.style.background = 'transparent';
                                 }
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-                                {subtopicLocked || (isPreview && topic.isFirstTopic !== true) ? (
+                                {subtopicLocked ? (
                                   <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
                                 ) : (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
@@ -2380,14 +2358,14 @@ export default function CourseDetailView({
                                   </div>
                                 )}
                                 <span style={{ flex: 1, wordBreak: 'break-word' }}>{sub.title}</span>
-                                {isPreview && topic.isFirstTopic !== true && (
+                                {subtopicLocked && (
                                   <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
                                 )}
                               </div>
                             </div>
                             
                             {/* Show content type tabs ONLY for the selected subtopic */}
-                            {isActive && !subtopicLocked && !(isPreview && topic.isFirstTopic !== true) && (
+                            {isActive && !subtopicLocked && (
                               <div style={{ marginLeft: '16px' }}>
                                 {loadingData ? (
                                   <div style={{ padding: '4px 12px 4px 28px', fontSize: '11px', color: SIDEBAR.textMuted }}>Loading…</div>
