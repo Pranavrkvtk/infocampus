@@ -7,13 +7,25 @@ import {
   checkEnrollment
 } from '../api/UserApi';
 import Swal from 'sweetalert2';
-import ShareIcon from '@mui/icons-material/Share';
+import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import LogoutIcon from '@mui/icons-material/Logout';
-import LoginIcon from '@mui/icons-material/Login';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import LockIcon from '@mui/icons-material/Lock';
+
+// ─── Top Bar Colors (same as MyCoursesPage) ──────────────────────────────────────────────────
+const TOPBAR = {
+  bg: '#2C3540',
+  bgGradient: 'linear-gradient(180deg, #2C3540 0%, #1F2933 100%)',
+  bgActive: '#1A232E',
+  bgHover: '#3A4553',
+  border: '#3E4A58',
+  text: '#FFFFFF',
+  muted: '#C9D2DC',
+  lessonsColor: '#47525f',
+};
 
 // ─── Palette ──────────────────────────────────────────────────────────
 const COLORS = {
@@ -257,10 +269,21 @@ const Enrollments = ({ isMobile, onBack }) => {
   const handleHomeClick = () => navigate('/my-courses');
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('userId');
-    navigate('/login');
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'You will be logged out of your account.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Logout',
+      confirmButtonColor: '#dc2626',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('userId');
+        navigate('/login');
+      }
+    });
   };
 
   const handleLogin = () => navigate('/login');
@@ -388,35 +411,142 @@ const Enrollments = ({ isMobile, onBack }) => {
   return (
     <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", minHeight: "100vh", background: COLORS.pageBg }}>
 
-      {/* ─── TOP NAVIGATION BAR ──────────────────────────────────── */}
+      {/* ─── TOP NAVIGATION BAR (Same style as MyCoursesPage) ──────────────────────────────────── */}
       <div style={{
-        height: '60px',
-        background: COLORS.navBg,
-        borderBottom: `1px solid ${COLORS.navBorder}`,
+        height: '64px',
+        background: TOPBAR.bgGradient,
+        borderBottom: `1px solid ${TOPBAR.border}`,
         display: 'flex',
         alignItems: 'stretch',
         justifyContent: 'flex-end',
-        color: '#fff',
+        padding: 0,
+        color: TOPBAR.text,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
       }}>
-        <button onClick={handleShare} style={navBtnStyle()}>
-          <ShareIcon style={{ fontSize: '18px' }} />
-          <span>Share</span>
-        </button>
-        <button onClick={handleHomeClick} style={navBtnStyle()}>
-          <HomeOutlinedIcon style={{ fontSize: '18px' }} />
-          <span>Home</span>
-        </button>
-        {isLoggedIn ? (
-          <button onClick={handleLogout} style={navBtnStyle('#ff6b6b')}>
-            <LogoutIcon style={{ fontSize: '18px' }} />
-            <span>Logout</span>
+        <div style={{
+          display: 'flex',
+          alignItems: 'stretch',
+          gap: '0px',
+          height: '100%',
+        }}>
+          <button
+            onClick={handleShare}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '0 24px',
+              fontSize: '15px',
+              fontWeight: 600,
+              border: 'none',
+              borderLeft: `1px solid ${TOPBAR.border}`,
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+              background: TOPBAR.bgActive,
+              color: TOPBAR.text,
+              height: '100%',
+              borderRadius: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgActive;
+            }}
+          >
+            <ShareOutlinedIcon style={{ fontSize: '20px' }} />
+            <span>Share</span>
           </button>
-        ) : (
-          <button onClick={handleLogin} style={navBtnStyle('#F7C948')}>
-            <LoginIcon style={{ fontSize: '18px' }} />
-            <span>Sign In</span>
+
+          <button
+            onClick={handleHomeClick}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '0 24px',
+              fontSize: '15px',
+              fontWeight: 600,
+              border: 'none',
+              borderLeft: `1px solid ${TOPBAR.border}`,
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+              background: TOPBAR.bgActive,
+              color: TOPBAR.text,
+              height: '100%',
+              borderRadius: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = TOPBAR.bgActive;
+            }}
+          >
+            <HomeOutlinedIcon style={{ fontSize: '20px' }} />
+            <span>Home</span>
           </button>
-        )}
+
+          {isLoggedIn ? (
+            <button
+              onClick={handleLogout}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '0 24px',
+                fontSize: '15px',
+                fontWeight: 600,
+                border: 'none',
+                borderLeft: `1px solid ${TOPBAR.border}`,
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+                background: TOPBAR.bgActive,
+                color: '#ff6b6b',
+                height: '100%',
+                borderRadius: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgActive;
+              }}
+            >
+              <LogoutRoundedIcon style={{ fontSize: '20px' }} />
+              <span>Logout</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleLogin}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '0 24px',
+                fontSize: '15px',
+                fontWeight: 600,
+                border: 'none',
+                borderLeft: `1px solid ${TOPBAR.border}`,
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+                background: TOPBAR.bgActive,
+                color: '#F7C948',
+                height: '100%',
+                borderRadius: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgActive;
+              }}
+            >
+              <LoginRoundedIcon style={{ fontSize: '20px' }} />
+              <span>Sign In</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ─── HERO ────────────────────────────────────────────────── */}
@@ -569,7 +699,7 @@ const Enrollments = ({ isMobile, onBack }) => {
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
             >
-              <ShareIcon style={{ fontSize: '16px' }} />
+              <ShareOutlinedIcon style={{ fontSize: '16px' }} />
               Share this course
             </button>
           </div>
@@ -725,13 +855,6 @@ const Enrollments = ({ isMobile, onBack }) => {
 };
 
 // ─── shared inline style helpers ─────────────────────────────────────
-const navBtnStyle = (color = '#fff') => ({
-  display: 'flex', alignItems: 'center', gap: '8px',
-  padding: '0 20px', fontSize: '14px', fontWeight: 600,
-  color, background: 'transparent', border: 'none',
-  borderLeft: `1px solid ${COLORS.navBorder}`, cursor: 'pointer',
-});
-
 const pillStyle = () => ({
   background: 'rgba(255,255,255,0.15)',
   color: '#fff',
