@@ -1,9 +1,10 @@
-import React from 'react'
+// src/components/CourseEnrollmentPage.jsx
+import React from 'react';
+import EnrollPage from './EnrollPage';
 
-function CourseEnrollmentPage() {
-  return (
-    <div>CourseEnrollmentPage</div>
-  )
+// This component now just re-exports EnrollPage
+function CourseEnrollmentPage(props) {
+  return <EnrollPage {...props} />;
 }
 
-export default CourseEnrollmentPage
+export default CourseEnrollmentPage;

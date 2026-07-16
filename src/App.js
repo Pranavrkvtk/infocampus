@@ -6,6 +6,7 @@ import {
   Route,
   useLocation,
   useNavigate,
+  Navigate,
 } from 'react-router-dom';
 
 // ─── Navbar ──────────────────────────────────────────────────────────
@@ -14,10 +15,11 @@ import Navbar from './components/Navbar';
 // ─── Main Pages ──────────────────────────────────────────────────────
 import MyCoursesPage from './components/MyCoursesPage';
 import CourseDetailView from './components/CourseDetailView';
-// ✅ CHANGE: Use the new EnrollPage component
-import EnrollPage from './components/EnrollPage';  // <-- Changed from CourseEnrollmentPage
 import CoursesPage from './components/CoursesPage';
 import WatchDemoPage from './components/WatchDemoPage';
+
+// ─── Enrollment Page ──────────────────────────────────────────────
+import Enrollments from './components/Enrollments';
 
 // ─── Auth Pages ──────────────────────────────────────────────────────
 import Login from './components/Login';
@@ -53,8 +55,7 @@ const HIDE_NAVBAR = [
   '/ccna200',
   '/ccnp-encor',
   '/ccnp-enarsi',
-  '/course',
-  '/enroll',
+  '/enrollments',  // ✅ Hide navbar on enrollment pages
 ];
 
 // ─── App Routes ──────────────────────────────────────────────────────
@@ -71,31 +72,24 @@ function AppRoutes() {
       <Route path="/my-courses" element={<MyCoursesPage />} />
       <Route path="/course/:courseId" element={<CourseDetailView />} />
       
-      {/* ✅ ENROLLMENT ROUTE - Using EnrollPage component */}
+      {/* ✅ ENROLLMENT ROUTE - Single component for all enrollment pages */}
       <Route 
-        path="/enroll" 
+        path="/enrollments" 
         element={
-          <div>
-            {console.log('🔥🔥🔥 RENDERING ENROLL ROUTE!')}
-            <EnrollPage 
-              isMobile={isMobile} 
-              onBack={() => navigate('/my-courses')} 
-            />
-          </div>
+          <Enrollments 
+            isMobile={isMobile} 
+            onBack={() => navigate('/my-courses')} 
+          />
         } 
       />
       
-      {/* ✅ ENROLLMENT ROUTE with courseId */}
       <Route 
-        path="/enroll/:courseId" 
+        path="/enrollments/:courseId" 
         element={
-          <div>
-            {console.log('🔥🔥🔥 RENDERING ENROLL ROUTE WITH ID!')}
-            <EnrollPage 
-              isMobile={isMobile} 
-              onBack={() => navigate('/my-courses')} 
-            />
-          </div>
+          <Enrollments 
+            isMobile={isMobile} 
+            onBack={() => navigate('/my-courses')} 
+          />
         } 
       />
 
@@ -150,6 +144,9 @@ function AppRoutes() {
           </ProtectedInstructorRoute>
         }
       />
+
+      {/* ─── 404 Catch-All ─────────────────────────────────────────── */}
+      <Route path="*" element={<Navigate to="/my-courses" replace />} />
     </Routes>
   );
 }

@@ -1072,15 +1072,15 @@ function LabsTab({ labs, config }) {
 
 export default function CourseDetailView({
   selectedCourse,
-  topics,
-  subtopics,
-  images,
-  progress,
-  activeView,
-  activeSection,
-  completedSections,
-  currentSubtopic,
-  contentLoading,
+  topics = [], // ✅ Added default empty array
+  subtopics = [], // ✅ Added default empty array
+  images = [], // ✅ Added default empty array
+  progress = 0,
+  activeView = 'split',
+  activeSection = 0,
+  completedSections = [],
+  currentSubtopic = null,
+  contentLoading = false,
   handleBack,
   setActiveView,
   setActiveSection,
@@ -1113,7 +1113,11 @@ export default function CourseDetailView({
     { key: 'labs', icon: '🔬', label: 'Labs', color: '#f59e0b' },
   ];
 
+  // ✅ Fixed: Safety check for topics in useState
   const [expandedTopics, setExpandedTopics] = useState(() => {
+    if (!topics || !Array.isArray(topics) || topics.length === 0) {
+      return {};
+    }
     const t = topics.find((tp) => (tp.subtopics || []).some((s, i) => true));
     return t ? { [t.id]: true } : {};
   });
@@ -1133,12 +1137,17 @@ export default function CourseDetailView({
   // ─── Check if user is logged in ─────────────────────────────────────
   const isLoggedIn = !!localStorage.getItem('token');
 
-  // ─── isTopicLocked - Guests only see first topic ────────────────────
+  // ✅ Fixed: Safety check for topics in isTopicLocked
   const isTopicLocked = useCallback(
     (topicId) => {
       // Logged in users have access to all content
       if (isLoggedIn) {
         return false;
+      }
+      
+      // ✅ Safety check for topics
+      if (!topics || !Array.isArray(topics) || topics.length === 0) {
+        return true;
       }
       
       // Guests: only first topic is free
@@ -1214,9 +1223,9 @@ export default function CourseDetailView({
   }, [images]);
 
   const videoUrls = getVideoUrls(currentSub);
-  const currentTopic = topics.find((t) =>
+  const currentTopic = topics && Array.isArray(topics) ? topics.find((t) =>
     (t.subtopics || []).some((s) => String(s.id) === String(currentSub?.id))
-  );
+  ) : null;
 
   const fetchSubtopicData = useCallback(async (subtopicId) => {
     if (!subtopicId) return;
@@ -1329,20 +1338,21 @@ export default function CourseDetailView({
     else if (availableTypes.length > 0) setActiveContentType(availableTypes[0]);
   };
 
+  // ✅ Fixed: Safety check for filteredTopics
   const filteredTopics = searchQuery
-    ? topics.filter((topic) =>
+    ? (topics || []).filter((topic) =>
         topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (topic.subtopics || []).some((sub) => sub.title.toLowerCase().includes(searchQuery.toLowerCase()))
       )
-    : topics;
+    : (topics || []);
 
   const renderPanelContent = () => {
     if (!currentSub) {
       return (
         <EmptyState 
           courseTitle={selectedCourse?.title}
-          topicsCount={topics.length}
-          subtopicsCount={subtopics.length}
+          topicsCount={topics ? topics.length : 0}
+          subtopicsCount={subtopics ? subtopics.length : 0}
         />
       );
     }

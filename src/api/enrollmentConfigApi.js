@@ -20,7 +20,16 @@ export const getPublicEnrollmentConfig = async (courseId) => {
 // ============ ADMIN ENDPOINTS ============
 export const createEnrollmentConfig = async (configData) => {
   try {
-    const response = await api.post('/enrollment-config/admin', configData);
+    // ✅ FORCE generate an ID if not present
+    const dataToSend = {
+      ...configData,
+      id: configData.id || Date.now()
+    };
+    
+    console.log('📤 Creating config with ID:', dataToSend.id);
+    console.log('📤 Full data being sent:', dataToSend);
+    
+    const response = await api.post('/enrollment-config/admin', dataToSend);
     return response.data;
   } catch (error) {
     console.error('Error creating enrollment config:', error);
@@ -30,7 +39,15 @@ export const createEnrollmentConfig = async (configData) => {
 
 export const updateEnrollmentConfig = async (courseId, configData) => {
   try {
-    const response = await api.put(`/enrollment-config/admin/${courseId}`, configData);
+    // ✅ Ensure ID exists for updates too
+    const dataToSend = {
+      ...configData,
+      id: configData.id || Date.now()
+    };
+    
+    console.log('📤 Updating config with ID:', dataToSend.id);
+    
+    const response = await api.put(`/enrollment-config/admin/${courseId}`, dataToSend);
     return response.data;
   } catch (error) {
     console.error('Error updating enrollment config:', error);
@@ -86,6 +103,7 @@ export const getDefaultEnrollmentConfig = async (courseId) => {
 // ============ LOCAL DEFAULT CONFIG ============
 export const getDefaultConfig = () => {
   return {
+    id: Date.now(), // ✅ Add default ID
     joinButtonText: "Join This Course",
     shareButtonText: "Share",
     primaryColor: "#3abf94",

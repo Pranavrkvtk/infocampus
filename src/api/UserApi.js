@@ -22,7 +22,6 @@ export const getPublicCourses = async () => {
 /**
  * Get single course details (public) with first topic free
  * No authentication required
- * ✅ Endpoint: /public/courses/{courseId}
  */
 export const getPublicCourseById = async (courseId) => {
   try {
@@ -38,11 +37,9 @@ export const getPublicCourseById = async (courseId) => {
 /**
  * Get public course data with topics (first topic full, others limited)
  * No authentication required
- * ✅ FIXED: Uses the same endpoint as getPublicCourseById
  */
 export const getPublicCourseData = async (courseId) => {
   try {
-    // ✅ FIXED: Remove the extra /public at the end
     const response = await api.get(`/public/courses/${courseId}`);
     console.log('📥 Public course data:', response.data);
     return response.data;
@@ -54,7 +51,6 @@ export const getPublicCourseData = async (courseId) => {
 
 /**
  * Get home video (public)
- * No authentication required
  */
 export const getHomeVideo = async () => {
   try {
@@ -68,7 +64,6 @@ export const getHomeVideo = async () => {
 
 /**
  * Get subtopic images (public)
- * No authentication required
  */
 export const getPublicSubtopicImages = async (subtopicId) => {
   try {
@@ -136,12 +131,12 @@ export const uploadCourseImage = async (courseId, file) => {
 };
 
 // =========================================================================
-//  ENROLLMENT
+//  ENROLLMENT (✅ FIXED - Using correct endpoints)
 // =========================================================================
 
 /**
- * Get enrolled courses - requires login
- * Returns empty array if not logged in
+ * ✅ FIXED: Get enrolled courses - uses the correct endpoint
+ * GET /api/users/enrolled-courses
  */
 export const getEnrolledCourses = async () => {
   try {
@@ -149,16 +144,83 @@ export const getEnrolledCourses = async () => {
     if (!token) {
       return [];
     }
-    const response = await api.get("/users/enrollments");
-    return response.data;
+    
+    const response = await api.get("/users/enrolled-courses");
+    console.log('📚 Enrolled courses response:', response.data);
+    
+    // Handle different response formats
+    if (response.data && response.data.success) {
+      // If response has success flag, extract courses
+      if (response.data.courses) {
+        return response.data.courses;
+      }
+      // If response has data field
+      if (response.data.data) {
+        return response.data.data;
+      }
+      // If response has enrollments field
+      if (response.data.enrollments) {
+        return response.data.enrollments.map(e => e.course).filter(Boolean);
+      }
+    }
+    
+    // If response is directly an array
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    
+    // If response has courses array directly
+    if (response.data && Array.isArray(response.data.courses)) {
+      return response.data.courses;
+    }
+    
+    // Fallback: try to extract from enrollments
+    if (response.data && Array.isArray(response.data.enrollments)) {
+      return response.data.enrollments.map(e => e.course).filter(Boolean);
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error fetching enrolled courses:', error);
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('token');
+    }
+    return [];
+  }
+};
+
+/**
+ * ✅ FIXED: Get my enrollments with full details
+ * GET /api/users/my-enrollments
+ */
+export const getMyEnrollments = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return [];
+    }
+    
+    const response = await api.get("/users/my-enrollments");
+    console.log('📋 My enrollments response:', response.data);
+    
+    if (response.data && response.data.success) {
+      return response.data.enrollments || [];
+    }
+    
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching my enrollments:', error);
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+    }
     return [];
   }
 };
 
 /**
  * Enroll in course - requires login
+ * POST /api/users/enroll/{courseId}
  */
 export const enrollInCourse = async (courseId) => {
   try {
@@ -175,15 +237,129 @@ export const enrollInCourse = async (courseId) => {
 };
 
 /**
+ * ✅ FIXED: Check if the current user is enrolled in a specific course
+ * GET /api/users/courses/{courseId}/is-enrolled
+ */
+export const checkEnrollment = async (courseId) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return { enrolled: false };
+    }
+
+    const response = await api.get(`/users/courses/${courseId}/is-enrolled`);
+    console.log('📥 Check enrollment response:', response.data);
+    
+    if (response.data && response.data.success) {
+      return { 
+        enrolled: response.data.isEnrolled === true,
+        enrollmentId: response.data.enrollmentId,
+        status: response.data.status,
+        progress: response.data.progress
+      };
+    }
+    
+    return { enrolled: false };
+  } catch (error) {
+    console.error('Error checking enrollment:', error);
+    return { enrolled: false };
+  }
+};
+
+/**
+ * Update enrollment progress
+ * PATCH /api/users/enrollment/progress
+ */
+export const updateEnrollmentProgress = async (courseId, progress) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Login required to update progress');
+    }
+    
+    const response = await api.patch(`/users/enrollment/progress?courseId=${courseId}&progress=${progress}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating progress:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update enrollment status
+ * PATCH /api/users/enrollment/status
+ */
+export const updateEnrollmentStatus = async (courseId, status) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Login required to update status');
+    }
+    
+    const response = await api.patch(`/users/enrollment/status?courseId=${courseId}&status=${status}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating status:', error);
+    throw error;
+  }
+};
+
+/**
+ * Unenroll from a course
+ * DELETE /api/users/unenroll/{courseId}
+ */
+export const unenrollFromCourse = async (courseId) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Login required to unenroll');
+    }
+    
+    const response = await api.delete(`/users/unenroll/${courseId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error unenrolling:', error);
+    throw error;
+  }
+};
+
+/**
  * Get enrollment count for a course
  */
 export const getEnrollmentCount = async (courseId) => {
   try {
     const response = await api.get(`/users/courses/${courseId}/enrollment-count`);
-    return response.data;
+    if (response.data && response.data.success) {
+      return response.data.total || 0;
+    }
+    return response.data || 0;
   } catch (error) {
     console.error('Error fetching enrollment count:', error);
     return 0;
+  }
+};
+
+/**
+ * Check if user has any enrolled courses
+ */
+export const hasEnrolledCourses = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return { hasEnrolledCourses: false, enrollmentCount: 0 };
+    }
+    
+    const response = await api.get("/users/has-enrolled-courses");
+    if (response.data && response.data.success) {
+      return {
+        hasEnrolledCourses: response.data.hasEnrolledCourses,
+        enrollmentCount: response.data.enrollmentCount || 0
+      };
+    }
+    return { hasEnrolledCourses: false, enrollmentCount: 0 };
+  } catch (error) {
+    console.error('Error checking enrolled courses:', error);
+    return { hasEnrolledCourses: false, enrollmentCount: 0 };
   }
 };
 
@@ -256,6 +432,12 @@ export const getCourseDetails = async (courseId) => {
     if (token) {
       // Authenticated endpoint with enrollment info
       const response = await api.get(`/users/courses/${courseId}/details`);
+      console.log('📥 Course details response:', response.data);
+      
+      // Handle different response formats
+      if (response.data && response.data.success) {
+        return response.data.data || response.data;
+      }
       return response.data;
     } else {
       // Public endpoint
@@ -386,6 +568,32 @@ export const getSubtopicImages = async (subtopicId) => {
   }
 };
 
+/**
+ * Get exam content
+ */
+export const getExamContent = async (subtopicId) => {
+  try {
+    const response = await api.get(`/users/subtopics/${subtopicId}/exam-content`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching exam content:', error);
+    return null;
+  }
+};
+
+/**
+ * Get interview content
+ */
+export const getInterviewContent = async (subtopicId) => {
+  try {
+    const response = await api.get(`/users/subtopics/${subtopicId}/interview-content`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching interview content:', error);
+    return null;
+  }
+};
+
 // =========================================================================
 //  PROGRESS TRACKING (Requires Login)
 // =========================================================================
@@ -441,10 +649,16 @@ const userApi = {
   getCoursesWithImages,
   uploadCourseImage,
   
-  // Enrollment
+  // Enrollment (✅ FIXED)
   getEnrolledCourses,
+  getMyEnrollments,
   enrollInCourse,
+  checkEnrollment,
   getEnrollmentCount,
+  hasEnrolledCourses,
+  updateEnrollmentProgress,
+  updateEnrollmentStatus,
+  unenrollFromCourse,
   
   // Instructor
   getCourseInstructor,
@@ -461,6 +675,8 @@ const userApi = {
   getTopicSubtopics,
   getSubtopic,
   getSubtopicImages,
+  getExamContent,
+  getInterviewContent,
   
   // Progress
   updateProgress,

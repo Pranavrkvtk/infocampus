@@ -51,8 +51,11 @@ const DEFAULT_MY_COURSES_CONFIG = {
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
   heroBgEnd: "#83698A",
-  heroImageUrl: '',
-  sectionTitle: "All Courses",
+  heroDecor: "🎓",
+  sectionTitleMy: "My Courses",
+  sectionTitleAll: "All Courses",
+  myCoursesTabText: "My Courses",
+  allCoursesTabText: "Browse All Courses",
   searchPlaceholder: "Search courses...",
   cardDurationLabel: "⏱",
   cardStepsLabel: "📋",
@@ -60,9 +63,15 @@ const DEFAULT_MY_COURSES_CONFIG = {
   enrolledBadgeText: "Enrolled",
   viewCourseButtonText: "View Course",
   continueLearningButtonText: "Continue Learning",
-  emptyStateTitle: "No courses available",
-  emptyStateText: "Check back later for new courses.",
-  footerText: "Click any course to view details — enrolled courses can be resumed anytime.",
+  emptyStateLoginTitle: "Login to see your courses",
+  emptyStateLoginText: "Sign in to view your enrolled courses and track progress.",
+  emptyStateLoginButton: "Sign In",
+  emptyStateNoCoursesTitle: "No courses yet",
+  emptyStateNoCoursesText: "Browse all courses and enroll to start learning.",
+  emptyStateNoCoursesButton: "Browse All Courses",
+  emptyStateNoAvailableTitle: "No courses available",
+  emptyStateNoAvailableText: "Check back later for new courses.",
+  footerText: "Browse our course catalog. Sign in to enroll and track progress.",
   trackIcons: {
     ccna: "🌐",
     ccnp: "🚀",
@@ -117,12 +126,13 @@ const COLORS = {
   tagBg: '#F1E9F0',
   tagText: '#714B67',
   success: '#2E8B57',
+  error: '#DC2626',
   sidebarBg: '#F1F5F9',
   sidebarBorder: '#E2E8F0',
   sidebarText: '#475569',
 };
 
-// ─── Course Image Mapping (Fallback images) ────────────────────
+// ─── Course Image Mapping ────────────────────
 const COURSE_IMAGES = {
   'ccna': 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=250&fit=crop',
   'ccnp': 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=250&fit=crop',
@@ -181,8 +191,9 @@ function MyCoursesPage() {
   
   const myCoursesConfig = getMyCoursesConfig() || DEFAULT_MY_COURSES_CONFIG;
   
-  const [courses, setCourses] = useState([]);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [activeView, setActiveView] = useState('catalog');
   const [activeSection, setActiveSection] = useState(0);
@@ -200,23 +211,15 @@ function MyCoursesPage() {
   const [loadingAllCourses, setLoadingAllCourses] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [apiError, setApiError] = useState(null);
+  
+  // ✅ Tab state: 'my' for enrolled, 'all' for catalog
+  const [activeTab, setActiveTab] = useState('my');
 
   const isMobile = window.innerWidth < 768;
   const isTablet = window.innerWidth >= 768 && window.innerWidth < 1024;
   const isSmallDesktop = window.innerWidth >= 1024 && window.innerWidth < 1280;
 
   const isLoggedIn = !!localStorage.getItem('token');
-
-  useEffect(() => {
-    if (activeView === 'split') {
-      document.body.classList.add('hide-main-navbar');
-    } else {
-      document.body.classList.remove('hide-main-navbar');
-    }
-    return () => {
-      document.body.classList.remove('hide-main-navbar');
-    };
-  }, [activeView]);
 
   // ─── Handle Share ──────────────────────────────────────────────────
   const handleShare = async () => {
@@ -304,19 +307,46 @@ function MyCoursesPage() {
     return resolveImageUrl(fileName);
   }, []);
 
-  // ─── Fetch Enrolled Courses ────────────────────────────────────────
+  // ✅ Fetch Enrolled Courses (only if logged in)
   const fetchEnrolledCourses = useCallback(async () => {
     if (!isLoggedIn) {
-      setCourses([]);
+      setEnrolledCourses([]);
       setLoading(false);
       return;
     }
+    
     try {
-      const data = await getEnrolledCourses();
-      setCourses(Array.isArray(data) ? data : []);
+      setLoading(true);
+      setLoadingError(null);
       
+      const data = await getEnrolledCourses();
+      console.log('📚 Enrolled courses data:', data);
+      
+      if (data && data.error) {
+        console.error('API returned error:', data.error);
+        setLoadingError(data.error);
+        setEnrolledCourses([]);
+        return;
+      }
+      
+      let enrolledCoursesData = [];
       if (Array.isArray(data)) {
-        data.forEach(course => {
+        enrolledCoursesData = data;
+      } else if (data && data.courses) {
+        enrolledCoursesData = data.courses;
+      } else if (data && data.data) {
+        enrolledCoursesData = Array.isArray(data.data) ? data.data : [];
+      } else if (data && data.enrollments) {
+        enrolledCoursesData = data.enrollments
+          .filter(e => e.course)
+          .map(e => e.course);
+      }
+      
+      console.log('📚 Processed enrolled courses:', enrolledCoursesData);
+      setEnrolledCourses(enrolledCoursesData);
+      
+      if (Array.isArray(enrolledCoursesData)) {
+        enrolledCoursesData.forEach(course => {
           if (course.imageUrl) {
             const img = new Image();
             img.src = getCourseImage(course);
@@ -324,27 +354,40 @@ function MyCoursesPage() {
         });
       }
     } catch (error) {
-      console.error('Error fetching enrolled courses:', error);
-      setCourses([]);
-      if (error.response?.status !== 403) {
-        Swal.fire('Error', 'Could not load your courses', 'error');
+      console.error('❌ Error fetching enrolled courses:', error);
+      setEnrolledCourses([]);
+      setLoadingError(error.message || 'Failed to load enrolled courses');
+      
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
       }
     } finally {
       setLoading(false);
     }
   }, [isLoggedIn, getCourseImage]);
 
-  // ─── Fetch All Courses ──────────────────────────────────────────
+  // ─── Fetch All Courses (always accessible) ──────────────────────────
   const fetchAllCourses = useCallback(async () => {
     setLoadingAllCourses(true);
     setApiError(null);
     
     try {
+      // ✅ Always use public endpoint for all courses
       const data = await getPublicCourses();
-      setAllCourses(Array.isArray(data) ? data : []);
+      console.log('📚 All courses data:', data);
       
-      if (Array.isArray(data)) {
-        data.forEach(course => {
+      if (data && data.error) {
+        console.error('API returned error:', data.error);
+        setApiError(data.error);
+        setAllCourses([]);
+        return;
+      }
+      
+      const coursesData = Array.isArray(data) ? data : [];
+      setAllCourses(coursesData);
+      
+      if (coursesData.length > 0) {
+        coursesData.forEach(course => {
           const img = new Image();
           img.src = getCourseImage(course);
         });
@@ -352,39 +395,11 @@ function MyCoursesPage() {
     } catch (error) {
       console.error('Error fetching public courses:', error);
       setAllCourses([]);
-      
-      if (error.response?.status === 403 || error.message?.includes('403')) {
-        const token = localStorage.getItem('token');
-        
-        if (token) {
-          try {
-            const fallbackData = await getCourses();
-            setAllCourses(Array.isArray(fallbackData) ? fallbackData : []);
-            
-            if (Array.isArray(fallbackData)) {
-              fallbackData.forEach(course => {
-                const img = new Image();
-                img.src = getCourseImage(course);
-              });
-            }
-          } catch (fallbackError) {
-            console.error('Fallback also failed:', fallbackError);
-            setAllCourses([]);
-            setApiError('Unable to load courses. Please try again later.');
-          }
-        } else {
-          setAllCourses([]);
-          setApiError('Please login to view courses');
-        }
-      } else {
-        setAllCourses([]);
-        setApiError('Unable to load courses. Please try again later.');
-      }
+      setApiError('Unable to load courses. Please try again later.');
     } finally {
       setLoadingAllCourses(false);
     }
   }, [getCourseImage]);
-
 
   // ─── Load Course Details ───────────────────────────────────────────
   const loadCourseDetails = async (courseId) => {
@@ -419,6 +434,7 @@ function MyCoursesPage() {
             videoUrls: sub.videoUrls || [],
             imageUrl: sub.imageUrl,
             images: sub.images || [],
+            isFree: sub.isFree || topic.isFirstTopic || false,
             ...sub
           });
         });
@@ -480,9 +496,10 @@ function MyCoursesPage() {
     }
   };
 
-  // ─── Check if Course is Enrolled ───────────────────────────────────
+  // ✅ Check if Course is Enrolled (only if logged in)
   const isCourseEnrolled = (courseId) => {
-    const coursesArray = Array.isArray(courses) ? courses : [];
+    if (!isLoggedIn) return false;
+    const coursesArray = Array.isArray(enrolledCourses) ? enrolledCourses : [];
     return coursesArray.some((ec) => ec.id === courseId);
   };
 
@@ -506,18 +523,28 @@ function MyCoursesPage() {
       lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
     };
     
-    console.log('📤 Formatted course:', formattedCourse);
+    const enrolled = isCourseEnrolled(course.id);
     
-    navigate(`/enroll/${course.id}`, { 
-      state: { 
-        course: formattedCourse,
-        isEnrolled: isCourseEnrolled(course.id),
-        from: 'my-courses'
-      } 
-    });
+    if (enrolled && isLoggedIn) {
+      navigate(`/course/${course.id}`, { 
+        state: { 
+          course: formattedCourse,
+          isEnrolled: true,
+          from: 'my-courses'
+        } 
+      });
+    } else {
+      navigate(`/enrollments/${course.id}`, { 
+        state: { 
+          course: formattedCourse,
+          isEnrolled: false,
+          from: 'my-courses'
+        } 
+      });
+    }
   };
 
-  // ─── Handle Continue Learning ──────────────────────────────────────
+  // ─── Handle Continue Learning ───────────────────────────────────────
   const handleContinueLearning = (course) => {
     if (!isLoggedIn) {
       Swal.fire({
@@ -550,7 +577,7 @@ function MyCoursesPage() {
       lastUpdate: course.lastUpdate || course.updatedAt || new Date().toLocaleDateString(),
     };
     
-    navigate(`/enroll/${course.id}`, { 
+    navigate(`/course/${course.id}`, { 
       state: { 
         course: formattedCourse,
         isEnrolled: true,
@@ -558,8 +585,6 @@ function MyCoursesPage() {
       } 
     });
   };
-
- 
 
   // ─── Handle Back to Catalog ────────────────────────────────────────
   const handleBackToCatalog = () => {
@@ -626,17 +651,27 @@ function MyCoursesPage() {
   };
 
   useEffect(() => {
-    fetchEnrolledCourses();
+    // ✅ Always fetch all courses (public)
     fetchAllCourses();
-  }, [fetchEnrolledCourses, fetchAllCourses]);
+    
+    // ✅ Only fetch enrolled courses if logged in
+    if (isLoggedIn) {
+      fetchEnrolledCourses();
+    } else {
+      setLoading(false);
+      // ✅ If not logged in, default to 'all' tab
+      setActiveTab('all');
+    }
+  }, [fetchEnrolledCourses, fetchAllCourses, isLoggedIn]);
 
   // ─── Get unique categories from courses ──────────────────────────
   const getCategories = () => {
     const cats = new Set();
     const coursesArray = Array.isArray(allCourses) ? allCourses : [];
     coursesArray.forEach(course => {
-      if (course.category && course.category !== 'General' && course.category !== 'general' && course.category !== '') {
-        cats.add(course.category);
+      const category = course.category || course.track || '';
+      if (category && category !== 'General' && category !== 'general' && category !== '') {
+        cats.add(category);
       }
     });
     return ['all', ...Array.from(cats)];
@@ -644,21 +679,37 @@ function MyCoursesPage() {
 
   const categories = getCategories();
 
-  // ─── Filter courses by category ──────────────────────────────────
-  const getFilteredCourses = () => {
-    const coursesArray = Array.isArray(allCourses) ? allCourses : [];
-    if (activeCategory === 'all') {
-      return coursesArray;
+  // ✅ Get displayed courses based on active tab
+  const getDisplayedCourses = () => {
+    if (activeTab === 'my' && isLoggedIn) {
+      return enrolledCourses;
     }
-    return coursesArray.filter(course => course.category === activeCategory);
+    // ✅ For 'all' tab or when not logged in, show all courses
+    return allCourses;
   };
 
-  const filteredCourses = getFilteredCourses();
-  const visibleCourses = Array.isArray(filteredCourses) 
-    ? filteredCourses.filter((c) => 
+  // ─── Filter courses by category and search ──────────────────────
+  const getFilteredCourses = () => {
+    const coursesArray = Array.isArray(getDisplayedCourses()) ? getDisplayedCourses() : [];
+    
+    let filtered = coursesArray;
+    if (activeCategory !== 'all') {
+      filtered = filtered.filter(course => {
+        const category = course.category || course.track || '';
+        return category === activeCategory;
+      });
+    }
+    
+    if (searchTerm) {
+      filtered = filtered.filter((c) => 
         c.title?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : [];
+      );
+    }
+    
+    return filtered;
+  };
+
+  const visibleCourses = getFilteredCourses();
 
   // ─── Get grid columns based on screen size ──────────────────────
   const getGridColumns = () => {
@@ -666,6 +717,106 @@ function MyCoursesPage() {
     if (isTablet) return '2fr';
     if (isSmallDesktop) return '3fr';
     return 'repeat(4, 1fr)';
+  };
+
+  // ─── Get track icon and color for course ──────────────────────────
+  const getTrackInfo = (courseTitle) => {
+    const title = courseTitle?.toLowerCase() || '';
+    const trackKeys = Object.keys(myCoursesConfig.trackIcons);
+    
+    for (const key of trackKeys) {
+      if (title.includes(key)) {
+        return {
+          icon: myCoursesConfig.trackIcons[key] || '📄',
+          color: myCoursesConfig.trackColors[key] || '#F2F1F6'
+        };
+      }
+    }
+    
+    return {
+      icon: myCoursesConfig.trackIcons.default || '📄',
+      color: myCoursesConfig.trackColors.default || '#F2F1F6'
+    };
+  };
+
+  // ─── Render Empty State ────────────────────────────────────────────
+  const renderEmptyState = () => {
+    // ✅ Not logged in - show login prompt
+    if (!isLoggedIn) {
+      return (
+        <div style={styles.emptyState}>
+          <div style={styles.emptyIcon}>🔒</div>
+          <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateLoginTitle}</h3>
+          <p style={styles.emptyText}>{myCoursesConfig.emptyStateLoginText}</p>
+          <button 
+            onClick={handleLogin}
+            style={{
+              ...styles.heroBtn,
+              background: COLORS.accent,
+              color: '#fff',
+              marginTop: '8px',
+            }}
+          >
+            {myCoursesConfig.emptyStateLoginButton}
+          </button>
+        </div>
+      );
+    }
+
+    // ✅ Logged in but no enrolled courses (My Courses tab)
+    if (activeTab === 'my' && enrolledCourses.length === 0) {
+      return (
+        <div style={styles.emptyState}>
+          <div style={styles.emptyIcon}>📭</div>
+          <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateNoCoursesTitle}</h3>
+          <p style={styles.emptyText}>{myCoursesConfig.emptyStateNoCoursesText}</p>
+          <button 
+            onClick={() => setActiveTab('all')}
+            style={{
+              ...styles.heroBtn,
+              background: COLORS.accent,
+              color: '#fff',
+              marginTop: '8px',
+            }}
+          >
+            {myCoursesConfig.emptyStateNoCoursesButton}
+          </button>
+        </div>
+      );
+    }
+
+    // No courses available at all
+    if (allCourses.length === 0) {
+      return (
+        <div style={styles.emptyState}>
+          <div style={styles.emptyIcon}>📭</div>
+          <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateNoAvailableTitle}</h3>
+          <p style={styles.emptyText}>{myCoursesConfig.emptyStateNoAvailableText}</p>
+          {apiError && (
+            <button 
+              onClick={() => fetchAllCourses()}
+              style={{
+                ...styles.heroBtn,
+                background: COLORS.accent,
+                color: '#fff',
+                marginTop: '8px',
+              }}
+            >
+              🔄 Retry
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // No search results
+    return (
+      <div style={styles.emptyState}>
+        <div style={styles.emptyIcon}>🔍</div>
+        <h3 style={styles.emptyTitle}>No results found</h3>
+        <p style={styles.emptyText}>Try adjusting your search or filter.</p>
+      </div>
+    );
   };
 
   // ─── Styles ──────────────────────────────────────────────────────
@@ -714,7 +865,7 @@ function MyCoursesPage() {
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
-      background: `linear-gradient(120deg, ${myCoursesConfig.heroBgStart} 0%, ${myCoursesConfig.heroBgMid} 55%, ${myCoursesConfig.heroBgEnd} 100%)`, 
+      background: `linear-gradient(135deg, ${myCoursesConfig.heroBgStart} 0%, ${myCoursesConfig.heroBgMid} 55%, ${myCoursesConfig.heroBgEnd} 100%)`, 
       padding: isMobile ? '40px 20px' : '56px 48px', 
       color: '#fff',
       display: 'flex',
@@ -763,14 +914,13 @@ function MyCoursesPage() {
       gap: '8px',
       transition: 'transform 0.2s, box-shadow 0.2s',
     },
-    heroImage: {
-      width: isMobile ? '100%' : '260px',
-      height: isMobile ? '180px' : '260px',
-      objectFit: 'cover',
-      borderRadius: '14px',
+    heroDecor: {
+      fontSize: '48px',
       marginLeft: isMobile ? '0' : '32px',
       marginTop: isMobile ? '16px' : '0',
-      boxShadow: '0 16px 32px rgba(0,0,0,0.2)',
+      opacity: 0.15,
+      lineHeight: 1,
+      userSelect: 'none',
     },
 
     sectionBar: { 
@@ -817,22 +967,44 @@ function MyCoursesPage() {
       transition: 'border-color 0.2s, box-shadow 0.2s',
     },
 
+    tabContainer: {
+      display: 'flex',
+      gap: '4px',
+      padding: isMobile ? '12px 16px 0' : '16px 40px 0',
+      maxWidth: '1440px',
+      margin: '0 auto',
+    },
+    tabButton: (active) => ({
+      padding: '8px 20px',
+      borderRadius: '10px',
+      border: 'none',
+      background: active ? COLORS.accent : 'transparent',
+      color: active ? '#fff' : COLORS.slate,
+      fontSize: '14px',
+      fontWeight: active ? 700 : 500,
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+    }),
+
     categoryTabs: {
       display: 'flex',
       gap: '8px',
-      padding: isMobile ? '12px 16px 0' : '16px 40px 0',
+      padding: isMobile ? '8px 16px 0' : '8px 40px 0',
       maxWidth: '1440px',
       margin: '0 auto',
       overflowX: 'auto',
       flexWrap: isMobile ? 'nowrap' : 'wrap',
     },
     categoryTab: (active) => ({
-      padding: '8px 20px',
-      borderRadius: '10px',
+      padding: '6px 16px',
+      borderRadius: '8px',
       border: `2px solid ${active ? COLORS.accent : COLORS.line}`,
       background: active ? COLORS.accent : COLORS.paper,
       color: active ? '#fff' : COLORS.slate,
-      fontSize: '13px',
+      fontSize: '12px',
       fontWeight: 600,
       cursor: 'pointer',
       transition: 'all 0.2s',
@@ -873,6 +1045,22 @@ function MyCoursesPage() {
       height: '100%',
       objectFit: 'cover',
       transition: 'transform 0.3s ease',
+    },
+    cardTrackBadge: {
+      position: 'absolute',
+      top: '12px',
+      left: '12px',
+      background: 'rgba(0,0,0,0.6)',
+      color: '#fff',
+      padding: '4px 10px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: 600,
+      backdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      zIndex: 1,
     },
     cardBody: { 
       padding: '14px 16px 10px', 
@@ -1013,11 +1201,12 @@ function MyCoursesPage() {
     },
   };
 
+  // ─── Loading State ──────────────────────────────────────────────────
   if (loading || loadingAllCourses) {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p>Loading courses...</p>
+        <p>{isLoggedIn ? 'Loading your courses...' : 'Loading course catalog...'}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -1053,10 +1242,10 @@ function MyCoursesPage() {
   }
 
   // ─── Render: Course Catalog ───────────────────────────────────────────
-  const heroImageUrl = myCoursesConfig.heroImageUrl ? resolveImageUrl(myCoursesConfig.heroImageUrl) : null;
+  const heroDecor = myCoursesConfig.heroDecor || '🎓';
 
   const formatCategoryName = (cat) => {
-    if (cat === 'all') return 'All Courses';
+    if (cat === 'all') return 'All';
     return cat.charAt(0).toUpperCase() + cat.slice(1);
   };
 
@@ -1133,23 +1322,16 @@ function MyCoursesPage() {
             {myCoursesConfig.heroButtonText}
           </button>
         </div>
-        {heroImageUrl && (
-          <img 
-            src={heroImageUrl} 
-            alt="Hero" 
-            style={styles.heroImage}
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
-        )}
+        <div style={styles.heroDecor}>{heroDecor}</div>
       </div>
 
       {/* ─── Section Bar ──────────────────────────────────────────────── */}
       <div style={styles.sectionBar} id="courses-section">
         <div style={styles.sectionTitle}>
           <GridViewIcon style={{ fontSize: '28px', color: COLORS.accent }} />
-          <span style={{ marginLeft: '8px' }}>All Courses</span>
+          <span style={{ marginLeft: '8px' }}>
+            {activeTab === 'my' && isLoggedIn ? myCoursesConfig.sectionTitleMy : 'Course Catalog'}
+          </span>
           <span style={{ 
             fontSize: '14px', 
             fontWeight: 400, 
@@ -1159,7 +1341,7 @@ function MyCoursesPage() {
             padding: '2px 12px',
             borderRadius: '20px',
           }}>
-            {allCourses.length}
+            {visibleCourses.length}
           </span>
         </div>
         <div style={styles.searchWrap}>
@@ -1174,8 +1356,54 @@ function MyCoursesPage() {
         </div>
       </div>
 
+      {/* ─── Tabs: My Courses | All Courses ────────────────────────── */}
+      <div style={styles.tabContainer}>
+        {isLoggedIn && (
+          <button
+            style={styles.tabButton(activeTab === 'my')}
+            onClick={() => {
+              setActiveTab('my');
+              setActiveCategory('all');
+              setSearchTerm('');
+            }}
+          >
+            {myCoursesConfig.myCoursesTabText}
+            {enrolledCourses.length > 0 && (
+              <span style={{
+                fontSize: '11px',
+                background: activeTab === 'my' ? 'rgba(255,255,255,0.2)' : COLORS.line,
+                padding: '1px 8px',
+                borderRadius: '10px',
+              }}>
+                {enrolledCourses.length}
+              </span>
+            )}
+          </button>
+        )}
+        <button
+          style={styles.tabButton(activeTab === 'all')}
+          onClick={() => {
+            setActiveTab('all');
+            setActiveCategory('all');
+            setSearchTerm('');
+          }}
+        >
+          {isLoggedIn ? myCoursesConfig.allCoursesTabText : 'Browse All Courses'}
+          {allCourses.length > 0 && (
+            <span style={{
+              fontSize: '11px',
+              background: activeTab === 'all' ? 'rgba(255,255,255,0.2)' : COLORS.line,
+              padding: '1px 8px',
+              borderRadius: '10px',
+            }}>
+              {allCourses.length}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* ─── Category Tabs ────────────────────────────────────────────── */}
-      {categories.length > 1 && (
+      {activeTab === 'all' && categories.length > 1 && (
         <div style={styles.categoryTabs}>
           {categories.map((cat) => (
             <button
@@ -1191,33 +1419,13 @@ function MyCoursesPage() {
 
       {/* ─── Courses Grid ────────────────────────────────────────────── */}
       {visibleCourses.length === 0 ? (
-        <div style={styles.emptyState}>
-          <div style={styles.emptyIcon}>📭</div>
-          <h3 style={styles.emptyTitle}>
-            {apiError ? 'Unable to load courses' : (allCourses.length === 0 ? 'No courses available' : 'No courses in this category')}
-          </h3>
-          <p style={styles.emptyText}>
-            {apiError || (allCourses.length === 0 ? 'Check back later for new courses.' : 'Try selecting a different category.')}
-          </p>
-          {apiError && !isLoggedIn && (
-            <button 
-              onClick={handleLogin}
-              style={{
-                ...styles.heroBtn,
-                background: COLORS.accent,
-                color: '#fff',
-                marginTop: '16px',
-              }}
-            >
-              Login to View Courses
-            </button>
-          )}
-        </div>
+        renderEmptyState()
       ) : (
         <div style={styles.grid}>
           {visibleCourses.map((course) => {
             const isEnrolled = isLoggedIn && isCourseEnrolled(course.id);
             const imageUrl = getCourseImage(course);
+            const trackInfo = getTrackInfo(course.title);
             
             return (
               <div key={course.id} style={styles.card}>
@@ -1238,6 +1446,13 @@ function MyCoursesPage() {
                       e.target.src = fallback;
                     }}
                   />
+                  <div style={{
+                    ...styles.cardTrackBadge,
+                    background: trackInfo.color,
+                    color: '#1F1B24',
+                  }}>
+                    {trackInfo.icon} {course.level || ''}
+                  </div>
                   {isEnrolled && (
                     <span style={styles.enrolledBadge}>
                       <BookmarkIcon style={{ fontSize: '12px' }} />
@@ -1288,7 +1503,7 @@ function MyCoursesPage() {
                       }}
                     >
                       <ArrowBackIcon style={{ fontSize: '16px', transform: 'rotate(180deg)' }} />
-                      {myCoursesConfig.viewCourseButtonText}
+                      {isLoggedIn ? myCoursesConfig.viewCourseButtonText : 'View Details'}
                     </button>
                   )}
                 </div>
