@@ -52,7 +52,8 @@ export default function StudentsTab({
     const active = students.filter((s) => (s.status || "ACTIVE") === "ACTIVE").length;
     const inactive = students.filter((s) => s.status === "INACTIVE").length;
     const admins = students.filter((s) => s.role === "ADMIN").length;
-    return { total, active, inactive, admins };
+    const withPhone = students.filter((s) => s.phone && s.phone.length > 0).length;
+    return { total, active, inactive, admins, withPhone };
   }, [students]);
 
   // Roles available for filter dropdown
@@ -92,7 +93,6 @@ export default function StudentsTab({
   // Handle page change
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
-    // Scroll to top of table when changing pages
     const tableContainer = document.querySelector('.table-container');
     if (tableContainer) {
       tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -204,7 +204,6 @@ export default function StudentsTab({
     });
 
     try {
-      // Delete all selected students one by one
       const deletePromises = selectedStudents.map((id) => handleDeleteStudent(id));
       await Promise.all(deletePromises);
 
@@ -277,7 +276,7 @@ export default function StudentsTab({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)",
           gap: "16px",
           marginBottom: "24px",
         }}
@@ -308,6 +307,13 @@ export default function StudentsTab({
             {stats.admins}
           </div>
           <div style={statLabelStyle}>👑 Admins</div>
+        </div>
+
+        <div style={statCardStyle}>
+          <div style={{ fontSize: "24px", fontWeight: 700, color: "#7c3aed" }}>
+            {stats.withPhone}
+          </div>
+          <div style={statLabelStyle}>📱 With Phone</div>
         </div>
       </div>
 
@@ -418,7 +424,7 @@ export default function StudentsTab({
           }}
         >
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "850px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "950px" }}>
               <thead>
                 <tr
                   style={{
@@ -442,6 +448,7 @@ export default function StudentsTab({
                   <th style={thStyle}>ID</th>
                   <th style={thStyle}>Student</th>
                   <th style={thStyle}>Email</th>
+                  <th style={{ ...thStyle, textAlign: "center" }}>📱 Phone</th>
                   <th style={{ ...thStyle, textAlign: "center" }}>Role</th>
                   <th style={{ ...thStyle, textAlign: "center" }}>Status</th>
                   <th style={{ ...thStyle, textAlign: "center" }}>Actions</th>
@@ -542,6 +549,30 @@ export default function StudentsTab({
 
                       <td style={{ ...tdStyle, color: "var(--text-secondary)" }}>
                         {student.email}
+                      </td>
+
+                      {/* ✅ Phone column - Display without dashes */}
+                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                        {student.phone ? (
+                          <span
+                            style={{
+                              padding: "4px 12px",
+                              borderRadius: "20px",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                              background: "#ede9fe",
+                              color: "#5b21b6",
+                              fontFamily: "monospace",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            {student.phone}
+                          </span>
+                        ) : (
+                          <span style={{ color: "var(--text-secondary)", fontSize: "12px" }}>
+                            —
+                          </span>
+                        )}
                       </td>
 
                       <td style={{ ...tdStyle, textAlign: "center" }}>
@@ -658,7 +689,6 @@ export default function StudentsTab({
                   ← Previous
                 </button>
 
-                {/* Page numbers */}
                 <div style={{ display: "flex", gap: "4px" }}>
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum;
