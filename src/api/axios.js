@@ -12,8 +12,7 @@ export { API_BASE_URL };
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
-  // No default Content-Type header here on purpose: axios auto-sets
+timeout: 600000   // 10 minutes  // No default Content-Type header here on purpose: axios auto-sets
   // 'application/json' for plain object bodies and the correct
   // 'multipart/form-data; boundary=...' for FormData bodies. Hardcoding
   // 'application/json' as a default breaks every file upload request.
