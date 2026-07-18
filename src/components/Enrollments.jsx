@@ -1,5 +1,5 @@
 // src/components/Enrollments.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // ✅ Added useCallback
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   enrollInCourse,
@@ -101,7 +101,8 @@ const Enrollments = ({ isMobile, onBack }) => {
   const isLoggedIn = !!localStorage.getItem('token');
 
   // ─── Fetch Course Details ──────────────────────────────────────────
-  const fetchCourseDetails = async () => {
+  // ✅ FIX: Wrap in useCallback to stabilize the function reference
+  const fetchCourseDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -127,10 +128,11 @@ const Enrollments = ({ isMobile, onBack }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]); // ✅ Depends only on courseId
 
   // ─── Check Enrollment Status ──────────────────────────────────────
-  const checkEnrollmentStatus = async () => {
+  // ✅ FIX: Wrap in useCallback to stabilize the function reference
+  const checkEnrollmentStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
@@ -140,9 +142,9 @@ const Enrollments = ({ isMobile, onBack }) => {
     } catch (err) {
       console.error('Error checking enrollment status:', err);
     }
-  };
+  }, [courseId]); // ✅ Depends only on courseId
 
-  // ─── ✅ FIX: useEffect with all dependencies ──────────────────────
+  // ─── ✅ FIXED: useEffect with all dependencies properly included ──
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -167,7 +169,7 @@ const Enrollments = ({ isMobile, onBack }) => {
       setLoading(false);
       setError('No course ID provided');
     }
-  }, [courseId, location.state?.course, location.state?.isEnrolled]); // ✅ All dependencies included
+  }, [courseId, location.state?.course, location.state?.isEnrolled, fetchCourseDetails, checkEnrollmentStatus]); // ✅ All dependencies included
 
   // ✅ Handle free preview - NO POPUP, directly navigate with isPreview flag
   const handleFreePreview = () => {

@@ -5,9 +5,7 @@ import CourseDetailView from './CourseDetailView';
 import Swal from 'sweetalert2';
 import {
   getEnrolledCourses,
-  getCourseDetails,
   getSubtopicImages,
-  getPublicCourseData,
   getPublicCourses,
 } from '../api/UserApi';
 
@@ -203,6 +201,7 @@ function MyCoursesPage() {
   const [subtopics, setSubtopics] = useState([]);
   const [currentSubtopic, setCurrentSubtopic] = useState(null);
   const [images, setImages] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [contentLoading, setContentLoading] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
 
