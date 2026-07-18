@@ -1,8 +1,8 @@
 // src/components/CourseDetailView.jsx
-// Premium Odoo-style learning UI - Dark Sidebar + Dark Content
+// Premium Odoo-style learning UI - Dark Sidebar + Dark Content - Fully Responsive
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom'; // ✅ Removed unused 'useLocation'
+import { useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import {
   getSubtopicInterviewQuestions,
@@ -449,6 +449,14 @@ const buildOdooStyles = (colors) => `
   .odoo-content::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
   }
+  @media (max-width: 768px) {
+    .odoo-main-heading { font-size: 24px; }
+    .odoo-sub-heading { font-size: 20px; }
+    .odoo-list-item { font-size: 14px; padding: 4px 0 4px 24px; }
+    .odoo-paragraph { font-size: 14px; }
+    .odoo-question-wrapper { padding: 12px 16px; }
+    .odoo-question-text { font-size: 15px; }
+  }
 `;
 
 // ─── Empty State Component ──────────────────────────────────────────
@@ -477,21 +485,21 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
     }}>
       <div style={{
-        width: '80px',
-        height: '80px',
+        width: isMobile ? '60px' : '80px',
+        height: isMobile ? '60px' : '80px',
         borderRadius: '50%',
         background: 'rgba(113, 75, 103, 0.08)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: '24px',
+        marginBottom: isMobile ? '16px' : '24px',
         border: '1px solid rgba(113, 75, 103, 0.12)',
       }}>
-        <span style={{ fontSize: '36px' }}>📚</span>
+        <span style={{ fontSize: isMobile ? '28px' : '36px' }}>📚</span>
       </div>
 
       <h1 style={{
-        fontSize: isMobile ? '24px' : '32px',
+        fontSize: isMobile ? '20px' : '32px',
         fontWeight: 700,
         margin: '0 0 8px 0',
         color: '#1a1f24',
@@ -501,9 +509,9 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
       </h1>
 
       <p style={{
-        fontSize: isMobile ? '15px' : '18px',
+        fontSize: isMobile ? '14px' : '18px',
         color: 'rgba(26, 31, 36, 0.5)',
-        margin: '0 0 32px 0',
+        margin: '0 0 24px 0',
         maxWidth: '500px',
         lineHeight: 1.6,
       }}>
@@ -512,7 +520,7 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
 
       <div style={{
         display: 'flex',
-        gap: '32px',
+        gap: isMobile ? '20px' : '32px',
         flexWrap: 'wrap',
         justifyContent: 'center',
       }}>
@@ -522,14 +530,14 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
           alignItems: 'center',
         }}>
           <span style={{
-            fontSize: '28px',
+            fontSize: isMobile ? '22px' : '28px',
             fontWeight: 700,
             color: '#1a1f24',
           }}>
             {topicsCount || 0}
           </span>
           <span style={{
-            fontSize: '13px',
+            fontSize: isMobile ? '11px' : '13px',
             color: 'rgba(26, 31, 36, 0.4)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
@@ -543,14 +551,14 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
           alignItems: 'center',
         }}>
           <span style={{
-            fontSize: '28px',
+            fontSize: isMobile ? '22px' : '28px',
             fontWeight: 700,
             color: '#1a1f24',
           }}>
             {subtopicsCount || 0}
           </span>
           <span style={{
-            fontSize: '13px',
+            fontSize: isMobile ? '11px' : '13px',
             color: 'rgba(26, 31, 36, 0.4)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
@@ -559,20 +567,6 @@ function EmptyState({ courseTitle, topicsCount, subtopicsCount }) {
           </span>
         </div>
       </div>
-
-      {!isMobile && (
-        <div style={{
-          marginTop: '40px',
-          color: 'rgba(26, 31, 36, 0.25)',
-          fontSize: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}>
-          <span>←</span>
-          <span>Choose a lesson from the sidebar</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -735,6 +729,13 @@ function InterviewContentTab({ content, config }) {
 function VideoTab({ videoUrls, config, title, courseTitle }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (urls.length === 0) {
     return <div style={{ padding: 24, color: '#C9D2DC', textAlign: 'center' }}>No videos available</div>;
@@ -782,14 +783,16 @@ function VideoTab({ videoUrls, config, title, courseTitle }) {
           position: 'absolute',
           left: '50%',
           transform: 'translateX(-50%)',
-          bottom: 24,
+          bottom: isMobile ? 16 : 24,
           zIndex: 3,
           display: 'flex',
-          gap: 8,
+          gap: isMobile ? 4 : 8,
           background: 'rgba(0,0,0,0.6)',
-          padding: '8px 16px',
+          padding: isMobile ? '4px 8px' : '8px 16px',
           borderRadius: 999,
           backdropFilter: 'blur(8px)',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
         }}>
           {urls.map((_, idx) => (
             <button
@@ -798,23 +801,13 @@ function VideoTab({ videoUrls, config, title, courseTitle }) {
               style={{
                 border: 0,
                 borderRadius: 999,
-                padding: '6px 14px',
+                padding: isMobile ? '4px 10px' : '6px 14px',
                 background: idx === currentVideo ? '#714b67' : 'rgba(255,255,255,0.2)',
                 color: idx === currentVideo ? '#FFFFFF' : '#fff',
                 fontWeight: 700,
-                fontSize: '12px',
+                fontSize: isMobile ? '10px' : '12px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (idx !== currentVideo) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (idx !== currentVideo) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
-                }
               }}
             >
               {idx + 1}
@@ -829,14 +822,21 @@ function VideoTab({ videoUrls, config, title, courseTitle }) {
 function InterviewTab({ questions, config }) {
   const [expanded, setExpanded] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (!questions || questions.length === 0) {
     return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No interview questions available</div>;
   }
 
   return (
-    <div>
-      <div style={{ marginBottom: '16px' }}>
+    <div style={{ padding: isMobile ? '12px' : '20px' }}>
+      <div style={{ marginBottom: isMobile ? '12px' : '16px' }}>
         <input
           type="text"
           placeholder="Search questions..."
@@ -844,23 +844,23 @@ function InterviewTab({ questions, config }) {
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             width: '100%',
-            padding: '10px 14px',
+            padding: isMobile ? '8px 12px' : '10px 14px',
             borderRadius: '10px',
             border: `1px solid ${LIGHT.border}`,
-            fontSize: '14px',
+            fontSize: isMobile ? '13px' : '14px',
             outline: 'none',
             background: LIGHT.bg,
             color: LIGHT.text,
           }}
         />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '10px' }}>
         {questions.map((q, idx) => (
           <div
             key={q.id}
             style={{
               background: LIGHT.surface,
-              borderRadius: '12px',
+              borderRadius: isMobile ? '10px' : '12px',
               border: `1px solid ${LIGHT.border}`,
               overflow: 'hidden',
             }}
@@ -871,10 +871,10 @@ function InterviewTab({ questions, config }) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '14px 18px',
+                padding: isMobile ? '12px 14px' : '14px 18px',
                 cursor: 'pointer',
                 fontWeight: 600,
-                fontSize: '14px',
+                fontSize: isMobile ? '13px' : '14px',
                 color: LIGHT.text,
               }}
             >
@@ -882,18 +882,18 @@ function InterviewTab({ questions, config }) {
                 <span style={{ color: LIGHT.textMuted, marginRight: '8px' }}>{idx + 1}.</span>
                 {q.question}
               </span>
-              <span style={{ fontSize: '16px', color: LIGHT.textMuted }}>
+              <span style={{ fontSize: isMobile ? '14px' : '16px', color: LIGHT.textMuted }}>
                 {expanded[q.id] ? '▼' : '▶'}
               </span>
             </div>
             {expanded[q.id] && (
               <div style={{
-                padding: '14px 18px',
+                padding: isMobile ? '12px 14px' : '14px 18px',
                 borderTop: `1px solid ${LIGHT.border}`,
                 background: LIGHT.hover,
                 color: LIGHT.text,
                 lineHeight: '1.8',
-                fontSize: '14px',
+                fontSize: isMobile ? '13px' : '14px',
               }}>
                 {q.answer}
               </div>
@@ -909,6 +909,13 @@ function ExamTab({ questions, config, onScoreUpdate }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (!questions || questions.length === 0) {
     return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No exam questions available</div>;
@@ -925,32 +932,32 @@ function ExamTab({ questions, config, onScoreUpdate }) {
   };
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? '12px' : '20px' }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '12px 16px',
+        padding: isMobile ? '10px 14px' : '12px 16px',
         background: LIGHT.hover,
         borderRadius: '12px',
-        marginBottom: '16px',
+        marginBottom: isMobile ? '12px' : '16px',
         flexWrap: 'wrap',
         gap: '8px',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '15px', color: LIGHT.textLight }}>
+        <span style={{ fontWeight: 700, fontSize: isMobile ? '14px' : '15px', color: LIGHT.textLight }}>
           Quiz
         </span>
         {!submitted && (
           <button
             onClick={handleSubmit}
             style={{
-              padding: '8px 20px',
+              padding: isMobile ? '6px 16px' : '8px 20px',
               background: config.colors?.accent || '#714b67',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '20px',
               fontWeight: 600,
-              fontSize: '13px',
+              fontSize: isMobile ? '12px' : '13px',
               cursor: 'pointer',
             }}
           >
@@ -961,17 +968,17 @@ function ExamTab({ questions, config, onScoreUpdate }) {
 
       {questions.map((q, idx) => (
         <div key={q.id} style={{
-          padding: '18px',
+          padding: isMobile ? '14px' : '18px',
           background: LIGHT.surface,
           borderRadius: '12px',
           border: `1px solid ${LIGHT.border}`,
-          marginBottom: '12px',
+          marginBottom: isMobile ? '10px' : '12px',
         }}>
-          <p style={{ fontWeight: 600, marginBottom: '12px', fontSize: '15px', color: LIGHT.textLight }}>
+          <p style={{ fontWeight: 600, marginBottom: '12px', fontSize: isMobile ? '14px' : '15px', color: LIGHT.textLight }}>
             <span style={{ color: LIGHT.textMuted, marginRight: '8px' }}>{idx + 1}.</span>
             {q.question}
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '6px' : '8px' }}>
             {['A', 'B', 'C', 'D'].map((opt) => {
               const optText = q[`option${opt}`];
               if (!optText) return null;
@@ -983,7 +990,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    padding: '8px 14px',
+                    padding: isMobile ? '6px 12px' : '8px 14px',
                     borderRadius: '8px',
                     background: isSelected ? LIGHT.accentSoft : 'transparent',
                     border: isSelected ? `1px solid ${config.colors?.accent || '#714b67'}` : `1px solid transparent`,
@@ -999,7 +1006,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
                     disabled={submitted}
                     style={{ accentColor: config.colors?.accent || '#714b67' }}
                   />
-                  <span style={{ fontSize: '14px', color: LIGHT.text }}>
+                  <span style={{ fontSize: isMobile ? '13px' : '14px', color: LIGHT.text }}>
                     <strong style={{ color: LIGHT.textMuted, marginRight: '4px' }}>{opt}.</strong>
                     {optText}
                   </span>
@@ -1013,7 +1020,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
               padding: '10px 14px',
               borderRadius: '8px',
               background: answers[q.id] === q.correctAnswer ? LIGHT.successBg : '#fee2e2',
-              fontSize: '13px',
+              fontSize: isMobile ? '12px' : '13px',
               color: answers[q.id] === q.correctAnswer ? LIGHT.success : '#dc2626',
             }}>
               {answers[q.id] === q.correctAnswer ? '✅ Correct!' : '❌ Incorrect'}
@@ -1024,16 +1031,16 @@ function ExamTab({ questions, config, onScoreUpdate }) {
 
       {submitted && score && (
         <div style={{
-          padding: '16px',
+          padding: isMobile ? '14px' : '16px',
           background: LIGHT.hover,
           borderRadius: '12px',
           textAlign: 'center',
           marginTop: '8px',
         }}>
-          <div style={{ fontSize: '20px', fontWeight: 700, color: LIGHT.textLight }}>
+          <div style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: 700, color: LIGHT.textLight }}>
             {score.correct} / {score.total}
           </div>
-          <div style={{ fontSize: '13px', color: LIGHT.textMuted }}>
+          <div style={{ fontSize: isMobile ? '12px' : '13px', color: LIGHT.textMuted }}>
             {Math.round((score.correct / score.total) * 100)}% correct
           </div>
         </div>
@@ -1044,22 +1051,29 @@ function ExamTab({ questions, config, onScoreUpdate }) {
 
 function LabsTab({ labs, config }) {
   const [activeLab, setActiveLab] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (!labs || labs.length === 0) {
     return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No labs available</div>;
   }
 
   return (
-    <div>
+    <div style={{ padding: isMobile ? '12px' : '20px' }}>
       {labs.map((lab, idx) => (
         <div
           key={lab.id}
           style={{
             background: LIGHT.surface,
-            borderRadius: '12px',
+            borderRadius: isMobile ? '10px' : '12px',
             border: `1px solid ${LIGHT.border}`,
-            padding: '16px 20px',
-            marginBottom: '10px',
+            padding: isMobile ? '14px 16px' : '16px 20px',
+            marginBottom: isMobile ? '8px' : '10px',
             cursor: 'pointer',
           }}
           onClick={() => setActiveLab(activeLab === lab.id ? null : lab.id)}
@@ -1071,7 +1085,7 @@ function LabsTab({ labs, config }) {
             flexWrap: 'wrap',
             gap: '8px',
           }}>
-            <span style={{ fontWeight: 600, fontSize: '15px', color: LIGHT.textLight }}>
+            <span style={{ fontWeight: 600, fontSize: isMobile ? '14px' : '15px', color: LIGHT.textLight }}>
               {idx + 1}. {lab.title}
             </span>
           </div>
@@ -1080,7 +1094,7 @@ function LabsTab({ labs, config }) {
               marginTop: '12px',
               paddingTop: '12px',
               borderTop: `1px solid ${LIGHT.border}`,
-              fontSize: '14px',
+              fontSize: isMobile ? '13px' : '14px',
               color: LIGHT.text,
               lineHeight: '1.8',
             }}>
@@ -1121,14 +1135,12 @@ export default function CourseDetailView({
   styles: propStyles,
 }) {
   const navigate = useNavigate();
-  // ✅ Removed unused 'location'
   const { courseId } = useParams();
 
   // ─── State for fetched data ──────────────────────────────────────────
   const [fetchedCourse, setFetchedCourse] = useState(null);
   const [fetchedTopics, setFetchedTopics] = useState([]);
   const [fetchedSubtopics, setFetchedSubtopics] = useState([]);
-  // ✅ Removed unused 'fetchedImages' and 'setFetchedImages'
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1147,7 +1159,6 @@ export default function CourseDetailView({
   const currentSubtopic = propCurrentSubtopic || localCurrentSubtopic || (subtopics.length > 0 ? subtopics[localActiveSection] : null);
   const contentLoading = propContentLoading || loading;
 
-  // ✅ FIX: Determine which active section to use (props or local)
   const currentActiveSection = typeof propSetActiveSection === 'function'
     ? activeSection
     : localActiveSection;
@@ -1243,11 +1254,9 @@ export default function CourseDetailView({
       
       console.log('📥 Fetching course data for ID:', id);
       
-      // ✅ Use the new getCourseData function (auto-detects auth)
       const response = await getCourseData(id);
       console.log('📚 Course data response:', response);
       
-      // Extract data from response
       let data = response;
       if (response && response.data) {
         data = response.data;
@@ -1260,7 +1269,6 @@ export default function CourseDetailView({
         return;
       }
 
-      // Set authentication and enrollment status
       setIsAuthenticated(data.isAuthenticated === true);
       setIsEnrolled(data.isEnrolled === true);
       
@@ -1285,7 +1293,6 @@ export default function CourseDetailView({
           const isFirstTopic = topicIndex === 0 || topic.isFirstTopic === true;
           
           subs.forEach(sub => {
-            // Check if this subtopic has content
             const hasContent = sub.content && sub.content.trim() !== '';
             const hasVideo = sub.videoUrl && sub.videoUrl.trim() !== '';
             
@@ -1328,7 +1335,6 @@ export default function CourseDetailView({
         await loadSubtopicImages(allSubtopics[0].id);
       }
 
-      // Check enrollment status if user is authenticated
       if (data.isAuthenticated) {
         try {
           const enrollmentCheck = await checkEnrollment(id);
@@ -1355,7 +1361,7 @@ export default function CourseDetailView({
     } else {
       setLoading(false);
     }
-  }, [courseId, fetchCourseData]); // ✅ Added fetchCourseData to dependencies
+  }, [courseId, fetchCourseData]);
 
   // ─── Rest of the component ──────────────────────────────────────────
   const [expandedTopics, setExpandedTopics] = useState(() => {
@@ -1383,32 +1389,43 @@ export default function CourseDetailView({
 
   const isLoggedIn = !!localStorage.getItem('token');
 
+  // ─── Check if mobile on mount and resize ────────────────────────────
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Close sidebar on mobile when window resizes
+      if (mobile) {
+        setShowSidebar(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // ✅ FIXED: isTopicLocked uses authentication status from response
   const isTopicLocked = useCallback(
     (topicId, topicIndex) => {
-      // If user is authenticated and enrolled, nothing is locked
       if (isAuthenticated && isEnrolled) {
         return false;
       }
       
-      // If user is authenticated but not enrolled, only first topic is free
       if (isAuthenticated && !isEnrolled) {
         return topicIndex !== 0;
       }
       
-      // Preview mode - only first topic free
       if (isPreview) {
         const topic = topics.find(t => t.id === topicId);
         if (!topic) return true;
         return topic.isFirstTopic !== true;
       }
       
-      // Guest user - only first topic free
       if (!isLoggedIn) {
         return topicIndex !== 0;
       }
       
-      // Default - if none of the above, check the topic's isFirstTopic flag
       const topic = topics.find(t => t.id === topicId);
       if (!topic) return true;
       return topic.isFirstTopic !== true;
@@ -1445,16 +1462,6 @@ export default function CourseDetailView({
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) setShowSidebar(false);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -1551,14 +1558,11 @@ export default function CourseDetailView({
     });
   };
 
-  // ✅ FIXED: selectSubtopic function with proper locking logic
+  // ✅ selectSubtopic function with proper locking logic
   const selectSubtopic = async (sub, globalIndex, topicId, topicIndex) => {
     console.log("📌 Clicked:", sub.title);
     console.log("📌 Global Index:", globalIndex);
-    console.log("📌 Topic Index:", topicIndex);
-    console.log("📌 Current active section before:", currentActiveSection);
 
-    // Check if the topic is locked
     if (isTopicLocked(topicId, topicIndex)) {
       if (isAuthenticated && !isEnrolled) {
         promptEnrollForLockedContent();
@@ -1568,14 +1572,14 @@ export default function CourseDetailView({
       return;
     }
 
-    // ✅ Set the active section to the global index
-    console.log("✅ Setting active section to:", globalIndex);
     setActiveSection(globalIndex);
     setCurrentSubtopic(sub);
     await loadSubtopicImages(sub.id);
-    if (isMobile) setShowSidebar(false);
+    // ✅ Close sidebar on mobile after selection
+    if (isMobile) {
+      setShowSidebar(false);
+    }
     
-    // Determine available content types for this subtopic
     const hasVideo = hasVideoContent(sub);
     const hasNotes = hasNotesContent(sub);
     const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
@@ -1587,7 +1591,6 @@ export default function CourseDetailView({
     if (hasExam) subAvailableTypes.push('exam-content');
     if (hasInterview) subAvailableTypes.push('interview-content');
     
-    // Fetch and check for additional content
     try {
       const [questions, exams, labList] = await Promise.all([
         getSubtopicInterviewQuestions(sub.id).catch(() => []),
@@ -1606,12 +1609,8 @@ export default function CourseDetailView({
       console.error('Failed to load subtopic data:', err);
     }
     
-    // Sort by the global type order
     subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
     
-    console.log("📋 Available types for", sub.title, ":", subAvailableTypes);
-    
-    // Set the first available type as active
     if (subAvailableTypes.length > 0) {
       setActiveContentType(subAvailableTypes[0]);
     } else {
@@ -1639,7 +1638,6 @@ export default function CourseDetailView({
     }
     if (loadingData) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>Loading...</div>;
     
-    // Get available types for the current subtopic
     const currentAvailableTypes = (() => {
       if (!currentSubtopic) return [];
       const out = [];
@@ -1654,7 +1652,6 @@ export default function CourseDetailView({
       if (hasExam) out.push('exam-content');
       if (hasInterview) out.push('interview-content');
       
-      // Also check if there are interview questions, exam questions, or labs
       if (interviewQuestions.length > 0) out.push('interview');
       if (examQuestions.length > 0) out.push('exam');
       if (labs.length > 0) out.push('labs');
@@ -1665,7 +1662,6 @@ export default function CourseDetailView({
     
     if (currentAvailableTypes.length === 0) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No content available</div>;
 
-    // If the active content type isn't available, set it to the first available
     if (!currentAvailableTypes.includes(activeContentType)) {
       setActiveContentType(currentAvailableTypes[0]);
     }
@@ -1697,6 +1693,7 @@ export default function CourseDetailView({
     }
   };
 
+  // ✅ Toggle sidebar - properly handle mobile
   const toggleSidebar = () => {
     if (isMobile) {
       setShowSidebar((prev) => !prev);
@@ -1747,11 +1744,6 @@ export default function CourseDetailView({
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error('Error sharing:', error);
-        try {
-          await navigator.clipboard.writeText(window.location.href);
-        } catch (clipError) {
-          console.error('Failed to copy:', clipError);
-        }
       }
     }
   };
@@ -1803,8 +1795,6 @@ export default function CourseDetailView({
     );
   }
 
-  const isMobileDevice = window.innerWidth < 768;
-
   const styles = propStyles || {
     page: {
       background: 'linear-gradient(180deg, #e8ecf0 0%, #d5dadd 100%)',
@@ -1813,7 +1803,7 @@ export default function CourseDetailView({
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     },
     topBar: {
-      height: '64px',
+      height: isMobile ? '56px' : '64px',
       background: TOPBAR.bgGradient,
       borderBottom: `1px solid ${TOPBAR.border}`,
       display: 'flex',
@@ -1838,9 +1828,9 @@ export default function CourseDetailView({
     actionButton: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      padding: '0 24px',
-      fontSize: '15px',
+      gap: isMobile ? '4px' : '10px',
+      padding: isMobile ? '0 12px' : '0 24px',
+      fontSize: isMobile ? '12px' : '15px',
       fontWeight: 600,
       border: 'none',
       borderLeft: `1px solid ${TOPBAR.border}`,
@@ -1853,13 +1843,14 @@ export default function CourseDetailView({
     },
     shell: {
       display: 'flex',
-      height: 'calc(100% - 64px)',
+      height: isMobile ? 'calc(100% - 56px)' : 'calc(100% - 64px)',
       width: '100%',
       background: SIDEBAR.bg,
     },
     sidebar: {
-      width: '340px',
-      minWidth: '340px',
+      width: isMobile ? '85%' : '340px',
+      minWidth: isMobile ? '85%' : '340px',
+      maxWidth: isMobile ? '85%' : '340px',
       background: SIDEBAR.bg,
       borderRight: 'none',
       color: SIDEBAR.text,
@@ -1867,16 +1858,23 @@ export default function CourseDetailView({
       flexShrink: 0,
       scrollbarWidth: 'none',
       msOverflowStyle: 'none',
+      position: isMobile ? 'fixed' : 'relative',
+      top: isMobile ? '0' : 'auto',
+      left: isMobile ? '-100%' : 'auto',
+      bottom: 0,
+      zIndex: isMobile ? 1000 : 1,
+      transition: isMobile ? 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+      boxShadow: isMobile ? '4px 0 20px rgba(0,0,0,0.3)' : 'none',
     },
     sidebarOpen: { left: '0' },
     sidebarHeader: {
-      padding: '20px 20px 16px',
+      padding: isMobile ? '16px 16px 12px' : '20px 20px 16px',
       background: '#4B5563',
       borderBottom: `1px solid ${SIDEBAR.border}`,
       borderTop: `1px solid rgba(255,255,255,0.05)`,
     },
     sidebarTitle: {
-      fontSize: '18px',
+      fontSize: isMobile ? '16px' : '18px',
       fontWeight: 700,
       color: '#000000',
       lineHeight: 1.2,
@@ -1891,10 +1889,10 @@ export default function CourseDetailView({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '12px 16px',
+      padding: isMobile ? '10px 12px' : '12px 16px',
       cursor: 'pointer',
       fontWeight: isOpen ? 700 : 600,
-      fontSize: '12px',
+      fontSize: isMobile ? '11px' : '12px',
       letterSpacing: '0.03em',
       textTransform: 'uppercase',
       color: isOpen ? SIDEBAR.textLight : SIDEBAR.textMuted,
@@ -1908,10 +1906,10 @@ export default function CourseDetailView({
     subtopicItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '8px 12px 8px 28px',
+      gap: isMobile ? '6px' : '8px',
+      padding: isMobile ? '6px 8px 6px 16px' : '8px 12px 8px 28px',
       cursor: 'pointer',
-      fontSize: '13px',
+      fontSize: isMobile ? '12px' : '13px',
       fontWeight: isActive ? '600' : '400',
       color: isActive ? '#FFFFFF' : SIDEBAR.textMuted,
       background: isActive ? '#000000' : 'transparent',
@@ -1923,9 +1921,9 @@ export default function CourseDetailView({
     contentTypeItem: (isActive) => ({
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      padding: '5px 12px 5px 46px',
-      fontSize: '12px',
+      gap: isMobile ? '6px' : '8px',
+      padding: isMobile ? '4px 8px 4px 28px' : '5px 12px 5px 46px',
+      fontSize: isMobile ? '11px' : '12px',
       cursor: 'pointer',
       color: isActive ? '#714b67' : SIDEBAR.textMuted,
       background: isActive ? '#000000' : 'transparent',
@@ -1968,13 +1966,20 @@ export default function CourseDetailView({
       bottom: 0,
       background: 'rgba(0,0,0,0.6)',
       zIndex: 999,
-      display: isMobileDevice && showSidebar ? 'block' : 'none',
+      display: isMobile && showSidebar ? 'block' : 'none',
     },
   };
 
   const preventCopy = (e) => {
     e.preventDefault();
     return false;
+  };
+
+  // ✅ Close sidebar on overlay click
+  const handleOverlayClick = () => {
+    if (isMobile) {
+      setShowSidebar(false);
+    }
   };
 
   return (
@@ -2045,6 +2050,14 @@ export default function CourseDetailView({
           background: #000000 !important;
           color: #FFFFFF !important;
         }
+
+        @media (max-width: 768px) {
+          .action-btn span { display: none; }
+          .action-btn { padding: 0 12px !important; }
+        }
+        @media (min-width: 769px) {
+          .action-btn-mobile-text { display: none; }
+        }
       `}</style>
 
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
@@ -2055,9 +2068,9 @@ export default function CourseDetailView({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '0 16px',
-              fontSize: '14px',
+              gap: isMobile ? '4px' : '8px',
+              padding: isMobile ? '0 10px' : '0 16px',
+              fontSize: isMobile ? '12px' : '14px',
               fontWeight: 700,
               color: TOPBAR.text,
               cursor: 'pointer',
@@ -2079,8 +2092,8 @@ export default function CourseDetailView({
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <MenuIcon style={{ color: '#FFFFFF', fontSize: 24 }} />
-            <span>Lessons</span>
+            <MenuIcon style={{ color: '#FFFFFF', fontSize: isMobile ? '20px' : '24px' }} />
+            <span style={{ display: isMobile ? 'none' : 'inline' }}>Lessons</span>
           </button>
 
           <button
@@ -2088,9 +2101,9 @@ export default function CourseDetailView({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '0 16px',
-              fontSize: '14px',
+              gap: isMobile ? '4px' : '8px',
+              padding: isMobile ? '0 10px' : '0 16px',
+              fontSize: isMobile ? '12px' : '14px',
               fontWeight: 600,
               color: TOPBAR.text,
               cursor: 'pointer',
@@ -2107,8 +2120,8 @@ export default function CourseDetailView({
               e.currentTarget.style.background = 'transparent';
             }}
           >
-            <span style={{ fontSize: '18px' }}>←</span>
-            <span>Back</span>
+            <span style={{ fontSize: isMobile ? '16px' : '18px' }}>←</span>
+            <span style={{ display: isMobile ? 'none' : 'inline' }}>Back</span>
           </button>
         </div>
 
@@ -2124,7 +2137,7 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <ShareIcon style={{ fontSize: '20px' }} />
+            <ShareIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
             <span>Share</span>
           </button>
 
@@ -2141,13 +2154,13 @@ export default function CourseDetailView({
           >
             {isFullscreen ? (
               <>
-                <FullscreenExitIcon style={{ fontSize: '20px' }} />
-                <span>Exit Fullscreen</span>
+                <FullscreenExitIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
+                <span>Exit</span>
               </>
             ) : (
               <>
-                <FullscreenIcon style={{ fontSize: '20px' }} />
-                <span>Fullscreen</span>
+                <FullscreenIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
+                <span>Full</span>
               </>
             )}
           </button>
@@ -2167,8 +2180,8 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <HomeOutlinedIcon style={{ fontSize: '20px' }} />
-            <span>HOME</span>
+            <HomeOutlinedIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
+            <span>Home</span>
           </button>
 
           {isLoggedIn ? (
@@ -2186,7 +2199,7 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LogoutIcon style={{ fontSize: '20px' }} />
+              <LogoutIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
               <span>Logout</span>
             </button>
           ) : (
@@ -2204,7 +2217,7 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LoginIcon style={{ fontSize: '20px' }} />
+              <LoginIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
               <span>Sign In</span>
             </button>
           )}
@@ -2213,16 +2226,31 @@ export default function CourseDetailView({
 
       {activeView === 'split' && (
         <div style={styles.shell}>
-          {isMobile && showSidebar && <div style={styles.mobileOverlay} onClick={() => setShowSidebar(false)} />}
+          {/* ─── Mobile Overlay ────────────────────────────────────── */}
+          {isMobile && showSidebar && (
+            <div 
+              style={styles.mobileOverlay} 
+              onClick={handleOverlayClick}
+            />
+          )}
 
+          {/* ─── Sidebar ──────────────────────────────────────────────── */}
           {(!isSidebarCollapsed || isMobile) && (
-            <aside id="mobile-sidebar" style={{ ...styles.sidebar, ...(isMobile && showSidebar ? styles.sidebarOpen : {}) }}>
+            <aside 
+              id="mobile-sidebar" 
+              style={{ 
+                ...styles.sidebar, 
+                ...(isMobile && showSidebar ? styles.sidebarOpen : {}),
+                left: isMobile && !showSidebar ? '-100%' : (isMobile ? '0' : 'auto')
+              }}
+            >
               <div style={styles.sidebarHeader}>
-                <div style={styles.sidebarTitle}>{selectedCourse?.title || 'Course'}</div>
-                {/* ✅ REMOVED: All status messages - clean header */}
+                <div style={styles.sidebarTitle}>
+                  {selectedCourse?.title || 'Course'}
+                </div>
               </div>
 
-              <div style={{ padding: '10px 12px' }}>
+              <div style={{ padding: isMobile ? '8px 10px' : '10px 12px' }}>
                 <input
                   type="text"
                   placeholder="Search topics..."
@@ -2230,11 +2258,11 @@ export default function CourseDetailView({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '12px 14px',
+                    padding: isMobile ? '10px 12px' : '12px 14px',
                     borderRadius: '12px',
                     border: `1px solid ${SIDEBAR.border}`,
                     background: 'rgba(255,255,255,0.05)',
-                    fontSize: '14px',
+                    fontSize: isMobile ? '13px' : '14px',
                     outline: 'none',
                     transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
                     color: SIDEBAR.text,
@@ -2253,7 +2281,7 @@ export default function CourseDetailView({
                 />
               </div>
 
-              {/* Sidebar rendering with correct active state */}
+              {/* Sidebar rendering */}
               <div>
                 {filteredTopics.map((topic, topicIndex) => {
                   const topicSubs = topic.subTopics || topic.subtopics || [];
@@ -2272,8 +2300,8 @@ export default function CourseDetailView({
                           e.currentTarget.style.background = isOpen ? SIDEBAR.itemOpen : 'transparent';
                         }}
                       >
-                        <span>{topic.title}</span>
-                        <span style={{ fontSize: '10px' }}>
+                        <span style={{ fontSize: isMobile ? '10px' : '12px' }}>{topic.title}</span>
+                        <span style={{ fontSize: isMobile ? '8px' : '10px' }}>
                           {isOpen ? '▼' : '▶'}
                         </span>
                       </div>
@@ -2281,24 +2309,20 @@ export default function CourseDetailView({
                         const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
                         if (globalIndex === -1) return null;
                         
-                        // ✅ FIX: Use currentActiveSection to determine active state
                         const isActive = currentActiveSection === globalIndex;
                         const subtopicLocked = locked || (isPreview && topic.isFirstTopic !== true);
                         
-                        // Calculate content types for THIS specific subtopic
                         const subHasVideo = hasVideoContent(sub);
                         const subHasNotes = hasNotesContent(sub);
                         const subHasExam = !!(sub.examContent && sub.examContent.trim() !== '');
                         const subHasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
                         
-                        // Build available types for this specific subtopic
                         const subAvailableTypes = [];
                         if (subHasVideo) subAvailableTypes.push('video');
                         if (subHasNotes) subAvailableTypes.push('notes');
                         if (subHasExam) subAvailableTypes.push('exam-content');
                         if (subHasInterview) subAvailableTypes.push('interview-content');
                         
-                        // Also check for interview questions, exam questions, or labs (from API)
                         if (isActive) {
                           if (interviewQuestions.length > 0) subAvailableTypes.push('interview');
                           if (examQuestions.length > 0) subAvailableTypes.push('exam');
@@ -2342,34 +2366,34 @@ export default function CourseDetailView({
                                 }
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '8px', flex: 1, minWidth: 0 }}>
                                 {subtopicLocked ? (
-                                  <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
+                                  <LockIcon style={{ fontSize: isMobile ? '12px' : '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
                                 ) : (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px', flexShrink: 0 }}>
                                     {subHasVideo && (
-                                      <YouTubeIcon style={{ fontSize: '18px', color: '#FF0000' }} />
+                                      <YouTubeIcon style={{ fontSize: isMobile ? '16px' : '18px', color: '#FF0000' }} />
                                     )}
                                     {subHasNotes && (
-                                      <FlagIcon style={{ fontSize: '18px', color: '#FFC107' }} />
+                                      <FlagIcon style={{ fontSize: isMobile ? '16px' : '18px', color: '#FFC107' }} />
                                     )}
                                     {!hasAnyContentForSub && !subtopicLocked && (
-                                      <span style={{ fontSize: '11px', color: SIDEBAR.textMuted }}>●</span>
+                                      <span style={{ fontSize: isMobile ? '10px' : '11px', color: SIDEBAR.textMuted }}>●</span>
                                     )}
                                   </div>
                                 )}
-                                <span style={{ flex: 1, wordBreak: 'break-word' }}>{sub.title}</span>
+                                <span style={{ flex: 1, wordBreak: 'break-word', fontSize: isMobile ? '12px' : '13px' }}>{sub.title}</span>
                                 {subtopicLocked && (
-                                  <LockIcon style={{ fontSize: '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
+                                  <LockIcon style={{ fontSize: isMobile ? '12px' : '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
                                 )}
                               </div>
                             </div>
                             
-                            {/* Show content type tabs ONLY for the selected subtopic */}
+                            {/* Content type tabs for selected subtopic */}
                             {isActive && !subtopicLocked && (
-                              <div style={{ marginLeft: '16px' }}>
+                              <div style={{ marginLeft: isMobile ? '8px' : '16px' }}>
                                 {loadingData ? (
-                                  <div style={{ padding: '4px 12px 4px 28px', fontSize: '11px', color: SIDEBAR.textMuted }}>Loading…</div>
+                                  <div style={{ padding: '4px 8px 4px 16px', fontSize: isMobile ? '10px' : '11px', color: SIDEBAR.textMuted }}>Loading…</div>
                                 ) : (
                                   CONTENT_TYPES.filter((t) => subAvailableTypes.includes(t.key)).map((t) => {
                                     const isActiveType = activeContentType === t.key;
@@ -2395,14 +2419,14 @@ export default function CourseDetailView({
                                           }
                                         }}
                                       >
-                                        <span style={{ fontSize: '12px', width: '18px', textAlign: 'center' }}>{t.icon}</span>
-                                        <span style={{ fontSize: '12px' }}>{t.label}</span>
+                                        <span style={{ fontSize: isMobile ? '11px' : '12px', width: '16px', textAlign: 'center' }}>{t.icon}</span>
+                                        <span style={{ fontSize: isMobile ? '10px' : '12px' }}>{t.label}</span>
                                       </div>
                                     );
                                   })
                                 )}
                                 {!loadingData && subAvailableTypes.length === 0 && (
-                                  <div style={{ padding: '4px 12px 4px 28px', fontSize: '11px', color: SIDEBAR.textMuted }}>No content</div>
+                                  <div style={{ padding: '4px 8px 4px 16px', fontSize: isMobile ? '10px' : '11px', color: SIDEBAR.textMuted }}>No content</div>
                                 )}
                               </div>
                             )}
@@ -2413,7 +2437,7 @@ export default function CourseDetailView({
                   );
                 })}
                 {filteredTopics.length === 0 && (
-                  <div style={{ padding: '20px', textAlign: 'center', color: SIDEBAR.textMuted, fontSize: '13px' }}>
+                  <div style={{ padding: '20px', textAlign: 'center', color: SIDEBAR.textMuted, fontSize: isMobile ? '12px' : '13px' }}>
                     No topics match your search.
                   </div>
                 )}
@@ -2439,12 +2463,12 @@ export default function CourseDetailView({
       )}
 
       {activeView === 'gallery' && (
-        <div style={{ background: LIGHT.surface, borderRadius: '16px', padding: '20px', margin: '16px 24px', border: `1px solid ${LIGHT.border}` }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', color: LIGHT.textLight }}>📸 All Course Images ({images.length})</h2>
+        <div style={{ background: LIGHT.surface, borderRadius: '16px', padding: isMobile ? '12px' : '20px', margin: isMobile ? '8px 12px' : '16px 24px', border: `1px solid ${LIGHT.border}` }}>
+          <h2 style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: 700, marginBottom: isMobile ? '12px' : '16px', color: LIGHT.textLight }}>📸 All Course Images ({images.length})</h2>
           {images.length === 0 ? (
             <p style={{ textAlign: 'center', padding: '40px', color: LIGHT.textMuted }}>No images yet</p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(200px, 1fr))', gap: isMobile ? '8px' : '16px' }}>
               {images.map((img) => {
                 const safeId = img.subTopicId || img.subtopicId;
                 if (!safeId) return null;
@@ -2477,7 +2501,7 @@ export default function CourseDetailView({
                       onError={() => handleImageError?.(img.id)}
                       loading="lazy"
                     />
-                    <div style={{ padding: '8px 12px', fontSize: '12px', textAlign: 'center', background: LIGHT.bg, color: LIGHT.textMuted }}>
+                    <div style={{ padding: isMobile ? '4px 8px' : '8px 12px', fontSize: isMobile ? '10px' : '12px', textAlign: 'center', background: LIGHT.bg, color: LIGHT.textMuted }}>
                       Page {img.pageNumber}
                     </div>
                   </div>
