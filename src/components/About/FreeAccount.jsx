@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import "./FreeAccount.css";
 import Swal from "sweetalert2";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, User, Phone } from "lucide-react"; // ✅ Removed CheckCircle, ArrowRight
+import { Mail, Lock, User, Phone } from "lucide-react";
+import api from "../../api/axios"; // ✅ Fixed: Go up two levels to src
 
 function FreeAccount() {
   const navigate = useNavigate();
@@ -15,8 +16,6 @@ function FreeAccount() {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
-
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8082';
 
   const validateGmailFormat = (email) => {
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
@@ -65,15 +64,11 @@ function FreeAccount() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE}/api/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase() })
+      const response = await api.post('/auth/send-otp', {
+        email: email.trim().toLowerCase()
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
         Swal.fire({
           icon: "info",
           title: "📧 Code Sent!",
@@ -81,19 +76,13 @@ function FreeAccount() {
           confirmButtonColor: "#714b67",
         });
         setShowOtpInput(true);
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Failed",
-          text: data.error || "Could not send verification code",
-          confirmButtonColor: "#dc2626",
-        });
       }
     } catch (error) {
+      console.error('Send OTP Error:', error);
       Swal.fire({
         icon: "error",
-        title: "Network Error",
-        text: "Could not connect to server",
+        title: "Failed",
+        text: error.response?.data?.error || "Could not send verification code",
         confirmButtonColor: "#dc2626",
       });
     } finally {
@@ -114,15 +103,12 @@ function FreeAccount() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otp.trim() })
+      const response = await api.post('/auth/verify-otp', {
+        email: email.trim().toLowerCase(),
+        otp: otp.trim()
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200) {
         setEmailVerified(true);
         setShowOtpInput(false);
         Swal.fire({
@@ -133,19 +119,13 @@ function FreeAccount() {
           timer: 1500,
           timerProgressBar: true,
         });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Verification Failed",
-          text: data.error || "Invalid or expired code",
-          confirmButtonColor: "#dc2626",
-        });
       }
     } catch (error) {
+      console.error('Verify OTP Error:', error);
       Swal.fire({
         icon: "error",
-        title: "Network Error",
-        text: "Could not verify code",
+        title: "Verification Failed",
+        text: error.response?.data?.error || "Invalid or expired code",
         confirmButtonColor: "#dc2626",
       });
     } finally {
@@ -157,77 +137,121 @@ function FreeAccount() {
     e.preventDefault();
 
     if (!name.trim()) {
-      Swal.fire({ icon: "warning", title: "Name Required", text: "Please enter your name", confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Name Required", 
+        text: "Please enter your name", 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     const nameRegex = /^[A-Za-z ]+$/;
     if (!nameRegex.test(name.trim())) {
-      Swal.fire({ icon: "warning", title: "Invalid Name", text: "Name must not contain numbers or special characters", confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Invalid Name", 
+        text: "Name must not contain numbers or special characters", 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     if (!email.trim()) {
-      Swal.fire({ icon: "warning", title: "Email Required", text: "Please enter your email", confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Email Required", 
+        text: "Please enter your email", 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     const emailValidation = validateGmailFormat(email.trim().toLowerCase());
     if (!emailValidation.valid) {
-      Swal.fire({ icon: "warning", title: "Invalid Email", text: emailValidation.message, confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Invalid Email", 
+        text: emailValidation.message, 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     if (!emailVerified) {
-      Swal.fire({ icon: "warning", title: "Email Not Verified", text: "Please verify your email first", confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Email Not Verified", 
+        text: "Please verify your email first", 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     if (!phone.trim()) {
-      Swal.fire({ icon: "warning", title: "Phone Required", text: "Please enter your phone number", confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Phone Required", 
+        text: "Please enter your phone number", 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     const phoneValidation = validatePhone(phone.trim());
     if (!phoneValidation.valid) {
-      Swal.fire({ icon: "warning", title: "Invalid Phone", text: phoneValidation.message, confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Invalid Phone", 
+        text: phoneValidation.message, 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     if (!password.trim()) {
-      Swal.fire({ icon: "warning", title: "Password Required", text: "Please enter your password", confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Password Required", 
+        text: "Please enter your password", 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     const passwordRegex = /^[0-9]{6}$/;
     if (!passwordRegex.test(password.trim())) {
-      Swal.fire({ icon: "warning", title: "Invalid Password", text: "Password must be exactly 6 digits", confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Invalid Password", 
+        text: "Password must be exactly 6 digits", 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     if (password !== confirmPassword) {
-      Swal.fire({ icon: "warning", title: "Passwords Don't Match", text: "Password and Confirm Password must match", confirmButtonColor: "#714b67" });
+      Swal.fire({ 
+        icon: "warning", 
+        title: "Passwords Don't Match", 
+        text: "Password and Confirm Password must match", 
+        confirmButtonColor: "#714b67" 
+      });
       return;
     }
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          phone: phone.trim(),
-          password: password.trim(),
-          role: "USER",
-          status: "ACTIVE"
-        })
+      const response = await api.post('/auth/register', {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        password: password.trim(),
+        role: "USER",
+        status: "ACTIVE"
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
         await Swal.fire({
           icon: "success",
           title: "🎉 Account Created!",
@@ -238,19 +262,13 @@ function FreeAccount() {
           allowOutsideClick: false,
         });
         navigate("/login");
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Registration Failed",
-          text: data.error || "Could not create account",
-          confirmButtonColor: "#dc2626",
-        });
       }
     } catch (error) {
+      console.error('Registration Error:', error);
       Swal.fire({
         icon: "error",
-        title: "Network Error",
-        text: "Could not connect to server",
+        title: "Registration Failed",
+        text: error.response?.data?.error || "Could not create account",
         confirmButtonColor: "#dc2626",
       });
     } finally {
@@ -299,7 +317,12 @@ function FreeAccount() {
             </div>
             <div className="fa-email-actions">
               {!emailVerified ? (
-                <button type="button" onClick={sendOtp} disabled={isLoading} className="fa-otp-btn">
+                <button 
+                  type="button" 
+                  onClick={sendOtp} 
+                  disabled={isLoading} 
+                  className="fa-otp-btn"
+                >
                   {isLoading ? 'Sending...' : 'Verify Email'}
                 </button>
               ) : (
@@ -327,10 +350,20 @@ function FreeAccount() {
                 />
               </div>
               <div className="fa-otp-actions">
-                <button type="button" onClick={verifyOtp} disabled={isLoading} className="fa-verify-btn">
+                <button 
+                  type="button" 
+                  onClick={verifyOtp} 
+                  disabled={isLoading} 
+                  className="fa-verify-btn"
+                >
                   {isLoading ? 'Verifying...' : 'Verify Code'}
                 </button>
-                <button type="button" onClick={sendOtp} className="fa-resend-btn">
+                <button 
+                  type="button" 
+                  onClick={sendOtp} 
+                  className="fa-resend-btn"
+                  disabled={isLoading}
+                >
                   Resend
                 </button>
               </div>
@@ -394,7 +427,11 @@ function FreeAccount() {
             </div>
           </div>
 
-          <button className="fa-btn" type="submit" disabled={isLoading || !emailVerified}>
+          <button 
+            className="fa-btn" 
+            type="submit" 
+            disabled={isLoading || !emailVerified}
+          >
             {isLoading ? 'Creating...' : 'Get Started →'}
           </button>
         </form>
