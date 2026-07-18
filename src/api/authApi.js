@@ -28,12 +28,14 @@ export const login = async (credentials) => {
     const name = data.name || "User";
     const email = data.email || credentials.email;
     const status = data.status || "ACTIVE";
+    const phone = data.phone || "";
     
     localStorage.setItem("role", role);
     localStorage.setItem("userId", userId);
     localStorage.setItem("userName", name);
     localStorage.setItem("userEmail", email);
     localStorage.setItem("userStatus", status);
+    if (phone) localStorage.setItem("userPhone", phone);
     
     // Store complete user object with role
     const userData = {
@@ -43,6 +45,7 @@ export const login = async (credentials) => {
       name: name,
       role: role,
       status: status,
+      phone: phone,
       token: data.token
     };
     
@@ -68,6 +71,7 @@ export const logout = () => {
   localStorage.removeItem("userName");
   localStorage.removeItem("userEmail");
   localStorage.removeItem("userStatus");
+  localStorage.removeItem("userPhone");
   localStorage.removeItem("user");
   
   return api.post("/auth/logout").catch(() => {
@@ -90,20 +94,41 @@ export const changePassword = (passwordData) => {
   return api.put("/auth/change-password", passwordData);
 };
 
-// Request password reset
-export const requestPasswordReset = (email) => {
-  return api.post("/auth/request-password-reset", { email });
+// ==================== FORGOT PASSWORD APIs ====================
+
+// ✅ Request password reset (Forgot Password)
+export const forgotPassword = (email) => {
+  return api.post("/auth/forgot-password", { email });
 };
 
-// Reset password with token
-export const resetPassword = (token, newPassword) => {
-  return api.post(`/auth/reset-password/${token}`, { newPassword });
+// ✅ Validate reset token
+export const validateResetToken = (token) => {
+  return api.get(`/auth/validate-reset-token?token=${token}`);
 };
+
+// ✅ Reset password with token
+export const resetPassword = (resetData) => {
+  return api.post("/auth/reset-password", resetData);
+};
+
+// ==================== EMAIL VERIFICATION APIs ====================
 
 // Verify email
 export const verifyEmail = (token) => {
   return api.get(`/auth/verify-email/${token}`);
 };
+
+// Send OTP for email verification
+export const sendOtp = (email) => {
+  return api.post("/auth/send-otp", { email });
+};
+
+// Verify OTP
+export const verifyOtp = (email, otp) => {
+  return api.post("/auth/verify-otp", { email, otp });
+};
+
+// ==================== TOKEN MANAGEMENT ====================
 
 // Refresh token
 export const refreshToken = () => {
@@ -149,6 +174,11 @@ export const getUserEmail = () => {
   return localStorage.getItem("userEmail") || "";
 };
 
+// Get user phone
+export const getUserPhone = () => {
+  return localStorage.getItem("userPhone") || "";
+};
+
 // Update user in localStorage
 export const updateUser = (userData) => {
   const currentUser = getUser() || {};
@@ -160,6 +190,7 @@ export const updateUser = (userData) => {
   if (userData.name) localStorage.setItem("userName", userData.name);
   if (userData.email) localStorage.setItem("userEmail", userData.email);
   if (userData.status) localStorage.setItem("userStatus", userData.status);
+  if (userData.phone) localStorage.setItem("userPhone", userData.phone);
   
   return updatedUser;
 };
@@ -226,9 +257,18 @@ const authApi = {
   getCurrentUser,
   updateProfile,
   changePassword,
-  requestPasswordReset,
+  
+  // Forgot Password
+  forgotPassword,
+  validateResetToken,
   resetPassword,
+  
+  // Email Verification
   verifyEmail,
+  sendOtp,
+  verifyOtp,
+  
+  // Token Management
   refreshToken,
   
   // Auth state helpers
@@ -238,6 +278,7 @@ const authApi = {
   getUser,
   getUserName,
   getUserEmail,
+  getUserPhone,
   updateUser,
   hasRole,
   isAdmin,

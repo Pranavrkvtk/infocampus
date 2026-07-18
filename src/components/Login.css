@@ -258,7 +258,9 @@
 .forgot-link:hover::after {
   width: 100%;
 }
-.forgot-link:hover { color: #2e5f8f; }
+.forgot-link:hover { 
+  color: #2e5f8f; 
+}
 
 /* ── Submit button ── */
 .login-btn {

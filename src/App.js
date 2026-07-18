@@ -25,6 +25,8 @@ import Enrollments from './components/Enrollments';
 import Login from './components/Login';
 import Logout from './components/Logout';
 import FreeAccount from './components/About/FreeAccount';
+import ForgotPassword from './components/ForgotPassword';  // ✅ Import ForgotPassword
+import ResetPassword from './components/ResetPassword';     // ✅ Already imported
 
 // ─── Course Pages ──────────────────────────────────────────────────
 import CCNA200 from './components/Course/Cisco/CCNA200';
@@ -55,7 +57,9 @@ const HIDE_NAVBAR = [
   '/ccna200',
   '/ccnp-encor',
   '/ccnp-enarsi',
-  '/enrollments',  // ✅ Hide navbar on enrollment pages
+  '/enrollments',
+  '/forgot-password',      // ✅ Add forgot-password
+  '/reset-password',       // ✅ Add reset-password
 ];
 
 // ─── App Routes ──────────────────────────────────────────────────────
@@ -72,7 +76,7 @@ function AppRoutes() {
       <Route path="/my-courses" element={<MyCoursesPage />} />
       <Route path="/course/:courseId" element={<CourseDetailView />} />
       
-      {/* ✅ ENROLLMENT ROUTE - Single component for all enrollment pages */}
+      {/* ✅ ENROLLMENT ROUTE */}
       <Route 
         path="/enrollments" 
         element={
@@ -127,6 +131,10 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/logout" element={<Logout />} />
 
+      {/* ✅ Forgot Password & Reset Password Routes */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
       {/* ─── Admin & Instructor (Protected) ────────────────────────── */}
       <Route
         path="/admin/*"
@@ -136,6 +144,7 @@ function AppRoutes() {
           </ProtectedAdminRoute>
         }
       />
+
       <Route
         path="/instructor/*"
         element={
