@@ -1,5 +1,5 @@
 // src/components/Enrollments.jsx
-import React, { useState, useEffect, useCallback } from 'react'; // ✅ Added useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   enrollInCourse,
@@ -35,7 +35,8 @@ const COLORS = {
   heroGradFrom: '#3d2b52',
   heroGradTo: '#2a2438',
   heroBlob: 'rgba(255,255,255,0.06)',
-  purpleCard: 'linear-gradient(160deg, #7c3aed 0%, #5b21b6 100%)',
+  // ✅ Updated to modern dark gradient
+  purpleCard: 'linear-gradient(160deg, #2C3540 0%, #1A232E 100%)',
   purpleText: '#5b21b6',
   pageBg: '#f4f5f8',
   cardBg: '#ffffff',
@@ -101,7 +102,6 @@ const Enrollments = ({ isMobile, onBack }) => {
   const isLoggedIn = !!localStorage.getItem('token');
 
   // ─── Fetch Course Details ──────────────────────────────────────────
-  // ✅ FIX: Wrap in useCallback to stabilize the function reference
   const fetchCourseDetails = useCallback(async () => {
     try {
       setLoading(true);
@@ -128,10 +128,9 @@ const Enrollments = ({ isMobile, onBack }) => {
     } finally {
       setLoading(false);
     }
-  }, [courseId]); // ✅ Depends only on courseId
+  }, [courseId]);
 
   // ─── Check Enrollment Status ──────────────────────────────────────
-  // ✅ FIX: Wrap in useCallback to stabilize the function reference
   const checkEnrollmentStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -142,9 +141,9 @@ const Enrollments = ({ isMobile, onBack }) => {
     } catch (err) {
       console.error('Error checking enrollment status:', err);
     }
-  }, [courseId]); // ✅ Depends only on courseId
+  }, [courseId]);
 
-  // ─── ✅ FIXED: useEffect with all dependencies properly included ──
+  // ─── useEffect with all dependencies properly included ──
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -155,7 +154,6 @@ const Enrollments = ({ isMobile, onBack }) => {
     if (courseId) {
       const stateCourse = location.state?.course;
 
-      // ✅ FIX: Use === instead of ==
       if (stateCourse && stateCourse.id === courseId) {
         setCourse(stateCourse);
         if (location.state?.isEnrolled) setIsEnrolled(true);
@@ -169,7 +167,7 @@ const Enrollments = ({ isMobile, onBack }) => {
       setLoading(false);
       setError('No course ID provided');
     }
-  }, [courseId, location.state?.course, location.state?.isEnrolled, fetchCourseDetails, checkEnrollmentStatus]); // ✅ All dependencies included
+  }, [courseId, location.state?.course, location.state?.isEnrolled, fetchCourseDetails, checkEnrollmentStatus]);
 
   // ✅ Handle free preview - NO POPUP, directly navigate with isPreview flag
   const handleFreePreview = () => {
@@ -614,7 +612,7 @@ const Enrollments = ({ isMobile, onBack }) => {
             color: '#fff',
             position: isMobile ? 'static' : 'sticky',
             top: '24px',
-            boxShadow: '0 20px 40px rgba(91,33,182,0.25)'
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
           }}>
             <p style={{ opacity: 0.8, fontSize: '13px', marginBottom: '4px', letterSpacing: '0.5px' }}>PRICE</p>
             <div style={{ marginBottom: '20px' }}>
@@ -629,7 +627,7 @@ const Enrollments = ({ isMobile, onBack }) => {
               style={{
                 width: '100%',
                 background: '#fff',
-                color: COLORS.purpleText,
+                color: '#1A232E',
                 border: 'none',
                 borderRadius: '50px',
                 padding: '14px',
@@ -742,7 +740,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                   >
                     <div style={{
                       width: '30px', height: '30px', borderRadius: '50%',
-                      background: isFreeTopic ? COLORS.green : COLORS.purpleText,
+                      background: isFreeTopic ? COLORS.green : '#5b21b6',
                       color: '#fff', fontSize: '13px', fontWeight: 700,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                     }}>
@@ -788,7 +786,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                                   title: 'Sign In Required',
                                   text: 'Please sign in to access this lesson.',
                                   confirmButtonText: 'Sign In',
-                                  confirmButtonColor: COLORS.purpleText
+                                  confirmButtonColor: '#5b21b6'
                                 }).then((result) => {
                                   if (result.isConfirmed) {
                                     navigate('/login', { state: { from: `/enrollments/${courseId}` } });
@@ -819,7 +817,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                           >
                             <PlayArrowIcon style={{ 
                               fontSize: '16px', 
-                              color: isFreeLesson ? COLORS.green : COLORS.purpleText 
+                              color: isFreeLesson ? COLORS.green : '#5b21b6' 
                             }} />
                             <span style={{ flex: 1 }}>{lesson.title}</span>
                             {isFreeLesson ? (

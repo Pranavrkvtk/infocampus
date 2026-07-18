@@ -2151,34 +2151,35 @@ export default function CourseDetailView({
             <MenuIcon style={{ color: '#FFFFFF', fontSize: isMobile ? '20px' : '24px' }} />
             <span style={{ display: isMobile ? 'none' : 'inline' }}>Lessons</span>
           </button>
-
-          <button
-            onClick={handleBackClick}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: isMobile ? '4px' : '8px',
-              padding: isMobile ? '0 10px' : '0 16px',
-              fontSize: isMobile ? '12px' : '14px',
-              fontWeight: 600,
-              color: TOPBAR.text,
-              cursor: 'pointer',
-              transition: 'background 0.15s, transform 0.15s',
-              background: 'transparent',
-              border: 'none',
-              borderRight: `1px solid ${TOPBAR.border}`,
-              height: '100%',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = TOPBAR.bgHover;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <span style={{ fontSize: isMobile ? '16px' : '18px' }}>←</span>
-            <span style={{ display: isMobile ? 'none' : 'inline' }}>Back</span>
-          </button>
+{!(isAuthenticated && isEnrolled) && (
+  <button
+    onClick={handleBackClick}
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: isMobile ? '4px' : '8px',
+      padding: isMobile ? '0 10px' : '0 16px',
+      fontSize: isMobile ? '12px' : '14px',
+      fontWeight: 600,
+      color: TOPBAR.text,
+      cursor: 'pointer',
+      transition: 'background 0.15s, transform 0.15s',
+      background: 'transparent',
+      border: 'none',
+      borderRight: `1px solid ${TOPBAR.border}`,
+      height: '100%',
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.background = TOPBAR.bgHover;
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.background = 'transparent';
+    }}
+  >
+    <span style={{ fontSize: isMobile ? '16px' : '18px' }}>←</span>
+    <span style={{ display: isMobile ? 'none' : 'inline' }}>Back</span>
+  </button>
+)}
         </div>
 
         <div style={styles.topBarRight}>
