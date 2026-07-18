@@ -298,8 +298,8 @@ const buildOdooStyles = (colors) => `
     line-height: 1.8;
     padding: 4px 0;
     max-width: 100%;
-    background: #ffffff !important;
-    min-height: 100%;
+    background: transparent !important;
+    min-height: auto;
   }
   .odoo-main-heading {
     font-size: 32px;
@@ -438,6 +438,53 @@ const buildOdooStyles = (colors) => `
   .odoo-content * {
     user-select: none !important;
     -webkit-user-select: none !important;
+  }
+  /* ─── Odoo Premium "Paper" layout (Notes / Exam Content / Interview Content) ─── */
+  .lesson-page-wrapper {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 30px 20px 60px 20px;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  .lesson-paper {
+    width: 900px;
+    max-width: 100%;
+    background: #ffffff;
+    border-radius: 0;
+    padding: 40px 60px;
+    box-shadow: none;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+  .lesson-page-wrapper::-webkit-scrollbar {
+    width: 8px;
+  }
+  .lesson-page-wrapper::-webkit-scrollbar-track {
+    background: #e2e6ea;
+    border-radius: 4px;
+  }
+  .lesson-page-wrapper::-webkit-scrollbar-thumb {
+    background: #c3cad2;
+    border-radius: 4px;
+  }
+  .lesson-page-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #a9b2bc;
+  }
+  @media (max-width: 768px) {
+    .lesson-page-wrapper {
+      padding: 14px 8px 40px 8px;
+    }
+    .lesson-paper {
+      padding: 20px 18px;
+      border-radius: 10px;
+    }
   }
   .odoo-content::-webkit-scrollbar {
     width: 8px;
@@ -594,35 +641,22 @@ function NotesTab({ content, config }) {
   const styleTag = buildOdooStyles(config.colors);
 
   return (
-    <div style={{ 
-      position: 'relative', 
-      height: '100%', 
-      width: '100%',
-      background: '#ffffff',
-      overflow: 'hidden',
-    }}>
-      <div
-        className="odoo-content fade-in"
-        dangerouslySetInnerHTML={{ __html: html }}
-        style={{
-          padding: isMobile ? '12px 8px 60px 8px' : '24px 32px 80px 32px',
-          height: '100%',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          scrollBehavior: 'smooth',
-          WebkitOverflowScrolling: 'touch',
-          color: '#1a1a1a',
-          background: '#ffffff',
-          maxHeight: '100%',
-          minHeight: '100%',
-        }}
-        onCopy={(e) => e.preventDefault()}
-        onCut={(e) => e.preventDefault()}
-        onContextMenu={(e) => e.preventDefault()}
-        onSelect={(e) => e.preventDefault()}
-      />
+    <div className="lesson-page-wrapper">
+      <div className="lesson-paper">
+        <div
+          className="odoo-content fade-in"
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            color: '#1a1a1a',
+          }}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onContextMenu={(e) => e.preventDefault()}
+          onSelect={(e) => e.preventDefault()}
+        />
+      </div>
       <style>{styleTag}</style>
     </div>
   );
@@ -645,35 +679,22 @@ function ExamContentTab({ content, config }) {
   const styleTag = buildOdooStyles(config.colors);
 
   return (
-    <div style={{ 
-      position: 'relative', 
-      height: '100%', 
-      width: '100%',
-      background: '#ffffff',
-      overflow: 'hidden',
-    }}>
-      <div
-        className="odoo-content fade-in"
-        dangerouslySetInnerHTML={{ __html: html }}
-        style={{
-          padding: isMobile ? '12px 8px 60px 8px' : '24px 32px 80px 32px',
-          height: '100%',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          scrollBehavior: 'smooth',
-          WebkitOverflowScrolling: 'touch',
-          color: '#1a1a1a',
-          background: '#ffffff',
-          maxHeight: '100%',
-          minHeight: '100%',
-        }}
-        onCopy={(e) => e.preventDefault()}
-        onCut={(e) => e.preventDefault()}
-        onContextMenu={(e) => e.preventDefault()}
-        onSelect={(e) => e.preventDefault()}
-      />
+    <div className="lesson-page-wrapper">
+      <div className="lesson-paper">
+        <div
+          className="odoo-content fade-in"
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            color: '#1a1a1a',
+          }}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onContextMenu={(e) => e.preventDefault()}
+          onSelect={(e) => e.preventDefault()}
+        />
+      </div>
       <style>{styleTag}</style>
     </div>
   );
@@ -696,35 +717,22 @@ function InterviewContentTab({ content, config }) {
   const styleTag = buildOdooStyles(config.colors);
 
   return (
-    <div style={{ 
-      position: 'relative', 
-      height: '100%', 
-      width: '100%',
-      background: '#ffffff',
-      overflow: 'hidden',
-    }}>
-      <div
-        className="odoo-content fade-in"
-        dangerouslySetInnerHTML={{ __html: html }}
-        style={{
-          padding: isMobile ? '12px 8px 60px 8px' : '24px 32px 80px 32px',
-          height: '100%',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          scrollBehavior: 'smooth',
-          WebkitOverflowScrolling: 'touch',
-          color: '#1a1a1a',
-          background: '#ffffff',
-          maxHeight: '100%',
-          minHeight: '100%',
-        }}
-        onCopy={(e) => e.preventDefault()}
-        onCut={(e) => e.preventDefault()}
-        onContextMenu={(e) => e.preventDefault()}
-        onSelect={(e) => e.preventDefault()}
-      />
+    <div className="lesson-page-wrapper">
+      <div className="lesson-paper">
+        <div
+          className="odoo-content fade-in"
+          dangerouslySetInnerHTML={{ __html: html }}
+          style={{
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            color: '#1a1a1a',
+          }}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          onContextMenu={(e) => e.preventDefault()}
+          onSelect={(e) => e.preventDefault()}
+        />
+      </div>
       <style>{styleTag}</style>
     </div>
   );
