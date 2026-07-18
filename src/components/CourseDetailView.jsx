@@ -1,5 +1,6 @@
 // src/components/CourseDetailView.jsx
 // Premium Odoo-style learning UI - Dark Sidebar + Dark Content - Fully Responsive
+// ✅ Image save prevention added
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -422,6 +423,9 @@ const buildOdooStyles = (colors) => `
     margin: 20px 0;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     display: block;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-drag: none;
   }
   .fade-in {
     animation: odooFadeIn 0.5s ease-out;
@@ -726,6 +730,7 @@ function InterviewContentTab({ content, config }) {
   );
 }
 
+// ✅ Updated VideoTab with download prevention
 function VideoTab({ videoUrls, config, title, courseTitle }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
@@ -1394,7 +1399,6 @@ export default function CourseDetailView({
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      // Close sidebar on mobile when window resizes
       if (mobile) {
         setShowSidebar(false);
       }
@@ -1484,6 +1488,21 @@ export default function CourseDetailView({
       });
     };
   }, [images]);
+
+  // ✅ Global disable right-click on images - MOVED BEFORE EARLY RETURNS
+  useEffect(() => {
+    const disableRightClick = (e) => {
+      if (e.target.tagName === 'IMG') {
+        e.preventDefault();
+        return false;
+      }
+    };
+    
+    document.addEventListener('contextmenu', disableRightClick);
+    return () => {
+      document.removeEventListener('contextmenu', disableRightClick);
+    };
+  }, []);
 
   const videoUrls = getVideoUrls(currentSubtopic);
   const currentTopic = topics && Array.isArray(topics) ? topics.find((t) => {
@@ -1575,7 +1594,6 @@ export default function CourseDetailView({
     setActiveSection(globalIndex);
     setCurrentSubtopic(sub);
     await loadSubtopicImages(sub.id);
-    // ✅ Close sidebar on mobile after selection
     if (isMobile) {
       setShowSidebar(false);
     }
@@ -1759,6 +1777,16 @@ export default function CourseDetailView({
       }
     }
   };
+
+  // ✅ Close sidebar on overlay click
+  const handleOverlayClick = () => {
+    if (isMobile) {
+      setShowSidebar(false);
+    }
+  };
+
+  // ─── EARLY RETURNS (Loading, Error) ──────────────────────────────────
+  // These must come AFTER all hooks are declared
 
   if (loading || contentLoading) {
     return (
@@ -1975,13 +2003,6 @@ export default function CourseDetailView({
     return false;
   };
 
-  // ✅ Close sidebar on overlay click
-  const handleOverlayClick = () => {
-    if (isMobile) {
-      setShowSidebar(false);
-    }
-  };
-
   return (
     <div style={styles.page}>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -2049,6 +2070,19 @@ export default function CourseDetailView({
         .sidebar-item-active:hover {
           background: #000000 !important;
           color: #FFFFFF !important;
+        }
+
+        /* ✅ Prevent image saving */
+        img {
+          -webkit-user-drag: none !important;
+          user-drag: none !important;
+          pointer-events: none !important;
+          -webkit-touch-callout: none !important;
+        }
+        
+        /* ✅ Hide context menu on images */
+        img {
+          -webkit-touch-callout: none !important;
         }
 
         @media (max-width: 768px) {
@@ -2480,7 +2514,7 @@ export default function CourseDetailView({
                       border: `1px solid ${LIGHT.border}`,
                       borderRadius: '12px',
                       overflow: 'hidden',
-                      cursor: 'pointer',
+                      cursor: 'default',
                       transition: 'transform 0.2s, box-shadow 0.2s',
                       background: LIGHT.surface,
                     }}
@@ -2492,14 +2526,22 @@ export default function CourseDetailView({
                       e.currentTarget.style.transform = 'scale(1)';
                       e.currentTarget.style.boxShadow = 'none';
                     }}
-                    onClick={() => window.open(imageUrl, '_blank')}
                   >
                     <img
                       src={imageUrl}
                       alt={`Page ${img.pageNumber}`}
-                      style={{ width: '100%', height: '150px', objectFit: 'cover' }}
+                      style={{ 
+                        width: '100%', 
+                        height: '150px', 
+                        objectFit: 'cover',
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                        WebkitUserDrag: 'none',
+                        userDrag: 'none',
+                      }}
                       onError={() => handleImageError?.(img.id)}
                       loading="lazy"
+                      draggable="false"
                     />
                     <div style={{ padding: isMobile ? '4px 8px' : '8px 12px', fontSize: isMobile ? '10px' : '12px', textAlign: 'center', background: LIGHT.bg, color: LIGHT.textMuted }}>
                       Page {img.pageNumber}
