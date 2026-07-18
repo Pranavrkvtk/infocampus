@@ -1,6 +1,7 @@
 // src/components/CourseDetailView.jsx
 // Premium Odoo-style learning UI - Dark Sidebar + Dark Content - Fully Responsive
 // ✅ Image save prevention added
+// ✅ Auto-exit fullscreen on navigation
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -1455,6 +1456,19 @@ export default function CourseDetailView({
       const navbar = document.querySelector('nav');
       if (navbar) navbar.style.display = '';
       document.body.style.paddingTop = '';
+    };
+  }, []);
+
+  // ✅ NEW: Auto-exit fullscreen when component unmounts (navigation occurs)
+  useEffect(() => {
+    return () => {
+      // Exit fullscreen when component unmounts (navigation occurs)
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(err => {
+          // Ignore errors - fullscreen might already be exited
+          console.debug('Fullscreen exit on navigation:', err);
+        });
+      }
     };
   }, []);
 
