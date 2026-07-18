@@ -2426,17 +2426,13 @@ export default function CourseDetailView({
                                 {subtopicLocked ? (
                                   <LockIcon style={{ fontSize: isMobile ? '12px' : '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
                                 ) : (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px', flexShrink: 0 }}>
-                                    {subHasVideo && (
-                                      <YouTubeIcon style={{ fontSize: isMobile ? '16px' : '18px', color: '#FF0000' }} />
-                                    )}
-                                    {subHasNotes && (
-                                      <FlagIcon style={{ fontSize: isMobile ? '16px' : '18px', color: '#FFC107' }} />
-                                    )}
-                                    {!hasAnyContentForSub && !subtopicLocked && (
-                                      <span style={{ fontSize: isMobile ? '10px' : '11px', color: SIDEBAR.textMuted }}>●</span>
-                                    )}
-                                  </div>
+<div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px', flexShrink: 0 }}>
+  {(subHasVideo || subHasNotes) ? (
+    <FlagIcon style={{ fontSize: isMobile ? '16px' : '18px', color: '#FFC107' }} />
+  ) : !subtopicLocked ? (
+    <span style={{ fontSize: isMobile ? '10px' : '11px', color: SIDEBAR.textMuted }}>●</span>
+  ) : null}
+</div>
                                 )}
                                 <span style={{ flex: 1, wordBreak: 'break-word', fontSize: isMobile ? '12px' : '13px' }}>{sub.title}</span>
                                 {subtopicLocked && (
