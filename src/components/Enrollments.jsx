@@ -100,31 +100,7 @@ const Enrollments = ({ isMobile, onBack }) => {
 
   const isLoggedIn = !!localStorage.getItem('token');
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    setCourse(null);
-    setIsEnrolled(false);
-    setEnrolling(false);
-
-    if (courseId) {
-      const stateCourse = location.state?.course;
-
-      if (stateCourse && stateCourse.id == courseId) {
-        setCourse(stateCourse);
-        if (location.state?.isEnrolled) setIsEnrolled(true);
-        setLoading(false);
-        checkEnrollmentStatus();
-      } else {
-        fetchCourseDetails();
-        checkEnrollmentStatus();
-      }
-    } else {
-      setLoading(false);
-      setError('No course ID provided');
-    }
-  }, [courseId]);
-
+  // ─── Fetch Course Details ──────────────────────────────────────────
   const fetchCourseDetails = async () => {
     try {
       setLoading(true);
@@ -153,6 +129,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     }
   };
 
+  // ─── Check Enrollment Status ──────────────────────────────────────
   const checkEnrollmentStatus = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -164,6 +141,33 @@ const Enrollments = ({ isMobile, onBack }) => {
       console.error('Error checking enrollment status:', err);
     }
   };
+
+  // ─── ✅ FIX: useEffect with all dependencies ──────────────────────
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setCourse(null);
+    setIsEnrolled(false);
+    setEnrolling(false);
+
+    if (courseId) {
+      const stateCourse = location.state?.course;
+
+      // ✅ FIX: Use === instead of ==
+      if (stateCourse && stateCourse.id === courseId) {
+        setCourse(stateCourse);
+        if (location.state?.isEnrolled) setIsEnrolled(true);
+        setLoading(false);
+        checkEnrollmentStatus();
+      } else {
+        fetchCourseDetails();
+        checkEnrollmentStatus();
+      }
+    } else {
+      setLoading(false);
+      setError('No course ID provided');
+    }
+  }, [courseId, location.state?.course, location.state?.isEnrolled]); // ✅ All dependencies included
 
   // ✅ Handle free preview - NO POPUP, directly navigate with isPreview flag
   const handleFreePreview = () => {

@@ -2,7 +2,7 @@
 // Premium Odoo-style learning UI - Dark Sidebar + Dark Content
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom'; // ✅ Removed unused 'useLocation'
 import Swal from 'sweetalert2';
 import {
   getSubtopicInterviewQuestions,
@@ -1121,14 +1121,14 @@ export default function CourseDetailView({
   styles: propStyles,
 }) {
   const navigate = useNavigate();
-  const location = useLocation();
+  // ✅ Removed unused 'location'
   const { courseId } = useParams();
 
   // ─── State for fetched data ──────────────────────────────────────────
   const [fetchedCourse, setFetchedCourse] = useState(null);
   const [fetchedTopics, setFetchedTopics] = useState([]);
   const [fetchedSubtopics, setFetchedSubtopics] = useState([]);
-  const [fetchedImages, setFetchedImages] = useState([]);
+  // ✅ Removed unused 'fetchedImages' and 'setFetchedImages'
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1236,16 +1236,7 @@ export default function CourseDetailView({
   ];
 
   // ─── Fetch course data using getCourseData (auto-detects auth) ──────
-  useEffect(() => {
-    console.log('🔄 CourseDetailView useEffect - courseId:', courseId);
-    if (courseId) {
-      fetchCourseData(courseId);
-    } else {
-      setLoading(false);
-    }
-  }, [courseId]);
-
-  const fetchCourseData = async (id) => {
+  const fetchCourseData = useCallback(async (id) => {
     try {
       setLoading(true);
       setFetchError(null);
@@ -1354,7 +1345,17 @@ export default function CourseDetailView({
     } finally {
       setLoading(false);
     }
-  };
+  }, [setActiveSection, setCurrentSubtopic, loadSubtopicImages]);
+
+  // ─── Fetch course data on mount and courseId change ────────────────
+  useEffect(() => {
+    console.log('🔄 CourseDetailView useEffect - courseId:', courseId);
+    if (courseId) {
+      fetchCourseData(courseId);
+    } else {
+      setLoading(false);
+    }
+  }, [courseId, fetchCourseData]); // ✅ Added fetchCourseData to dependencies
 
   // ─── Rest of the component ──────────────────────────────────────────
   const [expandedTopics, setExpandedTopics] = useState(() => {

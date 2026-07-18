@@ -7,8 +7,6 @@ import {
   getEnrolledCourses,
   getCourseDetails,
   getSubtopicImages,
-  getCourses,
-  enrollInCourse,
   getPublicCourseData,
   getPublicCourses,
 } from '../api/UserApi';
@@ -193,6 +191,7 @@ function MyCoursesPage() {
   
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line no-unused-vars
   const [loadingError, setLoadingError] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [activeView, setActiveView] = useState('catalog');
@@ -212,7 +211,6 @@ function MyCoursesPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [apiError, setApiError] = useState(null);
   
-  // ✅ Tab state: 'my' for enrolled, 'all' for catalog
   const [activeTab, setActiveTab] = useState('all');
 
   const isMobile = window.innerWidth < 768;
@@ -372,7 +370,6 @@ function MyCoursesPage() {
     setApiError(null);
     
     try {
-      // ✅ Always use public endpoint for all courses
       const data = await getPublicCourses();
       console.log('📚 All courses data:', data);
       
@@ -400,90 +397,6 @@ function MyCoursesPage() {
       setLoadingAllCourses(false);
     }
   }, [getCourseImage]);
-
-  // ─── Load Course Details ───────────────────────────────────────────
-  const loadCourseDetails = async (courseId) => {
-    setContentLoading(true);
-    try {
-      let data;
-      const token = localStorage.getItem('token');
-      
-      if (token) {
-        try {
-          data = await getCourseDetails(courseId);
-        } catch (authError) {
-          console.log('Auth API failed, falling back to public:', authError);
-          data = await getPublicCourseData(courseId);
-        }
-      } else {
-        data = await getPublicCourseData(courseId);
-      }
-
-      const allTopics = Array.isArray(data) ? data : (data.topics || []);
-      
-      const allSubtopics = [];
-      allTopics.forEach(topic => {
-        const subs = topic.subTopics || topic.subtopics || [];
-        subs.forEach(sub => {
-          allSubtopics.push({
-            id: sub.id,
-            title: sub.title,
-            topicTitle: topic.title,
-            content: sub.content,
-            videoUrl: sub.videoUrl,
-            videoUrls: sub.videoUrls || [],
-            imageUrl: sub.imageUrl,
-            images: sub.images || [],
-            isFree: sub.isFree || topic.isFirstTopic || false,
-            ...sub
-          });
-        });
-      });
-      setSubtopics(allSubtopics);
-      setTopics(allTopics);
-
-      if (token) {
-        const savedCompleted = localStorage.getItem(`course_completed_${courseId}`);
-        if (savedCompleted) {
-          const completed = JSON.parse(savedCompleted);
-          setCompletedSections(completed);
-          setProgress((completed.length / allSubtopics.length) * 100);
-        } else {
-          setCompletedSections([]);
-          setProgress(0);
-        }
-      } else {
-        setCompletedSections([]);
-        setProgress(0);
-      }
-      
-      setActiveSection(0);
-      if (allSubtopics.length > 0) {
-        await loadSubtopicImages(allSubtopics[0].id);
-        setCurrentSubtopic(allSubtopics[0]);
-      }
-    } catch (error) {
-      console.error('Error loading course details:', error);
-      if (!localStorage.getItem('token')) {
-        Swal.fire({
-          title: 'Login for Full Access',
-          text: 'Login to access all course content, track progress, and enroll.',
-          icon: 'info',
-          showCancelButton: true,
-          confirmButtonText: 'Login',
-          cancelButtonText: 'View Limited Content',
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/login');
-          }
-        });
-      } else {
-        Swal.fire('Error', 'Could not load course content', 'error');
-      }
-    } finally {
-      setContentLoading(false);
-    }
-  };
 
   // ─── Load Subtopic Images ──────────────────────────────────────────
   const loadSubtopicImages = async (subtopicId) => {
@@ -651,15 +564,12 @@ function MyCoursesPage() {
   };
 
   useEffect(() => {
-    // ✅ Always fetch all courses (public)
     fetchAllCourses();
     
-    // ✅ Only fetch enrolled courses if logged in
     if (isLoggedIn) {
       fetchEnrolledCourses();
     } else {
       setLoading(false);
-      // ✅ If not logged in, default to 'all' tab
       setActiveTab('all');
     }
   }, [fetchEnrolledCourses, fetchAllCourses, isLoggedIn]);
@@ -684,7 +594,6 @@ function MyCoursesPage() {
     if (activeTab === 'my' && isLoggedIn) {
       return enrolledCourses;
     }
-    // ✅ For 'all' tab or when not logged in, show all courses
     return allCourses;
   };
 
@@ -741,7 +650,6 @@ function MyCoursesPage() {
 
   // ─── Render Empty State ────────────────────────────────────────────
   const renderEmptyState = () => {
-    // ✅ Not logged in - show login prompt
     if (!isLoggedIn) {
       return (
         <div style={styles.emptyState}>
@@ -763,7 +671,6 @@ function MyCoursesPage() {
       );
     }
 
-    // ✅ Logged in but no enrolled courses (My Courses tab)
     if (activeTab === 'my' && enrolledCourses.length === 0) {
       return (
         <div style={styles.emptyState}>
@@ -785,7 +692,6 @@ function MyCoursesPage() {
       );
     }
 
-    // No courses available at all
     if (allCourses.length === 0) {
       return (
         <div style={styles.emptyState}>
@@ -809,7 +715,6 @@ function MyCoursesPage() {
       );
     }
 
-    // No search results
     return (
       <div style={styles.emptyState}>
         <div style={styles.emptyIcon}>🔍</div>

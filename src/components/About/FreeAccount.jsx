@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "./FreeAccount.css";
 import Swal from "sweetalert2";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, User, CheckCircle, ArrowRight, Phone } from "lucide-react";
+import { Mail, Lock, User, Phone } from "lucide-react"; // ✅ Removed CheckCircle, ArrowRight
 
 function FreeAccount() {
   const navigate = useNavigate();
@@ -403,7 +403,6 @@ function FreeAccount() {
           <p>
             Already have an account? <Link to="/login">Sign in</Link>
           </p>
-   
         </div>
       </div>
     </div>
