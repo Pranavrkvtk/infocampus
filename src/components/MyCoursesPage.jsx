@@ -25,24 +25,11 @@ import GridViewIcon from '@mui/icons-material/GridView';
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
-// ─── Get My Courses Configuration from localStorage ────────────────────
-const getMyCoursesConfig = () => {
-  const saved = localStorage.getItem('myCoursesConfig');
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-};
-
-// ─── Default My Courses Configuration ──────────────────────────────────
-const DEFAULT_MY_COURSES_CONFIG = {
+// ─── Hardcoded My Courses Configuration ──────────────────────────────────
+const MY_COURSES_CONFIG = {
   heroEyebrow: "Networking & Security Academy",
   heroTitle: "Knowledge is a superpower",
-  heroText: "Level up your networking and security skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
+  heroText: "Level up your networking and  skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
   heroButtonText: "Pick a course →",
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
@@ -184,8 +171,6 @@ const resolveImageUrl = (imageUrl) => {
 
 function MyCoursesPage() {
   const navigate = useNavigate();
-  
-  const myCoursesConfig = getMyCoursesConfig() || DEFAULT_MY_COURSES_CONFIG;
   
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -630,20 +615,20 @@ function MyCoursesPage() {
   // ─── Get track icon and color for course ──────────────────────────
   const getTrackInfo = (courseTitle) => {
     const title = courseTitle?.toLowerCase() || '';
-    const trackKeys = Object.keys(myCoursesConfig.trackIcons);
+    const trackKeys = Object.keys(MY_COURSES_CONFIG.trackIcons);
     
     for (const key of trackKeys) {
       if (title.includes(key)) {
         return {
-          icon: myCoursesConfig.trackIcons[key] || '📄',
-          color: myCoursesConfig.trackColors[key] || '#F2F1F6'
+          icon: MY_COURSES_CONFIG.trackIcons[key] || '📄',
+          color: MY_COURSES_CONFIG.trackColors[key] || '#F2F1F6'
         };
       }
     }
     
     return {
-      icon: myCoursesConfig.trackIcons.default || '📄',
-      color: myCoursesConfig.trackColors.default || '#F2F1F6'
+      icon: MY_COURSES_CONFIG.trackIcons.default || '📄',
+      color: MY_COURSES_CONFIG.trackColors.default || '#F2F1F6'
     };
   };
 
@@ -653,8 +638,8 @@ function MyCoursesPage() {
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>🔒</div>
-          <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateLoginTitle}</h3>
-          <p style={styles.emptyText}>{myCoursesConfig.emptyStateLoginText}</p>
+          <h3 style={styles.emptyTitle}>{MY_COURSES_CONFIG.emptyStateLoginTitle}</h3>
+          <p style={styles.emptyText}>{MY_COURSES_CONFIG.emptyStateLoginText}</p>
           <button 
             onClick={handleLogin}
             style={{
@@ -664,7 +649,7 @@ function MyCoursesPage() {
               marginTop: '8px',
             }}
           >
-            {myCoursesConfig.emptyStateLoginButton}
+            {MY_COURSES_CONFIG.emptyStateLoginButton}
           </button>
         </div>
       );
@@ -674,8 +659,8 @@ function MyCoursesPage() {
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
-          <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateNoCoursesTitle}</h3>
-          <p style={styles.emptyText}>{myCoursesConfig.emptyStateNoCoursesText}</p>
+          <h3 style={styles.emptyTitle}>{MY_COURSES_CONFIG.emptyStateNoCoursesTitle}</h3>
+          <p style={styles.emptyText}>{MY_COURSES_CONFIG.emptyStateNoCoursesText}</p>
           <button 
             onClick={() => setActiveTab('all')}
             style={{
@@ -685,7 +670,7 @@ function MyCoursesPage() {
               marginTop: '8px',
             }}
           >
-            {myCoursesConfig.emptyStateNoCoursesButton}
+            {MY_COURSES_CONFIG.emptyStateNoCoursesButton}
           </button>
         </div>
       );
@@ -695,8 +680,8 @@ function MyCoursesPage() {
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
-          <h3 style={styles.emptyTitle}>{myCoursesConfig.emptyStateNoAvailableTitle}</h3>
-          <p style={styles.emptyText}>{myCoursesConfig.emptyStateNoAvailableText}</p>
+          <h3 style={styles.emptyTitle}>{MY_COURSES_CONFIG.emptyStateNoAvailableTitle}</h3>
+          <p style={styles.emptyText}>{MY_COURSES_CONFIG.emptyStateNoAvailableText}</p>
           {apiError && (
             <button 
               onClick={() => fetchAllCourses()}
@@ -769,7 +754,7 @@ function MyCoursesPage() {
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
-      background: `linear-gradient(135deg, ${myCoursesConfig.heroBgStart} 0%, ${myCoursesConfig.heroBgMid} 55%, ${myCoursesConfig.heroBgEnd} 100%)`, 
+      background: `linear-gradient(135deg, ${MY_COURSES_CONFIG.heroBgStart} 0%, ${MY_COURSES_CONFIG.heroBgMid} 55%, ${MY_COURSES_CONFIG.heroBgEnd} 100%)`, 
       padding: isMobile ? '40px 20px' : '56px 48px', 
       color: '#fff',
       display: 'flex',
@@ -1146,7 +1131,7 @@ function MyCoursesPage() {
   }
 
   // ─── Render: Course Catalog ───────────────────────────────────────────
-  const heroDecor = myCoursesConfig.heroDecor || '🎓';
+  const heroDecor = MY_COURSES_CONFIG.heroDecor || '🎓';
 
   const formatCategoryName = (cat) => {
     if (cat === 'all') return 'All';
@@ -1216,14 +1201,14 @@ function MyCoursesPage() {
       {/* ─── Hero Section ────────────────────────────────────────────── */}
       <div style={styles.hero}>
         <div style={styles.heroInner}>
-          <div style={styles.heroEyebrow}>{myCoursesConfig.heroEyebrow}</div>
-          <h1 style={styles.heroTitle}>{myCoursesConfig.heroTitle}</h1>
-          <p style={styles.heroText}>{myCoursesConfig.heroText}</p>
+          <div style={styles.heroEyebrow}>{MY_COURSES_CONFIG.heroEyebrow}</div>
+          <h1 style={styles.heroTitle}>{MY_COURSES_CONFIG.heroTitle}</h1>
+          <p style={styles.heroText}>{MY_COURSES_CONFIG.heroText}</p>
           <button style={styles.heroBtn} onClick={() => {
             document.getElementById('courses-section')?.scrollIntoView({ behavior: 'smooth' });
           }}>
             <WhatshotIcon style={{ fontSize: '18px' }} />
-            {myCoursesConfig.heroButtonText}
+            {MY_COURSES_CONFIG.heroButtonText}
           </button>
         </div>
         <div style={styles.heroDecor}>{heroDecor}</div>
@@ -1234,7 +1219,7 @@ function MyCoursesPage() {
         <div style={styles.sectionTitle}>
           <GridViewIcon style={{ fontSize: '28px', color: COLORS.accent }} />
           <span style={{ marginLeft: '8px' }}>
-            {activeTab === 'my' && isLoggedIn ? myCoursesConfig.sectionTitleMy : 'All Courses'}
+            {activeTab === 'my' && isLoggedIn ? MY_COURSES_CONFIG.sectionTitleMy : 'All Courses'}
           </span>
           <span style={{ 
             fontSize: '14px', 
@@ -1252,7 +1237,7 @@ function MyCoursesPage() {
           <SearchIcon style={styles.searchIcon} />
           <input
             type="text"
-            placeholder={myCoursesConfig.searchPlaceholder}
+            placeholder={MY_COURSES_CONFIG.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}
@@ -1271,7 +1256,7 @@ function MyCoursesPage() {
               setSearchTerm('');
             }}
           >
-            {myCoursesConfig.myCoursesTabText}
+            {MY_COURSES_CONFIG.myCoursesTabText}
             {enrolledCourses.length > 0 && (
               <span style={{
                 fontSize: '11px',
@@ -1292,7 +1277,7 @@ function MyCoursesPage() {
             setSearchTerm('');
           }}
         >
-          All Courses
+          {MY_COURSES_CONFIG.allCoursesTabText}
           {allCourses.length > 0 && (
             <span style={{
               fontSize: '11px',
@@ -1360,7 +1345,7 @@ function MyCoursesPage() {
                   {isEnrolled && (
                     <span style={styles.enrolledBadge}>
                       <BookmarkIcon style={{ fontSize: '12px' }} />
-                      {myCoursesConfig.enrolledBadgeText}
+                      {MY_COURSES_CONFIG.enrolledBadgeText}
                     </span>
                   )}
                 </div>
@@ -1376,7 +1361,7 @@ function MyCoursesPage() {
                     </span>
                     <span style={styles.metaItem}>
                       <MenuBookIcon style={styles.metaIcon} />
-                      {course.steps || course.subtopicCount || '—'} {myCoursesConfig.cardStepsText}
+                      {course.steps || course.subtopicCount || '—'} {MY_COURSES_CONFIG.cardStepsText}
                     </span>
                     {course.level && (
                       <span style={styles.metaItem}>
@@ -1396,7 +1381,7 @@ function MyCoursesPage() {
                       }}
                     >
                       <PlayArrowIcon style={{ fontSize: '16px' }} />
-                      {myCoursesConfig.continueLearningButtonText}
+                      {MY_COURSES_CONFIG.continueLearningButtonText}
                     </button>
                   ) : (
                     <button
@@ -1407,7 +1392,7 @@ function MyCoursesPage() {
                       }}
                     >
                       <ArrowBackIcon style={{ fontSize: '16px', transform: 'rotate(180deg)' }} />
-                      {isLoggedIn ? myCoursesConfig.viewCourseButtonText : 'View Details'}
+                      {isLoggedIn ? MY_COURSES_CONFIG.viewCourseButtonText : 'View Details'}
                     </button>
                   )}
                 </div>
@@ -1418,7 +1403,7 @@ function MyCoursesPage() {
       )}
 
       <div style={styles.footer}>
-        <p>{myCoursesConfig.footerText}</p>
+        <p>{MY_COURSES_CONFIG.footerText}</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
