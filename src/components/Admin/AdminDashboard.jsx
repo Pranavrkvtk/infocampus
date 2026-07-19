@@ -22,9 +22,6 @@ import EnrollmentsTab from "./EnrollmentsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
-import MyCoursesEditorTab from "./MyCoursesEditorTab";
-import CourseDetailEditorTab from "./CourseDetailEditorTab";
-// ❌ REMOVED: import CourseEnrollmentEditorTab from "./CourseEnrollmentEditorTab";
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -41,10 +38,6 @@ export default function AdminDashboard() {
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCoursePdf, setSelectedCoursePdf] = useState(null);
-
-  // ❌ REMOVED: Enrollment Editor related state
-  // const [selectedEditorCourseId, setSelectedEditorCourseId] = useState("");
-  // const [editorCourses, setEditorCourses] = useState([]);
 
   const abortControllerRef = useRef(null);
   const searchTimeoutRef = useRef(null);
@@ -117,8 +110,6 @@ export default function AdminDashboard() {
       if (abortControllerRef.current === abortController) abortControllerRef.current = null;
     }
   };
-
-  // ❌ REMOVED: fetchEditorCourses function
 
   // Search students
   const searchStudents = useCallback(async (name) => {
@@ -210,7 +201,6 @@ export default function AdminDashboard() {
     else if (activeTab === "courses") fetchCourses();
     else if (activeTab === "students") fetchAllStudents();
     else if (activeTab === "enrollments") fetchEnrollments();
-    // ❌ REMOVED: enrollment-editor case
   }, [activeTab]);
 
   const handleLogout = () => {
@@ -226,7 +216,6 @@ export default function AdminDashboard() {
     { label: "Total Enrollments", value: dashboardStats.totalEnrollments?.toLocaleString() || "0",iconBg: colors.amberSoft,   icon: "📚"  },
   ] : [];
 
-  // ❌ UPDATED: removed enrollment-editor case
   const renderContent = () => {
     if (loading) return <LoadingSpinner />;
     if (error) return (
@@ -250,26 +239,22 @@ export default function AdminDashboard() {
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
-      case "my-courses-editor": return <MyCoursesEditorTab />;
-      case "course-detail-editor": return <CourseDetailEditorTab />;
-      // ❌ REMOVED: enrollment-editor case
       default: return null;
     }
   };
 
-  // ❌ UPDATED: removed enrollment-editor from navItems
+  // ✅ UPDATED: Removed editor tabs from navigation
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
     { icon: "👨‍🎓", label: "Students",      id: "students"       },
     { icon: "📋", label: "Enrollments",    id: "enrollments"    },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
-    { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" },
-    { icon: "📄", label: "Course Detail Editor", id: "course-detail-editor" },
-    // ❌ REMOVED: { icon: "🎟️", label: "Enrollment Page Editor", id: "enrollment-editor" },
+    // ❌ REMOVED: { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" },
+    // ❌ REMOVED: { icon: "📄", label: "Course Detail Editor", id: "course-detail-editor" },
   ];
 
-  // ❌ UPDATED: removed enrollment-editor from PAGE_TITLES
+  // ✅ UPDATED: Removed editor tabs from page titles
   const PAGE_TITLES = {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
@@ -277,12 +262,11 @@ export default function AdminDashboard() {
     enrollments:     "Enrollment Management",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
-    "my-courses-editor": "My Courses Editor",
-    "course-detail-editor": "Course Detail Editor",
-    // ❌ REMOVED: "enrollment-editor": "Enrollment Page Editor",
+    // ❌ REMOVED: "my-courses-editor": "My Courses Editor",
+    // ❌ REMOVED: "course-detail-editor": "Course Detail Editor",
   };
 
-  // ❌ UPDATED: removed enrollment-editor from PAGE_SUBS
+  // ✅ UPDATED: Removed editor tabs from page subs
   const PAGE_SUBS = {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
@@ -290,9 +274,8 @@ export default function AdminDashboard() {
     enrollments:     "View all student enrollments",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
-    "my-courses-editor": "Customize all text, icons, and content on the My Courses page",
-    "course-detail-editor": "Customize the course detail page layout, colors, and content",
-    // ❌ REMOVED: "enrollment-editor": "Customize text, colors, and content on the course enrollment page",
+    // ❌ REMOVED: "my-courses-editor": "Customize all text, icons, and content on the My Courses page",
+    // ❌ REMOVED: "course-detail-editor": "Customize the course detail page layout, colors, and content",
   };
 
   // ===================== SIDEBAR NAV ITEM =====================
