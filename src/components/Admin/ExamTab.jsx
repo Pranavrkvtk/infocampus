@@ -237,11 +237,12 @@ const ExamTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) => {
       
       console.log('✅ Save response:', response);
       
+      // ✅ Always update parent with current content
+      onUpdate?.({ examContent: examContent });
+      
       if (examContent) {
-        onUpdate?.({ examContent: examContent });
         if (toast) toast.show('Exam content saved successfully!', 'success');
       } else {
-        onUpdate?.({ examContent: '' });
         if (toast) toast.show('Exam content cleared!', 'success');
       }
     } catch (error) {
@@ -252,6 +253,15 @@ const ExamTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) => {
       setSaving(false);
       isSavingRef.current = false;
     }
+  };
+
+  // ─── Handle textarea change ─────────────────────────────────
+  const handleContentChange = (e) => {
+    const newContent = e.target.value;
+    console.log('✏️ Exam content changed, new length:', newContent.length);
+    setExamContent(newContent);
+    // ✅ Update parent immediately so it's in sync
+    onUpdate?.({ examContent: newContent });
   };
 
   // ─── Search/Highlight functionality ────────────────────────
@@ -406,11 +416,7 @@ const ExamTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) => {
           <textarea
             id="exam-editor"
             value={examContent}
-            onChange={(e) => {
-              const newContent = e.target.value;
-              console.log('✏️ Editor change, new length:', newContent.length);
-              setExamContent(newContent);
-            }}
+            onChange={handleContentChange}
             rows={12}
             style={{
               width: '100%',

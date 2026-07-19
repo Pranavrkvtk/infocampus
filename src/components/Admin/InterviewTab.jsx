@@ -239,11 +239,12 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
       
       console.log('✅ Save response:', response);
       
+      // ✅ Always update parent with current content
+      onUpdate?.({ interviewContent: interviewContent });
+      
       if (interviewContent) {
-        onUpdate?.({ interviewContent: interviewContent });
         if (toast) toast.show('Interview content saved successfully!', 'success');
       } else {
-        onUpdate?.({ interviewContent: '' });
         if (toast) toast.show('Interview content cleared!', 'success');
       }
     } catch (error) {
@@ -254,6 +255,15 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
       setSaving(false);
       isSavingRef.current = false;
     }
+  };
+
+  // ─── Handle textarea change ─────────────────────────────────
+  const handleContentChange = (e) => {
+    const newContent = e.target.value;
+    console.log('✏️ Interview content changed, new length:', newContent.length);
+    setInterviewContent(newContent);
+    // ✅ Update parent immediately so it's in sync
+    onUpdate?.({ interviewContent: newContent });
   };
 
   // ─── Search/Highlight functionality ────────────────────────────
@@ -408,11 +418,7 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
           <textarea
             id="interview-editor"
             value={interviewContent}
-            onChange={(e) => {
-              const newContent = e.target.value;
-              console.log('✏️ Editor change, new length:', newContent.length);
-              setInterviewContent(newContent);
-            }}
+            onChange={handleContentChange}
             rows={12}
             style={{
               width: '100%',
