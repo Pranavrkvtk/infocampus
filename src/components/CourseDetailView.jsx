@@ -2078,10 +2078,10 @@ export default function CourseDetailView({
       fontSize: isMobile ? '11px' : '12px',
       letterSpacing: '0.03em',
       textTransform: 'uppercase',
-      color: isOpen ? SIDEBAR.textLight : SIDEBAR.textMuted,
-      background: isOpen ? '#252b32' : 'transparent',
+      color: '#FFFFFF',
+      background: '#4B5563',
       borderRadius: 0,
-      borderTop: '1px solid rgba(255,255,255,0.04)',
+      borderTop: '1px solid rgba(255,255,255,0.08)',
       borderBottom: '1px solid rgba(0,0,0,0.25)',
       transition: 'background 0.2s ease',
       borderLeft: isOpen ? `3px solid ${SIDEBAR.accent}` : '3px solid transparent',
@@ -2225,6 +2225,10 @@ export default function CourseDetailView({
         .sidebar-item-active:hover {
           background: #000000 !important;
           color: #FFFFFF !important;
+        }
+
+        .topic-header-item:hover {
+          background: #5a6474 !important;
         }
 
         /* ✅ Prevent image saving */
@@ -2481,14 +2485,9 @@ export default function CourseDetailView({
                   return (
                     <div key={topic.id} style={styles.topicItem}>
                       <div 
+                        className="topic-header-item"
                         style={styles.topicHeader(isOpen)}
                         onClick={() => toggleTopic(topic.id)}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = SIDEBAR.hover;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = isOpen ? SIDEBAR.itemOpen : 'transparent';
-                        }}
                       >
                         <span style={{ fontSize: isMobile ? '10px' : '12px' }}>{topic.title}</span>
                         <span style={{ fontSize: isMobile ? '8px' : '10px' }}>
