@@ -313,7 +313,7 @@ export default function AdminDashboard() {
     students:        "View and manage all enrolled students",
     enrollments:     "View all student enrollments",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
-    "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
+    "course-manager":"Create and manage courses, topics, subtopics, notes, videos, exam questions, interview questions and labs ",
     "page-settings": "Customize hero section, colors, text, and more", // 👈 NEW
   };
 

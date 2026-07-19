@@ -163,7 +163,11 @@ export default function CoursesTab({
   const handleInlineEdit = (course) => {
     setEditingCourse({ 
       ...course, 
-      description: course.description || ''
+      description: course.description || '',
+      duration: course.duration || '',
+      level: course.level || 'Beginner',
+      price: course.price || 0,
+      status: course.status || 'PUBLISHED'
     });
   };
 
@@ -180,10 +184,11 @@ export default function CoursesTab({
         title: editingCourse.title,
         description: editingCourse.description || "",
         price: editingCourse.price || 0,
-        duration: editingCourse.duration || "",
-        level: editingCourse.level || "Beginner",
+        duration: editingCourse.duration || "",        // ✅ Include duration
+        level: editingCourse.level || "Beginner",      // ✅ Include level
         videoUrl: editingCourse.videoUrl || "",
-        imageUrl: editingCourse.imageUrl || ""
+        imageUrl: editingCourse.imageUrl || "",
+        status: editingCourse.status || "PUBLISHED"
       };
 
       console.log('Sending update data:', updateData);
@@ -384,7 +389,7 @@ export default function CoursesTab({
         className="courses-table-container"
         style={{ overflowX: "auto", marginBottom: isInstructor ? 30 : 0 }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 750 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${colors.borderLight}`, background: colors.bgBase }}>
               <th style={{ padding: "12px", textAlign: "center", width: "40px" }}>
@@ -403,6 +408,8 @@ export default function CoursesTab({
               <th style={{ padding: "12px", textAlign: "left" }}>ID</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Course Name</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Description</th>
+              <th style={{ padding: "12px", textAlign: "left" }}>Duration</th>  {/* ✅ NEW */}
+              <th style={{ padding: "12px", textAlign: "left" }}>Level</th>     {/* ✅ NEW */}
               <th style={{ padding: "12px", textAlign: "left" }}>Price</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Status</th>
               <th style={{ padding: "12px", textAlign: "center" }}>Actions</th>
@@ -411,7 +418,7 @@ export default function CoursesTab({
           <tbody>
             {filteredAndSortedCourses.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ padding: "40px", textAlign: "center", color: colors.textMuted }}>
+                <td colSpan="9" style={{ padding: "40px", textAlign: "center", color: colors.textMuted }}>
                   {isInstructor ? 'No courses assigned yet.' : 'No courses available.'}
                 </td>
               </tr>
@@ -492,6 +499,60 @@ export default function CoursesTab({
                         }}>
                           {c.description || "—"}
                         </div>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editingCourse.duration || ''}
+                          onChange={(e) => setEditingCourse({ ...editingCourse, duration: e.target.value })}
+                          style={{
+                            width: "100px",
+                            padding: "4px 8px",
+                            border: `1px solid ${colors.primary}`,
+                            borderRadius: 4,
+                            fontSize: "13px",
+                          }}
+                          placeholder="e.g., 20+ hours"
+                        />
+                      ) : (
+                        <span style={{ fontSize: "13px" }}>{c.duration || "—"}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      {isEditing ? (
+                        <select
+                          value={editingCourse.level || 'Beginner'}
+                          onChange={(e) => setEditingCourse({ ...editingCourse, level: e.target.value })}
+                          style={{
+                            padding: "4px 8px",
+                            border: `1px solid ${colors.primary}`,
+                            borderRadius: 4,
+                            fontSize: "13px",
+                            background: "#fff",
+                            width: "100px",
+                          }}
+                        >
+                          <option value="Beginner">Beginner</option>
+                          <option value="Intermediate">Intermediate</option>
+                          <option value="Advanced">Advanced</option>
+                          <option value="All Levels">All Levels</option>
+                        </select>
+                      ) : (
+                        <Badge 
+                          status={c.level || "Beginner"} 
+                          style={{
+                            background: c.level === "Beginner" ? "#dbeafe" : 
+                                       c.level === "Intermediate" ? "#fef3c7" : 
+                                       c.level === "Advanced" ? "#fce4ec" : "#e8e8e8",
+                            color: c.level === "Beginner" ? "#1e40af" : 
+                                   c.level === "Intermediate" ? "#92400e" : 
+                                   c.level === "Advanced" ? "#b91c1c" : "#374151",
+                          }}
+                        >
+                          {c.level || "Beginner"}
+                        </Badge>
                       )}
                     </td>
                     <td style={{ padding: "12px", color: colors.teal, fontWeight: 600 }}>

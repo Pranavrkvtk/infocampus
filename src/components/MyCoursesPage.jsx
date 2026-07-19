@@ -23,8 +23,35 @@ import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import GridViewIcon from '@mui/icons-material/GridView';
+import AppsIcon from '@mui/icons-material/Apps';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
+import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
+import ViewStreamIcon from '@mui/icons-material/ViewStream';
+import ViewAgendaIcon from '@mui/icons-material/ViewAgenda';
+import ViewCompactIcon from '@mui/icons-material/ViewCompact';
+import ViewDayIcon from '@mui/icons-material/ViewDay';
+import ViewWeekIcon from '@mui/icons-material/ViewWeek';
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
+
+// ─── Section Icons Mapping ──────────────────────────────────────────
+const SECTION_ICONS = {
+  grid: <GridViewIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  apps: <AppsIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  dashboard: <DashboardIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  module: <ViewModuleIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  list: <ViewListIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  carousel: <ViewCarouselIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  quilt: <ViewQuiltIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  stream: <ViewStreamIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  agenda: <ViewAgendaIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  compact: <ViewCompactIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  day: <ViewDayIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+  week: <ViewWeekIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+};
 
 // ─── DEFAULT CONFIG (Fallback if API fails) ──────────────────────────
 const DEFAULT_CONFIG = {
@@ -42,8 +69,6 @@ const DEFAULT_CONFIG = {
   allCoursesTabText: "All Courses",
   searchPlaceholder: "Search courses...",
   cardDurationLabel: "⏱",
-  cardStepsLabel: "📋",
-  cardStepsText: "steps",
   enrolledBadgeText: "Enrolled",
   viewCourseButtonText: "View Course",
   continueLearningButtonText: "Continue Learning",
@@ -56,6 +81,7 @@ const DEFAULT_CONFIG = {
   emptyStateNoAvailableTitle: "No courses available",
   emptyStateNoAvailableText: "Check back later for new courses.",
   footerText: "Browse our course catalog. Sign in to enroll and track progress.",
+  sectionIcon: "grid",
   trackIcons: {
     ccna: "🌐",
     ccnp: "🚀",
@@ -212,16 +238,12 @@ function MyCoursesPage() {
       const response = await getCoursePageSettings();
       console.log('📥 Settings API response:', response);
       
-      // ✅ Check if we got valid settings
       if (response && response.success !== false) {
-        // The API might return data directly or nested in a 'settings' field
         const data = response.settings || response;
         
-        // Parse track icons and colors from JSON strings
         let trackIcons = { ...DEFAULT_CONFIG.trackIcons };
         let trackColors = { ...DEFAULT_CONFIG.trackColors };
         
-        // Parse track icons
         if (data.trackIcons) {
           try {
             const parsed = typeof data.trackIcons === 'string' 
@@ -235,7 +257,6 @@ function MyCoursesPage() {
           }
         }
         
-        // Parse track colors
         if (data.trackColors) {
           try {
             const parsed = typeof data.trackColors === 'string' 
@@ -249,7 +270,6 @@ function MyCoursesPage() {
           }
         }
         
-        // Build config from API data
         const newConfig = {
           heroEyebrow: data.heroEyebrow || DEFAULT_CONFIG.heroEyebrow,
           heroTitle: data.heroTitle || DEFAULT_CONFIG.heroTitle,
@@ -265,8 +285,6 @@ function MyCoursesPage() {
           allCoursesTabText: data.tabAllText || data.allCoursesTabText || DEFAULT_CONFIG.allCoursesTabText,
           searchPlaceholder: data.searchPlaceholder || DEFAULT_CONFIG.searchPlaceholder,
           cardDurationLabel: data.cardDurationLabel || DEFAULT_CONFIG.cardDurationLabel,
-          cardStepsLabel: data.cardStepsLabel || DEFAULT_CONFIG.cardStepsLabel,
-          cardStepsText: data.cardStepsText || DEFAULT_CONFIG.cardStepsText,
           enrolledBadgeText: data.enrolledBadgeText || DEFAULT_CONFIG.enrolledBadgeText,
           viewCourseButtonText: data.viewCourseButtonText || DEFAULT_CONFIG.viewCourseButtonText,
           continueLearningButtonText: data.continueLearningButtonText || DEFAULT_CONFIG.continueLearningButtonText,
@@ -279,6 +297,7 @@ function MyCoursesPage() {
           emptyStateNoAvailableTitle: data.emptyStateNoAvailableTitle || DEFAULT_CONFIG.emptyStateNoAvailableTitle,
           emptyStateNoAvailableText: data.emptyStateNoAvailableText || DEFAULT_CONFIG.emptyStateNoAvailableText,
           footerText: data.footerText || DEFAULT_CONFIG.footerText,
+          sectionIcon: data.sectionIcon || data['course.section.icon'] || DEFAULT_CONFIG.sectionIcon,
           trackIcons: trackIcons,
           trackColors: trackColors,
         };
@@ -1231,6 +1250,7 @@ function MyCoursesPage() {
 
   // ─── Render: Course Catalog ───────────────────────────────────────────
   const heroDecor = config.heroDecor || '🎓';
+  const sectionIcon = SECTION_ICONS[config.sectionIcon] || SECTION_ICONS.grid;
 
   const formatCategoryName = (cat) => {
     if (cat === 'all') return 'All';
@@ -1316,7 +1336,8 @@ function MyCoursesPage() {
       {/* ─── Section Bar ──────────────────────────────────────────────── */}
       <div style={styles.sectionBar} id="courses-section">
         <div style={styles.sectionTitle}>
-          <GridViewIcon style={{ fontSize: '28px', color: COLORS.accent }} />
+          {/* ✅ DYNAMIC SECTION ICON */}
+          {sectionIcon}
           <span style={{ marginLeft: '8px' }}>
             {activeTab === 'my' && isLoggedIn ? config.sectionTitleMy : config.sectionTitleAll}
           </span>
@@ -1457,10 +1478,6 @@ function MyCoursesPage() {
                     <span style={styles.metaItem}>
                       <AccessTimeIcon style={styles.metaIcon} />
                       {course.duration || '—'}
-                    </span>
-                    <span style={styles.metaItem}>
-                      <MenuBookIcon style={styles.metaIcon} />
-                      {course.steps || course.subtopicCount || '—'} {config.cardStepsText}
                     </span>
                     {course.level && (
                       <span style={styles.metaItem}>
