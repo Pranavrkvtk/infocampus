@@ -7,6 +7,7 @@ import {
   getEnrolledCourses,
   getSubtopicImages,
   getPublicCourses,
+  getCoursePageSettings,
 } from '../api/UserApi';
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
@@ -25,11 +26,11 @@ import GridViewIcon from '@mui/icons-material/GridView';
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
-// ─── Hardcoded My Courses Configuration ──────────────────────────────────
-const MY_COURSES_CONFIG = {
+// ─── DEFAULT CONFIG (Fallback if API fails) ──────────────────────────
+const DEFAULT_CONFIG = {
   heroEyebrow: "Networking & Security Academy",
   heroTitle: "Knowledge is a superpower",
-  heroText: "Level up your networking and  skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
+  heroText: "Level up your networking and skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
   heroButtonText: "Pick a course →",
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
@@ -172,9 +173,12 @@ const resolveImageUrl = (imageUrl) => {
 function MyCoursesPage() {
   const navigate = useNavigate();
   
+  // ─── State ──────────────────────────────────────────────────────────
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  // eslint-disable-next-line no-unused-vars
   const [loadingError, setLoadingError] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [activeView, setActiveView] = useState('catalog');
@@ -186,7 +190,6 @@ function MyCoursesPage() {
   const [subtopics, setSubtopics] = useState([]);
   const [currentSubtopic, setCurrentSubtopic] = useState(null);
   const [images, setImages] = useState([]);
-  // eslint-disable-next-line no-unused-vars
   const [contentLoading, setContentLoading] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
 
@@ -202,6 +205,97 @@ function MyCoursesPage() {
   const isSmallDesktop = window.innerWidth >= 1024 && window.innerWidth < 1280;
 
   const isLoggedIn = !!localStorage.getItem('token');
+
+  // ─── LOAD SETTINGS FROM API ──────────────────────────────────────
+  const loadSettings = useCallback(async () => {
+    try {
+      const response = await getCoursePageSettings();
+      console.log('📥 Settings API response:', response);
+      
+      // ✅ Check if we got valid settings
+      if (response && response.success !== false) {
+        // The API might return data directly or nested in a 'settings' field
+        const data = response.settings || response;
+        
+        // Parse track icons and colors from JSON strings
+        let trackIcons = { ...DEFAULT_CONFIG.trackIcons };
+        let trackColors = { ...DEFAULT_CONFIG.trackColors };
+        
+        // Parse track icons
+        if (data.trackIcons) {
+          try {
+            const parsed = typeof data.trackIcons === 'string' 
+              ? JSON.parse(data.trackIcons) 
+              : data.trackIcons;
+            if (parsed && typeof parsed === 'object') {
+              trackIcons = { ...DEFAULT_CONFIG.trackIcons, ...parsed };
+            }
+          } catch (e) {
+            console.warn('Failed to parse track icons:', e);
+          }
+        }
+        
+        // Parse track colors
+        if (data.trackColors) {
+          try {
+            const parsed = typeof data.trackColors === 'string' 
+              ? JSON.parse(data.trackColors) 
+              : data.trackColors;
+            if (parsed && typeof parsed === 'object') {
+              trackColors = { ...DEFAULT_CONFIG.trackColors, ...parsed };
+            }
+          } catch (e) {
+            console.warn('Failed to parse track colors:', e);
+          }
+        }
+        
+        // Build config from API data
+        const newConfig = {
+          heroEyebrow: data.heroEyebrow || DEFAULT_CONFIG.heroEyebrow,
+          heroTitle: data.heroTitle || DEFAULT_CONFIG.heroTitle,
+          heroText: data.heroText || DEFAULT_CONFIG.heroText,
+          heroButtonText: data.heroButtonText || DEFAULT_CONFIG.heroButtonText,
+          heroBgStart: data.heroBgStart || DEFAULT_CONFIG.heroBgStart,
+          heroBgMid: data.heroBgMid || DEFAULT_CONFIG.heroBgMid,
+          heroBgEnd: data.heroBgEnd || DEFAULT_CONFIG.heroBgEnd,
+          heroDecor: data.heroDecor || DEFAULT_CONFIG.heroDecor,
+          sectionTitleMy: data.sectionTitleMy || DEFAULT_CONFIG.sectionTitleMy,
+          sectionTitleAll: data.sectionTitleAll || DEFAULT_CONFIG.sectionTitleAll,
+          myCoursesTabText: data.tabMyText || data.myCoursesTabText || DEFAULT_CONFIG.myCoursesTabText,
+          allCoursesTabText: data.tabAllText || data.allCoursesTabText || DEFAULT_CONFIG.allCoursesTabText,
+          searchPlaceholder: data.searchPlaceholder || DEFAULT_CONFIG.searchPlaceholder,
+          cardDurationLabel: data.cardDurationLabel || DEFAULT_CONFIG.cardDurationLabel,
+          cardStepsLabel: data.cardStepsLabel || DEFAULT_CONFIG.cardStepsLabel,
+          cardStepsText: data.cardStepsText || DEFAULT_CONFIG.cardStepsText,
+          enrolledBadgeText: data.enrolledBadgeText || DEFAULT_CONFIG.enrolledBadgeText,
+          viewCourseButtonText: data.viewCourseButtonText || DEFAULT_CONFIG.viewCourseButtonText,
+          continueLearningButtonText: data.continueLearningButtonText || DEFAULT_CONFIG.continueLearningButtonText,
+          emptyStateLoginTitle: data.emptyStateLoginTitle || DEFAULT_CONFIG.emptyStateLoginTitle,
+          emptyStateLoginText: data.emptyStateLoginText || DEFAULT_CONFIG.emptyStateLoginText,
+          emptyStateLoginButton: data.emptyStateLoginButton || DEFAULT_CONFIG.emptyStateLoginButton,
+          emptyStateNoCoursesTitle: data.emptyStateNoCoursesTitle || DEFAULT_CONFIG.emptyStateNoCoursesTitle,
+          emptyStateNoCoursesText: data.emptyStateNoCoursesText || DEFAULT_CONFIG.emptyStateNoCoursesText,
+          emptyStateNoCoursesButton: data.emptyStateNoCoursesButton || DEFAULT_CONFIG.emptyStateNoCoursesButton,
+          emptyStateNoAvailableTitle: data.emptyStateNoAvailableTitle || DEFAULT_CONFIG.emptyStateNoAvailableTitle,
+          emptyStateNoAvailableText: data.emptyStateNoAvailableText || DEFAULT_CONFIG.emptyStateNoAvailableText,
+          footerText: data.footerText || DEFAULT_CONFIG.footerText,
+          trackIcons: trackIcons,
+          trackColors: trackColors,
+        };
+        
+        setConfig(newConfig);
+        console.log('✅ Loaded settings from database:', newConfig);
+      } else {
+        console.log('⚠️ No valid settings found, using defaults');
+        setConfig(DEFAULT_CONFIG);
+      }
+    } catch (error) {
+      console.error('❌ Failed to load settings, using defaults:', error);
+      setConfig(DEFAULT_CONFIG);
+    } finally {
+      setSettingsLoaded(true);
+    }
+  }, []);
 
   // ─── Handle Share ──────────────────────────────────────────────────
   const handleShare = async () => {
@@ -547,6 +641,11 @@ function MyCoursesPage() {
     return FALLBACK_IMAGE;
   };
 
+  // ─── Load settings on mount ──────────────────────────────────────
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
   useEffect(() => {
     fetchAllCourses();
     
@@ -615,31 +714,31 @@ function MyCoursesPage() {
   // ─── Get track icon and color for course ──────────────────────────
   const getTrackInfo = (courseTitle) => {
     const title = courseTitle?.toLowerCase() || '';
-    const trackKeys = Object.keys(MY_COURSES_CONFIG.trackIcons);
+    const trackKeys = Object.keys(config.trackIcons);
     
     for (const key of trackKeys) {
-      if (title.includes(key)) {
+      if (title.includes(key) && key !== 'default') {
         return {
-          icon: MY_COURSES_CONFIG.trackIcons[key] || '📄',
-          color: MY_COURSES_CONFIG.trackColors[key] || '#F2F1F6'
+          icon: config.trackIcons[key] || '📄',
+          color: config.trackColors[key] || '#F2F1F6'
         };
       }
     }
     
     return {
-      icon: MY_COURSES_CONFIG.trackIcons.default || '📄',
-      color: MY_COURSES_CONFIG.trackColors.default || '#F2F1F6'
+      icon: config.trackIcons.default || '📄',
+      color: config.trackColors.default || '#F2F1F6'
     };
   };
 
-  // ─── Render Empty State ────────────────────────────────────────────
+  // ─── Render Empty State ──────────────────────────────────────────
   const renderEmptyState = () => {
     if (!isLoggedIn) {
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>🔒</div>
-          <h3 style={styles.emptyTitle}>{MY_COURSES_CONFIG.emptyStateLoginTitle}</h3>
-          <p style={styles.emptyText}>{MY_COURSES_CONFIG.emptyStateLoginText}</p>
+          <h3 style={styles.emptyTitle}>{config.emptyStateLoginTitle}</h3>
+          <p style={styles.emptyText}>{config.emptyStateLoginText}</p>
           <button 
             onClick={handleLogin}
             style={{
@@ -649,7 +748,7 @@ function MyCoursesPage() {
               marginTop: '8px',
             }}
           >
-            {MY_COURSES_CONFIG.emptyStateLoginButton}
+            {config.emptyStateLoginButton}
           </button>
         </div>
       );
@@ -659,8 +758,8 @@ function MyCoursesPage() {
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
-          <h3 style={styles.emptyTitle}>{MY_COURSES_CONFIG.emptyStateNoCoursesTitle}</h3>
-          <p style={styles.emptyText}>{MY_COURSES_CONFIG.emptyStateNoCoursesText}</p>
+          <h3 style={styles.emptyTitle}>{config.emptyStateNoCoursesTitle}</h3>
+          <p style={styles.emptyText}>{config.emptyStateNoCoursesText}</p>
           <button 
             onClick={() => setActiveTab('all')}
             style={{
@@ -670,7 +769,7 @@ function MyCoursesPage() {
               marginTop: '8px',
             }}
           >
-            {MY_COURSES_CONFIG.emptyStateNoCoursesButton}
+            {config.emptyStateNoCoursesButton}
           </button>
         </div>
       );
@@ -680,8 +779,8 @@ function MyCoursesPage() {
       return (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📭</div>
-          <h3 style={styles.emptyTitle}>{MY_COURSES_CONFIG.emptyStateNoAvailableTitle}</h3>
-          <p style={styles.emptyText}>{MY_COURSES_CONFIG.emptyStateNoAvailableText}</p>
+          <h3 style={styles.emptyTitle}>{config.emptyStateNoAvailableTitle}</h3>
+          <p style={styles.emptyText}>{config.emptyStateNoAvailableText}</p>
           {apiError && (
             <button 
               onClick={() => fetchAllCourses()}
@@ -754,7 +853,7 @@ function MyCoursesPage() {
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
-      background: `linear-gradient(135deg, ${MY_COURSES_CONFIG.heroBgStart} 0%, ${MY_COURSES_CONFIG.heroBgMid} 55%, ${MY_COURSES_CONFIG.heroBgEnd} 100%)`, 
+      background: `linear-gradient(135deg, ${config.heroBgStart} 0%, ${config.heroBgMid} 55%, ${config.heroBgEnd} 100%)`, 
       padding: isMobile ? '40px 20px' : '56px 48px', 
       color: '#fff',
       display: 'flex',
@@ -1091,11 +1190,11 @@ function MyCoursesPage() {
   };
 
   // ─── Loading State ──────────────────────────────────────────────────
-  if (loading || loadingAllCourses) {
+  if (loading || loadingAllCourses || !settingsLoaded) {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p>{isLoggedIn ? 'Loading your courses...' : 'Loading courses...'}</p>
+        <p>{!settingsLoaded ? 'Loading settings...' : (isLoggedIn ? 'Loading your courses...' : 'Loading courses...')}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -1131,7 +1230,7 @@ function MyCoursesPage() {
   }
 
   // ─── Render: Course Catalog ───────────────────────────────────────────
-  const heroDecor = MY_COURSES_CONFIG.heroDecor || '🎓';
+  const heroDecor = config.heroDecor || '🎓';
 
   const formatCategoryName = (cat) => {
     if (cat === 'all') return 'All';
@@ -1201,14 +1300,14 @@ function MyCoursesPage() {
       {/* ─── Hero Section ────────────────────────────────────────────── */}
       <div style={styles.hero}>
         <div style={styles.heroInner}>
-          <div style={styles.heroEyebrow}>{MY_COURSES_CONFIG.heroEyebrow}</div>
-          <h1 style={styles.heroTitle}>{MY_COURSES_CONFIG.heroTitle}</h1>
-          <p style={styles.heroText}>{MY_COURSES_CONFIG.heroText}</p>
+          <div style={styles.heroEyebrow}>{config.heroEyebrow}</div>
+          <h1 style={styles.heroTitle}>{config.heroTitle}</h1>
+          <p style={styles.heroText}>{config.heroText}</p>
           <button style={styles.heroBtn} onClick={() => {
             document.getElementById('courses-section')?.scrollIntoView({ behavior: 'smooth' });
           }}>
             <WhatshotIcon style={{ fontSize: '18px' }} />
-            {MY_COURSES_CONFIG.heroButtonText}
+            {config.heroButtonText}
           </button>
         </div>
         <div style={styles.heroDecor}>{heroDecor}</div>
@@ -1219,7 +1318,7 @@ function MyCoursesPage() {
         <div style={styles.sectionTitle}>
           <GridViewIcon style={{ fontSize: '28px', color: COLORS.accent }} />
           <span style={{ marginLeft: '8px' }}>
-            {activeTab === 'my' && isLoggedIn ? MY_COURSES_CONFIG.sectionTitleMy : 'All Courses'}
+            {activeTab === 'my' && isLoggedIn ? config.sectionTitleMy : config.sectionTitleAll}
           </span>
           <span style={{ 
             fontSize: '14px', 
@@ -1237,7 +1336,7 @@ function MyCoursesPage() {
           <SearchIcon style={styles.searchIcon} />
           <input
             type="text"
-            placeholder={MY_COURSES_CONFIG.searchPlaceholder}
+            placeholder={config.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}
@@ -1256,7 +1355,7 @@ function MyCoursesPage() {
               setSearchTerm('');
             }}
           >
-            {MY_COURSES_CONFIG.myCoursesTabText}
+            {config.myCoursesTabText}
             {enrolledCourses.length > 0 && (
               <span style={{
                 fontSize: '11px',
@@ -1277,7 +1376,7 @@ function MyCoursesPage() {
             setSearchTerm('');
           }}
         >
-          {MY_COURSES_CONFIG.allCoursesTabText}
+          {config.allCoursesTabText}
           {allCourses.length > 0 && (
             <span style={{
               fontSize: '11px',
@@ -1345,7 +1444,7 @@ function MyCoursesPage() {
                   {isEnrolled && (
                     <span style={styles.enrolledBadge}>
                       <BookmarkIcon style={{ fontSize: '12px' }} />
-                      {MY_COURSES_CONFIG.enrolledBadgeText}
+                      {config.enrolledBadgeText}
                     </span>
                   )}
                 </div>
@@ -1361,7 +1460,7 @@ function MyCoursesPage() {
                     </span>
                     <span style={styles.metaItem}>
                       <MenuBookIcon style={styles.metaIcon} />
-                      {course.steps || course.subtopicCount || '—'} {MY_COURSES_CONFIG.cardStepsText}
+                      {course.steps || course.subtopicCount || '—'} {config.cardStepsText}
                     </span>
                     {course.level && (
                       <span style={styles.metaItem}>
@@ -1381,7 +1480,7 @@ function MyCoursesPage() {
                       }}
                     >
                       <PlayArrowIcon style={{ fontSize: '16px' }} />
-                      {MY_COURSES_CONFIG.continueLearningButtonText}
+                      {config.continueLearningButtonText}
                     </button>
                   ) : (
                     <button
@@ -1392,7 +1491,7 @@ function MyCoursesPage() {
                       }}
                     >
                       <ArrowBackIcon style={{ fontSize: '16px', transform: 'rotate(180deg)' }} />
-                      {isLoggedIn ? MY_COURSES_CONFIG.viewCourseButtonText : 'View Details'}
+                      {isLoggedIn ? config.viewCourseButtonText : 'View Details'}
                     </button>
                   )}
                 </div>
@@ -1403,7 +1502,7 @@ function MyCoursesPage() {
       )}
 
       <div style={styles.footer}>
-        <p>{MY_COURSES_CONFIG.footerText}</p>
+        <p>{config.footerText}</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

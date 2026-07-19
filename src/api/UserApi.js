@@ -76,6 +76,90 @@ export const getPublicSubtopicImages = async (subtopicId) => {
 };
 
 // =========================================================================
+//  COURSE PAGE SETTINGS (NEW)
+// =========================================================================
+
+/**
+ * Get course page settings (Public - No authentication required)
+ * GET /api/public/course-page-settings
+ */
+export const getCoursePageSettings = async () => {
+  try {
+    const response = await api.get("/public/course-page-settings");
+    console.log('📥 Course page settings:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching course page settings:', error);
+    // Return default settings if API fails
+    return {
+      success: false,
+      settings: null,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Get course page settings for admin (Requires authentication)
+ * GET /api/admin/course-page-settings
+ */
+export const getAdminCoursePageSettings = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
+    const response = await api.get("/admin/course-page-settings");
+    console.log('📥 Admin course page settings:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin course page settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update course page settings (Admin only)
+ * PUT /api/admin/course-page-settings
+ */
+export const updateCoursePageSettings = async (settings) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
+    const response = await api.put("/admin/course-page-settings", settings);
+    console.log('✅ Course page settings updated:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating course page settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Initialize course page settings with defaults (Admin only)
+ * POST /api/admin/course-page-settings/initialize
+ */
+export const initializeCoursePageSettings = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
+    const response = await api.post("/admin/course-page-settings/initialize");
+    console.log('✅ Course page settings initialized:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error initializing course page settings:', error);
+    throw error;
+  }
+};
+
+// =========================================================================
 //  COURSE CATALOG
 // =========================================================================
 
@@ -779,6 +863,12 @@ const userApi = {
   getPublicCourseData,
   getHomeVideo,
   getPublicSubtopicImages,
+  
+  // Course Page Settings (NEW)
+  getCoursePageSettings,
+  getAdminCoursePageSettings,
+  updateCoursePageSettings,
+  initializeCoursePageSettings,
   
   // Course catalog
   getCourses,

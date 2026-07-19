@@ -22,6 +22,7 @@ import EnrollmentsTab from "./EnrollmentsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
+import CoursePageSettingsTab from "./CoursePageSettingsTab"; // 👈 NEW IMPORT
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -264,6 +265,7 @@ export default function AdminDashboard() {
           if (activeTab === "students") fetchAllStudents();
           else if (activeTab === "courses") fetchCourses();
           else if (activeTab === "enrollments") fetchEnrollments();
+          else if (activeTab === "page-settings") window.location.reload();
           else fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
           Retry
@@ -278,20 +280,22 @@ export default function AdminDashboard() {
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
+      case "page-settings": return <CoursePageSettingsTab />; // 👈 NEW CASE
       default: return null;
     }
   };
 
-  // ✅ UPDATED: Removed editor tabs from navigation
+  // ✅ UPDATED: Added "Page Settings" to navigation
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
     { icon: "👨‍🎓", label: "Students",      id: "students"       },
     { icon: "📋", label: "Enrollments",    id: "enrollments"    },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
+    { icon: "⚙️", label: "Page Settings",  id: "page-settings"  }, // 👈 NEW
   ];
 
-  // ✅ UPDATED: Removed editor tabs from page titles
+  // ✅ UPDATED: Added page settings to titles
   const PAGE_TITLES = {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
@@ -299,9 +303,10 @@ export default function AdminDashboard() {
     enrollments:     "Enrollment Management",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
+    "page-settings": "Course Page Settings", // 👈 NEW
   };
 
-  // ✅ UPDATED: Removed editor tabs from page subs
+  // ✅ UPDATED: Added page settings to subs
   const PAGE_SUBS = {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
@@ -309,6 +314,7 @@ export default function AdminDashboard() {
     enrollments:     "View all student enrollments",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
+    "page-settings": "Customize hero section, colors, text, and more", // 👈 NEW
   };
 
   // ===================== SIDEBAR NAV ITEM =====================

@@ -764,6 +764,82 @@ export const getCourseLabs = (courseId) => {
   return api.get(`/admin/labs/courses/${courseId}`);
 };
 
+// ==================== COURSE PAGE SETTINGS MANAGEMENT APIs ====================
+
+/**
+ * Get course page settings (Admin only)
+ * GET /api/admin/course-page-settings
+ * @returns {Promise} - Returns the course page settings
+ */
+export const getCoursePageSettings = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.get('/admin/course-page-settings', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching course page settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update course page settings (Admin only)
+ * PUT /api/admin/course-page-settings
+ * @param {Object} settings - The settings object to update
+ * @returns {Promise} - Returns the updated settings
+ */
+export const updateCoursePageSettings = async (settings) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.put('/admin/course-page-settings', settings, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating course page settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Initialize course page settings with defaults (Admin only)
+ * POST /api/admin/course-page-settings/initialize
+ * @returns {Promise} - Returns the initialized settings
+ */
+export const initializeCoursePageSettings = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.post('/admin/course-page-settings/initialize', {}, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error initializing course page settings:', error);
+    throw error;
+  }
+};
+
 // ==================== AUTHENTICATION & UTILITY ====================
 
 // Check if user is admin
@@ -843,9 +919,9 @@ const adminApi = {
   searchUsersByPhonePaginated,
   getUserByPhoneExact,
   searchUsersAdvanced,
-  searchUsersByEmail, // ✅ NEW
-  searchUsersByEmailPaginated, // ✅ NEW
-  getUserByEmailExact, // ✅ NEW
+  searchUsersByEmail,
+  searchUsersByEmailPaginated,
+  getUserByEmailExact,
   getAllUsers,
   getUserById,
   updateUserRole,
@@ -905,6 +981,11 @@ const adminApi = {
   getLabsStats,
   getStudentLabsProgress,
   getCourseLabs,
+  
+  // Course Page Settings (NEW)
+  getCoursePageSettings,
+  updateCoursePageSettings,
+  initializeCoursePageSettings,
   
   // Utility
   checkAdminRole,
