@@ -375,7 +375,7 @@ export const searchUsersByName = (name) => {
   });
 };
 
-// ✅ NEW: Search users by phone number (partial match)
+// ✅ Search users by phone number (partial match)
 export const searchUsersByPhone = (phone) => {
   const token = localStorage.getItem("token");
 
@@ -387,7 +387,7 @@ export const searchUsersByPhone = (phone) => {
   });
 };
 
-// ✅ NEW: Search users by phone number with pagination
+// ✅ Search users by phone number with pagination
 export const searchUsersByPhonePaginated = (phone, page = 0, size = 10) => {
   const token = localStorage.getItem("token");
 
@@ -399,7 +399,7 @@ export const searchUsersByPhonePaginated = (phone, page = 0, size = 10) => {
   });
 };
 
-// ✅ NEW: Get user by exact phone number
+// ✅ Get user by exact phone number
 export const getUserByPhoneExact = (phone) => {
   const token = localStorage.getItem("token");
 
@@ -411,7 +411,7 @@ export const getUserByPhoneExact = (phone) => {
   });
 };
 
-// ✅ NEW: Advanced search with multiple filters
+// ✅ Advanced search with multiple filters
 export const searchUsersAdvanced = (filters = {}, page = 0, size = 20) => {
   const token = localStorage.getItem("token");
   const params = {
@@ -422,6 +422,42 @@ export const searchUsersAdvanced = (filters = {}, page = 0, size = 20) => {
 
   return api.get("/admin/users/search-advanced", {
     params,
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+};
+
+// ✅ NEW: Search users by email (partial match)
+export const searchUsersByEmail = (email) => {
+  const token = localStorage.getItem("token");
+
+  return api.get("/admin/users/search-by-email", {
+    params: { email },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+};
+
+// ✅ NEW: Search users by email with pagination
+export const searchUsersByEmailPaginated = (email, page = 0, size = 10) => {
+  const token = localStorage.getItem("token");
+
+  return api.get("/admin/users/search-by-email-paginated", {
+    params: { email, page, size },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+};
+
+// ✅ NEW: Get user by exact email
+export const getUserByEmailExact = (email) => {
+  const token = localStorage.getItem("token");
+
+  return api.get("/admin/users/by-email-exact", {
+    params: { email },
     headers: {
       Authorization: `Bearer ${token}`
     }
@@ -803,10 +839,13 @@ const adminApi = {
   
   // User Management
   searchUsersByName,
-  searchUsersByPhone, // ✅ NEW
-  searchUsersByPhonePaginated, // ✅ NEW
-  getUserByPhoneExact, // ✅ NEW
-  searchUsersAdvanced, // ✅ NEW
+  searchUsersByPhone,
+  searchUsersByPhonePaginated,
+  getUserByPhoneExact,
+  searchUsersAdvanced,
+  searchUsersByEmail, // ✅ NEW
+  searchUsersByEmailPaginated, // ✅ NEW
+  getUserByEmailExact, // ✅ NEW
   getAllUsers,
   getUserById,
   updateUserRole,

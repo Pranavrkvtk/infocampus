@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { colors } from "./AdminStyles";
 import Swal from "sweetalert2";
-import { searchUsersByPhone, getAllUsers } from "../../api/adminApi";
+import { searchUsersByPhone, searchUsersByEmail } from "../../api/adminApi";
 
 export default function StudentsTab({
   students = [],
@@ -23,6 +23,12 @@ export default function StudentsTab({
   const [phoneSearchResults, setPhoneSearchResults] = useState([]);
   const [isPhoneSearching, setIsPhoneSearching] = useState(false);
   const [showPhoneResults, setShowPhoneResults] = useState(false);
+  
+  // Email search state
+  const [emailSearch, setEmailSearch] = useState("");
+  const [emailSearchResults, setEmailSearchResults] = useState([]);
+  const [isEmailSearching, setIsEmailSearching] = useState(false);
+  const [showEmailResults, setShowEmailResults] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,7 +71,6 @@ export default function StudentsTab({
       const response = await searchUsersByPhone(phoneSearch);
       console.log('📱 Phone search response:', response);
       
-      // ✅ Handle different response formats
       let users = [];
       if (response.data && response.data.success) {
         users = response.data.users || [];
@@ -97,6 +102,50 @@ export default function StudentsTab({
     setShowPhoneResults(false);
   };
 
+  // ─── Email Search Handler ────────────────────────────────────────────
+  const handleEmailSearch = async () => {
+    if (!emailSearch.trim()) {
+      setShowEmailResults(false);
+      setEmailSearchResults([]);
+      return;
+    }
+
+    setIsEmailSearching(true);
+    try {
+      const response = await searchUsersByEmail(emailSearch);
+      console.log('📧 Email search response:', response);
+      
+      let users = [];
+      if (response.data && response.data.success) {
+        users = response.data.users || [];
+      } else if (response.data && Array.isArray(response.data)) {
+        users = response.data;
+      } else if (Array.isArray(response)) {
+        users = response;
+      }
+      
+      setEmailSearchResults(users);
+      setShowEmailResults(true);
+      console.log(`📧 Found ${users.length} users with email: ${emailSearch}`);
+    } catch (error) {
+      console.error("Error searching by email:", error);
+      Swal.fire({
+        title: "Search Failed",
+        text: error?.response?.data?.error || "Failed to search users by email",
+        icon: "error",
+      });
+    } finally {
+      setIsEmailSearching(false);
+    }
+  };
+
+  // Clear email search results
+  const clearEmailSearch = () => {
+    setEmailSearch("");
+    setEmailSearchResults([]);
+    setShowEmailResults(false);
+  };
+
   // ─── Stats ─────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const studentsArray = Array.isArray(students) ? students : [];
@@ -116,24 +165,29 @@ export default function StudentsTab({
       return phoneSearchResults;
     }
     
+    // If email search is active, show email search results
+    if (showEmailResults && emailSearchResults.length > 0) {
+      return emailSearchResults;
+    }
+    
     // Otherwise filter by status only
     return studentsArray.filter((s) => {
       const status = s.status || "ACTIVE";
       const matchesStatus = filterStatus === "ALL" || status === filterStatus;
       return matchesStatus;
     });
-  }, [students, filterStatus, phoneSearchResults, showPhoneResults]);
+  }, [students, filterStatus, phoneSearchResults, showPhoneResults, emailSearchResults, showEmailResults]);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, searchTerm, phoneSearchResults]);
+  }, [filterStatus, searchTerm, phoneSearchResults, emailSearchResults]);
 
   // Reset selection when filters change
   useEffect(() => {
     setSelectedStudents([]);
     setSelectAll(false);
-  }, [filterStatus, searchTerm, phoneSearchResults]);
+  }, [filterStatus, searchTerm, phoneSearchResults, emailSearchResults]);
 
   // Get current page items
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -425,6 +479,57 @@ export default function StudentsTab({
           )}
         </div>
 
+        {/* ✅ Email Search Input */}
+        <div style={{ display: "flex", gap: "8px", minWidth: "200px" }}>
+          <input
+            type="text"
+            placeholder="📧 Search by email..."
+            value={emailSearch}
+            onChange={(e) => setEmailSearch(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleEmailSearch()}
+            style={{
+              ...inputStyle,
+              minWidth: "180px",
+            }}
+          />
+          <button
+            onClick={handleEmailSearch}
+            disabled={isEmailSearching || !emailSearch.trim()}
+            style={{
+              padding: "10px 16px",
+              borderRadius: "10px",
+              border: "none",
+              background: emailSearch.trim() ? colors.primary : "#e2e8f0",
+              color: emailSearch.trim() ? "#fff" : "#94a3b8",
+              fontWeight: 600,
+              fontSize: "13px",
+              cursor: emailSearch.trim() ? "pointer" : "not-allowed",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {isEmailSearching ? "⏳" : "🔍"}
+          </button>
+          {showEmailResults && (
+            <button
+              onClick={clearEmailSearch}
+              style={{
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "none",
+                background: "#fee2e2",
+                color: "#dc2626",
+                fontWeight: 600,
+                fontSize: "13px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              ✕ Clear
+            </button>
+          )}
+        </div>
+
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -467,7 +572,7 @@ export default function StudentsTab({
         )}
       </div>
 
-      {/* Phone Search Results Info */}
+      {/* Search Results Info */}
       {showPhoneResults && (
         <div
           style={{
@@ -492,6 +597,30 @@ export default function StudentsTab({
         </div>
       )}
 
+      {showEmailResults && (
+        <div
+          style={{
+            padding: "10px 16px",
+            marginBottom: "16px",
+            background: "#dbeafe",
+            borderRadius: "10px",
+            border: "1px solid #93c5fd",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "8px",
+          }}
+        >
+          <span style={{ color: "#1e40af", fontSize: "14px", fontWeight: 500 }}>
+            📧 Email Search Results: Found {emailSearchResults.length} user{emailSearchResults.length !== 1 ? 's' : ''}
+          </span>
+          <span style={{ color: "#3b82f6", fontSize: "12px" }}>
+            Search term: <strong>{emailSearch}</strong>
+          </span>
+        </div>
+      )}
+
       {/* Students Table */}
       {filteredStudents.length === 0 ? (
         <div
@@ -505,11 +634,13 @@ export default function StudentsTab({
         >
           <div style={{ fontSize: "48px", marginBottom: "16px" }}>👥</div>
           <h3 style={{ color: "var(--text-primary)", marginBottom: "8px" }}>
-            {showPhoneResults ? "No Users Found" : "No Students Found"}
+            {showPhoneResults ? "No Users Found" : showEmailResults ? "No Users Found" : "No Students Found"}
           </h3>
           <p style={{ color: "var(--text-secondary)" }}>
             {showPhoneResults
               ? `No users found with phone number: ${phoneSearch}`
+              : showEmailResults
+              ? `No users found with email: ${emailSearch}`
               : localSearch || filterStatus !== "ALL"
                 ? "Try adjusting your filters"
                 : "No students have registered yet"}
