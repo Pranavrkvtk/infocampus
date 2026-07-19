@@ -923,24 +923,25 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
               </div>
 
               <div style={{ marginBottom: 20 }}>
-                <textarea
-                  id="notes-editor"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={12}
-                  style={{
-                    width: '100%',
-                    fontFamily: 'monospace',
-                    fontSize: 13,
-                    padding: 12,
-                    border: `1px solid ${clr.border}`,
-                    borderRadius: 8,
-                    outline: 'none',
-                    background: clr.white,
-                    color: clr.text,
-                    resize: 'vertical',
-                  }}
-                />
+              <textarea
+  id="notes-editor"
+  value={notes}
+  onChange={(e) => setNotes(e.target.value)}
+  rows={12}
+  placeholder="Enter notes content here... You can also upload a PDF document above."
+  style={{
+    width: '100%',
+    fontFamily: 'monospace',
+    fontSize: 13,
+    padding: 12,
+    border: `1px solid ${clr.border}`,
+    borderRadius: 8,
+    outline: 'none',
+    background: clr.white,
+    color: clr.text,
+    resize: 'vertical',
+  }}
+/>
               </div>
 
               <div>

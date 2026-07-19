@@ -3,6 +3,8 @@
 // ✅ Image save prevention added
 // ✅ Auto-exit fullscreen on navigation
 // ✅ Labs content fully supported
+// ✅ Auto-close sidebar on fullscreen
+// ✅ Auto-open sidebar on fullscreen exit
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -442,7 +444,7 @@ const buildOdooStyles = (colors) => `
     user-select: none !important;
     -webkit-user-select: none !important;
   }
-  /* ─── Odoo Premium "Paper" layout (Notes / Exam Content / Interview Content) ─── */
+  /* ─── Odoo Premium "Paper" layout ─── */
   .lesson-page-wrapper {
     width: 100%;
     height: 100%;
@@ -976,8 +978,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
               cursor: 'pointer',
             }}
           >
-            Submit Quiz
-          </button>
+            Submit Quiz          </button>
         )}
       </div>
 
@@ -1064,7 +1065,7 @@ function ExamTab({ questions, config, onScoreUpdate }) {
   );
 }
 
-// ─── Labs Tab Component (Updated with full support) ──────────────────
+// ─── Labs Tab Component ──────────────────────────────────
 
 function LabsTab({ labs, content, config, subtopicId }) {
   const [activeLab, setActiveLab] = useState(null);
@@ -1078,7 +1079,6 @@ function LabsTab({ labs, content, config, subtopicId }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ✅ Fetch labs content if provided via content prop or fetch from API
   useEffect(() => {
     const fetchLabsContent = async () => {
       if (subtopicId && !content) {
@@ -1100,7 +1100,6 @@ function LabsTab({ labs, content, config, subtopicId }) {
     fetchLabsContent();
   }, [subtopicId, content]);
 
-  // If we have labs content (markdown), render it using the Odoo renderer
   if (labsContent) {
     const html = renderOdooContent(labsContent);
     const styleTag = buildOdooStyles(config?.colors || { accent: '#714b67' });
@@ -1129,7 +1128,6 @@ function LabsTab({ labs, content, config, subtopicId }) {
     );
   }
 
-  // If we have lab exercises (structured labs)
   if (labs && labs.length > 0) {
     return (
       <div style={{ padding: isMobile ? '12px' : '20px' }}>
@@ -1220,12 +1218,10 @@ function LabsTab({ labs, content, config, subtopicId }) {
     );
   }
 
-  // Loading state
   if (loading) {
     return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>Loading labs content...</div>;
   }
 
-  // No labs available
   return (
     <div style={{ 
       padding: '40px 20px', 
@@ -1337,7 +1333,7 @@ export default function CourseDetailView({
   // ─── Define the display order of content types ──────────────────────
   const typeOrder = ['notes', 'video', 'exam-content', 'interview-content', 'interview', 'exam', 'labs'];
 
-  // ─── Build content types from config in the desired order ──────────
+  // ─── Build content types from config ──────────────────────────
   const CONTENT_TYPES = [
     {
       key: 'notes',
@@ -1383,7 +1379,7 @@ export default function CourseDetailView({
     },
   ];
 
-  // ─── Fetch course data using getCourseData (auto-detects auth) ──────
+  // ─── Fetch course data using getCourseData ──────────────────────
   const fetchCourseData = useCallback(async (id) => {
     try {
       setLoading(true);
@@ -1448,7 +1444,7 @@ export default function CourseDetailView({
               isFree: sub.isFree || isFirstTopic,
               examContent: sub.examContent || '',
               interviewContent: sub.interviewContent || '',
-              labsContent: sub.labsContent || '', // ✅ ADD LABS CONTENT
+              labsContent: sub.labsContent || '',
               displayOrder: sub.displayOrder || 0,
               contentStatus: sub.contentStatus || (isFirstTopic ? 'free_preview' : 'locked'),
               isAuthenticated: data.isAuthenticated,
@@ -1583,7 +1579,7 @@ export default function CourseDetailView({
     };
   }, []);
 
-  // ✅ NEW: Auto-exit fullscreen when component unmounts (navigation occurs)
+  // ✅ Auto-exit fullscreen when component unmounts (navigation occurs)
   useEffect(() => {
     return () => {
       if (document.fullscreenElement) {
@@ -1594,9 +1590,30 @@ export default function CourseDetailView({
     };
   }, []);
 
+  // ✅ UPDATED: Fullscreen change listener with auto-close sidebar on enter and auto-open on exit
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isFullscreenNow = !!document.fullscreenElement;
+      setIsFullscreen(isFullscreenNow);
+      
+      // ✅ Auto-close sidebar when entering fullscreen
+      if (isFullscreenNow) {
+        if (isMobile) {
+          setShowSidebar(false);
+        } else {
+          setIsSidebarCollapsed(true);
+        }
+      } else {
+        // ✅ Auto-open sidebar when exiting fullscreen
+        // Only auto-open on desktop; for mobile, let user manually open
+        if (!isMobile) {
+          setIsSidebarCollapsed(false);
+        }
+        // For mobile, you can optionally auto-open as well:
+        // else {
+        //   setShowSidebar(true);
+        // }
+      }
     };
     
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -1610,7 +1627,25 @@ export default function CourseDetailView({
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
-  }, []);
+  }, [isMobile]);
+
+  // ✅ Listen for Escape key to ensure sidebar opens when exiting fullscreen via Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && document.fullscreenElement) {
+        // The fullscreenchange event will handle the sidebar opening
+        // But we can also force it here for redundancy
+        setTimeout(() => {
+          if (!document.fullscreenElement && !isMobile) {
+            setIsSidebarCollapsed(false);
+          }
+        }, 100);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isMobile]);
 
   useEffect(() => {
     const loadImagesWithAuth = async () => {
@@ -1746,14 +1781,14 @@ export default function CourseDetailView({
     const hasNotes = hasNotesContent(sub);
     const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
     const hasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
-    const hasLabs = !!(sub.labsContent && sub.labsContent.trim() !== ''); // ✅ ADD LABS CHECK
+    const hasLabs = !!(sub.labsContent && sub.labsContent.trim() !== '');
     
     const subAvailableTypes = [];
     if (hasVideo) subAvailableTypes.push('video');
     if (hasNotes) subAvailableTypes.push('notes');
     if (hasExam) subAvailableTypes.push('exam-content');
     if (hasInterview) subAvailableTypes.push('interview-content');
-    if (hasLabs) subAvailableTypes.push('labs'); // ✅ ADD LABS TO AVAILABLE TYPES
+    if (hasLabs) subAvailableTypes.push('labs');
     
     try {
       const [questions, exams, labList] = await Promise.all([
@@ -1810,13 +1845,13 @@ export default function CourseDetailView({
       const hasNotes = hasNotesContent(currentSubtopic);
       const hasExam = !!(currentSubtopic.examContent && currentSubtopic.examContent.trim() !== '');
       const hasInterview = !!(currentSubtopic.interviewContent && currentSubtopic.interviewContent.trim() !== '');
-      const hasLabs = !!(currentSubtopic.labsContent && currentSubtopic.labsContent.trim() !== ''); // ✅ ADD LABS CHECK
+      const hasLabs = !!(currentSubtopic.labsContent && currentSubtopic.labsContent.trim() !== '');
       
       if (hasVideo) out.push('video');
       if (hasNotes) out.push('notes');
       if (hasExam) out.push('exam-content');
       if (hasInterview) out.push('interview-content');
-      if (hasLabs) out.push('labs'); // ✅ ADD LABS TO AVAILABLE TYPES
+      if (hasLabs) out.push('labs');
       
       if (interviewQuestions.length > 0) out.push('interview');
       if (examQuestions.length > 0) out.push('exam');
@@ -1866,8 +1901,13 @@ export default function CourseDetailView({
     }
   };
 
-  // ✅ Toggle sidebar - properly handle mobile
+  // ✅ UPDATED: Toggle sidebar - disable in fullscreen
   const toggleSidebar = () => {
+    // Don't toggle if in fullscreen
+    if (document.fullscreenElement) {
+      return;
+    }
+    
     if (isMobile) {
       setShowSidebar((prev) => !prev);
     } else {
@@ -1921,8 +1961,16 @@ export default function CourseDetailView({
     }
   };
 
+  // ✅ UPDATED: Handle fullscreen with auto-close sidebar
   const handleFullscreen = () => {
     if (!document.fullscreenElement) {
+      // ✅ Close sidebar before entering fullscreen
+      if (isMobile) {
+        setShowSidebar(false);
+      } else {
+        setIsSidebarCollapsed(true);
+      }
+      
       document.documentElement.requestFullscreen().catch(err => {
         console.error('Error attempting to enable fullscreen:', err);
       });
@@ -2275,14 +2323,20 @@ export default function CourseDetailView({
               textTransform: 'none',
               letterSpacing: '0.5px',
               fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important",
+              opacity: isFullscreen ? 0.5 : 1,
+              pointerEvents: isFullscreen ? 'none' : 'auto',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = TOPBAR.bgHover;
-              e.currentTarget.style.transform = 'translateY(-1px)';
+              if (!isFullscreen) {
+                e.currentTarget.style.background = TOPBAR.bgHover;
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = TOPBAR.lessonsColor;
-              e.currentTarget.style.transform = 'translateY(0)';
+              if (!isFullscreen) {
+                e.currentTarget.style.background = TOPBAR.lessonsColor;
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
             }}
           >
             <MenuIcon style={{ color: '#FFFFFF', fontSize: isMobile ? '20px' : '24px' }} />
@@ -2505,14 +2559,14 @@ export default function CourseDetailView({
                         const subHasNotes = hasNotesContent(sub);
                         const subHasExam = !!(sub.examContent && sub.examContent.trim() !== '');
                         const subHasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
-                        const subHasLabs = !!(sub.labsContent && sub.labsContent.trim() !== ''); // ✅ ADD LABS CHECK
+                        const subHasLabs = !!(sub.labsContent && sub.labsContent.trim() !== '');
                         
                         const subAvailableTypes = [];
                         if (subHasVideo) subAvailableTypes.push('video');
                         if (subHasNotes) subAvailableTypes.push('notes');
                         if (subHasExam) subAvailableTypes.push('exam-content');
                         if (subHasInterview) subAvailableTypes.push('interview-content');
-                        if (subHasLabs) subAvailableTypes.push('labs'); // ✅ ADD LABS TO AVAILABLE TYPES
+                        if (subHasLabs) subAvailableTypes.push('labs');
                         
                         if (isActive) {
                           if (interviewQuestions.length > 0) subAvailableTypes.push('interview');
@@ -2521,8 +2575,6 @@ export default function CourseDetailView({
                         }
                         
                         subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
-                        
-                        const hasAnyContentForSub = subHasVideo || subHasNotes || subHasExam || subHasInterview || subHasLabs;
                         
                         return (
                           <div key={sub.id}>
