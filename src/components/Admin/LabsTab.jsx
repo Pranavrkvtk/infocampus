@@ -1,0 +1,488 @@
+// src/components/Admin/LabsTab.jsx
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import { getImageUrl } from '../../utils/imageUtils';
+import axiosInstance from '../../api/axios';
+import { DocumentUploadButton } from './Shared/DocumentUploadButton';
+import { PdfUploadProgress } from './Shared/PdfUploadProgress';
+import { usePdfUpload } from './Shared/usePdfUpload';
+
+// Thin wrapper for axios
+const api = {
+  get: (url) => axiosInstance.get(url).then(r => r.data),
+  post: (url, body) => axiosInstance.post(url, body).then(r => r.data),
+  put: (url, body) => axiosInstance.put(url, body).then(r => r.data),
+  delete: (url) => axiosInstance.delete(url).then(r => r.data),
+};
+
+const clr = {
+  bg: '#f8f9fb', 
+  white: '#ffffff', 
+  border: '#e4e7ec', 
+  borderActive: '#4f46e5',
+  text: '#0f172a', 
+  muted: '#64748b', 
+  faint: '#f1f5f9', 
+  accent: '#4f46e5',
+  accentLight: '#eef2ff', 
+  accentText: '#3730a3', 
+  success: '#16a34a',
+  successLight: '#f0fdf4', 
+  danger: '#dc2626', 
+  dangerLight: '#fef2f2',
+};
+
+const Lbl = ({ children }) => (
+  <label style={{ 
+    fontSize: 11, 
+    fontWeight: 700, 
+    color: clr.muted, 
+    display: 'block', 
+    marginBottom: 5, 
+    textTransform: 'uppercase' 
+  }}>
+    {children}
+  </label>
+);
+
+const Btn = ({ children, onClick, variant = 'primary', size = 'md', disabled, style: extra }) => {
+  const base = { 
+    display: 'inline-flex', 
+    alignItems: 'center', 
+    gap: 6, 
+    cursor: disabled ? 'not-allowed' : 'pointer', 
+    border: 'none', 
+    borderRadius: 8, 
+    fontWeight: 600, 
+    opacity: disabled ? 0.5 : 1 
+  };
+  const sizes = { 
+    sm: { padding: '5px 12px', fontSize: 12 }, 
+    md: { padding: '8px 16px', fontSize: 13 } 
+  };
+  const variants = {
+    primary: { background: clr.accent, color: '#fff' },
+    success: { background: clr.success, color: '#fff' },
+    danger: { background: clr.dangerLight, color: clr.danger },
+    ghost: { background: clr.faint, color: clr.muted, border: `1px solid ${clr.border}` },
+    dashed: { background: clr.accentLight, color: clr.accentText, border: `1.5px dashed ${clr.accent}` },
+  };
+  return <button 
+    onClick={disabled ? undefined : onClick} 
+    style={{ ...base, ...sizes[size], ...variants[variant], ...extra }}
+  >
+    {children}
+  </button>;
+};
+
+function MarkdownImage({ src, alt }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src) return null;
+
+  const fullSrc = getImageUrl(src);
+
+  if (hasError) {
+    return (
+      <div style={{
+        padding: '16px',
+        textAlign: 'center',
+        color: '#dc2626',
+        fontSize: '13px',
+        background: '#fef2f2',
+        borderRadius: '8px',
+        border: '2px dashed #dc2626',
+        margin: '12px 0',
+      }}>
+        ⚠️ Image not found: {alt || 'image'}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={fullSrc}
+      alt={alt || 'image'}
+      style={{ 
+        maxWidth: '100%', 
+        height: 'auto', 
+        margin: '12px 0', 
+        borderRadius: 8, 
+        display: 'block' 
+      }}
+      onError={() => {
+        console.error('❌ Markdown image load error:', fullSrc);
+        setHasError(true);
+      }}
+    />
+  );
+}
+
+const LabsTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) => {
+  // Handle null values - convert null to empty string
+  const getContent = (data) => data?.labsContent || '';
+  
+  const [labsContent, setLabsContent] = useState(getContent(initialData));
+  const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [matches, setMatches] = useState([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
+  
+  // Use refs to prevent infinite loop
+  const hasLoaded = useRef(false);
+  const isUpdatingFromParent = useRef(false);
+  const isSavingRef = useRef(false);
+
+  // ✅ Use the shared PDF upload hook
+  const {
+    uploadingDoc,
+    showProgress,
+    progress,
+    fileName,
+    uploadDocument,
+    handleCancelUpload,
+  } = usePdfUpload({
+    subtopicId,
+    toast,
+    endpoint: `/admin/subtopics/${subtopicId}/upload-labs-pdf`,
+    onSuccess: async (data) => {
+      const freshData = await api.get(`/admin/subtopics/${subtopicId}/labs-content`);
+      const freshContent = freshData.labsContent || '';
+      console.log('📤 Upload complete, new content length:', freshContent.length);
+      setLabsContent(freshContent);
+      onUpdate?.({ labsContent: freshContent });
+      hasLoaded.current = true;
+    }
+  });
+
+  // ─── Load labs content ──────────────────────────────────────
+  const loadLabsContent = useCallback(async () => {
+    if (!subtopicId) return;
+    if (hasLoaded.current) return;
+    
+    try {
+      const data = await api.get(`/admin/subtopics/${subtopicId}/labs-content`);
+      const content = data.labsContent || '';
+      
+      console.log('📥 Loaded labs content:', content ? 'Content present' : 'Empty');
+      setLabsContent(content);
+      hasLoaded.current = true;
+      
+      onUpdate?.({ labsContent: content });
+    } catch (error) {
+      console.error('Failed to load labs content:', error);
+      if (toast) toast.show('Failed to load labs content', 'error');
+    }
+  }, [subtopicId, onUpdate, toast]);
+
+  // ─── Load on mount ─────────────────────────────────────────
+  useEffect(() => {
+    if (!hasLoaded.current && !initialData?.labsContent && subtopicId) {
+      loadLabsContent();
+    }
+  }, [subtopicId, initialData?.labsContent, loadLabsContent]);
+
+  // ─── Sync with initialData changes (but prevent loops) ────
+  useEffect(() => {
+    const newContent = initialData?.labsContent || '';
+    
+    // Only update if content actually changed and it's not a save operation
+    if (newContent !== labsContent && !isUpdatingFromParent.current && !isSavingRef.current) {
+      console.log('🔄 Syncing from parent, new content length:', newContent.length);
+      isUpdatingFromParent.current = true;
+      setLabsContent(newContent);
+      setTimeout(() => {
+        isUpdatingFromParent.current = false;
+      }, 0);
+    }
+  }, [initialData?.labsContent, labsContent]);
+
+  // ─── Clear labs content ─────────────────────────────────────
+  const clearLabsContent = async () => {
+    if (!window.confirm('Are you sure you want to clear all labs content?')) return;
+    
+    setSaving(true);
+    isSavingRef.current = true;
+    try {
+      await api.put(`/admin/subtopics/${subtopicId}/labs-content`, { 
+        content: ''
+      });
+      
+      setLabsContent('');
+      onUpdate?.({ labsContent: '' });
+      hasLoaded.current = false;
+      
+      if (toast) toast.show('Labs content cleared successfully!', 'success');
+    } catch (error) {
+      console.error('🔴 Clear error:', error);
+      const msg = error.response?.data?.message || error.message || 'Failed to clear labs content';
+      if (toast) toast.show(msg, 'error');
+    } finally {
+      setSaving(false);
+      isSavingRef.current = false;
+    }
+  };
+
+  // ─── Save labs content ──────────────────────────────────────
+  const saveLabsContent = async () => {
+    console.log('💾 Saving labs content, length:', labsContent.length);
+    
+    setSaving(true);
+    isSavingRef.current = true;
+    try {
+      const response = await api.put(`/admin/subtopics/${subtopicId}/labs-content`, { 
+        content: labsContent
+      });
+      
+      console.log('✅ Save response:', response);
+      
+      // ✅ Always update parent with current content
+      onUpdate?.({ labsContent: labsContent });
+      
+      if (labsContent) {
+        if (toast) toast.show('Labs content saved successfully!', 'success');
+      } else {
+        if (toast) toast.show('Labs content cleared!', 'success');
+      }
+    } catch (error) {
+      console.error('🔴 Save error:', error);
+      const msg = error.response?.data?.message || error.message || 'Failed to save labs content';
+      if (toast) toast.show(msg, 'error');
+    } finally {
+      setSaving(false);
+      isSavingRef.current = false;
+    }
+  };
+
+  // ─── Handle textarea change ─────────────────────────────────
+  const handleContentChange = (e) => {
+    const newContent = e.target.value;
+    console.log('✏️ Labs content changed, new length:', newContent.length);
+    setLabsContent(newContent);
+    // ✅ Update parent immediately so it's in sync
+    onUpdate?.({ labsContent: newContent });
+  };
+
+  // ─── Search/Highlight functionality ────────────────────────
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setMatches([]);
+      setCurrentMatchIndex(-1);
+      return;
+    }
+    const regex = new RegExp(searchTerm, 'gi');
+    const found = [];
+    let match;
+    while ((match = regex.exec(labsContent)) !== null) {
+      found.push({ start: match.index, end: match.index + match[0].length });
+    }
+    setMatches(found);
+    setCurrentMatchIndex(found.length > 0 ? 0 : -1);
+  }, [searchTerm, labsContent]);
+
+  const goToMatch = (index) => {
+    if (index < 0 || index >= matches.length) return;
+    const match = matches[index];
+    setCurrentMatchIndex(index);
+    const textarea = document.getElementById('labs-editor');
+    if (textarea) {
+      textarea.focus();
+      textarea.setSelectionRange(match.start, match.end);
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
+      const lines = textarea.value.substring(0, match.start).split('\n').length;
+      textarea.scrollTop = (lines - 3) * lineHeight;
+    }
+  };
+
+  const markdownComponents = {
+    img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
+  };
+
+  const highlightText = (text) => {
+    if (!searchTerm.trim()) return text;
+    const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), 
+      '<mark style="background:#fde047;color:#1e293b;padding:0 2px;border-radius:2px;">$1</mark>'
+    );
+  };
+
+  return (
+    <>
+      <div style={{ padding: 22 }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 8 
+        }}>
+          <Lbl>🧪 Labs Content (Admin Editable)</Lbl>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn 
+              size="sm" 
+              onClick={clearLabsContent} 
+              disabled={saving || !labsContent} 
+              variant="danger"
+            >
+              {saving ? 'Clearing…' : '🗑️ Clear Content'}
+            </Btn>
+            <Btn 
+              size="sm" 
+              onClick={saveLabsContent} 
+              disabled={saving} 
+              variant="success"
+            >
+              {saving ? 'Saving…' : '💾 Save Labs Content'}
+            </Btn>
+          </div>
+        </div>
+
+        {/* ✅ Use shared DocumentUploadButton */}
+        <DocumentUploadButton
+          uploading={uploadingDoc}
+          onFileSelected={uploadDocument}
+          toast={toast}
+          label="Upload PDF Only"
+          buttonId={`labs-upload-${subtopicId}`}
+        />
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
+          <input
+            type="text"
+            placeholder="Search labs content..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              border: `1px solid ${clr.border}`,
+              borderRadius: '6px',
+              outline: 'none',
+              fontSize: '13px',
+              background: clr.white,
+              color: clr.text,
+            }}
+          />
+          {matches.length > 0 && (
+            <span style={{ fontSize: '12px', color: clr.muted, minWidth: '60px' }}>
+              {currentMatchIndex + 1} of {matches.length}
+            </span>
+          )}
+          <button
+            onClick={() => goToMatch(currentMatchIndex - 1)}
+            disabled={matches.length === 0}
+            style={{
+              background: matches.length ? clr.accentLight : clr.faint,
+              border: `1px solid ${clr.border}`,
+              borderRadius: '6px',
+              padding: '4px 8px',
+              cursor: matches.length ? 'pointer' : 'not-allowed',
+              color: matches.length ? clr.accentText : clr.muted,
+            }}
+          >
+            ↑
+          </button>
+          <button
+            onClick={() => goToMatch(currentMatchIndex + 1)}
+            disabled={matches.length === 0}
+            style={{
+              background: matches.length ? clr.accentLight : clr.faint,
+              border: `1px solid ${clr.border}`,
+              borderRadius: '6px',
+              padding: '4px 8px',
+              cursor: matches.length ? 'pointer' : 'not-allowed',
+              color: matches.length ? clr.accentText : clr.muted,
+            }}
+          >
+            ↓
+          </button>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '16px',
+                cursor: 'pointer',
+                color: clr.muted,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <textarea
+            id="labs-editor"
+            value={labsContent}
+            onChange={handleContentChange}
+            rows={12}
+            style={{
+              width: '100%',
+              fontFamily: 'monospace',
+              fontSize: 13,
+              padding: 12,
+              border: `1px solid ${clr.border}`,
+              borderRadius: 8,
+              outline: 'none',
+              background: clr.white,
+              color: clr.text,
+              resize: 'vertical',
+            }}
+            placeholder="Enter labs content here... You can also upload a PDF document above."
+          />
+        </div>
+
+        <div>
+          <div style={{ 
+            fontSize: 12, 
+            fontWeight: 500, 
+            marginBottom: 6, 
+            color: clr.muted 
+          }}>
+            📄 Preview (Students will see this with copy protection) – 
+            <mark style={{ background: '#fde047', padding: '0 4px', borderRadius: '2px' }}>
+              yellow
+            </mark> 
+            highlights matches
+          </div>
+          <div
+            style={{
+              border: `1px solid ${clr.border}`,
+              borderRadius: 8,
+              padding: 16,
+              background: clr.white,
+              minHeight: 200,
+              overflowY: 'auto',
+              fontSize: 13,
+              lineHeight: 1.6,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+            }}
+            onCopy={(e) => e.preventDefault()}
+          >
+            <ReactMarkdown
+              components={markdownComponents}
+              rehypePlugins={[rehypeRaw]}
+            >
+              {highlightText(labsContent)}
+            </ReactMarkdown>
+          </div>
+        </div>
+      </div>
+
+      {/* ✅ Use shared progress modal */}
+      {showProgress && (
+        <PdfUploadProgress
+          progress={progress}
+          fileName={fileName}
+          onCancel={handleCancelUpload}
+        />
+      )}
+    </>
+  );
+};
+
+export default LabsTab;

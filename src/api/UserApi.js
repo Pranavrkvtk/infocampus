@@ -612,28 +612,120 @@ export const getSubtopicImages = async (subtopicId) => {
   }
 };
 
+// =========================================================================
+//  COURSE CONTENT (with Authentication Detection)
+// =========================================================================
+
 /**
- * Get exam content
+ * Get exam content - auto-detects authentication
+ * - Authenticated: Returns full content
+ * - Guest: Returns content only if in first topic (free preview)
  */
 export const getExamContent = async (subtopicId) => {
   try {
-    const response = await api.get(`/users/subtopics/${subtopicId}/exam-content`);
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
+    const response = await api.get(`/users/subtopics/${subtopicId}/exam-content`, { headers });
     return response.data;
   } catch (error) {
     console.error('Error fetching exam content:', error);
+    // Try public endpoint if authenticated fails
+    try {
+      const response = await api.get(`/public/subtopics/${subtopicId}/exam-content`);
+      return response.data;
+    } catch (publicError) {
+      console.error('Public exam content fallback failed:', publicError);
+      return null;
+    }
+  }
+};
+
+/**
+ * Get interview content - auto-detects authentication
+ * - Authenticated: Returns full content
+ * - Guest: Returns content only if in first topic (free preview)
+ */
+export const getInterviewContent = async (subtopicId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
+    const response = await api.get(`/users/subtopics/${subtopicId}/interview-content`, { headers });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching interview content:', error);
+    // Try public endpoint if authenticated fails
+    try {
+      const response = await api.get(`/public/subtopics/${subtopicId}/interview-content`);
+      return response.data;
+    } catch (publicError) {
+      console.error('Public interview content fallback failed:', publicError);
+      return null;
+    }
+  }
+};
+
+/**
+ * Get labs content - auto-detects authentication
+ * - Authenticated: Returns full content
+ * - Guest: Returns content only if in first topic (free preview)
+ */
+export const getLabsContent = async (subtopicId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
+    const response = await api.get(`/users/subtopics/${subtopicId}/labs-content`, { headers });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching labs content:', error);
+    // Try public endpoint if authenticated fails
+    try {
+      const response = await api.get(`/public/subtopics/${subtopicId}/labs-content`);
+      return response.data;
+    } catch (publicError) {
+      console.error('Public labs content fallback failed:', publicError);
+      return null;
+    }
+  }
+};
+
+/**
+ * Get public exam content (for guests) - only free preview
+ */
+export const getPublicExamContent = async (subtopicId) => {
+  try {
+    const response = await api.get(`/public/subtopics/${subtopicId}/exam-content`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching public exam content:', error);
     return null;
   }
 };
 
 /**
- * Get interview content
+ * Get public interview content (for guests) - only free preview
  */
-export const getInterviewContent = async (subtopicId) => {
+export const getPublicInterviewContent = async (subtopicId) => {
   try {
-    const response = await api.get(`/users/subtopics/${subtopicId}/interview-content`);
+    const response = await api.get(`/public/subtopics/${subtopicId}/interview-content`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching interview content:', error);
+    console.error('Error fetching public interview content:', error);
+    return null;
+  }
+};
+
+/**
+ * Get public labs content (for guests) - only free preview
+ */
+export const getPublicLabsContent = async (subtopicId) => {
+  try {
+    const response = await api.get(`/public/subtopics/${subtopicId}/labs-content`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching public labs content:', error);
     return null;
   }
 };
@@ -722,8 +814,16 @@ const userApi = {
   getTopicSubtopics,
   getSubtopic,
   getSubtopicImages,
+  
+  // Content with auto-detection (✅ NEW)
   getExamContent,
   getInterviewContent,
+  getLabsContent,
+  
+  // Public content (for guests)
+  getPublicExamContent,
+  getPublicInterviewContent,
+  getPublicLabsContent,
   
   // Progress
   updateProgress,

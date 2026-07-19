@@ -11,6 +11,7 @@ import { usePdfUpload } from './Shared/usePdfUpload';
 
 import ExamTab from './ExamTab';
 import InterviewTab from './InterviewTab';
+import LabsTab from './LabsTab';
 
 // Thin wrapper for axios
 const api = {
@@ -635,7 +636,7 @@ function MarkdownImage({ src, alt }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR - WITH SHARED PDF UPLOAD
+// SUBTOPIC CONTENT EDITOR - WITH SHARED PDF UPLOAD AND LABS TAB
 // ═══════════════════════════════════════════════════════════════════════════════
 const SubtopicContentEditor = React.memo(function SubtopicContentEditor({ 
   sub, 
@@ -648,6 +649,7 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
   const [videoUrl, setVideoUrl] = useState(sub?.videoUrl || '');
   const [examContent, setExamContent] = useState(sub?.examContent || '');
   const [interviewContent, setInterviewContent] = useState(sub?.interviewContent || '');
+  const [labsContent, setLabsContent] = useState(sub?.labsContent || '');
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('notes');
 
@@ -669,6 +671,7 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
       setVideoUrl(refreshedSub.videoUrl || '');
       setExamContent(refreshedSub.examContent || '');
       setInterviewContent(refreshedSub.interviewContent || '');
+      setLabsContent(refreshedSub.labsContent || '');
       onUpdate(refreshedSub);
     }
   });
@@ -683,6 +686,7 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
       setVideoUrl(sub.videoUrl || '');
       setExamContent(sub.examContent || '');
       setInterviewContent(sub.interviewContent || '');
+      setLabsContent(sub.labsContent || '');
     }
   }, [sub]);
 
@@ -701,7 +705,11 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
       return;
     }
     const regex = new RegExp(searchTerm, 'gi');
-    const text = activeTab === 'notes' ? notes : activeTab === 'exam' ? examContent : interviewContent;
+    const text = activeTab === 'notes' ? notes 
+      : activeTab === 'exam' ? examContent 
+      : activeTab === 'interview' ? interviewContent 
+      : activeTab === 'labs' ? labsContent 
+      : '';
     const found = [];
     let match;
     while ((match = regex.exec(text)) !== null) {
@@ -709,13 +717,16 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
     }
     setMatches(found);
     setCurrentMatchIndex(found.length > 0 ? 0 : -1);
-  }, [searchTerm, notes, examContent, interviewContent, activeTab]);
+  }, [searchTerm, notes, examContent, interviewContent, labsContent, activeTab]);
 
   const goToMatch = (index) => {
     if (index < 0 || index >= matches.length) return;
     const match = matches[index];
     setCurrentMatchIndex(index);
-    const editorId = activeTab === 'notes' ? 'notes-editor' : activeTab === 'exam' ? 'exam-editor' : 'interview-editor';
+    const editorId = activeTab === 'notes' ? 'notes-editor' 
+      : activeTab === 'exam' ? 'exam-editor' 
+      : activeTab === 'interview' ? 'interview-editor' 
+      : 'labs-editor';
     const textarea = document.getElementById(editorId);
     if (textarea) {
       textarea.focus();
@@ -773,6 +784,10 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
       console.log('🟡 Setting interviewContent to:', patch.interviewContent);
       setInterviewContent(patch.interviewContent);
     }
+    if (patch.labsContent !== undefined) {
+      console.log('🟡 Setting labsContent to:', patch.labsContent);
+      setLabsContent(patch.labsContent);
+    }
     
     onUpdate(patch);
   };
@@ -788,6 +803,7 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
     { key: 'video', label: '🎬 Video' },
     { key: 'exam', label: '📋 Exam Content' },
     { key: 'interview', label: '🎤 Interview Qs' },
+    { key: 'labs', label: '🧪 Labs' },
   ];
 
   const markdownComponents = useMemo(() => ({
@@ -996,6 +1012,15 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
               toast={toast} 
               onUpdate={handleTabUpdate} 
               initialData={{ interviewContent: interviewContent }}
+            />
+          )}
+
+          {activeTab === 'labs' && (
+            <LabsTab 
+              subtopicId={subtopicId} 
+              toast={toast} 
+              onUpdate={handleTabUpdate} 
+              initialData={{ labsContent: labsContent }}
             />
           )}
         </div>

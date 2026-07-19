@@ -2,6 +2,7 @@
 // Premium Odoo-style learning UI - Dark Sidebar + Dark Content - Fully Responsive
 // ✅ Image save prevention added
 // ✅ Auto-exit fullscreen on navigation
+// ✅ Labs content fully supported
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -13,6 +14,7 @@ import {
   getCourseData,
   getSubtopicImages,
   checkEnrollment,
+  getLabsContent,
 } from '../api/UserApi';
 import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 import { getImageUrl } from '../utils/imageUtils';
@@ -739,7 +741,6 @@ function InterviewContentTab({ content, config }) {
   );
 }
 
-// ✅ Updated VideoTab with download prevention
 function VideoTab({ videoUrls, config, title, courseTitle }) {
   const [currentVideo, setCurrentVideo] = useState(0);
   const urls = Array.isArray(videoUrls) ? videoUrls : (videoUrls ? [videoUrls] : []);
@@ -1063,9 +1064,13 @@ function ExamTab({ questions, config, onScoreUpdate }) {
   );
 }
 
-function LabsTab({ labs, config }) {
+// ─── Labs Tab Component (Updated with full support) ──────────────────
+
+function LabsTab({ labs, content, config, subtopicId }) {
   const [activeLab, setActiveLab] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [labsContent, setLabsContent] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -1073,50 +1078,168 @@ function LabsTab({ labs, config }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (!labs || labs.length === 0) {
-    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No labs available</div>;
+  // ✅ Fetch labs content if provided via content prop or fetch from API
+  useEffect(() => {
+    const fetchLabsContent = async () => {
+      if (subtopicId && !content) {
+        setLoading(true);
+        try {
+          const response = await getLabsContent(subtopicId);
+          if (response && response.labsContent) {
+            setLabsContent(response.labsContent);
+          }
+        } catch (error) {
+          console.error('Error fetching labs content:', error);
+        } finally {
+          setLoading(false);
+        }
+      } else if (content) {
+        setLabsContent(content);
+      }
+    };
+    fetchLabsContent();
+  }, [subtopicId, content]);
+
+  // If we have labs content (markdown), render it using the Odoo renderer
+  if (labsContent) {
+    const html = renderOdooContent(labsContent);
+    const styleTag = buildOdooStyles(config?.colors || { accent: '#714b67' });
+    
+    return (
+      <>
+        <div className="lesson-page-wrapper">
+          <div className="lesson-paper">
+            <div
+              className="odoo-content fade-in"
+              dangerouslySetInnerHTML={{ __html: html }}
+              style={{
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                color: '#1a1a1a',
+              }}
+              onCopy={(e) => e.preventDefault()}
+              onCut={(e) => e.preventDefault()}
+              onContextMenu={(e) => e.preventDefault()}
+              onSelect={(e) => e.preventDefault()}
+            />
+          </div>
+        </div>
+        <style>{styleTag}</style>
+      </>
+    );
   }
 
-  return (
-    <div style={{ padding: isMobile ? '12px' : '20px' }}>
-      {labs.map((lab, idx) => (
-        <div
-          key={lab.id}
-          style={{
-            background: LIGHT.surface,
-            borderRadius: isMobile ? '10px' : '12px',
-            border: `1px solid ${LIGHT.border}`,
-            padding: isMobile ? '14px 16px' : '16px 20px',
-            marginBottom: isMobile ? '8px' : '10px',
-            cursor: 'pointer',
-          }}
-          onClick={() => setActiveLab(activeLab === lab.id ? null : lab.id)}
-        >
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '8px',
-          }}>
-            <span style={{ fontWeight: 600, fontSize: isMobile ? '14px' : '15px', color: LIGHT.textLight }}>
-              {idx + 1}. {lab.title}
-            </span>
-          </div>
-          {activeLab === lab.id && (
-            <div style={{
-              marginTop: '12px',
-              paddingTop: '12px',
-              borderTop: `1px solid ${LIGHT.border}`,
-              fontSize: isMobile ? '13px' : '14px',
-              color: LIGHT.text,
-              lineHeight: '1.8',
-            }}>
-              {lab.instructions}
-            </div>
-          )}
+  // If we have lab exercises (structured labs)
+  if (labs && labs.length > 0) {
+    return (
+      <div style={{ padding: isMobile ? '12px' : '20px' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: isMobile ? '10px 14px' : '12px 16px',
+          background: LIGHT.hover,
+          borderRadius: '12px',
+          marginBottom: isMobile ? '12px' : '16px',
+        }}>
+          <span style={{ fontWeight: 700, fontSize: isMobile ? '14px' : '15px', color: LIGHT.textLight }}>
+            <ScienceIcon style={{ fontSize: isMobile ? '16px' : '18px', marginRight: '8px', color: '#f59e0b' }} />
+            Lab Exercises
+          </span>
+          <span style={{ fontSize: isMobile ? '12px' : '13px', color: LIGHT.textMuted }}>
+            {labs.length} lab{labs.length > 1 ? 's' : ''}
+          </span>
         </div>
-      ))}
+
+        {labs.map((lab, idx) => (
+          <div
+            key={lab.id}
+            style={{
+              background: LIGHT.surface,
+              borderRadius: isMobile ? '10px' : '12px',
+              border: `1px solid ${LIGHT.border}`,
+              padding: isMobile ? '14px 16px' : '16px 20px',
+              marginBottom: isMobile ? '8px' : '10px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#f59e0b';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(245, 158, 11, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = LIGHT.border;
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+            onClick={() => setActiveLab(activeLab === lab.id ? null : lab.id)}
+          >
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '8px',
+            }}>
+              <span style={{ fontWeight: 600, fontSize: isMobile ? '14px' : '15px', color: LIGHT.textLight }}>
+                <span style={{ 
+                  display: 'inline-block',
+                  background: '#f59e0b',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: isMobile ? '24px' : '28px',
+                  height: isMobile ? '24px' : '28px',
+                  textAlign: 'center',
+                  lineHeight: isMobile ? '24px' : '28px',
+                  fontSize: isMobile ? '12px' : '14px',
+                  fontWeight: 700,
+                  marginRight: '10px'
+                }}>
+                  {idx + 1}
+                </span>
+                {lab.title}
+              </span>
+              <span style={{ fontSize: isMobile ? '12px' : '13px', color: LIGHT.textMuted }}>
+                {activeLab === lab.id ? '▲' : '▼'}
+              </span>
+            </div>
+            {activeLab === lab.id && (
+              <div style={{
+                marginTop: '12px',
+                paddingTop: '12px',
+                borderTop: `1px solid ${LIGHT.border}`,
+                fontSize: isMobile ? '13px' : '14px',
+                color: LIGHT.text,
+                lineHeight: '1.8',
+              }}>
+                {lab.instructions || 'No instructions provided.'}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Loading state
+  if (loading) {
+    return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>Loading labs content...</div>;
+  }
+
+  // No labs available
+  return (
+    <div style={{ 
+      padding: '40px 20px', 
+      color: LIGHT.textMuted, 
+      textAlign: 'center',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+    }}>
+      <ScienceIcon style={{ fontSize: '64px', color: LIGHT.textMuted, marginBottom: '16px', opacity: 0.3 }} />
+      <p style={{ fontSize: '16px', fontWeight: 500 }}>No Labs Available</p>
+      <p style={{ fontSize: '14px', opacity: 0.7 }}>This subtopic does not have any lab exercises.</p>
     </div>
   );
 }
@@ -1325,6 +1448,7 @@ export default function CourseDetailView({
               isFree: sub.isFree || isFirstTopic,
               examContent: sub.examContent || '',
               interviewContent: sub.interviewContent || '',
+              labsContent: sub.labsContent || '', // ✅ ADD LABS CONTENT
               displayOrder: sub.displayOrder || 0,
               contentStatus: sub.contentStatus || (isFirstTopic ? 'free_preview' : 'locked'),
               isAuthenticated: data.isAuthenticated,
@@ -1462,10 +1586,8 @@ export default function CourseDetailView({
   // ✅ NEW: Auto-exit fullscreen when component unmounts (navigation occurs)
   useEffect(() => {
     return () => {
-      // Exit fullscreen when component unmounts (navigation occurs)
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(err => {
-          // Ignore errors - fullscreen might already be exited
           console.debug('Fullscreen exit on navigation:', err);
         });
       }
@@ -1511,7 +1633,7 @@ export default function CourseDetailView({
     };
   }, [images]);
 
-  // ✅ Global disable right-click on images - MOVED BEFORE EARLY RETURNS
+  // ✅ Global disable right-click on images
   useEffect(() => {
     const disableRightClick = (e) => {
       if (e.target.tagName === 'IMG') {
@@ -1624,12 +1746,14 @@ export default function CourseDetailView({
     const hasNotes = hasNotesContent(sub);
     const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
     const hasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
+    const hasLabs = !!(sub.labsContent && sub.labsContent.trim() !== ''); // ✅ ADD LABS CHECK
     
     const subAvailableTypes = [];
     if (hasVideo) subAvailableTypes.push('video');
     if (hasNotes) subAvailableTypes.push('notes');
     if (hasExam) subAvailableTypes.push('exam-content');
     if (hasInterview) subAvailableTypes.push('interview-content');
+    if (hasLabs) subAvailableTypes.push('labs'); // ✅ ADD LABS TO AVAILABLE TYPES
     
     try {
       const [questions, exams, labList] = await Promise.all([
@@ -1686,11 +1810,13 @@ export default function CourseDetailView({
       const hasNotes = hasNotesContent(currentSubtopic);
       const hasExam = !!(currentSubtopic.examContent && currentSubtopic.examContent.trim() !== '');
       const hasInterview = !!(currentSubtopic.interviewContent && currentSubtopic.interviewContent.trim() !== '');
+      const hasLabs = !!(currentSubtopic.labsContent && currentSubtopic.labsContent.trim() !== ''); // ✅ ADD LABS CHECK
       
       if (hasVideo) out.push('video');
       if (hasNotes) out.push('notes');
       if (hasExam) out.push('exam-content');
       if (hasInterview) out.push('interview-content');
+      if (hasLabs) out.push('labs'); // ✅ ADD LABS TO AVAILABLE TYPES
       
       if (interviewQuestions.length > 0) out.push('interview');
       if (examQuestions.length > 0) out.push('exam');
@@ -1727,7 +1853,14 @@ export default function CourseDetailView({
       case 'exam': 
         return <ExamTab questions={examQuestions} config={config} />;
       case 'labs': 
-        return <LabsTab labs={labs} config={config} />;
+        return (
+          <LabsTab 
+            labs={labs} 
+            content={currentSubtopic.labsContent} 
+            config={config} 
+            subtopicId={currentSubtopic.id}
+          />
+        );
       default: 
         return null;
     }
@@ -2151,35 +2284,35 @@ export default function CourseDetailView({
             <MenuIcon style={{ color: '#FFFFFF', fontSize: isMobile ? '20px' : '24px' }} />
             <span style={{ display: isMobile ? 'none' : 'inline' }}>Lessons</span>
           </button>
-{!(isAuthenticated && isEnrolled) && (
-  <button
-    onClick={handleBackClick}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: isMobile ? '4px' : '8px',
-      padding: isMobile ? '0 10px' : '0 16px',
-      fontSize: isMobile ? '12px' : '14px',
-      fontWeight: 600,
-      color: TOPBAR.text,
-      cursor: 'pointer',
-      transition: 'background 0.15s, transform 0.15s',
-      background: 'transparent',
-      border: 'none',
-      borderRight: `1px solid ${TOPBAR.border}`,
-      height: '100%',
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.background = TOPBAR.bgHover;
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.background = 'transparent';
-    }}
-  >
-    <span style={{ fontSize: isMobile ? '16px' : '18px' }}>←</span>
-    <span style={{ display: isMobile ? 'none' : 'inline' }}>Back</span>
-  </button>
-)}
+          {!(isAuthenticated && isEnrolled) && (
+            <button
+              onClick={handleBackClick}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: isMobile ? '4px' : '8px',
+                padding: isMobile ? '0 10px' : '0 16px',
+                fontSize: isMobile ? '12px' : '14px',
+                fontWeight: 600,
+                color: TOPBAR.text,
+                cursor: 'pointer',
+                transition: 'background 0.15s, transform 0.15s',
+                background: 'transparent',
+                border: 'none',
+                borderRight: `1px solid ${TOPBAR.border}`,
+                height: '100%',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = TOPBAR.bgHover;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <span style={{ fontSize: isMobile ? '16px' : '18px' }}>←</span>
+              <span style={{ display: isMobile ? 'none' : 'inline' }}>Back</span>
+            </button>
+          )}
         </div>
 
         <div style={styles.topBarRight}>
@@ -2373,12 +2506,14 @@ export default function CourseDetailView({
                         const subHasNotes = hasNotesContent(sub);
                         const subHasExam = !!(sub.examContent && sub.examContent.trim() !== '');
                         const subHasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
+                        const subHasLabs = !!(sub.labsContent && sub.labsContent.trim() !== ''); // ✅ ADD LABS CHECK
                         
                         const subAvailableTypes = [];
                         if (subHasVideo) subAvailableTypes.push('video');
                         if (subHasNotes) subAvailableTypes.push('notes');
                         if (subHasExam) subAvailableTypes.push('exam-content');
                         if (subHasInterview) subAvailableTypes.push('interview-content');
+                        if (subHasLabs) subAvailableTypes.push('labs'); // ✅ ADD LABS TO AVAILABLE TYPES
                         
                         if (isActive) {
                           if (interviewQuestions.length > 0) subAvailableTypes.push('interview');
@@ -2388,7 +2523,7 @@ export default function CourseDetailView({
                         
                         subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
                         
-                        const hasAnyContentForSub = subHasVideo || subHasNotes || subHasExam || subHasInterview;
+                        const hasAnyContentForSub = subHasVideo || subHasNotes || subHasExam || subHasInterview || subHasLabs;
                         
                         return (
                           <div key={sub.id}>
@@ -2427,13 +2562,13 @@ export default function CourseDetailView({
                                 {subtopicLocked ? (
                                   <LockIcon style={{ fontSize: isMobile ? '12px' : '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
                                 ) : (
-<div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px', flexShrink: 0 }}>
-  {(subHasVideo || subHasNotes) ? (
-    <FlagIcon style={{ fontSize: isMobile ? '16px' : '18px', color: '#FFC107' }} />
-  ) : !subtopicLocked ? (
-    <span style={{ fontSize: isMobile ? '10px' : '11px', color: SIDEBAR.textMuted }}>●</span>
-  ) : null}
-</div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px', flexShrink: 0 }}>
+                                    {(subHasVideo || subHasNotes || subHasLabs) ? (
+                                      <FlagIcon style={{ fontSize: isMobile ? '16px' : '18px', color: '#FFC107' }} />
+                                    ) : !subtopicLocked ? (
+                                      <span style={{ fontSize: isMobile ? '10px' : '11px', color: SIDEBAR.textMuted }}>●</span>
+                                    ) : null}
+                                  </div>
                                 )}
                                 <span style={{ flex: 1, wordBreak: 'break-word', fontSize: isMobile ? '12px' : '13px' }}>{sub.title}</span>
                                 {subtopicLocked && (

@@ -596,6 +596,85 @@ export const getEnrollmentTrends = (period = "monthly", year = null) => {
   });
 };
 
+// ==================== LABS CONTENT MANAGEMENT APIs (NEW) ====================
+
+/**
+ * Get labs content for a specific subtopic
+ * @param {number|string} subtopicId - The ID of the subtopic
+ * @returns {Promise} - Returns the labs content
+ */
+export const getLabsContent = (subtopicId) => {
+  return api.get(`/admin/subtopics/${subtopicId}/labs-content`);
+};
+
+/**
+ * Save/update labs content for a specific subtopic
+ * @param {number|string} subtopicId - The ID of the subtopic
+ * @param {string} content - The labs content in markdown format
+ * @returns {Promise} - Returns the updated content
+ */
+export const saveLabsContent = (subtopicId, content) => {
+  return api.put(`/admin/subtopics/${subtopicId}/labs-content`, { content });
+};
+
+/**
+ * Upload a PDF document for labs content (PDF ONLY)
+ * @param {number|string} subtopicId - The ID of the subtopic
+ * @param {File} file - The PDF file to upload
+ * @param {Function} onUploadProgress - Optional progress callback
+ * @returns {Promise} - Returns upload result with image count
+ */
+export const uploadLabsPdf = (subtopicId, file, onUploadProgress) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  return api.post(`/admin/subtopics/${subtopicId}/upload-labs-pdf`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    onUploadProgress: onUploadProgress,
+  });
+};
+
+/**
+ * Clear labs content for a specific subtopic
+ * @param {number|string} subtopicId - The ID of the subtopic
+ * @returns {Promise} - Returns success response
+ */
+export const clearLabsContent = (subtopicId) => {
+  return api.delete(`/admin/subtopics/${subtopicId}/labs-content`);
+};
+
+// ==================== LABS STATISTICS APIs ====================
+
+/**
+ * Get labs completion statistics for a course or subtopic
+ * @param {number|string} subtopicId - Optional subtopic ID for specific stats
+ * @returns {Promise} - Returns lab completion stats
+ */
+export const getLabsStats = (subtopicId = null) => {
+  const params = subtopicId ? { subtopicId } : {};
+  return api.get('/admin/labs/stats', { params });
+};
+
+/**
+ * Get labs progress for a specific student
+ * @param {number|string} studentId - The ID of the student
+ * @returns {Promise} - Returns student's lab progress
+ */
+export const getStudentLabsProgress = (studentId) => {
+  return api.get(`/admin/labs/students/${studentId}/progress`);
+};
+
+/**
+ * Get all labs for a course
+ * @param {number|string} courseId - The ID of the course
+ * @returns {Promise} - Returns list of labs in the course
+ */
+export const getCourseLabs = (courseId) => {
+  return api.get(`/admin/labs/courses/${courseId}`);
+};
+
 // ==================== AUTHENTICATION & UTILITY ====================
 
 // Check if user is admin
@@ -630,7 +709,7 @@ const adminApi = {
   getAdminCourses,
   getAdminCourseById,
   createAdminCourse,
-  uploadCourseImage, // ✅ Added image upload
+  uploadCourseImage,
   updateAdminCourse,
   deleteAdminCourse,
   updateCourseStatus,
@@ -639,7 +718,7 @@ const adminApi = {
   // Course Management - Instructor
   getInstructorCourses,
   createInstructorCourse,
-  uploadInstructorCourseImage, // ✅ Added instructor image upload
+  uploadInstructorCourseImage,
   updateInstructorCourse,
   deleteInstructorCourse,
   getInstructorCourseDetails,
@@ -719,6 +798,17 @@ const adminApi = {
   // Statistics
   getLabCompletionStats,
   getEnrollmentTrends,
+  
+  // Labs Management (NEW)
+  getLabsContent,
+  saveLabsContent,
+  uploadLabsPdf,
+  clearLabsContent,
+  
+  // Labs Statistics (NEW)
+  getLabsStats,
+  getStudentLabsProgress,
+  getCourseLabs,
   
   // Utility
   checkAdminRole,
