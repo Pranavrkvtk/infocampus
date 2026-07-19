@@ -1,11 +1,12 @@
 // src/components/Admin/InterviewTab.jsx
-// Complete fixed version with additional debug logging
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import { getImageUrl } from '../../utils/imageUtils';
 import axiosInstance from '../../api/axios';
+import { DocumentUploadButton } from './Shared/DocumentUploadButton';
+import { PdfUploadProgress } from './Shared/PdfUploadProgress';
+import { usePdfUpload } from './Shared/usePdfUpload';
 
 // Thin wrapper for axios
 const api = {
@@ -16,21 +17,50 @@ const api = {
 };
 
 const clr = {
-  bg: '#f8f9fb', white: '#ffffff', border: '#e4e7ec', borderActive: '#4f46e5',
-  text: '#0f172a', muted: '#64748b', faint: '#f1f5f9', accent: '#4f46e5',
-  accentLight: '#eef2ff', accentText: '#3730a3', success: '#16a34a',
-  successLight: '#f0fdf4', danger: '#dc2626', dangerLight: '#fef2f2',
+  bg: '#f8f9fb', 
+  white: '#ffffff', 
+  border: '#e4e7ec', 
+  borderActive: '#4f46e5',
+  text: '#0f172a', 
+  muted: '#64748b', 
+  faint: '#f1f5f9', 
+  accent: '#4f46e5',
+  accentLight: '#eef2ff', 
+  accentText: '#3730a3', 
+  success: '#16a34a',
+  successLight: '#f0fdf4', 
+  danger: '#dc2626', 
+  dangerLight: '#fef2f2',
 };
 
 const Lbl = ({ children }) => (
-  <label style={{ fontSize: 11, fontWeight: 700, color: clr.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase' }}>
+  <label style={{ 
+    fontSize: 11, 
+    fontWeight: 700, 
+    color: clr.muted, 
+    display: 'block', 
+    marginBottom: 5, 
+    textTransform: 'uppercase' 
+  }}>
     {children}
   </label>
 );
 
 const Btn = ({ children, onClick, variant = 'primary', size = 'md', disabled, style: extra }) => {
-  const base = { display: 'inline-flex', alignItems: 'center', gap: 6, cursor: disabled ? 'not-allowed' : 'pointer', border: 'none', borderRadius: 8, fontWeight: 600, opacity: disabled ? 0.5 : 1 };
-  const sizes = { sm: { padding: '5px 12px', fontSize: 12 }, md: { padding: '8px 16px', fontSize: 13 } };
+  const base = { 
+    display: 'inline-flex', 
+    alignItems: 'center', 
+    gap: 6, 
+    cursor: disabled ? 'not-allowed' : 'pointer', 
+    border: 'none', 
+    borderRadius: 8, 
+    fontWeight: 600, 
+    opacity: disabled ? 0.5 : 1 
+  };
+  const sizes = { 
+    sm: { padding: '5px 12px', fontSize: 12 }, 
+    md: { padding: '8px 16px', fontSize: 13 } 
+  };
   const variants = {
     primary: { background: clr.accent, color: '#fff' },
     success: { background: clr.success, color: '#fff' },
@@ -38,39 +68,13 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', disabled, st
     ghost: { background: clr.faint, color: clr.muted, border: `1px solid ${clr.border}` },
     dashed: { background: clr.accentLight, color: clr.accentText, border: `1.5px dashed ${clr.accent}` },
   };
-  return <button onClick={disabled ? undefined : onClick} style={{ ...base, ...sizes[size], ...variants[variant], ...extra }}>{children}</button>;
+  return <button 
+    onClick={disabled ? undefined : onClick} 
+    style={{ ...base, ...sizes[size], ...variants[variant], ...extra }}
+  >
+    {children}
+  </button>;
 };
-
-function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
-  const inputId = `interview-doc-upload-${subtopicId}`;
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <input
-        type="file"
-        accept=".pdf,.doc,.docx"
-        id={inputId}
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const file = e.target.files[0];
-          if (file) onFileSelected(file);
-          e.target.value = '';
-        }}
-      />
-      <label htmlFor={inputId} style={{ display: 'inline-block' }}>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          cursor: uploading ? 'not-allowed' : 'pointer',
-          opacity: uploading ? 0.5 : 1,
-          padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 8,
-          background: clr.accentLight, color: clr.accentText,
-          border: `1.5px dashed ${clr.accent}`,
-        }}>
-          {uploading ? '📎 Uploading document...' : '📎 Upload Document (PDF/DOC/DOCX)'}
-        </span>
-      </label>
-    </div>
-  );
-}
 
 function MarkdownImage({ src, alt }) {
   const [hasError, setHasError] = useState(false);
@@ -100,7 +104,13 @@ function MarkdownImage({ src, alt }) {
     <img
       src={fullSrc}
       alt={alt || 'image'}
-      style={{ maxWidth: '100%', height: 'auto', margin: '12px 0', borderRadius: 8, display: 'block' }}
+      style={{ 
+        maxWidth: '100%', 
+        height: 'auto', 
+        margin: '12px 0', 
+        borderRadius: 8, 
+        display: 'block' 
+      }}
       onError={() => {
         console.error('❌ Markdown image load error:', fullSrc);
         setHasError(true);
@@ -115,7 +125,6 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
   
   const [interviewContent, setInterviewContent] = useState(getContent(initialData));
   const [saving, setSaving] = useState(false);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [matches, setMatches] = useState([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
@@ -125,6 +134,28 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
   const isUpdatingFromParent = useRef(false);
   const isSavingRef = useRef(false);
   const contentBeforeSave = useRef('');
+
+  // ✅ Use the shared PDF upload hook
+  const {
+    uploadingDoc,
+    showProgress,
+    progress,
+    fileName,
+    uploadDocument,
+    handleCancelUpload,
+  } = usePdfUpload({
+    subtopicId,
+    toast,
+    endpoint: `/admin/subtopics/${subtopicId}/upload-interview-pdf`,
+    onSuccess: async (data) => {
+      const freshData = await api.get(`/admin/subtopics/${subtopicId}/interview-content`);
+      const freshContent = freshData.interviewContent || '';
+      console.log('📤 Upload complete, new content length:', freshContent.length);
+      setInterviewContent(freshContent);
+      onUpdate?.({ interviewContent: freshContent });
+      hasLoaded.current = true;
+    }
+  });
 
   // ─── Load interview content ────────────────────────────────────
   const loadInterviewContent = useCallback(async () => {
@@ -196,7 +227,6 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
 
   // ─── Save interview content ────────────────────────────────────
   const saveInterviewContent = async () => {
-    // ✅ Save the current content to a ref before saving
     contentBeforeSave.current = interviewContent;
     console.log('💾 Saving interview content, length:', interviewContent.length);
     
@@ -209,12 +239,10 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
       
       console.log('✅ Save response:', response);
       
-      // ✅ Notify parent with the current content
       if (interviewContent) {
         onUpdate?.({ interviewContent: interviewContent });
         if (toast) toast.show('Interview content saved successfully!', 'success');
       } else {
-        // If content is empty, clear it
         onUpdate?.({ interviewContent: '' });
         if (toast) toast.show('Interview content cleared!', 'success');
       }
@@ -225,51 +253,6 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
     } finally {
       setSaving(false);
       isSavingRef.current = false;
-    }
-  };
-
-  // ─── Upload document ───────────────────────────────────────────
-  const uploadDocument = async (file) => {
-    if (!file) return;
-    
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-    
-    if (!allowedTypes.includes(file.type)) {
-      if (toast) toast.show('Only PDF, DOC and DOCX files are allowed', 'error');
-      return;
-    }
-
-    setUploadingDoc(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await axiosInstance.post(
-        `/admin/subtopics/${subtopicId}/upload-interview-pdf`,
-        formData
-      );
-      const data = response.data;
-      
-      // Fetch fresh content after upload
-      const freshData = await api.get(`/admin/subtopics/${subtopicId}/interview-content`);
-      const freshContent = freshData.interviewContent || '';
-      
-      console.log('📤 Upload complete, new content length:', freshContent.length);
-      setInterviewContent(freshContent);
-      onUpdate?.({ interviewContent: freshContent });
-      hasLoaded.current = true;
-      
-      if (toast) toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
-    } catch (err) {
-      console.error('Upload error:', err);
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
-      if (toast) toast.show(msg, 'error');
-    } finally {
-      setUploadingDoc(false);
     }
   };
 
@@ -311,150 +294,190 @@ const InterviewTab = ({ subtopicId, subtopic, onUpdate, toast, initialData }) =>
   const highlightText = (text) => {
     if (!searchTerm.trim()) return text;
     const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark style="background:#fde047;color:#1e293b;padding:0 2px;border-radius:2px;">$1</mark>');
+    return text.replace(new RegExp(`(${escaped})`, 'gi'), 
+      '<mark style="background:#fde047;color:#1e293b;padding:0 2px;border-radius:2px;">$1</mark>'
+    );
   };
 
   return (
-    <div style={{ padding: 22 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Lbl>🎤 Interview Content (Admin Editable)</Lbl>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Btn size="sm" onClick={clearInterviewContent} disabled={saving || !interviewContent} variant="danger">
-            {saving ? 'Clearing…' : '🗑️ Clear Content'}
-          </Btn>
-          <Btn size="sm" onClick={saveInterviewContent} disabled={saving} variant="success">
-            {saving ? 'Saving…' : '💾 Save Interview Content'}
-          </Btn>
+    <>
+      <div style={{ padding: 22 }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 8 
+        }}>
+          <Lbl>🎤 Interview Content (Admin Editable)</Lbl>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn 
+              size="sm" 
+              onClick={clearInterviewContent} 
+              disabled={saving || !interviewContent} 
+              variant="danger"
+            >
+              {saving ? 'Clearing…' : '🗑️ Clear Content'}
+            </Btn>
+            <Btn 
+              size="sm" 
+              onClick={saveInterviewContent} 
+              disabled={saving} 
+              variant="success"
+            >
+              {saving ? 'Saving…' : '💾 Save Interview Content'}
+            </Btn>
+          </div>
         </div>
-      </div>
 
-      <DocumentUploadButton
-        subtopicId={subtopicId}
-        uploading={uploadingDoc}
-        onFileSelected={uploadDocument}
-      />
-
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
-        <input
-          type="text"
-          placeholder="Search interview content..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '6px 10px',
-            border: `1px solid ${clr.border}`,
-            borderRadius: '6px',
-            outline: 'none',
-            fontSize: '13px',
-            background: clr.white,
-            color: clr.text,
-          }}
+        {/* ✅ Use shared DocumentUploadButton */}
+        <DocumentUploadButton
+          uploading={uploadingDoc}
+          onFileSelected={uploadDocument}
+          toast={toast}
+          label="Upload PDF Only"
+          buttonId={`interview-upload-${subtopicId}`}
         />
-        {matches.length > 0 && (
-          <span style={{ fontSize: '12px', color: clr.muted, minWidth: '60px' }}>
-            {currentMatchIndex + 1} of {matches.length}
-          </span>
-        )}
-        <button
-          onClick={() => goToMatch(currentMatchIndex - 1)}
-          disabled={matches.length === 0}
-          style={{
-            background: matches.length ? clr.accentLight : clr.faint,
-            border: `1px solid ${clr.border}`,
-            borderRadius: '6px',
-            padding: '4px 8px',
-            cursor: matches.length ? 'pointer' : 'not-allowed',
-            color: matches.length ? clr.accentText : clr.muted,
-          }}
-        >
-          ↑
-        </button>
-        <button
-          onClick={() => goToMatch(currentMatchIndex + 1)}
-          disabled={matches.length === 0}
-          style={{
-            background: matches.length ? clr.accentLight : clr.faint,
-            border: `1px solid ${clr.border}`,
-            borderRadius: '6px',
-            padding: '4px 8px',
-            cursor: matches.length ? 'pointer' : 'not-allowed',
-            color: matches.length ? clr.accentText : clr.muted,
-          }}
-        >
-          ↓
-        </button>
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm('')}
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
+          <input
+            type="text"
+            placeholder="Search interview content..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '16px',
-              cursor: 'pointer',
-              color: clr.muted,
+              flex: 1,
+              padding: '6px 10px',
+              border: `1px solid ${clr.border}`,
+              borderRadius: '6px',
+              outline: 'none',
+              fontSize: '13px',
+              background: clr.white,
+              color: clr.text,
+            }}
+          />
+          {matches.length > 0 && (
+            <span style={{ fontSize: '12px', color: clr.muted, minWidth: '60px' }}>
+              {currentMatchIndex + 1} of {matches.length}
+            </span>
+          )}
+          <button
+            onClick={() => goToMatch(currentMatchIndex - 1)}
+            disabled={matches.length === 0}
+            style={{
+              background: matches.length ? clr.accentLight : clr.faint,
+              border: `1px solid ${clr.border}`,
+              borderRadius: '6px',
+              padding: '4px 8px',
+              cursor: matches.length ? 'pointer' : 'not-allowed',
+              color: matches.length ? clr.accentText : clr.muted,
             }}
           >
-            ✕
+            ↑
           </button>
-        )}
-      </div>
-
-      <div style={{ marginBottom: 20 }}>
-        <textarea
-          id="interview-editor"
-          value={interviewContent}
-          onChange={(e) => {
-            const newContent = e.target.value;
-            console.log('✏️ Editor change, new length:', newContent.length);
-            setInterviewContent(newContent);
-          }}
-          rows={12}
-          style={{
-            width: '100%',
-            fontFamily: 'monospace',
-            fontSize: 13,
-            padding: 12,
-            border: `1px solid ${clr.border}`,
-            borderRadius: 8,
-            outline: 'none',
-            background: clr.white,
-            color: clr.text,
-            resize: 'vertical',
-          }}
-          placeholder="Enter interview content here... You can also upload a PDF or DOCX document above."
-        />
-      </div>
-
-      <div>
-        <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: clr.muted }}>
-          📄 Preview (Students will see this with copy protection) – <mark style={{ background: '#fde047', padding: '0 4px', borderRadius: '2px' }}>yellow</mark> highlights matches
-        </div>
-        <div
-          style={{
-            border: `1px solid ${clr.border}`,
-            borderRadius: 8,
-            padding: 16,
-            background: clr.white,
-            minHeight: 200,
-            overflowY: 'auto',
-            fontSize: 13,
-            lineHeight: 1.6,
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            MozUserSelect: 'none',
-          }}
-          onCopy={(e) => e.preventDefault()}
-        >
-          <ReactMarkdown
-            components={markdownComponents}
-            rehypePlugins={[rehypeRaw]}
+          <button
+            onClick={() => goToMatch(currentMatchIndex + 1)}
+            disabled={matches.length === 0}
+            style={{
+              background: matches.length ? clr.accentLight : clr.faint,
+              border: `1px solid ${clr.border}`,
+              borderRadius: '6px',
+              padding: '4px 8px',
+              cursor: matches.length ? 'pointer' : 'not-allowed',
+              color: matches.length ? clr.accentText : clr.muted,
+            }}
           >
-            {highlightText(interviewContent)}
-          </ReactMarkdown>
+            ↓
+          </button>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '16px',
+                cursor: 'pointer',
+                color: clr.muted,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <textarea
+            id="interview-editor"
+            value={interviewContent}
+            onChange={(e) => {
+              const newContent = e.target.value;
+              console.log('✏️ Editor change, new length:', newContent.length);
+              setInterviewContent(newContent);
+            }}
+            rows={12}
+            style={{
+              width: '100%',
+              fontFamily: 'monospace',
+              fontSize: 13,
+              padding: 12,
+              border: `1px solid ${clr.border}`,
+              borderRadius: 8,
+              outline: 'none',
+              background: clr.white,
+              color: clr.text,
+              resize: 'vertical',
+            }}
+            placeholder="Enter interview content here... You can also upload a PDF document above."
+          />
+        </div>
+
+        <div>
+          <div style={{ 
+            fontSize: 12, 
+            fontWeight: 500, 
+            marginBottom: 6, 
+            color: clr.muted 
+          }}>
+            📄 Preview (Students will see this with copy protection) – 
+            <mark style={{ background: '#fde047', padding: '0 4px', borderRadius: '2px' }}>
+              yellow
+            </mark> 
+            highlights matches
+          </div>
+          <div
+            style={{
+              border: `1px solid ${clr.border}`,
+              borderRadius: 8,
+              padding: 16,
+              background: clr.white,
+              minHeight: 200,
+              overflowY: 'auto',
+              fontSize: 13,
+              lineHeight: 1.6,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+            }}
+            onCopy={(e) => e.preventDefault()}
+          >
+            <ReactMarkdown
+              components={markdownComponents}
+              rehypePlugins={[rehypeRaw]}
+            >
+              {highlightText(interviewContent)}
+            </ReactMarkdown>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* ✅ Use shared progress modal */}
+      {showProgress && (
+        <PdfUploadProgress
+          progress={progress}
+          fileName={fileName}
+          onCancel={handleCancelUpload}
+        />
+      )}
+    </>
   );
 };
 

@@ -5,6 +5,9 @@ import rehypeRaw from 'rehype-raw';
 import AddCourseModal from './AddCourseModal';
 import axiosInstance from '../../api/axios';
 import { getImageUrl } from '../../utils/imageUtils';
+import { DocumentUploadButton } from './Shared/DocumentUploadButton';
+import { PdfUploadProgress } from './Shared/PdfUploadProgress';
+import { usePdfUpload } from './Shared/usePdfUpload';
 
 import ExamTab from './ExamTab';
 import InterviewTab from './InterviewTab';
@@ -28,7 +31,6 @@ const clr = {
 const uid = () => Math.random().toString(36).slice(2, 8);
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
-// ✅ FIXED: Stable toast with useCallback and useMemo
 function useToast() {
   const [toasts, setToasts] = useState([]);
   
@@ -127,40 +129,6 @@ const SectionHead = ({ icon, title, count, action }) => (
     {action}
   </div>
 );
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// DOCUMENT UPLOAD BUTTON
-// ═══════════════════════════════════════════════════════════════════════════════
-function DocumentUploadButton({ subtopicId, uploading, onFileSelected }) {
-  const inputId = `doc-upload-${subtopicId}`;
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <input
-        type="file"
-        accept=".pdf,.doc,.docx"
-        id={inputId}
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const file = e.target.files[0];
-          if (file) onFileSelected(file);
-          e.target.value = '';
-        }}
-      />
-      <label htmlFor={inputId} style={{ display: 'inline-block' }}>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          cursor: uploading ? 'not-allowed' : 'pointer',
-          opacity: uploading ? 0.5 : 1,
-          padding: '5px 12px', fontSize: 12, fontWeight: 600, borderRadius: 8,
-          background: clr.accentLight, color: clr.accentText,
-          border: `1.5px dashed ${clr.accent}`,
-        }}>
-          {uploading ? '📎 Uploading document...' : '📎 Upload Document (PDF/DOC/DOCX)'}
-        </span>
-      </label>
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // COURSE IMAGE UPLOADER
@@ -667,7 +635,7 @@ function MarkdownImage({ src, alt }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUBTOPIC CONTENT EDITOR
+// SUBTOPIC CONTENT EDITOR - WITH SHARED PDF UPLOAD
 // ═══════════════════════════════════════════════════════════════════════════════
 const SubtopicContentEditor = React.memo(function SubtopicContentEditor({ 
   sub, 
@@ -682,7 +650,28 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
   const [interviewContent, setInterviewContent] = useState(sub?.interviewContent || '');
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('notes');
-  const [uploadingDoc, setUploadingDoc] = useState(false);
+
+  // ✅ Use the shared PDF upload hook for Notes
+  const {
+    uploadingDoc,
+    showProgress,
+    progress,
+    fileName,
+    uploadDocument,
+    handleCancelUpload,
+  } = usePdfUpload({
+    subtopicId,
+    toast,
+    endpoint: `/admin/subtopics/${subtopicId}/upload-pdf`,
+    onSuccess: async (data) => {
+      const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
+      setNotes(refreshedSub.content || '');
+      setVideoUrl(refreshedSub.videoUrl || '');
+      setExamContent(refreshedSub.examContent || '');
+      setInterviewContent(refreshedSub.interviewContent || '');
+      onUpdate(refreshedSub);
+    }
+  });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [matches, setMatches] = useState([]);
@@ -788,42 +777,6 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
     onUpdate(patch);
   };
 
-  const uploadDocument = async (file) => {
-    if (!file) return;
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      toast.show('Only PDF, DOC and DOCX files are allowed', 'error');
-      return;
-    }
-    setUploadingDoc(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const response = await axiosInstance.post(
-        `/admin/subtopics/${subtopicId}/upload-pdf`,
-        formData
-      );
-      const data = response.data;
-      const refreshedSub = await api.get(`/admin/subtopics/${subtopicId}`);
-      setNotes(refreshedSub.content || '');
-      setVideoUrl(refreshedSub.videoUrl || '');
-      setExamContent(refreshedSub.examContent || '');
-      setInterviewContent(refreshedSub.interviewContent || '');
-      onUpdate(refreshedSub);
-      toast.show(`✅ Document processed: ${data.imageCount ?? 0} image(s) extracted.`, 'success');
-    } catch (err) {
-      console.error('Upload error:', err);
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Upload failed';
-      toast.show(msg, 'error');
-    } finally {
-      setUploadingDoc(false);
-    }
-  };
-
   const embedUrl = videoUrl?.includes('watch?v=')
     ? videoUrl.replace('watch?v=', 'embed/')
     : videoUrl?.includes('youtu.be/')
@@ -848,201 +801,215 @@ const SubtopicContentEditor = React.memo(function SubtopicContentEditor({
   };
 
   return (
-    <Card>
-      <div style={{ borderBottom: `1px solid ${clr.border}`, display: 'flex', overflowX: 'auto' }}>
-        {tabs.map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-            padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 13, color: activeTab === tab.key ? clr.accent : clr.muted,
-            borderBottom: activeTab === tab.key ? `2px solid ${clr.accent}` : '2px solid transparent',
-            fontWeight: activeTab === tab.key ? 600 : 400, whiteSpace: 'nowrap',
-          }}>
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <>
+      <Card>
+        <div style={{ borderBottom: `1px solid ${clr.border}`, display: 'flex', overflowX: 'auto' }}>
+          {tabs.map(tab => (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+              padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 13, color: activeTab === tab.key ? clr.accent : clr.muted,
+              borderBottom: activeTab === tab.key ? `2px solid ${clr.accent}` : '2px solid transparent',
+              fontWeight: activeTab === tab.key ? 600 : 400, whiteSpace: 'nowrap',
+            }}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 340px)' }}>
-        {activeTab === 'notes' && (
-          <div style={{ padding: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <Lbl>📝 Markdown Editor (Admin Editable)</Lbl>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Btn size="sm" onClick={clearNotes} disabled={saving || !notes} variant="danger">
-                  {saving ? 'Clearing…' : '🗑️ Clear Content'}
-                </Btn>
-                <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">
-                  {saving ? 'Saving…' : '💾 Save Notes'}
-                </Btn>
+        <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 340px)' }}>
+          {activeTab === 'notes' && (
+            <div style={{ padding: 22 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Lbl>📝 Markdown Editor (Admin Editable)</Lbl>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Btn size="sm" onClick={clearNotes} disabled={saving || !notes} variant="danger">
+                    {saving ? 'Clearing…' : '🗑️ Clear Content'}
+                  </Btn>
+                  <Btn size="sm" onClick={saveNotes} disabled={saving} variant="success">
+                    {saving ? 'Saving…' : '💾 Save Notes'}
+                  </Btn>
+                </div>
               </div>
-            </div>
 
-            <DocumentUploadButton
-              subtopicId={subtopicId}
-              uploading={uploadingDoc}
-              onFileSelected={uploadDocument}
-            />
-
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
-              <input
-                type="text"
-                placeholder="Search notes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '6px 10px',
-                  border: `1px solid ${clr.border}`,
-                  borderRadius: '6px',
-                  outline: 'none',
-                  fontSize: '13px',
-                  background: clr.white,
-                  color: clr.text,
-                }}
+              {/* ✅ Use shared DocumentUploadButton */}
+              <DocumentUploadButton
+                uploading={uploadingDoc}
+                onFileSelected={uploadDocument}
+                toast={toast}
+                label="Upload PDF Only"
+                buttonId={`notes-upload-${subtopicId}`}
               />
-              {matches.length > 0 && (
-                <span style={{ fontSize: '12px', color: clr.muted, minWidth: '60px' }}>
-                  {currentMatchIndex + 1} of {matches.length}
-                </span>
-              )}
-              <button
-                onClick={() => goToMatch(currentMatchIndex - 1)}
-                disabled={matches.length === 0}
-                style={{
-                  background: matches.length ? clr.accentLight : clr.faint,
-                  border: `1px solid ${clr.border}`,
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  cursor: matches.length ? 'pointer' : 'not-allowed',
-                  color: matches.length ? clr.accentText : clr.muted,
-                }}
-              >
-                ↑
-              </button>
-              <button
-                onClick={() => goToMatch(currentMatchIndex + 1)}
-                disabled={matches.length === 0}
-                style={{
-                  background: matches.length ? clr.accentLight : clr.faint,
-                  border: `1px solid ${clr.border}`,
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  cursor: matches.length ? 'pointer' : 'not-allowed',
-                  color: matches.length ? clr.accentText : clr.muted,
-                }}
-              >
-                ↓
-              </button>
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
+                <input
+                  type="text"
+                  placeholder="Search notes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '16px',
-                    cursor: 'pointer',
-                    color: clr.muted,
+                    flex: 1,
+                    padding: '6px 10px',
+                    border: `1px solid ${clr.border}`,
+                    borderRadius: '6px',
+                    outline: 'none',
+                    fontSize: '13px',
+                    background: clr.white,
+                    color: clr.text,
+                  }}
+                />
+                {matches.length > 0 && (
+                  <span style={{ fontSize: '12px', color: clr.muted, minWidth: '60px' }}>
+                    {currentMatchIndex + 1} of {matches.length}
+                  </span>
+                )}
+                <button
+                  onClick={() => goToMatch(currentMatchIndex - 1)}
+                  disabled={matches.length === 0}
+                  style={{
+                    background: matches.length ? clr.accentLight : clr.faint,
+                    border: `1px solid ${clr.border}`,
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    cursor: matches.length ? 'pointer' : 'not-allowed',
+                    color: matches.length ? clr.accentText : clr.muted,
                   }}
                 >
-                  ✕
+                  ↑
                 </button>
+                <button
+                  onClick={() => goToMatch(currentMatchIndex + 1)}
+                  disabled={matches.length === 0}
+                  style={{
+                    background: matches.length ? clr.accentLight : clr.faint,
+                    border: `1px solid ${clr.border}`,
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    cursor: matches.length ? 'pointer' : 'not-allowed',
+                    color: matches.length ? clr.accentText : clr.muted,
+                  }}
+                >
+                  ↓
+                </button>
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      color: clr.muted,
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <textarea
+                  id="notes-editor"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={12}
+                  style={{
+                    width: '100%',
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    padding: 12,
+                    border: `1px solid ${clr.border}`,
+                    borderRadius: 8,
+                    outline: 'none',
+                    background: clr.white,
+                    color: clr.text,
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: clr.muted }}>
+                  📄 Preview (Students will see this with copy protection) – <mark style={{ background: '#fde047', padding: '0 4px', borderRadius: '2px' }}>yellow</mark> highlights matches
+                </div>
+                <div
+                  style={{
+                    border: `1px solid ${clr.border}`,
+                    borderRadius: 8,
+                    padding: 16,
+                    background: clr.white,
+                    minHeight: 200,
+                    overflowY: 'auto',
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                  }}
+                  onCopy={(e) => e.preventDefault()}
+                >
+                  <ReactMarkdown
+                    components={markdownComponents}
+                    rehypePlugins={[rehypeRaw]}
+                  >
+                    {highlightText(notes)}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'video' && (
+            <div style={{ padding: 22 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Lbl>Video URL</Lbl>
+                <Btn size="sm" onClick={saveVideo} disabled={saving} variant="success">
+                  {saving ? 'Saving…' : '💾 Save Video'}
+                </Btn>
+              </div>
+              <Inp value={videoUrl} onChange={setVideoUrl} placeholder="https://youtube.com/watch?v=..." />
+              {embedUrl && (
+                <iframe
+                  width="100%"
+                  height="400"
+                  src={embedUrl}
+                  title="Video Preview"
+                  frameBorder="0"
+                  allowFullScreen
+                  style={{ marginTop: 16, borderRadius: 8 }}
+                />
               )}
             </div>
+          )}
 
-            <div style={{ marginBottom: 20 }}>
-              <textarea
-                id="notes-editor"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={12}
-                style={{
-                  width: '100%',
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  padding: 12,
-                  border: `1px solid ${clr.border}`,
-                  borderRadius: 8,
-                  outline: 'none',
-                  background: clr.white,
-                  color: clr.text,
-                  resize: 'vertical',
-                }}
-              />
-            </div>
+          {activeTab === 'exam' && (
+            <ExamTab 
+              subtopicId={subtopicId} 
+              toast={toast} 
+              onUpdate={handleTabUpdate} 
+              initialData={{ examContent: examContent }}
+            />
+          )}
 
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 6, color: clr.muted }}>
-                📄 Preview (Students will see this with copy protection) – <mark style={{ background: '#fde047', padding: '0 4px', borderRadius: '2px' }}>yellow</mark> highlights matches
-              </div>
-              <div
-                style={{
-                  border: `1px solid ${clr.border}`,
-                  borderRadius: 8,
-                  padding: 16,
-                  background: clr.white,
-                  minHeight: 200,
-                  overflowY: 'auto',
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                }}
-                onCopy={(e) => e.preventDefault()}
-              >
-                <ReactMarkdown
-                  components={markdownComponents}
-                  rehypePlugins={[rehypeRaw]}
-                >
-                  {highlightText(notes)}
-                </ReactMarkdown>
-              </div>
-            </div>
-          </div>
-        )}
+          {activeTab === 'interview' && (
+            <InterviewTab 
+              subtopicId={subtopicId} 
+              toast={toast} 
+              onUpdate={handleTabUpdate} 
+              initialData={{ interviewContent: interviewContent }}
+            />
+          )}
+        </div>
+      </Card>
 
-        {activeTab === 'video' && (
-          <div style={{ padding: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <Lbl>Video URL</Lbl>
-              <Btn size="sm" onClick={saveVideo} disabled={saving} variant="success">
-                {saving ? 'Saving…' : '💾 Save Video'}
-              </Btn>
-            </div>
-            <Inp value={videoUrl} onChange={setVideoUrl} placeholder="https://youtube.com/watch?v=..." />
-            {embedUrl && (
-              <iframe
-                width="100%"
-                height="400"
-                src={embedUrl}
-                title="Video Preview"
-                frameBorder="0"
-                allowFullScreen
-                style={{ marginTop: 16, borderRadius: 8 }}
-              />
-            )}
-          </div>
-        )}
-
-        {activeTab === 'exam' && (
-          <ExamTab 
-            subtopicId={subtopicId} 
-            toast={toast} 
-            onUpdate={handleTabUpdate} 
-            initialData={{ examContent: examContent }}
-          />
-        )}
-
-        {activeTab === 'interview' && (
-          <InterviewTab 
-            subtopicId={subtopicId} 
-            toast={toast} 
-            onUpdate={handleTabUpdate} 
-            initialData={{ interviewContent: interviewContent }}
-          />
-        )}
-      </div>
-    </Card>
+      {/* ✅ Use shared progress modal */}
+      {showProgress && (
+        <PdfUploadProgress
+          progress={progress}
+          fileName={fileName}
+          onCancel={handleCancelUpload}
+        />
+      )}
+    </>
   );
 });
 
@@ -1054,10 +1021,8 @@ SubtopicContentEditor.displayName = 'SubtopicContentEditor';
 export default function AdminCourseManager() {
   const toast = useToast();
   
-  // ✅ FIX: Create a ref to store the toast object
   const toastRef = useRef(toast);
   
-  // ✅ FIX: Update ref when toast changes
   useEffect(() => {
     toastRef.current = toast;
   }, [toast]);
@@ -1200,7 +1165,6 @@ export default function AdminCourseManager() {
     setExpandedTopics(prev => ({ ...prev, [topicId]: !prev[topicId] }));
   };
 
-  // ✅ FIXED: Use toastRef.current in useMemo and remove toast from dependencies
   const subtopicEditor = useMemo(() => {
     if (!activeSub) return null;
     console.log('🔄 Creating SubtopicContentEditor for:', activeSub.id);
@@ -1209,12 +1173,12 @@ export default function AdminCourseManager() {
         key={activeSub.id}
         sub={activeSub}
         subtopicId={activeSub.id}
-        toast={toastRef.current}  // ← Use ref instead of direct toast
+        toast={toastRef.current}
         onUpdate={updateActiveSub}
         highlightSearchTerm={highlightSearchTerm}
       />
     );
-  }, [activeSub, updateActiveSub, highlightSearchTerm]); // ← toast removed from deps
+  }, [activeSub, updateActiveSub, highlightSearchTerm]);
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: clr.text, background: clr.bg, minHeight: '100vh' }}>
