@@ -18,7 +18,6 @@ import {
   checkEnrollment,
   getLabsContent,
 } from '../api/UserApi';
-import { getCourseDetailConfig } from './Admin/CourseDetailEditorTab';
 import { getImageUrl } from '../utils/imageUtils';
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
@@ -37,6 +36,18 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import ScienceIcon from '@mui/icons-material/Science';
+
+// ─── Course Detail Config ──────────────────────────────────────────────────
+const CONFIG = {
+  colors: {
+    accent: '#714b67',
+    accentDark: '#5a3a4e',
+    success: '#10B981',
+    error: '#EF4444',
+    warning: '#F59E0B',
+    gold: '#E8B84B',
+  }
+};
 
 // ─── Odoo eLearning Color Palette ────────────────────────────────────
 const SIDEBAR = {
@@ -1261,7 +1272,7 @@ export default function CourseDetailView({
   resetProgress,
   markSectionComplete,
   getImageSrc,
-  getImageUrl,
+  getImageUrl: propGetImageUrl,
   handleImageError,
   isGuest = false,
   isPreview = false,
@@ -1327,8 +1338,8 @@ export default function CourseDetailView({
     }
   }, [propLoadSubtopicImages]);
 
-  // ─── Load config ─────────────────────────────────────────────────────
-  const config = getCourseDetailConfig();
+  // ─── Config ─────────────────────────────────────────────────────
+  const config = CONFIG;
 
   // ─── Define the display order of content types ──────────────────────
   const typeOrder = ['notes', 'video', 'exam-content', 'interview-content', 'interview', 'exam', 'labs'];
