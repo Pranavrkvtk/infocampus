@@ -2,9 +2,10 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { colors } from "./AdminStyles";
 import Swal from "sweetalert2";
+import { searchUsersByPhone, getAllUsers } from "../../api/adminApi";
 
 export default function StudentsTab({
-  students,
+  students = [],
   searchTerm,
   handleSearchChange,
   handleToggleStatus,
@@ -14,9 +15,14 @@ export default function StudentsTab({
   const protectedEmails = ["admin@gmail.com"];
 
   const [filterStatus, setFilterStatus] = useState("ALL");
-  const [filterRole, setFilterRole] = useState("ALL");
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  
+  // Phone search state
+  const [phoneSearch, setPhoneSearch] = useState("");
+  const [phoneSearchResults, setPhoneSearchResults] = useState([]);
+  const [isPhoneSearching, setIsPhoneSearching] = useState(false);
+  const [showPhoneResults, setShowPhoneResults] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,43 +52,88 @@ export default function StudentsTab({
     };
   }, []);
 
-  // Stats
+  // ─── Phone Search Handler ────────────────────────────────────────────
+  const handlePhoneSearch = async () => {
+    if (!phoneSearch.trim()) {
+      setShowPhoneResults(false);
+      setPhoneSearchResults([]);
+      return;
+    }
+
+    setIsPhoneSearching(true);
+    try {
+      const response = await searchUsersByPhone(phoneSearch);
+      console.log('📱 Phone search response:', response);
+      
+      // ✅ Handle different response formats
+      let users = [];
+      if (response.data && response.data.success) {
+        users = response.data.users || [];
+      } else if (response.data && Array.isArray(response.data)) {
+        users = response.data;
+      } else if (Array.isArray(response)) {
+        users = response;
+      }
+      
+      setPhoneSearchResults(users);
+      setShowPhoneResults(true);
+      console.log(`📱 Found ${users.length} users with phone: ${phoneSearch}`);
+    } catch (error) {
+      console.error("Error searching by phone:", error);
+      Swal.fire({
+        title: "Search Failed",
+        text: error?.response?.data?.error || "Failed to search users by phone",
+        icon: "error",
+      });
+    } finally {
+      setIsPhoneSearching(false);
+    }
+  };
+
+  // Clear phone search results
+  const clearPhoneSearch = () => {
+    setPhoneSearch("");
+    setPhoneSearchResults([]);
+    setShowPhoneResults(false);
+  };
+
+  // ─── Stats ─────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const total = students.length;
-    const active = students.filter((s) => (s.status || "ACTIVE") === "ACTIVE").length;
-    const inactive = students.filter((s) => s.status === "INACTIVE").length;
-    const admins = students.filter((s) => s.role === "ADMIN").length;
-    const withPhone = students.filter((s) => s.phone && s.phone.length > 0).length;
-    return { total, active, inactive, admins, withPhone };
+    const studentsArray = Array.isArray(students) ? students : [];
+    const total = studentsArray.length;
+    const active = studentsArray.filter((s) => (s.status || "ACTIVE") === "ACTIVE").length;
+    const inactive = studentsArray.filter((s) => s.status === "INACTIVE").length;
+    const withPhone = studentsArray.filter((s) => s.phone && s.phone && s.phone.length > 0).length;
+    return { total, active, inactive, withPhone };
   }, [students]);
 
-  // Roles available for filter dropdown
-  const roles = useMemo(
-    () => [...new Set(students.map((s) => s.role || "STUDENT").filter(Boolean))],
-    [students]
-  );
-
-  // Filtered list
+  // ─── Filtered list ─────────────────────────────────────────────────────
   const filteredStudents = useMemo(() => {
-    return students.filter((s) => {
+    const studentsArray = Array.isArray(students) ? students : [];
+    
+    // If phone search is active, show phone search results
+    if (showPhoneResults && phoneSearchResults.length > 0) {
+      return phoneSearchResults;
+    }
+    
+    // Otherwise filter by status only
+    return studentsArray.filter((s) => {
       const status = s.status || "ACTIVE";
-      const role = s.role || "STUDENT";
       const matchesStatus = filterStatus === "ALL" || status === filterStatus;
-      const matchesRole = filterRole === "ALL" || role === filterRole;
-      return matchesStatus && matchesRole;
+      return matchesStatus;
     });
-  }, [students, filterStatus, filterRole]);
+  }, [students, filterStatus, phoneSearchResults, showPhoneResults]);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, filterRole, searchTerm]);
+  }, [filterStatus, searchTerm, phoneSearchResults]);
 
   // Reset selection when filters change
   useEffect(() => {
     setSelectedStudents([]);
     setSelectAll(false);
-  }, [filterStatus, filterRole, searchTerm]);
+  }, [filterStatus, searchTerm, phoneSearchResults]);
 
   // Get current page items
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -127,14 +178,6 @@ export default function StudentsTab({
       INACTIVE: { bg: "#fee2e2", color: "#991b1b", text: "🔴 Inactive" },
     };
     return statusMap[status] || statusMap["ACTIVE"];
-  };
-
-  const getRoleBadge = (role) => {
-    const roleMap = {
-      ADMIN: { bg: "#dbeafe", color: "#1e40af", text: "👑 Admin" },
-      STUDENT: { bg: "#fef3c7", color: "#92400e", text: "🎓 Student" },
-    };
-    return roleMap[role] || roleMap["STUDENT"];
   };
 
   // Check if student can be selected (not protected admin)
@@ -276,7 +319,7 @@ export default function StudentsTab({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)",
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
           gap: "16px",
           marginBottom: "24px",
         }}
@@ -303,13 +346,6 @@ export default function StudentsTab({
         </div>
 
         <div style={statCardStyle}>
-          <div style={{ fontSize: "24px", fontWeight: 700, color: "#1e40af" }}>
-            {stats.admins}
-          </div>
-          <div style={statLabelStyle}>👑 Admins</div>
-        </div>
-
-        <div style={statCardStyle}>
           <div style={{ fontSize: "24px", fontWeight: 700, color: "#7c3aed" }}>
             {stats.withPhone}
           </div>
@@ -323,7 +359,7 @@ export default function StudentsTab({
           display: "flex",
           flexWrap: "wrap",
           gap: "12px",
-          marginBottom: "20px",
+          marginBottom: "16px",
           alignItems: "center",
         }}
       >
@@ -337,6 +373,58 @@ export default function StudentsTab({
           />
         </div>
 
+        {/* ✅ Phone Search Input */}
+        <div style={{ display: "flex", gap: "8px", minWidth: "200px" }}>
+          <input
+            type="text"
+            placeholder="📱 Search by phone..."
+            value={phoneSearch}
+            onChange={(e) => setPhoneSearch(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handlePhoneSearch()}
+            style={{
+              ...inputStyle,
+              minWidth: "150px",
+              fontFamily: "monospace",
+            }}
+          />
+          <button
+            onClick={handlePhoneSearch}
+            disabled={isPhoneSearching || !phoneSearch.trim()}
+            style={{
+              padding: "10px 16px",
+              borderRadius: "10px",
+              border: "none",
+              background: phoneSearch.trim() ? colors.primary : "#e2e8f0",
+              color: phoneSearch.trim() ? "#fff" : "#94a3b8",
+              fontWeight: 600,
+              fontSize: "13px",
+              cursor: phoneSearch.trim() ? "pointer" : "not-allowed",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {isPhoneSearching ? "⏳" : "🔍"}
+          </button>
+          {showPhoneResults && (
+            <button
+              onClick={clearPhoneSearch}
+              style={{
+                padding: "10px 14px",
+                borderRadius: "10px",
+                border: "none",
+                background: "#fee2e2",
+                color: "#dc2626",
+                fontWeight: 600,
+                fontSize: "13px",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              ✕ Clear
+            </button>
+          )}
+        </div>
+
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -345,19 +433,6 @@ export default function StudentsTab({
           <option value="ALL">📊 All Status</option>
           <option value="ACTIVE">🟢 Active</option>
           <option value="INACTIVE">🔴 Inactive</option>
-        </select>
-
-        <select
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value)}
-          style={{ ...selectStyle, maxWidth: "200px" }}
-        >
-          <option value="ALL">🧑‍🤝‍🧑 All Roles</option>
-          {roles.map((role, index) => (
-            <option key={index} value={role}>
-              {role}
-            </option>
-          ))}
         </select>
 
         {/* Bulk Delete Button */}
@@ -392,6 +467,31 @@ export default function StudentsTab({
         )}
       </div>
 
+      {/* Phone Search Results Info */}
+      {showPhoneResults && (
+        <div
+          style={{
+            padding: "10px 16px",
+            marginBottom: "16px",
+            background: "#ede9fe",
+            borderRadius: "10px",
+            border: "1px solid #c4b5fd",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "8px",
+          }}
+        >
+          <span style={{ color: "#5b21b6", fontSize: "14px", fontWeight: 500 }}>
+            📱 Phone Search Results: Found {phoneSearchResults.length} user{phoneSearchResults.length !== 1 ? 's' : ''}
+          </span>
+          <span style={{ color: "#7c3aed", fontSize: "12px" }}>
+            Search term: <strong>{phoneSearch}</strong>
+          </span>
+        </div>
+      )}
+
       {/* Students Table */}
       {filteredStudents.length === 0 ? (
         <div
@@ -405,12 +505,14 @@ export default function StudentsTab({
         >
           <div style={{ fontSize: "48px", marginBottom: "16px" }}>👥</div>
           <h3 style={{ color: "var(--text-primary)", marginBottom: "8px" }}>
-            No Students Found
+            {showPhoneResults ? "No Users Found" : "No Students Found"}
           </h3>
           <p style={{ color: "var(--text-secondary)" }}>
-            {localSearch || filterStatus !== "ALL" || filterRole !== "ALL"
-              ? "Try adjusting your filters"
-              : "No students have registered yet"}
+            {showPhoneResults
+              ? `No users found with phone number: ${phoneSearch}`
+              : localSearch || filterStatus !== "ALL"
+                ? "Try adjusting your filters"
+                : "No students have registered yet"}
           </p>
         </div>
       ) : (
@@ -424,7 +526,7 @@ export default function StudentsTab({
           }}
         >
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "950px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "850px" }}>
               <thead>
                 <tr
                   style={{
@@ -449,7 +551,6 @@ export default function StudentsTab({
                   <th style={thStyle}>Student</th>
                   <th style={thStyle}>Email</th>
                   <th style={{ ...thStyle, textAlign: "center" }}>📱 Phone</th>
-                  <th style={{ ...thStyle, textAlign: "center" }}>Role</th>
                   <th style={{ ...thStyle, textAlign: "center" }}>Status</th>
                   <th style={{ ...thStyle, textAlign: "center" }}>Actions</th>
                 </tr>
@@ -460,9 +561,7 @@ export default function StudentsTab({
                   const isProtectedAdmin =
                     student.role === "ADMIN" && protectedEmails.includes(student.email);
                   const status = student.status || "ACTIVE";
-                  const role = student.role || "STUDENT";
                   const statusBadge = getStatusBadge(status);
-                  const roleBadge = getRoleBadge(role);
                   const selectable = isSelectable(student);
                   const isSelected = selectedStudents.includes(student.id);
 
@@ -521,13 +620,13 @@ export default function StudentsTab({
                               flexShrink: 0,
                             }}
                           >
-                            {student.name?.charAt(0)?.toUpperCase()}
+                            {student.name?.charAt(0)?.toUpperCase() || '?'}
                           </div>
 
                           <div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
-                                {student.name}
+                                {student.name || 'Unknown'}
                               </span>
                               {isProtectedAdmin && (
                                 <span
@@ -548,10 +647,10 @@ export default function StudentsTab({
                       </td>
 
                       <td style={{ ...tdStyle, color: "var(--text-secondary)" }}>
-                        {student.email}
+                        {student.email || '-'}
                       </td>
 
-                      {/* ✅ Phone column - Display without dashes */}
+                      {/* Phone column */}
                       <td style={{ ...tdStyle, textAlign: "center" }}>
                         {student.phone ? (
                           <span
@@ -575,21 +674,7 @@ export default function StudentsTab({
                         )}
                       </td>
 
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
-                        <span
-                          style={{
-                            padding: "4px 12px",
-                            borderRadius: "20px",
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            background: roleBadge.bg,
-                            color: roleBadge.color,
-                          }}
-                        >
-                          {roleBadge.text}
-                        </span>
-                      </td>
-
+                      {/* Status column */}
                       <td style={{ ...tdStyle, textAlign: "center" }}>
                         <span
                           style={{

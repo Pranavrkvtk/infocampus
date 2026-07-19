@@ -69,7 +69,7 @@ export default function AdminDashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch all students
+  // ✅ FIXED: Fetch all students with proper response handling
   const fetchAllStudents = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
@@ -78,9 +78,25 @@ export default function AdminDashboard() {
     setError(null);
     try {
       const response = await getAllStudents();
-      setStudents(response.data || []);
+      console.log('📥 Students API response:', response);
+      
+      // ✅ Handle different response formats
+      let studentsData = [];
+      if (response.data && response.data.success) {
+        // New format: { success: true, count: 30, users: [...] }
+        studentsData = response.data.users || [];
+      } else if (response.data && Array.isArray(response.data)) {
+        // Old format: directly array
+        studentsData = response.data;
+      } else if (Array.isArray(response)) {
+        studentsData = response;
+      }
+      
+      console.log('📥 Extracted students:', studentsData.length);
+      setStudents(studentsData);
     } catch (err) {
       if (err.name !== "AbortError") {
+        console.error('Error fetching users:', err);
         setError(err.response?.data?.message || "Failed to load users");
         setStudents([]);
       }
@@ -90,7 +106,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fetch all enrollments
+  // ✅ FIXED: Fetch enrollments with proper response handling
   const fetchEnrollments = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     const abortController = new AbortController();
@@ -99,9 +115,21 @@ export default function AdminDashboard() {
     setError(null);
     try {
       const response = await getAllEnrollments();
-      setEnrollments(response.data || []);
+      console.log('📥 Enrollments API response:', response);
+      
+      let enrollmentsData = [];
+      if (response.data && response.data.success) {
+        enrollmentsData = response.data.enrollments || response.data.data || [];
+      } else if (response.data && Array.isArray(response.data)) {
+        enrollmentsData = response.data;
+      } else if (Array.isArray(response)) {
+        enrollmentsData = response;
+      }
+      
+      setEnrollments(enrollmentsData);
     } catch (err) {
       if (err.name !== "AbortError") {
+        console.error('Error fetching enrollments:', err);
         setError(err.response?.data?.message || "Failed to load enrollments");
         setEnrollments([]);
       }
@@ -111,7 +139,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Search students
+  // ✅ FIXED: Search students with proper response handling
   const searchStudents = useCallback(async (name) => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -123,7 +151,17 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       const response = await searchUsersByName(trimmedName);
-      if (currentSearchTermRef.current === trimmedName) setStudents(response.data || []);
+      if (currentSearchTermRef.current === trimmedName) {
+        let studentsData = [];
+        if (response.data && response.data.success) {
+          studentsData = response.data.users || [];
+        } else if (response.data && Array.isArray(response.data)) {
+          studentsData = response.data;
+        } else if (Array.isArray(response)) {
+          studentsData = response;
+        }
+        setStudents(studentsData);
+      }
     } catch (err) {
       if (err.name !== "AbortError" && currentSearchTermRef.current === trimmedName)
         setError(err.response?.data?.message || "Failed to search users");
@@ -168,7 +206,8 @@ export default function AdminDashboard() {
     if (result.isConfirmed) {
       Swal.fire({ title: "Processing...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        await updateUserStatus(studentId, newStatus); await fetchAllStudents();
+        await updateUserStatus(studentId, newStatus); 
+        await fetchAllStudents();
         Swal.fire({ title: `User ${action}d!`, icon: "success", timer: 2000, showConfirmButton: false });
       } catch (error) {
         Swal.fire({ title: "Failed!", text: error.response?.data?.message || `Failed to ${action} user`, icon: "error" });
@@ -250,8 +289,6 @@ export default function AdminDashboard() {
     { icon: "👨‍🎓", label: "Students",      id: "students"       },
     { icon: "📋", label: "Enrollments",    id: "enrollments"    },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
-    // ❌ REMOVED: { icon: "📚", label: "My Courses Editor", id: "my-courses-editor" },
-    // ❌ REMOVED: { icon: "📄", label: "Course Detail Editor", id: "course-detail-editor" },
   ];
 
   // ✅ UPDATED: Removed editor tabs from page titles
@@ -262,8 +299,6 @@ export default function AdminDashboard() {
     enrollments:     "Enrollment Management",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
-    // ❌ REMOVED: "my-courses-editor": "My Courses Editor",
-    // ❌ REMOVED: "course-detail-editor": "Course Detail Editor",
   };
 
   // ✅ UPDATED: Removed editor tabs from page subs
@@ -274,8 +309,6 @@ export default function AdminDashboard() {
     enrollments:     "View all student enrollments",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, and exam questions",
-    // ❌ REMOVED: "my-courses-editor": "Customize all text, icons, and content on the My Courses page",
-    // ❌ REMOVED: "course-detail-editor": "Customize the course detail page layout, colors, and content",
   };
 
   // ===================== SIDEBAR NAV ITEM =====================

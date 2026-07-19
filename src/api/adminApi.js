@@ -375,6 +375,59 @@ export const searchUsersByName = (name) => {
   });
 };
 
+// ✅ NEW: Search users by phone number (partial match)
+export const searchUsersByPhone = (phone) => {
+  const token = localStorage.getItem("token");
+
+  return api.get("/admin/users/search-by-phone", {
+    params: { phone },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+};
+
+// ✅ NEW: Search users by phone number with pagination
+export const searchUsersByPhonePaginated = (phone, page = 0, size = 10) => {
+  const token = localStorage.getItem("token");
+
+  return api.get("/admin/users/search-by-phone-paginated", {
+    params: { phone, page, size },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+};
+
+// ✅ NEW: Get user by exact phone number
+export const getUserByPhoneExact = (phone) => {
+  const token = localStorage.getItem("token");
+
+  return api.get("/admin/users/by-phone-exact", {
+    params: { phone },
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+};
+
+// ✅ NEW: Advanced search with multiple filters
+export const searchUsersAdvanced = (filters = {}, page = 0, size = 20) => {
+  const token = localStorage.getItem("token");
+  const params = {
+    ...filters,
+    page,
+    size
+  };
+
+  return api.get("/admin/users/search-advanced", {
+    params,
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+};
+
 // Get all users
 export const getAllUsers = () => {
   return api.get("/admin/users");
@@ -596,7 +649,7 @@ export const getEnrollmentTrends = (period = "monthly", year = null) => {
   });
 };
 
-// ==================== LABS CONTENT MANAGEMENT APIs (NEW) ====================
+// ==================== LABS CONTENT MANAGEMENT APIs ====================
 
 /**
  * Get labs content for a specific subtopic
@@ -750,6 +803,10 @@ const adminApi = {
   
   // User Management
   searchUsersByName,
+  searchUsersByPhone, // ✅ NEW
+  searchUsersByPhonePaginated, // ✅ NEW
+  getUserByPhoneExact, // ✅ NEW
+  searchUsersAdvanced, // ✅ NEW
   getAllUsers,
   getUserById,
   updateUserRole,
@@ -799,13 +856,13 @@ const adminApi = {
   getLabCompletionStats,
   getEnrollmentTrends,
   
-  // Labs Management (NEW)
+  // Labs Management
   getLabsContent,
   saveLabsContent,
   uploadLabsPdf,
   clearLabsContent,
   
-  // Labs Statistics (NEW)
+  // Labs Statistics
   getLabsStats,
   getStudentLabsProgress,
   getCourseLabs,
