@@ -2090,7 +2090,6 @@ export default function CourseDetailView({
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     },
     topBar: {
-      // ✅ UPDATED: Match MyCoursesPage and Enrollments - 28px mobile, 32px desktop
       height: isMobile ? '28px' : '32px',
       background: TOPBAR.bgGradient,
       borderBottom: `1px solid ${TOPBAR.border}`,
@@ -2116,9 +2115,9 @@ export default function CourseDetailView({
     actionButton: {
       display: 'flex',
       alignItems: 'center',
-      gap: isMobile ? '2px' : '5px',
-      padding: isMobile ? '0 6px' : '0 12px',
-      fontSize: isMobile ? '10px' : '12px',
+      gap: isMobile ? '2px' : '10px',
+      padding: isMobile ? '0 6px' : '0 24px',
+      fontSize: isMobile ? '10px' : '15px',
       fontWeight: 600,
       border: 'none',
       borderLeft: `1px solid ${TOPBAR.border}`,
@@ -2364,9 +2363,9 @@ export default function CourseDetailView({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: isMobile ? '2px' : '4px',
-              padding: isMobile ? '0 5px' : '0 8px',
-              fontSize: isMobile ? '10px' : '11px',
+              gap: isMobile ? '2px' : '10px',
+              padding: isMobile ? '0 6px' : '0 24px',
+              fontSize: isMobile ? '10px' : '15px',
               fontWeight: 700,
               color: TOPBAR.text,
               cursor: 'pointer',
@@ -2403,9 +2402,9 @@ export default function CourseDetailView({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: isMobile ? '2px' : '4px',
-                padding: isMobile ? '0 5px' : '0 8px',
-                fontSize: isMobile ? '10px' : '11px',
+                gap: isMobile ? '2px' : '10px',
+                padding: isMobile ? '0 6px' : '0 24px',
+                fontSize: isMobile ? '10px' : '15px',
                 fontWeight: 600,
                 color: TOPBAR.text,
                 cursor: 'pointer',
@@ -2422,13 +2421,14 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              <span style={{ fontSize: isMobile ? '10px' : '11px' }}>←</span>
+              <span style={{ fontSize: isMobile ? '12px' : '15px' }}>←</span>
               <span style={{ display: isMobile ? 'none' : 'inline' }}>Back</span>
             </button>
           )}
         </div>
 
         <div style={styles.topBarRight}>
+          {/* Share Button */}
           <button
             onClick={handleShare}
             className="action-btn"
@@ -2440,10 +2440,11 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <ShareIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
+            <ShareIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
             <span>Share</span>
           </button>
 
+          {/* Fullscreen Button */}
           <button
             onClick={handleFullscreen}
             className="action-btn"
@@ -2457,17 +2458,18 @@ export default function CourseDetailView({
           >
             {isFullscreen ? (
               <>
-                <FullscreenExitIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
-                <span>Exit Fullscreen</span>
+                <FullscreenExitIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
+                <span>Exit</span>
               </>
             ) : (
               <>
-                <FullscreenIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
-                <span>Full Screen</span>
+                <FullscreenIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
+                <span>Full</span>
               </>
             )}
           </button>
 
+          {/* Home Button */}
           <button
             onClick={handleHomeClick}
             className="action-btn"
@@ -2483,10 +2485,11 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <HomeOutlinedIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
+            <HomeOutlinedIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
             <span>Home</span>
           </button>
 
+          {/* Auth Buttons */}
           {isLoggedIn ? (
             <button
               onClick={handleLogout}
@@ -2502,7 +2505,7 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LogoutIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
+              <LogoutIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
               <span>Logout</span>
             </button>
           ) : (
@@ -2520,7 +2523,7 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LoginIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
+              <LoginIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
               <span>Sign In</span>
             </button>
           )}
@@ -2584,7 +2587,7 @@ export default function CourseDetailView({
                 />
               </div>
 
-              {/* Sidebar rendering */}
+              {/* Sidebar rendering - rest remains unchanged */}
               <div>
                 {filteredTopics.map((topic, topicIndex) => {
                   const topicSubs = topic.subTopics || topic.subtopics || [];
