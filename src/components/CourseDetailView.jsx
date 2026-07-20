@@ -5,6 +5,8 @@
 // ✅ Labs content fully supported
 // ✅ Auto-close sidebar on fullscreen
 // ✅ Auto-open sidebar on fullscreen exit
+// ✅ Odoo-style content rendering with questions, options, and sections
+// ✅ Content panel now stretches full width like Odoo (no 900px "paper" gap)
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -135,16 +137,16 @@ const getEmbedUrl = (url) => {
 
 const getVideoUrls = (subtopic) => {
   if (!subtopic) return [];
-  
+
   if (subtopic.videoUrls && Array.isArray(subtopic.videoUrls)) {
     const validUrls = subtopic.videoUrls.filter(url => url && url.trim() !== '');
     if (validUrls.length > 0) return validUrls;
   }
-  
+
   if (subtopic.videoUrl && subtopic.videoUrl.trim() !== '') {
     return [subtopic.videoUrl];
   }
-  
+
   return [];
 };
 
@@ -187,7 +189,7 @@ const buildImageTag = (alt, src) => {
 const inlineFormat = (str) => {
   let out = str;
   out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, url) => buildImageTag(alt, url));
-  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, text, url) => 
+  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, text, url) =>
     `<a href="${url}" target="_blank" rel="noopener noreferrer" class="note-link">${text}</a>`
   );
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -200,10 +202,16 @@ const inlineFormat = (str) => {
 
 const renderOdooContent = (text) => {
   if (!text) return '';
-  
+
+  // If content already has HTML tags, render it directly
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
+
   const lines = text.split('\n');
   let html = '';
   let listType = null;
+  let inOptionsList = false;
 
   const closeList = () => {
     if (listType) {
@@ -213,6 +221,7 @@ const renderOdooContent = (text) => {
   };
 
   const processLine = (line) => {
+    // ─── Heading 1 (Main Title) ───
     const mainHeading = line.match(/^#\s+(.+)$/);
     if (mainHeading) {
       closeList();
@@ -220,6 +229,7 @@ const renderOdooContent = (text) => {
       return true;
     }
 
+    // ─── Heading 2 (Sub Heading) ───
     const subHeading = line.match(/^##\s+(.+)$/);
     if (subHeading) {
       closeList();
@@ -227,34 +237,38 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    const question = line.match(/^#\s+(\d+)\.\s+(.*)$/);
-    if (question) {
+    // ─── Question Format: "1. Within how many hours..." ───
+    const questionMatch = line.match(/^(\d+)\.\s+(.*)$/);
+    if (questionMatch) {
       closeList();
       html += `<div class="odoo-question-wrapper">`;
-      html += `<div class="odoo-question-number">${question[1]}.</div>`;
-      html += `<div class="odoo-question-text">${inlineFormat(question[2])}</div>`;
+      html += `<div class="odoo-question-number">${questionMatch[1]}.</div>`;
+      html += `<div class="odoo-question-text">${inlineFormat(questionMatch[2])}</div>`;
       html += `</div>`;
       return true;
     }
 
-    const boldListItem = line.match(/^-\s+\*\*(.+)\*\*$/);
-    if (boldListItem) {
+    // ─── Bold Section Headers (e.g., "GETTING STARTED") ───
+    const boldHeader = line.match(/^\*\*(.+)\*\*$/);
+    if (boldHeader) {
       closeList();
-      html += `<div class="odoo-section-header">${inlineFormat(boldListItem[1])}</div>`;
+      html += `<div class="odoo-section-header">${inlineFormat(boldHeader[1])}</div>`;
       return true;
     }
 
+    // ─── Indented List Items (Options) ───
     const indentListItem = line.match(/^\s{2,}-\s+(.+)$/);
     if (indentListItem) {
-      if (listType !== 'ul') {
+      if (listType !== 'ul-options') {
         closeList();
-        html += '<ul class="odoo-list">';
-        listType = 'ul';
+        html += '<ul class="odoo-list odoo-options-list">';
+        listType = 'ul-options';
       }
-      html += `<li class="odoo-list-item">${inlineFormat(indentListItem[1])}</li>`;
+      html += `<li class="odoo-list-item odoo-option-item">${inlineFormat(indentListItem[1])}</li>`;
       return true;
     }
 
+    // ─── Regular List Items ───
     const listItem = line.match(/^-\s+(.+)$/);
     if (listItem) {
       if (listType !== 'ul') {
@@ -266,13 +280,7 @@ const renderOdooContent = (text) => {
       return true;
     }
 
-    const boldText = line.match(/^\*\*(.+)\*\*$/);
-    if (boldText) {
-      closeList();
-      html += `<div class="odoo-signin-text">${inlineFormat(boldText[1])}</div>`;
-      return true;
-    }
-
+    // ─── XP Badge ───
     const xpMatch = line.match(/^\+(\d+)\s+XP$/);
     if (xpMatch) {
       closeList();
@@ -280,12 +288,14 @@ const renderOdooContent = (text) => {
       return true;
     }
 
+    // ─── Divider ───
     if (line.match(/^---$/)) {
       closeList();
       html += '<hr class="odoo-divider" />';
       return true;
     }
 
+    // ─── Regular Paragraph ───
     closeList();
     if (line.trim()) {
       html += `<p class="odoo-paragraph">${inlineFormat(line)}</p>`;
@@ -306,6 +316,11 @@ const renderOdooContent = (text) => {
   return html;
 };
 
+// ─── Build Odoo Styles ──────────────────────────────────────────────────
+// ✅ FIXED: content now stretches to fill available width like real Odoo
+// (previously the paper was hard-capped at 900px, centered, leaving a big
+// blank gap on wide screens)
+
 const buildOdooStyles = (colors) => `
   .odoo-content {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -317,45 +332,51 @@ const buildOdooStyles = (colors) => `
     background: transparent !important;
     min-height: auto;
   }
+
   .odoo-main-heading {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 800;
     color: #1a1a1a !important;
-    margin: 0 0 24px 0;
+    margin: 0 0 20px 0;
     padding: 0;
     line-height: 1.2;
     letter-spacing: -0.02em;
   }
+
   .odoo-sub-heading {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: #1a1a1a !important;
-    margin: 32px 0 16px 0;
+    margin: 24px 0 12px 0;
     padding: 0;
     line-height: 1.3;
-    letter-spacing: -0.01em;
   }
+
   .odoo-section-header {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #4a5568 !important;
-    margin: 20px 0 8px 0;
-    padding: 0;
-    letter-spacing: 0.02em;
+    margin: 16px 0 8px 0;
+    padding: 8px 0;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
+    border-bottom: 2px solid #e2e8f0;
   }
+
   .odoo-list {
-    margin: 4px 0 20px 0;
+    margin: 8px 0 16px 0;
     padding-left: 0;
     list-style: none;
   }
+
   .odoo-list-item {
-    padding: 6px 0 6px 28px;
+    padding: 4px 0 4px 28px;
     position: relative;
     font-size: 15px;
     color: #2d3748 !important;
     line-height: 1.7;
   }
+
   .odoo-list-item::before {
     content: "●";
     position: absolute;
@@ -364,16 +385,41 @@ const buildOdooStyles = (colors) => `
     font-weight: 700;
     font-size: 12px;
   }
+
+  .odoo-options-list {
+    margin: 4px 0 12px 20px;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .odoo-option-item {
+    padding: 3px 0 3px 28px;
+    position: relative;
+    font-size: 14px;
+    color: #2d3748 !important;
+    line-height: 1.6;
+  }
+
+  .odoo-option-item::before {
+    content: "○";
+    position: absolute;
+    left: 4px;
+    color: ${colors.accent || '#714b67'};
+    font-weight: 400;
+    font-size: 14px;
+  }
+
   .odoo-question-wrapper {
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    margin: 28px 0 12px 0;
+    margin: 20px 0 8px 0;
     padding: 16px 20px;
     background: #f7fafc !important;
     border-radius: 12px;
     border-left: 4px solid ${colors.accent || '#714b67'};
   }
+
   .odoo-question-number {
     font-size: 16px;
     font-weight: 700;
@@ -381,12 +427,14 @@ const buildOdooStyles = (colors) => `
     min-width: 28px;
     flex-shrink: 0;
   }
+
   .odoo-question-text {
     font-size: 16px;
     font-weight: 600;
     color: #1a1a1a !important;
     line-height: 1.6;
   }
+
   .odoo-signin-text {
     font-size: 15px;
     font-weight: 500;
@@ -395,6 +443,7 @@ const buildOdooStyles = (colors) => `
     padding: 0;
     text-align: center;
   }
+
   .odoo-xp-badge {
     display: inline-block;
     background: ${colors.accent || '#714b67'};
@@ -405,26 +454,31 @@ const buildOdooStyles = (colors) => `
     border-radius: 20px;
     margin: 4px 0;
   }
+
   .odoo-divider {
     border: none;
     border-top: 1px solid #e2e8f0 !important;
     margin: 24px 0;
   }
+
   .odoo-paragraph {
     font-size: 15px;
     color: #2d3748 !important;
     line-height: 1.8;
-    margin: 0 0 18px 0;
+    margin: 0 0 16px 0;
   }
+
   .note-link {
     color: ${colors.accent || '#714b67'};
     text-decoration: underline;
     text-underline-offset: 2px;
     font-weight: 500;
   }
+
   .note-link:hover {
     color: #5a3a4e;
   }
+
   .note-code {
     background: #f7fafc !important;
     padding: 2px 10px;
@@ -433,6 +487,7 @@ const buildOdooStyles = (colors) => `
     font-family: 'JetBrains Mono', monospace;
     color: #2d3748 !important;
   }
+
   .note-image {
     max-width: 100%;
     border-radius: 12px;
@@ -443,19 +498,25 @@ const buildOdooStyles = (colors) => `
     -webkit-user-drag: none;
     user-drag: none;
   }
+
   .fade-in {
     animation: odooFadeIn 0.5s ease-out;
   }
+
   @keyframes odooFadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
   .odoo-content,
   .odoo-content * {
     user-select: none !important;
     -webkit-user-select: none !important;
   }
-  /* ─── Odoo Premium "Paper" layout ─── */
+
+  /* ─── Odoo Premium "Paper" layout ───
+     Content now fills the available width (like real Odoo eLearning),
+     with generous side padding instead of a fixed 900px centered block. */
   .lesson-page-wrapper {
     width: 100%;
     height: 100%;
@@ -463,66 +524,59 @@ const buildOdooStyles = (colors) => `
     overflow-x: hidden;
     background: #ffffff;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     box-sizing: border-box;
-    padding: 30px 20px 60px 20px;
+    padding: 0;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
   }
+
   .lesson-paper {
-    width: 900px;
-    max-width: 100%;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
     background: #ffffff;
     border-radius: 0;
-    padding: 40px 60px;
+    padding: 32px 48px 60px 48px;
     box-shadow: none;
-    margin: 0 auto;
+    margin: 0;
     box-sizing: border-box;
   }
+
   .lesson-page-wrapper::-webkit-scrollbar {
     width: 8px;
   }
+
   .lesson-page-wrapper::-webkit-scrollbar-track {
     background: #e2e6ea;
     border-radius: 4px;
   }
+
   .lesson-page-wrapper::-webkit-scrollbar-thumb {
     background: #c3cad2;
     border-radius: 4px;
   }
+
   .lesson-page-wrapper::-webkit-scrollbar-thumb:hover {
     background: #a9b2bc;
   }
+
   @media (max-width: 768px) {
     .lesson-page-wrapper {
-      padding: 14px 8px 40px 8px;
+      padding: 0;
     }
     .lesson-paper {
-      padding: 20px 18px;
-      border-radius: 10px;
+      width: 100%;
+      padding: 16px;
+      border-radius: 0;
     }
-  }
-  .odoo-content::-webkit-scrollbar {
-    width: 8px;
-  }
-  .odoo-content::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-  .odoo-content::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-  .odoo-content::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-  @media (max-width: 768px) {
     .odoo-main-heading { font-size: 24px; }
     .odoo-sub-heading { font-size: 20px; }
     .odoo-list-item { font-size: 14px; padding: 4px 0 4px 24px; }
     .odoo-paragraph { font-size: 14px; }
     .odoo-question-wrapper { padding: 12px 16px; }
     .odoo-question-text { font-size: 15px; }
+    .odoo-option-item { font-size: 13px; }
   }
 `;
 
@@ -989,7 +1043,8 @@ function ExamTab({ questions, config, onScoreUpdate }) {
               cursor: 'pointer',
             }}
           >
-            Submit Quiz          </button>
+            Submit Quiz
+          </button>
         )}
       </div>
 
@@ -1114,7 +1169,7 @@ function LabsTab({ labs, content, config, subtopicId }) {
   if (labsContent) {
     const html = renderOdooContent(labsContent);
     const styleTag = buildOdooStyles(config?.colors || { accent: '#714b67' });
-    
+
     return (
       <>
         <div className="lesson-page-wrapper">
@@ -1190,7 +1245,7 @@ function LabsTab({ labs, content, config, subtopicId }) {
               gap: '8px',
             }}>
               <span style={{ fontWeight: 600, fontSize: isMobile ? '14px' : '15px', color: LIGHT.textLight }}>
-                <span style={{ 
+                <span style={{
                   display: 'inline-block',
                   background: '#f59e0b',
                   color: '#fff',
@@ -1234,9 +1289,9 @@ function LabsTab({ labs, content, config, subtopicId }) {
   }
 
   return (
-    <div style={{ 
-      padding: '40px 20px', 
-      color: LIGHT.textMuted, 
+    <div style={{
+      padding: '40px 20px',
+      color: LIGHT.textMuted,
       textAlign: 'center',
       display: 'flex',
       flexDirection: 'column',
@@ -1395,17 +1450,17 @@ export default function CourseDetailView({
     try {
       setLoading(true);
       setFetchError(null);
-      
+
       console.log('📥 Fetching course data for ID:', id);
-      
+
       const response = await getCourseData(id);
       console.log('📚 Course data response:', response);
-      
+
       let data = response;
       if (response && response.data) {
         data = response.data;
       }
-      
+
       if (!data || !data.id) {
         console.error('❌ No course data found:', data);
         setFetchError('Course data not found. Please try again.');
@@ -1415,7 +1470,7 @@ export default function CourseDetailView({
 
       setIsAuthenticated(data.isAuthenticated === true);
       setIsEnrolled(data.isEnrolled === true);
-      
+
       console.log('🔐 isAuthenticated:', data.isAuthenticated);
       console.log('📚 isEnrolled:', data.isEnrolled);
 
@@ -1429,17 +1484,17 @@ export default function CourseDetailView({
 
       if (topicsData && topicsData.length > 0) {
         allTopics = topicsData;
-        
+
         topicsData.forEach((topic, topicIndex) => {
           const subs = topic.subTopics || topic.subtopics || [];
           console.log(`📚 Topic ${topicIndex + 1}: ${topic.title}, subtopics: ${subs.length}`);
-          
+
           const isFirstTopic = topicIndex === 0 || topic.isFirstTopic === true;
-          
+
           subs.forEach(sub => {
             const hasContent = sub.content && sub.content.trim() !== '';
             const hasVideo = sub.videoUrl && sub.videoUrl.trim() !== '';
-            
+
             allSubtopics.push({
               id: sub.id,
               title: sub.title || 'Untitled',
@@ -1543,7 +1598,7 @@ export default function CourseDetailView({
         setShowSidebar(false);
       }
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -1555,21 +1610,21 @@ export default function CourseDetailView({
       if (isAuthenticated && isEnrolled) {
         return false;
       }
-      
+
       if (isAuthenticated && !isEnrolled) {
         return topicIndex !== 0;
       }
-      
+
       if (isPreview) {
         const topic = topics.find(t => t.id === topicId);
         if (!topic) return true;
         return topic.isFirstTopic !== true;
       }
-      
+
       if (!isLoggedIn) {
         return topicIndex !== 0;
       }
-      
+
       const topic = topics.find(t => t.id === topicId);
       if (!topic) return true;
       return topic.isFirstTopic !== true;
@@ -1606,7 +1661,7 @@ export default function CourseDetailView({
     const handleFullscreenChange = () => {
       const isFullscreenNow = !!document.fullscreenElement;
       setIsFullscreen(isFullscreenNow);
-      
+
       // ✅ Auto-close sidebar when entering fullscreen
       if (isFullscreenNow) {
         if (isMobile) {
@@ -1616,22 +1671,17 @@ export default function CourseDetailView({
         }
       } else {
         // ✅ Auto-open sidebar when exiting fullscreen
-        // Only auto-open on desktop; for mobile, let user manually open
         if (!isMobile) {
           setIsSidebarCollapsed(false);
         }
-        // For mobile, you can optionally auto-open as well:
-        // else {
-        //   setShowSidebar(true);
-        // }
       }
     };
-    
+
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-    
+
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -1644,8 +1694,6 @@ export default function CourseDetailView({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && document.fullscreenElement) {
-        // The fullscreenchange event will handle the sidebar opening
-        // But we can also force it here for redundancy
         setTimeout(() => {
           if (!document.fullscreenElement && !isMobile) {
             setIsSidebarCollapsed(false);
@@ -1653,7 +1701,7 @@ export default function CourseDetailView({
         }, 100);
       }
     };
-    
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isMobile]);
@@ -1687,7 +1735,7 @@ export default function CourseDetailView({
         return false;
       }
     };
-    
+
     document.addEventListener('contextmenu', disableRightClick);
     return () => {
       document.removeEventListener('contextmenu', disableRightClick);
@@ -1787,40 +1835,40 @@ export default function CourseDetailView({
     if (isMobile) {
       setShowSidebar(false);
     }
-    
+
     const hasVideo = hasVideoContent(sub);
     const hasNotes = hasNotesContent(sub);
     const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
     const hasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
     const hasLabs = !!(sub.labsContent && sub.labsContent.trim() !== '');
-    
+
     const subAvailableTypes = [];
     if (hasVideo) subAvailableTypes.push('video');
     if (hasNotes) subAvailableTypes.push('notes');
     if (hasExam) subAvailableTypes.push('exam-content');
     if (hasInterview) subAvailableTypes.push('interview-content');
     if (hasLabs) subAvailableTypes.push('labs');
-    
+
     try {
       const [questions, exams, labList] = await Promise.all([
         getSubtopicInterviewQuestions(sub.id).catch(() => []),
         getSubtopicExamQuestions(sub.id).catch(() => []),
         getSubtopicLabs(sub.id).catch(() => []),
       ]);
-      
+
       if (questions && questions.length > 0) subAvailableTypes.push('interview');
       if (exams && exams.length > 0) subAvailableTypes.push('exam');
       if (labList && labList.length > 0) subAvailableTypes.push('labs');
-      
+
       setInterviewQuestions(questions || []);
       setExamQuestions(exams || []);
       setLabs(labList || []);
     } catch (err) {
       console.error('Failed to load subtopic data:', err);
     }
-    
+
     subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
-    
+
     if (subAvailableTypes.length > 0) {
       setActiveContentType(subAvailableTypes[0]);
     } else {
@@ -1839,7 +1887,7 @@ export default function CourseDetailView({
   const renderPanelContent = () => {
     if (!currentSubtopic) {
       return (
-        <EmptyState 
+        <EmptyState
           courseTitle={selectedCourse?.title}
           topicsCount={topics ? topics.length : 0}
           subtopicsCount={subtopics ? subtopics.length : 0}
@@ -1847,31 +1895,31 @@ export default function CourseDetailView({
       );
     }
     if (loadingData) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>Loading...</div>;
-    
+
     const currentAvailableTypes = (() => {
       if (!currentSubtopic) return [];
       const out = [];
-      
+
       const hasVideo = hasVideoContent(currentSubtopic);
       const hasNotes = hasNotesContent(currentSubtopic);
       const hasExam = !!(currentSubtopic.examContent && currentSubtopic.examContent.trim() !== '');
       const hasInterview = !!(currentSubtopic.interviewContent && currentSubtopic.interviewContent.trim() !== '');
       const hasLabs = !!(currentSubtopic.labsContent && currentSubtopic.labsContent.trim() !== '');
-      
+
       if (hasVideo) out.push('video');
       if (hasNotes) out.push('notes');
       if (hasExam) out.push('exam-content');
       if (hasInterview) out.push('interview-content');
       if (hasLabs) out.push('labs');
-      
+
       if (interviewQuestions.length > 0) out.push('interview');
       if (examQuestions.length > 0) out.push('exam');
       if (labs.length > 0) out.push('labs');
-      
+
       out.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
       return out;
     })();
-    
+
     if (currentAvailableTypes.length === 0) return <div style={{ padding: '20px', color: LIGHT.textMuted, textAlign: 'center' }}>No content available</div>;
 
     if (!currentAvailableTypes.includes(activeContentType)) {
@@ -1888,37 +1936,36 @@ export default function CourseDetailView({
             courseTitle={selectedCourse?.title}
           />
         );
-      case 'notes': 
+      case 'notes':
         return <NotesTab content={currentSubtopic.content} config={config} />;
       case 'exam-content':
         return <ExamContentTab content={currentSubtopic.examContent} config={config} />;
       case 'interview-content':
         return <InterviewContentTab content={currentSubtopic.interviewContent} config={config} />;
-      case 'interview': 
+      case 'interview':
         return <InterviewTab questions={interviewQuestions} config={config} />;
-      case 'exam': 
+      case 'exam':
         return <ExamTab questions={examQuestions} config={config} />;
-      case 'labs': 
+      case 'labs':
         return (
-          <LabsTab 
-            labs={labs} 
-            content={currentSubtopic.labsContent} 
-            config={config} 
+          <LabsTab
+            labs={labs}
+            content={currentSubtopic.labsContent}
+            config={config}
             subtopicId={currentSubtopic.id}
           />
         );
-      default: 
+      default:
         return null;
     }
   };
 
   // ✅ UPDATED: Toggle sidebar - disable in fullscreen
   const toggleSidebar = () => {
-    // Don't toggle if in fullscreen
     if (document.fullscreenElement) {
       return;
     }
-    
+
     if (isMobile) {
       setShowSidebar((prev) => !prev);
     } else {
@@ -1975,13 +2022,12 @@ export default function CourseDetailView({
   // ✅ UPDATED: Handle fullscreen with auto-close sidebar
   const handleFullscreen = () => {
     if (!document.fullscreenElement) {
-      // ✅ Close sidebar before entering fullscreen
       if (isMobile) {
         setShowSidebar(false);
       } else {
         setIsSidebarCollapsed(true);
       }
-      
+
       document.documentElement.requestFullscreen().catch(err => {
         console.error('Error attempting to enable fullscreen:', err);
       });
@@ -2000,7 +2046,6 @@ export default function CourseDetailView({
   };
 
   // ─── EARLY RETURNS (Loading, Error) ──────────────────────────────────
-  // These must come AFTER all hooks are declared
 
   if (loading || contentLoading) {
     return (
@@ -2224,26 +2269,26 @@ export default function CourseDetailView({
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
       <style>{`
-        * { 
-          -webkit-touch-callout: none !important; 
-          -webkit-user-select: none !important; 
+        * {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
           user-select: none !important;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         }
-        input, textarea, select { 
-          -webkit-user-select: auto !important; 
+        input, textarea, select {
+          -webkit-user-select: auto !important;
           user-select: auto !important;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         }
-        body { 
-          overscroll-behavior: none; 
-          touch-action: pan-y; 
-          margin: 0; 
-          padding: 0; 
+        body {
+          overscroll-behavior: none;
+          touch-action: pan-y;
+          margin: 0;
+          padding: 0;
           background: #d5dadd;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         }
-        .odoo-content { 
+        .odoo-content {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
         }
         .odoo-content * {
@@ -2290,15 +2335,13 @@ export default function CourseDetailView({
           background: #5a6474 !important;
         }
 
-        /* ✅ Prevent image saving */
         img {
           -webkit-user-drag: none !important;
           user-drag: none !important;
           pointer-events: none !important;
           -webkit-touch-callout: none !important;
         }
-        
-        /* ✅ Hide context menu on images */
+
         img {
           -webkit-touch-callout: none !important;
         }
@@ -2487,18 +2530,18 @@ export default function CourseDetailView({
         <div style={styles.shell}>
           {/* ─── Mobile Overlay ────────────────────────────────────── */}
           {isMobile && showSidebar && (
-            <div 
-              style={styles.mobileOverlay} 
+            <div
+              style={styles.mobileOverlay}
               onClick={handleOverlayClick}
             />
           )}
 
           {/* ─── Sidebar ──────────────────────────────────────────────── */}
           {(!isSidebarCollapsed || isMobile) && (
-            <aside 
-              id="mobile-sidebar" 
-              style={{ 
-                ...styles.sidebar, 
+            <aside
+              id="mobile-sidebar"
+              style={{
+                ...styles.sidebar,
                 ...(isMobile && showSidebar ? styles.sidebarOpen : {}),
                 left: isMobile && !showSidebar ? '-100%' : (isMobile ? '0' : 'auto')
               }}
@@ -2546,10 +2589,10 @@ export default function CourseDetailView({
                   const topicSubs = topic.subTopics || topic.subtopics || [];
                   const isOpen = !!expandedTopics[topic.id];
                   const locked = isTopicLocked(topic.id, topicIndex);
-                  
+
                   return (
                     <div key={topic.id} style={styles.topicItem}>
-                      <div 
+                      <div
                         className="topic-header-item"
                         style={styles.topicHeader(isOpen)}
                         onClick={() => toggleTopic(topic.id)}
@@ -2562,34 +2605,34 @@ export default function CourseDetailView({
                       {isOpen && topicSubs.map((sub) => {
                         const globalIndex = subtopics.findIndex((s) => String(s.id) === String(sub.id));
                         if (globalIndex === -1) return null;
-                        
+
                         const isActive = currentActiveSection === globalIndex;
                         const subtopicLocked = locked || (isPreview && topic.isFirstTopic !== true);
-                        
+
                         const subHasVideo = hasVideoContent(sub);
                         const subHasNotes = hasNotesContent(sub);
                         const subHasExam = !!(sub.examContent && sub.examContent.trim() !== '');
                         const subHasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
                         const subHasLabs = !!(sub.labsContent && sub.labsContent.trim() !== '');
-                        
+
                         const subAvailableTypes = [];
                         if (subHasVideo) subAvailableTypes.push('video');
                         if (subHasNotes) subAvailableTypes.push('notes');
                         if (subHasExam) subAvailableTypes.push('exam-content');
                         if (subHasInterview) subAvailableTypes.push('interview-content');
                         if (subHasLabs) subAvailableTypes.push('labs');
-                        
+
                         if (isActive) {
                           if (interviewQuestions.length > 0) subAvailableTypes.push('interview');
                           if (examQuestions.length > 0) subAvailableTypes.push('exam');
                           if (labs.length > 0) subAvailableTypes.push('labs');
                         }
-                        
+
                         subAvailableTypes.sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
-                        
+
                         return (
                           <div key={sub.id}>
-                            <div 
+                            <div
                               style={{
                                 ...styles.subtopicItem(isActive),
                                 opacity: subtopicLocked ? 0.5 : 1,
@@ -2638,7 +2681,7 @@ export default function CourseDetailView({
                                 )}
                               </div>
                             </div>
-                            
+
                             {/* Content type tabs for selected subtopic */}
                             {isActive && !subtopicLocked && (
                               <div style={{ marginLeft: isMobile ? '8px' : '16px' }}>
@@ -2647,7 +2690,7 @@ export default function CourseDetailView({
                                 ) : (
                                   CONTENT_TYPES.filter((t) => subAvailableTypes.includes(t.key)).map((t) => {
                                     const isActiveType = activeContentType === t.key;
-                                    
+
                                     return (
                                       <div
                                         key={t.key}
@@ -2746,9 +2789,9 @@ export default function CourseDetailView({
                     <img
                       src={imageUrl}
                       alt={`Page ${img.pageNumber}`}
-                      style={{ 
-                        width: '100%', 
-                        height: '150px', 
+                      style={{
+                        width: '100%',
+                        height: '150px',
                         objectFit: 'cover',
                         pointerEvents: 'none',
                         userSelect: 'none',
