@@ -80,11 +80,10 @@ const DEFAULT_CONFIG = {
   heroTitle: "Knowledge is a superpower",
   heroText: "Level up your networking and skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
   heroButtonText: "Pick a course →",
-  heroButtonIcon: "whatshot",  // ✅ ADDED
+  heroButtonIcon: "whatshot",
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
   heroBgEnd: "#83698A",
-  // ❌ heroDecor: "🎓",  // REMOVED
   sectionTitleMy: "My Courses",
   sectionTitleAll: "All Courses",
   myCoursesTabText: "My Courses",
@@ -104,25 +103,20 @@ const DEFAULT_CONFIG = {
   emptyStateNoAvailableText: "Check back later for new courses.",
   footerText: "Browse our course catalog. Sign in to enroll and track progress.",
   sectionIcon: "grid",
-  // ─── Button Colors ──────────────────────────────────────────────
   heroBtnBg: "#4f46e5",
   heroBtnTextColor: "#ffffff",
   heroBtnHoverBg: "#4338ca",
   primaryColor: "#4f46e5",
   iconColor: "#714B67",
-  // ─── Tab Colors ─────────────────────────────────────────────────
   tabActiveBg: "#714B67",
   tabActiveText: "#ffffff",
   tabInactiveText: "#6B6470",
-  // ─── Category Tab Colors ───────────────────────────────────────
   categoryActiveBg: "#714B67",
   categoryActiveText: "#ffffff",
   categoryBorderColor: "#E8E3EA",
-  // ─── View Button Colors ─────────────────────────────────────────
   viewBtnBg: "#ffffff",
   viewBtnText: "#714B67",
   viewBtnBorder: "#714B67",
-  // ─── Continue Button Colors ────────────────────────────────────
   continueBtnBg: "#714B67",
   continueBtnText: "#ffffff",
   trackIcons: {
@@ -153,7 +147,7 @@ const DEFAULT_CONFIG = {
   }
 };
 
-// ─── Top Bar Colors ──────────────────────────────────────────────────
+// ─── Top Bar Colors (matching CourseDetailView) ────────────────────
 const TOPBAR = {
   bg: '#2C3540',
   bgGradient: 'linear-gradient(180deg, #2C3540 0%, #1F2933 100%)',
@@ -314,28 +308,23 @@ function MyCoursesPage() {
         }
         
         const newConfig = {
-          // Hero Section
           heroEyebrow: data.heroEyebrow || DEFAULT_CONFIG.heroEyebrow,
           heroTitle: data.heroTitle || DEFAULT_CONFIG.heroTitle,
           heroText: data.heroText || DEFAULT_CONFIG.heroText,
           heroButtonText: data.heroButtonText || DEFAULT_CONFIG.heroButtonText,
-          heroButtonIcon: data.heroButtonIcon || DEFAULT_CONFIG.heroButtonIcon,  // ✅ ADDED
+          heroButtonIcon: data.heroButtonIcon || DEFAULT_CONFIG.heroButtonIcon,
           heroBgStart: data.heroBgStart || DEFAULT_CONFIG.heroBgStart,
           heroBgMid: data.heroBgMid || DEFAULT_CONFIG.heroBgMid,
           heroBgEnd: data.heroBgEnd || DEFAULT_CONFIG.heroBgEnd,
-          // ❌ heroDecor: data.heroDecor || DEFAULT_CONFIG.heroDecor,  // REMOVED
-          // Section Titles
           sectionTitleMy: data.sectionTitleMy || DEFAULT_CONFIG.sectionTitleMy,
           sectionTitleAll: data.sectionTitleAll || DEFAULT_CONFIG.sectionTitleAll,
           myCoursesTabText: data.tabMyText || data.myCoursesTabText || DEFAULT_CONFIG.myCoursesTabText,
           allCoursesTabText: data.tabAllText || data.allCoursesTabText || DEFAULT_CONFIG.allCoursesTabText,
           searchPlaceholder: data.searchPlaceholder || DEFAULT_CONFIG.searchPlaceholder,
-          // Card Labels
           cardDurationLabel: data.cardDurationLabel || DEFAULT_CONFIG.cardDurationLabel,
           enrolledBadgeText: data.enrolledBadgeText || DEFAULT_CONFIG.enrolledBadgeText,
           viewCourseButtonText: data.viewCourseButtonText || DEFAULT_CONFIG.viewCourseButtonText,
           continueLearningButtonText: data.continueLearningButtonText || DEFAULT_CONFIG.continueLearningButtonText,
-          // Empty States
           emptyStateLoginTitle: data.emptyStateLoginTitle || DEFAULT_CONFIG.emptyStateLoginTitle,
           emptyStateLoginText: data.emptyStateLoginText || DEFAULT_CONFIG.emptyStateLoginText,
           emptyStateLoginButton: data.emptyStateLoginButton || DEFAULT_CONFIG.emptyStateLoginButton,
@@ -345,7 +334,6 @@ function MyCoursesPage() {
           emptyStateNoAvailableTitle: data.emptyStateNoAvailableTitle || DEFAULT_CONFIG.emptyStateNoAvailableTitle,
           emptyStateNoAvailableText: data.emptyStateNoAvailableText || DEFAULT_CONFIG.emptyStateNoAvailableText,
           footerText: data.footerText || DEFAULT_CONFIG.footerText,
-          // ─── Colors ──────────────────────────────────────────────────
           sectionIcon: data.sectionIcon || DEFAULT_CONFIG.sectionIcon,
           heroBtnBg: data.heroBtnBg || DEFAULT_CONFIG.heroBtnBg,
           heroBtnTextColor: data.heroBtnTextColor || DEFAULT_CONFIG.heroBtnTextColor,
@@ -894,8 +882,9 @@ function MyCoursesPage() {
       color: COLORS.ink 
     },
 
+    // ✅ UPDATED: Top bar now matches CourseDetailView (smaller height)
     topBar: {
-      height: '64px',
+      height: isMobile ? '28px' : '32px',
       background: TOPBAR.bgGradient,
       borderBottom: `1px solid ${TOPBAR.border}`,
       display: 'flex',
@@ -914,9 +903,9 @@ function MyCoursesPage() {
     actionButton: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      padding: '0 24px',
-      fontSize: '15px',
+      gap: isMobile ? '2px' : '10px',
+      padding: isMobile ? '0 6px' : '0 24px',
+      fontSize: isMobile ? '10px' : '15px',
       fontWeight: 600,
       border: 'none',
       borderLeft: `1px solid ${TOPBAR.border}`,
@@ -937,7 +926,6 @@ function MyCoursesPage() {
       color: '#fff',
       display: 'flex',
       alignItems: 'center',
-      // ❌ justifyContent: 'space-between',  // REMOVED
       minHeight: isMobile ? 'auto' : '280px',
     },
     heroInner: { 
@@ -966,7 +954,6 @@ function MyCoursesPage() {
       maxWidth: '480px', 
       marginBottom: '22px' 
     },
-    // ✅ UPDATED: Hero Button with dynamic colors and icon
     heroBtn: { 
       background: config.heroBtnBg || '#4f46e5',
       color: config.heroBtnTextColor || '#ffffff',
@@ -982,7 +969,6 @@ function MyCoursesPage() {
       gap: '8px',
       transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
     },
-    // ❌ heroDecor: { ... },  // REMOVED
 
     sectionBar: { 
       display: 'flex', 
@@ -1035,7 +1021,6 @@ function MyCoursesPage() {
       maxWidth: '1440px',
       margin: '0 auto',
     },
-    // ✅ UPDATED: Tab Button with dynamic colors
     tabButton: (active) => ({
       padding: '8px 20px',
       borderRadius: '10px',
@@ -1060,7 +1045,6 @@ function MyCoursesPage() {
       overflowX: 'auto',
       flexWrap: isMobile ? 'nowrap' : 'wrap',
     },
-    // ✅ UPDATED: Category Tab with dynamic colors
     categoryTab: (active) => ({
       padding: '6px 16px',
       borderRadius: '8px',
@@ -1180,7 +1164,6 @@ function MyCoursesPage() {
       padding: '0 16px 14px',
       marginTop: '2px',
     },
-    // ✅ UPDATED: View Button with dynamic colors
     viewBtn: { 
       width: '100%', 
       padding: '10px', 
@@ -1197,7 +1180,6 @@ function MyCoursesPage() {
       justifyContent: 'center',
       gap: '6px',
     },
-    // ✅ UPDATED: Continue Button with dynamic colors
     continueBtn: { 
       width: '100%', 
       padding: '10px', 
@@ -1307,10 +1289,7 @@ function MyCoursesPage() {
   }
 
   // ─── Render: Course Catalog ───────────────────────────────────────────
-  // ❌ const heroDecor = config.heroDecor || '🎓';  // REMOVED
-  // ✅ DYNAMIC SECTION ICON with color from config
   const sectionIcon = getSectionIcon(config.sectionIcon, config.iconColor);
-  // ✅ GET HERO BUTTON ICON from config
   const heroIcon = getHeroButtonIcon(config.heroButtonIcon);
 
   const formatCategoryName = (cat) => {
@@ -1320,7 +1299,7 @@ function MyCoursesPage() {
 
   return (
     <div style={styles.page}>
-      {/* ─── TOP NAVIGATION BAR ────────────────────────────────── */}
+      {/* ─── TOP NAVIGATION BAR (now matches CourseDetailView) ────── */}
       <div style={styles.topBar}>
         <div style={styles.topBarRight}>
           <button
@@ -1334,8 +1313,8 @@ function MyCoursesPage() {
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <ShareOutlinedIcon style={{ fontSize: '20px' }} />
-            <span>Share</span>
+            <ShareOutlinedIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
+            <span style={{ display: isMobile ? 'none' : 'inline' }}>Share</span>
           </button>
 
           {isLoggedIn ? (
@@ -1353,8 +1332,8 @@ function MyCoursesPage() {
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LogoutRoundedIcon style={{ fontSize: '20px' }} />
-              <span>Logout</span>
+              <LogoutRoundedIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
+              <span style={{ display: isMobile ? 'none' : 'inline' }}>Logout</span>
             </button>
           ) : (
             <button
@@ -1371,15 +1350,14 @@ function MyCoursesPage() {
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LoginRoundedIcon style={{ fontSize: '20px' }} />
-              <span>Sign In</span>
+              <LoginRoundedIcon style={{ fontSize: isMobile ? '11px' : '20px' }} />
+              <span style={{ display: isMobile ? 'none' : 'inline' }}>Sign In</span>
             </button>
           )}
         </div>
       </div>
 
       {/* ─── Hero Section ────────────────────────────────────────────── */}
-      {/* ✅ WITHOUT HERO DECOR - WITH DYNAMIC ICON */}
       <div style={styles.hero}>
         <div style={styles.heroInner}>
           <div style={styles.heroEyebrow}>{config.heroEyebrow}</div>
@@ -1399,18 +1377,15 @@ function MyCoursesPage() {
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            {/* ✅ DYNAMIC HERO BUTTON ICON */}
             {heroIcon}
             {config.heroButtonText}
           </button>
         </div>
-        {/* ❌ <div style={styles.heroDecor}>{heroDecor}</div>  // REMOVED */}
       </div>
 
       {/* ─── Section Bar ──────────────────────────────────────────────── */}
       <div style={styles.sectionBar} id="courses-section">
         <div style={styles.sectionTitle}>
-          {/* ✅ DYNAMIC SECTION ICON with color from config */}
           {sectionIcon}
           <span style={{ marginLeft: '8px' }}>
             {activeTab === 'my' && isLoggedIn ? config.sectionTitleMy : config.sectionTitleAll}

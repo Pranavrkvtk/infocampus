@@ -2090,7 +2090,8 @@ export default function CourseDetailView({
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     },
     topBar: {
-      height: isMobile ? '56px' : '64px',
+      // ✅ UPDATED: Match MyCoursesPage and Enrollments - 28px mobile, 32px desktop
+      height: isMobile ? '28px' : '32px',
       background: TOPBAR.bgGradient,
       borderBottom: `1px solid ${TOPBAR.border}`,
       display: 'flex',
@@ -2115,9 +2116,9 @@ export default function CourseDetailView({
     actionButton: {
       display: 'flex',
       alignItems: 'center',
-      gap: isMobile ? '4px' : '10px',
-      padding: isMobile ? '0 12px' : '0 24px',
-      fontSize: isMobile ? '12px' : '15px',
+      gap: isMobile ? '2px' : '5px',
+      padding: isMobile ? '0 6px' : '0 12px',
+      fontSize: isMobile ? '10px' : '12px',
       fontWeight: 600,
       border: 'none',
       borderLeft: `1px solid ${TOPBAR.border}`,
@@ -2130,7 +2131,7 @@ export default function CourseDetailView({
     },
     shell: {
       display: 'flex',
-      height: isMobile ? 'calc(100% - 56px)' : 'calc(100% - 64px)',
+      height: isMobile ? 'calc(100% - 28px)' : 'calc(100% - 32px)',
       width: '100%',
       background: SIDEBAR.bg,
     },
@@ -2348,7 +2349,7 @@ export default function CourseDetailView({
 
         @media (max-width: 768px) {
           .action-btn span { display: none; }
-          .action-btn { padding: 0 12px !important; }
+          .action-btn { padding: 0 6px !important; }
         }
         @media (min-width: 769px) {
           .action-btn-mobile-text { display: none; }
@@ -2363,9 +2364,9 @@ export default function CourseDetailView({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: isMobile ? '4px' : '8px',
-              padding: isMobile ? '0 10px' : '0 16px',
-              fontSize: isMobile ? '12px' : '14px',
+              gap: isMobile ? '2px' : '4px',
+              padding: isMobile ? '0 5px' : '0 8px',
+              fontSize: isMobile ? '10px' : '11px',
               fontWeight: 700,
               color: TOPBAR.text,
               cursor: 'pointer',
@@ -2393,7 +2394,7 @@ export default function CourseDetailView({
               }
             }}
           >
-            <MenuIcon style={{ color: '#FFFFFF', fontSize: isMobile ? '20px' : '24px' }} />
+            <MenuIcon style={{ color: '#FFFFFF', fontSize: isMobile ? '12px' : '14px' }} />
             <span style={{ display: isMobile ? 'none' : 'inline' }}>Lessons</span>
           </button>
           {!(isAuthenticated && isEnrolled) && (
@@ -2402,9 +2403,9 @@ export default function CourseDetailView({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: isMobile ? '4px' : '8px',
-                padding: isMobile ? '0 10px' : '0 16px',
-                fontSize: isMobile ? '12px' : '14px',
+                gap: isMobile ? '2px' : '4px',
+                padding: isMobile ? '0 5px' : '0 8px',
+                fontSize: isMobile ? '10px' : '11px',
                 fontWeight: 600,
                 color: TOPBAR.text,
                 cursor: 'pointer',
@@ -2421,7 +2422,7 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              <span style={{ fontSize: isMobile ? '16px' : '18px' }}>←</span>
+              <span style={{ fontSize: isMobile ? '10px' : '11px' }}>←</span>
               <span style={{ display: isMobile ? 'none' : 'inline' }}>Back</span>
             </button>
           )}
@@ -2439,7 +2440,7 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <ShareIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
+            <ShareIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
             <span>Share</span>
           </button>
 
@@ -2456,13 +2457,13 @@ export default function CourseDetailView({
           >
             {isFullscreen ? (
               <>
-                <FullscreenExitIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
-                <span>Exit</span>
+                <FullscreenExitIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
+                <span>Exit Fullscreen</span>
               </>
             ) : (
               <>
-                <FullscreenIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
-                <span>Full</span>
+                <FullscreenIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
+                <span>Full Screen</span>
               </>
             )}
           </button>
@@ -2482,7 +2483,7 @@ export default function CourseDetailView({
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <HomeOutlinedIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
+            <HomeOutlinedIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
             <span>Home</span>
           </button>
 
@@ -2501,7 +2502,7 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LogoutIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
+              <LogoutIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
               <span>Logout</span>
             </button>
           ) : (
@@ -2519,7 +2520,7 @@ export default function CourseDetailView({
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LoginIcon style={{ fontSize: isMobile ? '18px' : '20px' }} />
+              <LoginIcon style={{ fontSize: isMobile ? '11px' : '12px' }} />
               <span>Sign In</span>
             </button>
           )}

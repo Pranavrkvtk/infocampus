@@ -15,7 +15,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import LockIcon from '@mui/icons-material/Lock';
 
-// ─── Top Bar Colors (same as MyCoursesPage) ──────────────────────────────────────────────────
+// ─── Top Bar Colors (matching CourseDetailView) ────────────────────
 const TOPBAR = {
   bg: '#2C3540',
   bgGradient: 'linear-gradient(180deg, #2C3540 0%, #1F2933 100%)',
@@ -35,7 +35,6 @@ const COLORS = {
   heroGradFrom: '#3d2b52',
   heroGradTo: '#2a2438',
   heroBlob: 'rgba(255,255,255,0.06)',
-  // ✅ Updated to modern dark gradient
   purpleCard: 'linear-gradient(160deg, #2C3540 0%, #1A232E 100%)',
   purpleText: '#5b21b6',
   pageBg: '#f4f5f8',
@@ -412,12 +411,15 @@ const Enrollments = ({ isMobile, onBack }) => {
   // ✅ Check if first topic has free lessons
   const hasFreeContent = topics.length > 0 && topics[0].lessons.some(l => l.isFree);
 
+  // ✅ Detect if mobile (or use prop)
+  const isMobileDevice = isMobile || window.innerWidth < 768;
+
   return (
     <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", minHeight: "100vh", background: COLORS.pageBg }}>
 
-      {/* ─── TOP NAVIGATION BAR (Same style as MyCoursesPage) ──────────────────────────────────── */}
+      {/* ─── TOP NAVIGATION BAR (matching CourseDetailView) ──────────────────── */}
       <div style={{
-        height: '64px',
+        height: isMobileDevice ? '28px' : '32px',
         background: TOPBAR.bgGradient,
         borderBottom: `1px solid ${TOPBAR.border}`,
         display: 'flex',
@@ -438,9 +440,9 @@ const Enrollments = ({ isMobile, onBack }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              padding: '0 24px',
-              fontSize: '15px',
+              gap: isMobileDevice ? '2px' : '10px',
+              padding: isMobileDevice ? '0 6px' : '0 24px',
+              fontSize: isMobileDevice ? '10px' : '15px',
               fontWeight: 600,
               border: 'none',
               borderLeft: `1px solid ${TOPBAR.border}`,
@@ -458,8 +460,8 @@ const Enrollments = ({ isMobile, onBack }) => {
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <ShareOutlinedIcon style={{ fontSize: '20px' }} />
-            <span>Share</span>
+            <ShareOutlinedIcon style={{ fontSize: isMobileDevice ? '11px' : '20px' }} />
+            <span style={{ display: isMobileDevice ? 'none' : 'inline' }}>Share</span>
           </button>
 
           <button
@@ -467,9 +469,9 @@ const Enrollments = ({ isMobile, onBack }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              padding: '0 24px',
-              fontSize: '15px',
+              gap: isMobileDevice ? '2px' : '10px',
+              padding: isMobileDevice ? '0 6px' : '0 24px',
+              fontSize: isMobileDevice ? '10px' : '15px',
               fontWeight: 600,
               border: 'none',
               borderLeft: `1px solid ${TOPBAR.border}`,
@@ -487,8 +489,8 @@ const Enrollments = ({ isMobile, onBack }) => {
               e.currentTarget.style.background = TOPBAR.bgActive;
             }}
           >
-            <HomeOutlinedIcon style={{ fontSize: '20px' }} />
-            <span>Home</span>
+            <HomeOutlinedIcon style={{ fontSize: isMobileDevice ? '11px' : '20px' }} />
+            <span style={{ display: isMobileDevice ? 'none' : 'inline' }}>Home</span>
           </button>
 
           {isLoggedIn ? (
@@ -497,9 +499,9 @@ const Enrollments = ({ isMobile, onBack }) => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
-                padding: '0 24px',
-                fontSize: '15px',
+                gap: isMobileDevice ? '2px' : '10px',
+                padding: isMobileDevice ? '0 6px' : '0 24px',
+                fontSize: isMobileDevice ? '10px' : '15px',
                 fontWeight: 600,
                 border: 'none',
                 borderLeft: `1px solid ${TOPBAR.border}`,
@@ -517,8 +519,8 @@ const Enrollments = ({ isMobile, onBack }) => {
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LogoutRoundedIcon style={{ fontSize: '20px' }} />
-              <span>Logout</span>
+              <LogoutRoundedIcon style={{ fontSize: isMobileDevice ? '11px' : '20px' }} />
+              <span style={{ display: isMobileDevice ? 'none' : 'inline' }}>Logout</span>
             </button>
           ) : (
             <button
@@ -526,9 +528,9 @@ const Enrollments = ({ isMobile, onBack }) => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
-                padding: '0 24px',
-                fontSize: '15px',
+                gap: isMobileDevice ? '2px' : '10px',
+                padding: isMobileDevice ? '0 6px' : '0 24px',
+                fontSize: isMobileDevice ? '10px' : '15px',
                 fontWeight: 600,
                 border: 'none',
                 borderLeft: `1px solid ${TOPBAR.border}`,
@@ -546,8 +548,8 @@ const Enrollments = ({ isMobile, onBack }) => {
                 e.currentTarget.style.background = TOPBAR.bgActive;
               }}
             >
-              <LoginRoundedIcon style={{ fontSize: '20px' }} />
-              <span>Sign In</span>
+              <LoginRoundedIcon style={{ fontSize: isMobileDevice ? '11px' : '20px' }} />
+              <span style={{ display: isMobileDevice ? 'none' : 'inline' }}>Sign In</span>
             </button>
           )}
         </div>
@@ -558,7 +560,7 @@ const Enrollments = ({ isMobile, onBack }) => {
         position: 'relative',
         overflow: 'hidden',
         background: `linear-gradient(135deg, ${COLORS.heroGradFrom} 0%, ${COLORS.heroGradTo} 100%)`,
-        padding: isMobile ? '40px 20px' : '56px 40px',
+        padding: isMobileDevice ? '40px 20px' : '56px 40px',
         color: '#fff',
       }}>
         <div style={{
@@ -573,7 +575,7 @@ const Enrollments = ({ isMobile, onBack }) => {
             <span style={pillStyle()}>Updated: {formatDate(course.updatedAt)}</span>
           </div>
 
-          <h1 style={{ margin: 0, fontSize: isMobile ? '32px' : '44px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+          <h1 style={{ margin: 0, fontSize: isMobileDevice ? '32px' : '44px', fontWeight: 800, letterSpacing: '-0.5px' }}>
             {course.title}
           </h1>
 
@@ -601,8 +603,8 @@ const Enrollments = ({ isMobile, onBack }) => {
       </div>
 
       {/* ─── MAIN CONTENT ────────────────────────────────────────── */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '28px 20px 60px' : '40px 40px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '340px 1fr', gap: '28px', alignItems: 'start' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobileDevice ? '28px 20px 60px' : '40px 40px 80px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobileDevice ? '1fr' : '340px 1fr', gap: '28px', alignItems: 'start' }}>
 
           {/* ── Left: Price card ── */}
           <div style={{
@@ -610,7 +612,7 @@ const Enrollments = ({ isMobile, onBack }) => {
             borderRadius: '20px',
             padding: '28px',
             color: '#fff',
-            position: isMobile ? 'static' : 'sticky',
+            position: isMobileDevice ? 'static' : 'sticky',
             top: '24px',
             boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
           }}>
