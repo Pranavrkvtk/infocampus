@@ -26,6 +26,13 @@ import AppsIcon from '@mui/icons-material/Apps';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import ViewListIcon from '@mui/icons-material/ViewList';
+import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
+import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
+import ViewStreamIcon from '@mui/icons-material/ViewStream';
+import ViewAgendaIcon from '@mui/icons-material/ViewAgenda';
+import ViewCompactIcon from '@mui/icons-material/ViewCompact';
+import ViewDayIcon from '@mui/icons-material/ViewDay';
+import ViewWeekIcon from '@mui/icons-material/ViewWeek';
 
 // ─── Hero Button Icons ──────────────────────────────────────────────
 import WhatshotIcon from '@mui/icons-material/Whatshot';
@@ -51,13 +58,13 @@ const SECTION_ICON_OPTIONS = [
   { value: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { value: 'module', label: 'Module View', icon: <ViewModuleIcon /> },
   { value: 'list', label: 'List View', icon: <ViewListIcon /> },
-  { value: 'carousel', label: 'Carousel', icon: <GridViewIcon /> },
-  { value: 'quilt', label: 'Quilt View', icon: <GridViewIcon /> },
-  { value: 'stream', label: 'Stream View', icon: <GridViewIcon /> },
-  { value: 'agenda', label: 'Agenda View', icon: <GridViewIcon /> },
-  { value: 'compact', label: 'Compact View', icon: <GridViewIcon /> },
-  { value: 'day', label: 'Day View', icon: <GridViewIcon /> },
-  { value: 'week', label: 'Week View', icon: <GridViewIcon /> },
+  { value: 'carousel', label: 'Carousel', icon: <ViewCarouselIcon /> },
+  { value: 'quilt', label: 'Quilt View', icon: <ViewQuiltIcon /> },
+  { value: 'stream', label: 'Stream View', icon: <ViewStreamIcon /> },
+  { value: 'agenda', label: 'Agenda View', icon: <ViewAgendaIcon /> },
+  { value: 'compact', label: 'Compact View', icon: <ViewCompactIcon /> },
+  { value: 'day', label: 'Day View', icon: <ViewDayIcon /> },
+  { value: 'week', label: 'Week View', icon: <ViewWeekIcon /> },
 ];
 
 // ─── Default Settings (fallback) ──────────────────────────────────
@@ -66,7 +73,7 @@ const DEFAULT_SETTINGS = {
   heroTitle: "Knowledge is a superpower",
   heroText: "Level up your networking and security skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
   heroButtonText: "Pick a course →",
-  heroButtonIcon: "whatshot",  // ✅ ADDED
+  heroButtonIcon: "whatshot",
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
   heroBgEnd: "#83698A",
@@ -126,7 +133,7 @@ function CoursePageSettingsTab() {
       heroTitle: data.heroTitle || DEFAULT_SETTINGS.heroTitle,
       heroText: data.heroText || DEFAULT_SETTINGS.heroText,
       heroButtonText: data.heroButtonText || DEFAULT_SETTINGS.heroButtonText,
-      heroButtonIcon: data.heroButtonIcon || DEFAULT_SETTINGS.heroButtonIcon,  // ✅ ADDED
+      heroButtonIcon: data.heroButtonIcon || DEFAULT_SETTINGS.heroButtonIcon,
       heroBgStart: data.heroBgStart || DEFAULT_SETTINGS.heroBgStart,
       heroBgMid: data.heroBgMid || DEFAULT_SETTINGS.heroBgMid,
       heroBgEnd: data.heroBgEnd || DEFAULT_SETTINGS.heroBgEnd,
@@ -177,7 +184,7 @@ function CoursePageSettingsTab() {
       heroTitle: settingsData.heroTitle,
       heroText: settingsData.heroText,
       heroButtonText: settingsData.heroButtonText,
-      heroButtonIcon: settingsData.heroButtonIcon,  // ✅ ADDED
+      heroButtonIcon: settingsData.heroButtonIcon,
       heroBgStart: settingsData.heroBgStart,
       heroBgMid: settingsData.heroBgMid,
       heroBgEnd: settingsData.heroBgEnd,
@@ -400,6 +407,17 @@ function CoursePageSettingsTab() {
     return option ? option.icon : null;
   };
 
+  // ─── Helper to get section icon for preview ──────────────────────
+  const getSectionIconPreview = () => {
+    const option = SECTION_ICON_OPTIONS.find(opt => opt.value === settings.sectionIcon);
+    return option ? option.icon : <GridViewIcon />;
+  };
+
+  const getSectionIconLabel = () => {
+    const option = SECTION_ICON_OPTIONS.find(opt => opt.value === settings.sectionIcon);
+    return option ? option.label : 'Grid View';
+  };
+
   // ─── Sample courses for preview ──────────────────────────────────
   const sampleCourses = [
     { id: 1, title: 'CCNA Routing & Switching', level: 'Intermediate', duration: '6 weeks', track: 'ccna' },
@@ -491,11 +509,16 @@ function CoursePageSettingsTab() {
             {/* ✅ HERO DECOR REMOVED */}
           </div>
 
-          {/* Section Bar */}
+          {/* Section Bar - WITH DYNAMIC SECTION ICON */}
           <div style={styles.previewSectionBar}>
             <div style={styles.previewSectionTitle}>
-              <GridViewIcon style={{ fontSize: '20px', color: settings.iconColor || '#714B67' }} />
-              <span style={{ marginLeft: '8px' }}>{settings.sectionTitleAll}</span>
+              {/* ✅ DYNAMIC SECTION ICON with color from settings */}
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {React.cloneElement(getSectionIconPreview(), { 
+                  style: { fontSize: '20px', color: settings.iconColor || '#714B67' } 
+                })}
+                <span style={{ marginLeft: '8px' }}>{settings.sectionTitleAll}</span>
+              </span>
               <span style={styles.previewCount}>4</span>
               <span style={styles.previewIconLabel}>({getSectionIconName()})</span>
             </div>
@@ -615,7 +638,7 @@ function CoursePageSettingsTab() {
             />
           </div>
 
-          {/* ✅ HERO BUTTON ICON PICKER - ADDED */}
+          {/* ✅ HERO BUTTON ICON PICKER */}
           <div style={styles.field}>
             <label style={styles.label}>Hero Button Icon</label>
             <div style={styles.selectWrapper}>
@@ -634,7 +657,7 @@ function CoursePageSettingsTab() {
                 Icon shown inside the hero "Pick a course" button
               </span>
             </div>
-            {/* Icon Preview */}
+            {/* Hero Icon Preview */}
             <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '13px', color: '#64748b' }}>Preview:</span>
               {HERO_BUTTON_ICON_OPTIONS.find(o => o.value === settings.heroButtonIcon)?.icon && (
@@ -658,7 +681,7 @@ function CoursePageSettingsTab() {
 
           {/* ✅ HERO DECOR ICON FIELD REMOVED */}
 
-          {/* ─── Section Icon Picker ─────────────────────────── */}
+          {/* ─── Section Icon Picker WITH PREVIEW ─────────────────── */}
           <div style={styles.field}>
             <label style={styles.label}>Section Icon</label>
             <div style={styles.selectWrapper}>
@@ -675,6 +698,98 @@ function CoursePageSettingsTab() {
               </select>
               <span style={styles.selectHint}>
                 This icon appears next to "All Courses" / "My Courses" title
+              </span>
+            </div>
+            
+            {/* ✅ SECTION ICON PREVIEW */}
+            <div style={{ 
+              marginTop: '8px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px',
+              padding: '10px 14px',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e4e7ec',
+              flexWrap: 'wrap',
+            }}>
+              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>
+                Preview:
+              </span>
+              <span style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                padding: '6px 14px',
+                background: '#ffffff',
+                borderRadius: '6px',
+                border: '1px solid #e4e7ec',
+              }}>
+                {React.cloneElement(getSectionIconPreview(), { 
+                  style: { fontSize: '28px', color: settings.iconColor || '#714B67' } 
+                })}
+                <span style={{ 
+                  fontSize: '13px', 
+                  color: '#0f172a',
+                  fontWeight: 500,
+                  marginLeft: '4px',
+                }}>
+                  {getSectionIconLabel()}
+                </span>
+              </span>
+              <span style={{ 
+                fontSize: '11px', 
+                color: '#94a3b8',
+                fontStyle: 'italic',
+              }}>
+                (Color: {settings.iconColor || '#714B67'})
+              </span>
+            </div>
+            
+            {/* Color picker for icon color */}
+            <div style={{ 
+              marginTop: '8px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px',
+              flexWrap: 'wrap',
+            }}>
+              <label style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                Icon Color:
+              </label>
+              <input
+                type="color"
+                value={settings.iconColor || '#714B67'}
+                onChange={(e) => handleChange('iconColor', e.target.value)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  border: '1px solid #e4e7ec',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  padding: '2px',
+                }}
+              />
+              <input
+                type="text"
+                value={settings.iconColor || '#714B67'}
+                onChange={(e) => handleChange('iconColor', e.target.value)}
+                style={{
+                  width: '100px',
+                  padding: '4px 8px',
+                  border: '1px solid #e4e7ec',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontFamily: 'monospace',
+                  background: '#ffffff',
+                  color: '#0f172a',
+                }}
+              />
+              <span style={{ 
+                fontSize: '11px', 
+                color: '#94a3b8',
+              }}>
+                (Changes icon color in preview)
               </span>
             </div>
           </div>
@@ -1095,7 +1210,7 @@ function CoursePageSettingsTab() {
                 fontSize: '13px',
                 cursor: 'default',
               }}>
-                View Course
+               View Details
               </button>
               <button style={{
                 background: settings.continueBtnBg || '#714B67',
