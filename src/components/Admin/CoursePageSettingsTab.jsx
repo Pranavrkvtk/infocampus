@@ -27,6 +27,23 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import ViewListIcon from '@mui/icons-material/ViewList';
 
+// ─── Hero Button Icons ──────────────────────────────────────────────
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import SchoolIcon from '@mui/icons-material/School';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+
+// ─── Hero Button Icon Options ──────────────────────────────────────
+const HERO_BUTTON_ICON_OPTIONS = [
+  { value: 'whatshot', label: '🔥 Fire (Trending)', icon: <WhatshotIcon /> },
+  { value: 'school', label: '🏫 School (Learning)', icon: <SchoolIcon /> },
+  { value: 'menuBook', label: '📖 Menu Book (Courses)', icon: <MenuBookIcon /> },
+  { value: 'autoStories', label: '📚 Study Materials', icon: <AutoStoriesIcon /> },
+  { value: 'workspacePremium', label: '🏆 Certification', icon: <WorkspacePremiumIcon /> },
+  { value: 'none', label: '🚫 No Icon', icon: null },
+];
+
 // ─── Section Icons Library ──────────────────────────────────────────
 const SECTION_ICON_OPTIONS = [
   { value: 'grid', label: 'Grid View', icon: <GridViewIcon /> },
@@ -49,6 +66,7 @@ const DEFAULT_SETTINGS = {
   heroTitle: "Knowledge is a superpower",
   heroText: "Level up your networking and security skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
   heroButtonText: "Pick a course →",
+  heroButtonIcon: "whatshot",  // ✅ ADDED
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
   heroBgEnd: "#83698A",
@@ -108,6 +126,7 @@ function CoursePageSettingsTab() {
       heroTitle: data.heroTitle || DEFAULT_SETTINGS.heroTitle,
       heroText: data.heroText || DEFAULT_SETTINGS.heroText,
       heroButtonText: data.heroButtonText || DEFAULT_SETTINGS.heroButtonText,
+      heroButtonIcon: data.heroButtonIcon || DEFAULT_SETTINGS.heroButtonIcon,  // ✅ ADDED
       heroBgStart: data.heroBgStart || DEFAULT_SETTINGS.heroBgStart,
       heroBgMid: data.heroBgMid || DEFAULT_SETTINGS.heroBgMid,
       heroBgEnd: data.heroBgEnd || DEFAULT_SETTINGS.heroBgEnd,
@@ -158,6 +177,7 @@ function CoursePageSettingsTab() {
       heroTitle: settingsData.heroTitle,
       heroText: settingsData.heroText,
       heroButtonText: settingsData.heroButtonText,
+      heroButtonIcon: settingsData.heroButtonIcon,  // ✅ ADDED
       heroBgStart: settingsData.heroBgStart,
       heroBgMid: settingsData.heroBgMid,
       heroBgEnd: settingsData.heroBgEnd,
@@ -374,6 +394,12 @@ function CoursePageSettingsTab() {
 
   const trackIcons = parseTrackIcons();
 
+  // ─── Helper to get hero icon for preview ────────────────────────
+  const getHeroIconPreview = () => {
+    const option = HERO_BUTTON_ICON_OPTIONS.find(opt => opt.value === settings.heroButtonIcon);
+    return option ? option.icon : null;
+  };
+
   // ─── Sample courses for preview ──────────────────────────────────
   const sampleCourses = [
     { id: 1, title: 'CCNA Routing & Switching', level: 'Intermediate', duration: '6 weeks', track: 'ccna' },
@@ -458,7 +484,8 @@ function CoursePageSettingsTab() {
                 background: settings.heroBtnBg || '#4f46e5',
                 color: settings.heroBtnTextColor || '#ffffff',
               }}>
-                <span>{settings.heroButtonText}</span>
+                {getHeroIconPreview()}
+                <span style={{ marginLeft: '6px' }}>{settings.heroButtonText}</span>
               </div>
             </div>
             {/* ✅ HERO DECOR REMOVED */}
@@ -586,6 +613,47 @@ function CoursePageSettingsTab() {
               style={styles.input}
               placeholder="e.g., Pick a course →"
             />
+          </div>
+
+          {/* ✅ HERO BUTTON ICON PICKER - ADDED */}
+          <div style={styles.field}>
+            <label style={styles.label}>Hero Button Icon</label>
+            <div style={styles.selectWrapper}>
+              <select
+                value={settings.heroButtonIcon || 'whatshot'}
+                onChange={(e) => handleChange('heroButtonIcon', e.target.value)}
+                style={styles.select}
+              >
+                {HERO_BUTTON_ICON_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <span style={styles.selectHint}>
+                Icon shown inside the hero "Pick a course" button
+              </span>
+            </div>
+            {/* Icon Preview */}
+            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', color: '#64748b' }}>Preview:</span>
+              {HERO_BUTTON_ICON_OPTIONS.find(o => o.value === settings.heroButtonIcon)?.icon && (
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  padding: '4px 12px',
+                  background: '#f1f5f9',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                }}>
+                  {HERO_BUTTON_ICON_OPTIONS.find(o => o.value === settings.heroButtonIcon)?.icon}
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    ({HERO_BUTTON_ICON_OPTIONS.find(o => o.value === settings.heroButtonIcon)?.label})
+                  </span>
+                </span>
+              )}
+            </div>
           </div>
 
           {/* ✅ HERO DECOR ICON FIELD REMOVED */}
@@ -1010,7 +1078,11 @@ function CoursePageSettingsTab() {
                 fontWeight: 600,
                 fontSize: '13px',
                 cursor: 'default',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
               }}>
+                {getHeroIconPreview()}
                 Hero Button
               </button>
               <button style={{
@@ -1635,7 +1707,8 @@ const styles = {
     marginBottom: '14px',
   },
   previewHeroBtn: {
-    display: 'inline-block',
+    display: 'inline-flex',
+    alignItems: 'center',
     border: 'none',
     borderRadius: '8px',
     padding: '8px 18px',

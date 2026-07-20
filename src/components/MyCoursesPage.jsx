@@ -18,6 +18,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
+import SchoolIcon from '@mui/icons-material/School';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
@@ -34,8 +35,24 @@ import ViewAgendaIcon from '@mui/icons-material/ViewAgenda';
 import ViewCompactIcon from '@mui/icons-material/ViewCompact';
 import ViewDayIcon from '@mui/icons-material/ViewDay';
 import ViewWeekIcon from '@mui/icons-material/ViewWeek';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
+
+// ─── Hero Button Icon Resolver ──────────────────────────────────────
+const getHeroButtonIcon = (iconName) => {
+  const iconStyle = { fontSize: '18px' };
+  const icons = {
+    whatshot: <WhatshotIcon style={iconStyle} />,
+    school: <SchoolIcon style={iconStyle} />,
+    menuBook: <MenuBookIcon style={iconStyle} />,
+    autoStories: <AutoStoriesIcon style={iconStyle} />,
+    workspacePremium: <WorkspacePremiumIcon style={iconStyle} />,
+    none: null,
+  };
+  return icons[iconName] !== undefined ? icons[iconName] : icons.whatshot;
+};
 
 // ─── Section Icons Mapping ──────────────────────────────────────────
 const getSectionIcon = (iconName, iconColor = '#714B67') => {
@@ -63,6 +80,7 @@ const DEFAULT_CONFIG = {
   heroTitle: "Knowledge is a superpower",
   heroText: "Level up your networking and skills — from CCNA fundamentals to CCIE expert tracks. Your next certification starts here.",
   heroButtonText: "Pick a course →",
+  heroButtonIcon: "whatshot",  // ✅ ADDED
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
   heroBgEnd: "#83698A",
@@ -301,6 +319,7 @@ function MyCoursesPage() {
           heroTitle: data.heroTitle || DEFAULT_CONFIG.heroTitle,
           heroText: data.heroText || DEFAULT_CONFIG.heroText,
           heroButtonText: data.heroButtonText || DEFAULT_CONFIG.heroButtonText,
+          heroButtonIcon: data.heroButtonIcon || DEFAULT_CONFIG.heroButtonIcon,  // ✅ ADDED
           heroBgStart: data.heroBgStart || DEFAULT_CONFIG.heroBgStart,
           heroBgMid: data.heroBgMid || DEFAULT_CONFIG.heroBgMid,
           heroBgEnd: data.heroBgEnd || DEFAULT_CONFIG.heroBgEnd,
@@ -947,7 +966,7 @@ function MyCoursesPage() {
       maxWidth: '480px', 
       marginBottom: '22px' 
     },
-    // ✅ UPDATED: Hero Button with dynamic colors
+    // ✅ UPDATED: Hero Button with dynamic colors and icon
     heroBtn: { 
       background: config.heroBtnBg || '#4f46e5',
       color: config.heroBtnTextColor || '#ffffff',
@@ -962,11 +981,6 @@ function MyCoursesPage() {
       alignItems: 'center',
       gap: '8px',
       transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
-      ':hover': {
-        background: config.heroBtnHoverBg || '#4338ca',
-        transform: 'translateY(-2px)',
-        boxShadow: '0 14px 30px -8px rgba(0,0,0,0.5)',
-      },
     },
     // ❌ heroDecor: { ... },  // REMOVED
 
@@ -1296,6 +1310,8 @@ function MyCoursesPage() {
   // ❌ const heroDecor = config.heroDecor || '🎓';  // REMOVED
   // ✅ DYNAMIC SECTION ICON with color from config
   const sectionIcon = getSectionIcon(config.sectionIcon, config.iconColor);
+  // ✅ GET HERO BUTTON ICON from config
+  const heroIcon = getHeroButtonIcon(config.heroButtonIcon);
 
   const formatCategoryName = (cat) => {
     if (cat === 'all') return 'All';
@@ -1363,7 +1379,7 @@ function MyCoursesPage() {
       </div>
 
       {/* ─── Hero Section ────────────────────────────────────────────── */}
-      {/* ✅ WITHOUT HERO DECOR */}
+      {/* ✅ WITHOUT HERO DECOR - WITH DYNAMIC ICON */}
       <div style={styles.hero}>
         <div style={styles.heroInner}>
           <div style={styles.heroEyebrow}>{config.heroEyebrow}</div>
@@ -1383,7 +1399,8 @@ function MyCoursesPage() {
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <WhatshotIcon style={{ fontSize: '18px' }} />
+            {/* ✅ DYNAMIC HERO BUTTON ICON */}
+            {heroIcon}
             {config.heroButtonText}
           </button>
         </div>
