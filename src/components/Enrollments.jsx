@@ -11,11 +11,11 @@ import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import LockIcon from '@mui/icons-material/Lock';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import UpdateIcon from '@mui/icons-material/Update';
+import { getImageUrl } from '../utils/imageUtils';
 
-// ─── Top Bar Colors (matching CourseDetailView) ────────────────────
+// ─── Top Bar Colors ────────────────────────────────────────────────
 const TOPBAR = {
   bg: '#2C3540',
   bgGradient: 'linear-gradient(180deg, #2C3540 0%, #1F2933 100%)',
@@ -24,66 +24,32 @@ const TOPBAR = {
   border: '#3E4A58',
   text: '#FFFFFF',
   muted: '#C9D2DC',
-  lessonsColor: '#47525f',
 };
 
 // ─── Palette ──────────────────────────────────────────────────────────
 const COLORS = {
-  navBg: '#161522',
-  navBorder: '#2b2a3c',
-  navHover: '#242335',
+  pageBg: '#f0f2f5',
+  cardBg: '#ffffff',
+  textDark: '#1a1a2e',
+  textMuted: '#6b7280',
+  border: '#e5e7eb',
+  purpleText: '#5b21b6',
+  green: '#12b76a',
+  greenBg: '#e7f9ef',
   heroGradFrom: '#3d2b52',
   heroGradTo: '#2a2438',
   heroBlob: 'rgba(255,255,255,0.06)',
   purpleCard: 'linear-gradient(160deg, #2C3540 0%, #1A232E 100%)',
-  purpleText: '#5b21b6',
-  pageBg: '#f4f5f8',
-  cardBg: '#ffffff',
-  textDark: '#1a1a2e',
-  textMuted: '#6b7280',
-  border: '#eef0f3',
-  green: '#12b76a',
-  greenBg: '#e7f9ef',
 };
 
 const formatDate = (d) => {
   try {
     return new Date(d || Date.now()).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric'
+      month: '2-digit', day: '2-digit', year: 'numeric'
     });
   } catch {
     return '';
   }
-};
-
-// ─── Derive topic/lesson structure from whatever the course object has ──
-const getTopics = (course) => {
-  if (Array.isArray(course?.topics) && course.topics.length > 0) {
-    return course.topics.map((t, i) => ({
-      id: t.id || `topic-${i}`,
-      title: t.title || `Topic ${i + 1}`,
-      isFreePreview: !!t.isFreePreview || i === 0,
-      lessons: Array.isArray(t.lessons) && t.lessons.length > 0
-        ? t.lessons.map((l, j) => ({
-            id: l.id || `lesson-${i}-${j}`,
-            title: l.title || `Lesson ${j + 1}`,
-            isFree: !!l.isFree || (i === 0 && j === 0),
-          }))
-        : [{ id: `lesson-${i}-0`, title: 'Lesson 1', isFree: i === 0 }],
-    }));
-  }
-
-  const lessonCount = course?.lessonCount || 1;
-  return [{
-    id: 'topic-1',
-    title: course?.title ? `Intro to ${course.title}` : 'Getting Started',
-    isFreePreview: true,
-    lessons: Array.from({ length: lessonCount }).map((_, i) => ({
-      id: `lesson-${i}`,
-      title: `Lesson ${i + 1}`,
-      isFree: i === 0,
-    })),
-  }];
 };
 
 const Enrollments = ({ isMobile, onBack }) => {
@@ -96,7 +62,6 @@ const Enrollments = ({ isMobile, onBack }) => {
   const [course, setCourse] = useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [error, setError] = useState(null);
-  const [expandedTopics, setExpandedTopics] = useState({ 'topic-1': true });
 
   const isLoggedIn = !!localStorage.getItem('token');
 
@@ -142,7 +107,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     }
   }, [courseId]);
 
-  // ─── useEffect with all dependencies properly included ──
+  // ─── useEffect ────────────────────────────────────────────────────
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -168,7 +133,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     }
   }, [courseId, location.state?.course, location.state?.isEnrolled, fetchCourseDetails, checkEnrollmentStatus]);
 
-  // ✅ Handle free preview - NO POPUP, directly navigate with isPreview flag
+  // ✅ Handle free preview
   const handleFreePreview = () => {
     navigate(`/course/${courseId}`, { 
       state: { 
@@ -180,22 +145,19 @@ const Enrollments = ({ isMobile, onBack }) => {
     });
   };
 
-  // ✅ Handle enroll - NO POPUP, just navigate directly to course
+  // ✅ Handle enroll
   const handleEnroll = async () => {
-    // If already enrolled, go to course directly (no popup)
     if (isEnrolled) {
       navigate(`/course/${courseId}`);
       return;
     }
 
-    // User should be logged in at this point
     setEnrolling(true);
     try {
       const response = await enrollInCourse(courseId);
 
       if (response && response.success !== false) {
         setIsEnrolled(true);
-        // ✅ NO POPUP - just navigate directly to course
         navigate(`/course/${courseId}`);
       } else {
         throw new Error(response?.message || 'Enrollment failed');
@@ -206,10 +168,8 @@ const Enrollments = ({ isMobile, onBack }) => {
 
       if (errorMsg.toLowerCase().includes('already enrolled')) {
         setIsEnrolled(true);
-        // ✅ Direct navigation for already enrolled (no popup)
         navigate(`/course/${courseId}`);
       } else {
-        // ✅ Show error popup only for actual failures
         Swal.fire({
           icon: 'error',
           title: 'Enrollment Failed',
@@ -223,7 +183,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     }
   };
 
-  // ✅ Handle main button click - decide between preview or enroll
+  // ✅ Handle main action
   const handleMainAction = () => {
     if (isLoggedIn) {
       handleEnroll();
@@ -290,10 +250,6 @@ const Enrollments = ({ isMobile, onBack }) => {
   };
 
   const handleLogin = () => navigate('/login');
-
-  const toggleTopic = (id) => {
-    setExpandedTopics((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
 
   // ── Success screen ──────────────────────────────────────────────
   if (isEnrolled && !enrolling) {
@@ -403,21 +359,25 @@ const Enrollments = ({ isMobile, onBack }) => {
 
   const price = course.price ?? 299;
   const period = course.pricePeriod || 'lifetime';
-  const rating = course.rating || 4.5;
-  const fullStars = Math.round(rating);
-  const topics = getTopics(course);
-  const totalLessons = topics.reduce((sum, t) => sum + t.lessons.length, 0);
-
-  // ✅ Check if first topic has free lessons
-  const hasFreeContent = topics.length > 0 && topics[0].lessons.some(l => l.isFree);
-
-  // ✅ Detect if mobile (or use prop)
   const isMobileDevice = isMobile || window.innerWidth < 768;
+
+  // ✅ Get the image URL using the utility - support both image and imageUrl fields
+  const getCourseImage = () => {
+    if (course.image) {
+      return getImageUrl(course.image);
+    }
+    if (course.imageUrl) {
+      return getImageUrl(course.imageUrl);
+    }
+    return null;
+  };
+
+  const imageUrl = getCourseImage();
 
   return (
     <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", minHeight: "100vh", background: COLORS.pageBg }}>
 
-      {/* ─── TOP NAVIGATION BAR (matching CourseDetailView) ──────────────────── */}
+      {/* ─── TOP NAVIGATION BAR ────────────────────────────────────── */}
       <div style={{
         height: isMobileDevice ? '28px' : '32px',
         background: TOPBAR.bgGradient,
@@ -555,94 +515,182 @@ const Enrollments = ({ isMobile, onBack }) => {
         </div>
       </div>
 
-      {/* ─── HERO ────────────────────────────────────────────────── */}
+      {/* ─── HERO / HEADER with Image ──────────────────────────────── */}
       <div style={{
-        position: 'relative',
-        overflow: 'hidden',
         background: `linear-gradient(135deg, ${COLORS.heroGradFrom} 0%, ${COLORS.heroGradTo} 100%)`,
-        padding: isMobileDevice ? '40px 20px' : '56px 40px',
+        padding: isMobileDevice ? '32px 20px' : '48px 40px',
         color: '#fff',
+        borderBottom: '1px solid rgba(255,255,255,0.1)',
       }}>
-        <div style={{
-          position: 'absolute', top: '-80px', right: '-80px',
-          width: '360px', height: '360px', borderRadius: '50%',
-          background: COLORS.heroBlob, pointerEvents: 'none'
-        }} />
-
-        <div style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative' }}>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-            <span style={pillStyle()}>{(course.level || 'All Levels').toUpperCase()}</span>
-            <span style={pillStyle()}>Updated: {formatDate(course.updatedAt)}</span>
-          </div>
-
-          <h1 style={{ margin: 0, fontSize: isMobileDevice ? '32px' : '44px', fontWeight: 800, letterSpacing: '-0.5px' }}>
-            {course.title}
-          </h1>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '14px 0' }}>
-            <span style={{ color: '#f59e0b', fontSize: '18px', letterSpacing: '2px' }}>
-              {'★'.repeat(fullStars)}{'☆'.repeat(5 - fullStars)}
-            </span>
-            <span style={{ color: '#d8d3e0', fontSize: '14px' }}>
-              {rating} ({course.reviewCount || 1200} reviews)
-            </span>
-          </div>
-
-          {course.description && (
-            <p style={{ color: '#cdc4d9', fontSize: '15px', maxWidth: '640px', marginBottom: '20px', lineHeight: 1.6 }}>
-              {course.description}
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: isMobileDevice ? '1fr' : '1fr 280px',
+          gap: '32px',
+          alignItems: 'center'
+        }}>
+          <div>
+            <h1 style={{ 
+              margin: 0, 
+              fontSize: isMobileDevice ? '28px' : '38px', 
+              fontWeight: 700,
+              letterSpacing: '-0.5px',
+              marginBottom: '8px'
+            }}>
+              {course.title}
+            </h1>
+            <p style={{ 
+              color: '#b8b0c9', 
+              fontSize: isMobileDevice ? '14px' : '16px',
+              marginBottom: '24px'
+            }}>
+              {course.subtitle || 'Join this course'}
             </p>
-          )}
 
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '14px', color: '#e4dfeb' }}>
-            <span>🕐 {course.duration || '6-10 hours'}</span>
-            <span>🎓 {totalLessons} Lesson{totalLessons !== 1 ? 's' : ''}</span>
-            <span>🌐 {course.language || 'English'}</span>
+            {/* Course Stats */}
+            <div style={{
+              display: 'flex',
+              gap: isMobileDevice ? '16px' : '32px',
+              flexWrap: 'wrap',
+              fontSize: isMobileDevice ? '13px' : '15px',
+              color: '#d4cfe0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <UpdateIcon style={{ fontSize: '18px' }} />
+                <span>Last Update: {formatDate(course.updatedAt)}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AccessTimeIcon style={{ fontSize: '18px' }} />
+                <span>Completion: {course.duration || '2 hours 40 minutes'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Course Image */}
+          <div style={{
+            width: '100%',
+            height: isMobileDevice ? '160px' : '200px',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            background: 'rgba(255,255,255,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {imageUrl ? (
+              <img 
+                src={imageUrl} 
+                alt={course.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = '<div style="font-size:64px;opacity:0.3;">🖼️</div>';
+                }}
+              />
+            ) : (
+              <div style={{
+                fontSize: '64px',
+                opacity: 0.3,
+              }}>
+                🖼️
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* ─── MAIN CONTENT ────────────────────────────────────────── */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobileDevice ? '28px 20px 60px' : '40px 40px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobileDevice ? '1fr' : '340px 1fr', gap: '28px', alignItems: 'start' }}>
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto', 
+        padding: isMobileDevice ? '24px 16px 60px' : '32px 40px 80px' 
+      }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: isMobileDevice ? '1fr' : '300px 1fr', 
+          gap: '32px', 
+          alignItems: 'start' 
+        }}>
 
-          {/* ── Left: Price card ── */}
+          {/* ── Left: Enroll Card ── */}
           <div style={{
             background: COLORS.purpleCard,
-            borderRadius: '20px',
-            padding: '28px',
+            borderRadius: '16px',
+            padding: '24px',
             color: '#fff',
             position: isMobileDevice ? 'static' : 'sticky',
             top: '24px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
           }}>
-            <p style={{ opacity: 0.8, fontSize: '13px', marginBottom: '4px', letterSpacing: '0.5px' }}>PRICE</p>
+            <h2 style={{ 
+              fontSize: '18px', 
+              fontWeight: 600, 
+              marginTop: 0, 
+              marginBottom: '20px',
+              color: '#fff'
+            }}>
+              Join This Course
+            </h2>
+
             <div style={{ marginBottom: '20px' }}>
-              <span style={{ fontSize: '38px', fontWeight: 800 }}>${price}</span>
-              <span style={{ fontSize: '15px', opacity: 0.85 }}> / {period}</span>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                padding: '8px 0',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                fontSize: '14px'
+              }}>
+                <span style={{ opacity: 0.7 }}>Price</span>
+                <span style={{ fontWeight: 600 }}>${price}</span>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                padding: '8px 0',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                fontSize: '14px'
+              }}>
+                <span style={{ opacity: 0.7 }}>Period</span>
+                <span style={{ fontWeight: 600 }}>{period}</span>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                padding: '8px 0',
+                fontSize: '14px'
+              }}>
+                <span style={{ opacity: 0.7 }}>Access</span>
+                <span style={{ fontWeight: 600, color: COLORS.green }}>Lifetime</span>
+              </div>
             </div>
 
-            {/* ✅ SINGLE BUTTON - "Join Free" for non-logged-in, "Enroll Now" for logged-in */}
             <button
               onClick={handleMainAction}
               disabled={enrolling}
               style={{
                 width: '100%',
-                background: '#fff',
-                color: '#1A232E',
+                background: isEnrolled ? '#2e7d32' : '#fff',
+                color: isEnrolled ? '#fff' : '#1A232E',
                 border: 'none',
-                borderRadius: '50px',
+                borderRadius: '8px',
                 padding: '14px',
-                fontSize: '15px',
+                fontSize: '16px',
                 fontWeight: 700,
                 cursor: enrolling ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                 opacity: enrolling ? 0.7 : 1,
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                transition: 'all 0.2s',
+                marginBottom: '12px'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.02)';
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(255,255,255,0.3)';
+                if (!enrolling && !isEnrolled) {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,255,255,0.2)';
+                }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
@@ -650,207 +698,76 @@ const Enrollments = ({ isMobile, onBack }) => {
               }}
             >
               {enrolling ? 'Processing…' : 
-               isEnrolled ? '✅ Already Enrolled' : 
-               isLoggedIn ? '🎯 Enroll Now' : 
-               '🚀 Join Free'}
+               isEnrolled ? '✅ Enrolled' : 
+               isLoggedIn ? 'Enroll Now' : 
+               'Join Free'}
             </button>
 
-            {/* ✅ Login hint for non-logged-in users */}
             {!isLoggedIn && !isEnrolled && (
-              <div style={{
-                marginTop: '12px',
-                textAlign: 'center',
-                fontSize: '12px',
-                opacity: 0.7,
-                color: '#fff',
-              }}>
-                <span>🔓 First topic is free • </span>
-                <span 
-                  style={{ 
-                    textDecoration: 'underline', 
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
-                  onClick={() => navigate('/login', { state: { from: `/enrollments/${courseId}` } })}
-                >
-                  Sign In for full access
-                </span>
-              </div>
+              <button
+                onClick={() => navigate('/login', { state: { from: `/enrollments/${courseId}` } })}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+              >
+                Sign in to enroll
+              </button>
             )}
-
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.25)', margin: '20px 0', paddingTop: '16px', fontSize: '13px', opacity: 0.9 }}>
-              🎓 {topics.length} Topic{topics.length !== 1 ? 's' : ''} · {totalLessons} Lesson{totalLessons !== 1 ? 's' : ''}
-              {!isLoggedIn && hasFreeContent && (
-                <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', opacity: 0.8 }}>
-                  🔓 First topic is free to preview
-                </span>
-              )}
-            </div>
 
             <button
               onClick={handleShare}
               style={{
                 width: '100%',
-                background: 'rgba(255,255,255,0.15)',
+                background: 'transparent',
                 color: '#fff',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: '10px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '8px',
                 padding: '12px',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                marginTop: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
                 transition: 'background 0.2s',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
-              <ShareOutlinedIcon style={{ fontSize: '16px' }} />
-              Share this course
+              <ShareOutlinedIcon style={{ fontSize: '18px' }} />
+              Share
             </button>
           </div>
 
-          {/* ── Right: Course content ── */}
-          <div style={{ background: COLORS.cardBg, borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '20px 24px', borderBottom: `1px solid ${COLORS.border}`
+          {/* ── Right: Course Description ── */}
+          <div style={{
+            background: COLORS.cardBg,
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          }}>
+            <p style={{
+              color: COLORS.textDark,
+              fontSize: '15px',
+              lineHeight: 1.8,
+              margin: 0,
+              whiteSpace: 'pre-wrap'
             }}>
-              <span style={{ color: COLORS.purpleText, fontWeight: 700, fontSize: '13px', letterSpacing: '0.5px' }}>
-                COURSE CONTENT
-              </span>
-              <span style={{ color: COLORS.textMuted, fontSize: '13px' }}>
-                {topics.length} TOPIC{topics.length !== 1 ? 'S' : ''} · {totalLessons} LESSON{totalLessons !== 1 ? 'S' : ''}
-              </span>
-            </div>
-
-            {topics.map((topic, i) => {
-              const isOpen = !!expandedTopics[topic.id];
-              const isFirstTopic = i === 0;
-              const hasFreeLessons = topic.lessons.some(l => l.isFree);
-              const isFreeTopic = isFirstTopic && hasFreeLessons;
-
-              return (
-                <div key={topic.id} style={{ borderBottom: i < topics.length - 1 ? `1px solid ${COLORS.border}` : 'none' }}>
-                  <div
-                    onClick={() => toggleTopic(topic.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '14px',
-                      padding: '16px 24px', cursor: 'pointer',
-                      background: isOpen ? '#faf8fd' : '#fff',
-                    }}
-                  >
-                    <div style={{
-                      width: '30px', height: '30px', borderRadius: '50%',
-                      background: isFreeTopic ? COLORS.green : '#5b21b6',
-                      color: '#fff', fontSize: '13px', fontWeight: 700,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}>
-                      {i + 1}
-                    </div>
-                    <span style={{ fontWeight: 600, color: COLORS.textDark, fontSize: '14px', flex: 1 }}>
-                      {topic.title}
-                    </span>
-                    {isFreeTopic && (
-                      <span style={{
-                        background: COLORS.greenBg, color: COLORS.green, fontSize: '11px', fontWeight: 700,
-                        padding: '3px 10px', borderRadius: '20px'
-                      }}>
-                        🔓 Free Preview
-                      </span>
-                    )}
-                    {!isFirstTopic && !isLoggedIn && (
-                      <LockIcon style={{ fontSize: '14px', color: COLORS.textMuted }} />
-                    )}
-                    <span style={{ color: COLORS.textMuted, fontSize: '13px' }}>
-                      {topic.lessons.length} lesson{topic.lessons.length !== 1 ? 's' : ''}
-                    </span>
-                    <ExpandMoreIcon style={{
-                      color: COLORS.textMuted, fontSize: '20px',
-                      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s'
-                    }} />
-                  </div>
-
-                  {isOpen && (
-                    <div style={{ background: '#faf8fd' }}>
-                      {topic.lessons.map((lesson, idx) => {
-                        const isFreeLesson = lesson.isFree || (isFirstTopic && idx === 0);
-                        const isLocked = !isLoggedIn && !isFreeLesson;
-
-                        return (
-                          <div
-                            key={lesson.id}
-                            onClick={() => {
-                              if (isLocked) {
-                                // ✅ Show login prompt only for locked lessons
-                                Swal.fire({
-                                  icon: 'info',
-                                  title: 'Sign In Required',
-                                  text: 'Please sign in to access this lesson.',
-                                  confirmButtonText: 'Sign In',
-                                  confirmButtonColor: '#5b21b6'
-                                }).then((result) => {
-                                  if (result.isConfirmed) {
-                                    navigate('/login', { state: { from: `/enrollments/${courseId}` } });
-                                  }
-                                });
-                                return;
-                              }
-                              // ✅ Navigate directly for free lessons (no popup)
-                              navigate(`/course/${courseId}`, { 
-                                state: { 
-                                  course: course,
-                                  lessonId: lesson.id,
-                                  isPreview: !isLoggedIn && isFreeLesson,
-                                  isEnrolled: isLoggedIn && isEnrolled,
-                                  from: 'enrollments'
-                                } 
-                              });
-                            }}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: '12px',
-                              padding: '12px 24px 12px 56px',
-                              cursor: isLocked ? 'not-allowed' : 'pointer',
-                              fontSize: '13px',
-                              color: isLocked ? COLORS.textMuted : COLORS.textDark,
-                              opacity: isLocked ? 0.7 : 1,
-                              borderBottom: idx < topic.lessons.length - 1 ? `1px solid ${COLORS.border}` : 'none',
-                            }}
-                          >
-                            <PlayArrowIcon style={{ 
-                              fontSize: '16px', 
-                              color: isFreeLesson ? COLORS.green : '#5b21b6' 
-                            }} />
-                            <span style={{ flex: 1 }}>{lesson.title}</span>
-                            {isFreeLesson ? (
-                              <span style={{
-                                background: COLORS.greenBg, 
-                                color: COLORS.green, 
-                                fontSize: '11px', 
-                                fontWeight: 700,
-                                padding: '3px 10px', 
-                                borderRadius: '20px'
-                              }}>
-                                Free
-                              </span>
-                            ) : isLoggedIn ? (
-                              <span style={{
-                                fontSize: '11px',
-                                color: COLORS.textMuted,
-                              }}>
-                                {isEnrolled ? 'Available' : '🔒 Locked'}
-                              </span>
-                            ) : (
-                              <LockIcon style={{ fontSize: '14px', color: COLORS.textMuted }} />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+              {course.description || 'No description available for this course.'}
+            </p>
           </div>
         </div>
       </div>
@@ -859,16 +776,5 @@ const Enrollments = ({ isMobile, onBack }) => {
     </div>
   );
 };
-
-// ─── shared inline style helpers ─────────────────────────────────────
-const pillStyle = () => ({
-  background: 'rgba(255,255,255,0.15)',
-  color: '#fff',
-  padding: '5px 14px',
-  borderRadius: '20px',
-  fontSize: '12px',
-  fontWeight: 700,
-  letterSpacing: '0.5px',
-});
 
 export default Enrollments;
