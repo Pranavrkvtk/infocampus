@@ -17,21 +17,23 @@ import TextFieldsIcon from '@mui/icons-material/TextFields';
 import DescriptionIcon from '@mui/icons-material/Description';
 import SearchIcon from '@mui/icons-material/Search';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import GridViewIcon from '@mui/icons-material/GridView';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import AppsIcon from '@mui/icons-material/Apps';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import ViewListIcon from '@mui/icons-material/ViewList';
 
 // ─── Section Icons Library ──────────────────────────────────────────
 const SECTION_ICON_OPTIONS = [
   { value: 'grid', label: 'Grid View', icon: <GridViewIcon /> },
-  { value: 'apps', label: 'Apps Grid', icon: <GridViewIcon /> },
-  { value: 'dashboard', label: 'Dashboard', icon: <GridViewIcon /> },
-  { value: 'module', label: 'Module View', icon: <GridViewIcon /> },
-  { value: 'list', label: 'List View', icon: <GridViewIcon /> },
+  { value: 'apps', label: 'Apps Grid', icon: <AppsIcon /> },
+  { value: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+  { value: 'module', label: 'Module View', icon: <ViewModuleIcon /> },
+  { value: 'list', label: 'List View', icon: <ViewListIcon /> },
   { value: 'carousel', label: 'Carousel', icon: <GridViewIcon /> },
   { value: 'quilt', label: 'Quilt View', icon: <GridViewIcon /> },
   { value: 'stream', label: 'Stream View', icon: <GridViewIcon /> },
@@ -39,28 +41,6 @@ const SECTION_ICON_OPTIONS = [
   { value: 'compact', label: 'Compact View', icon: <GridViewIcon /> },
   { value: 'day', label: 'Day View', icon: <GridViewIcon /> },
   { value: 'week', label: 'Week View', icon: <GridViewIcon /> },
-];
-
-// ─── Hero Decor Icons Library ──────────────────────────────────────
-const HERO_DECOR_ICONS = [
-  { value: '🎓', label: '🎓 Graduation', category: 'Education' },
-  { value: '📚', label: '📚 Books', category: 'Education' },
-  { value: '📖', label: '📖 Open Book', category: 'Education' },
-  { value: '💻', label: '💻 Laptop', category: 'Technology' },
-  { value: '🌐', label: '🌐 Globe', category: 'Technology' },
-  { value: '🔐', label: '🔐 Lock', category: 'Security' },
-  { value: '🛡️', label: '🛡️ Shield', category: 'Security' },
-  { value: '☁️', label: '☁️ Cloud', category: 'Cloud' },
-  { value: '🚀', label: '🚀 Rocket', category: 'Cloud' },
-  { value: '🐍', label: '🐍 Python', category: 'Development' },
-  { value: '⭐', label: '⭐ Star', category: 'General' },
-  { value: '✨', label: '✨ Sparkles', category: 'General' },
-  { value: '🎯', label: '🎯 Target', category: 'General' },
-  { value: '🏆', label: '🏆 Trophy', category: 'General' },
-  { value: '💎', label: '💎 Gem', category: 'General' },
-  { value: '🧠', label: '🧠 Brain', category: 'General' },
-  { value: '💡', label: '💡 Lightbulb', category: 'General' },
-  { value: '📝', label: '📝 Pencil', category: 'General' },
 ];
 
 // ─── Default Settings (fallback) ──────────────────────────────────
@@ -72,7 +52,6 @@ const DEFAULT_SETTINGS = {
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
   heroBgEnd: "#83698A",
-  heroDecor: "🎓",
   sectionTitleMy: "My Courses",
   sectionTitleAll: "All Courses",
   tabMyText: "My Courses",
@@ -94,6 +73,23 @@ const DEFAULT_SETTINGS = {
   sectionIcon: "grid",
   trackIcons: '{"ccna":"🌐","ccnp":"🚀","ccie":"🔐","security":"🛡️","linux":"🐧","python":"🐍","fortinet":"🧱","aws":"☁️","azure":"💠","devops":"⚡","default":"📄"}',
   trackColors: '{"ccna":"#EAF6F1","ccnp":"#FDF3E7","ccie":"#FBEAEA","security":"#F1EAFB","linux":"#E7F6FA","python":"#EAF6EF","fortinet":"#EFF1FB","aws":"#E8F4FD","azure":"#E3F2FD","devops":"#FFF3E0","default":"#F2F1F6"}',
+  // ─── Color Settings ──────────────────────────────────────────────
+  heroBtnBg: "#4f46e5",
+  heroBtnTextColor: "#ffffff",
+  heroBtnHoverBg: "#4338ca",
+  primaryColor: "#4f46e5",
+  iconColor: "#714B67",
+  tabActiveBg: "#714B67",
+  tabActiveText: "#ffffff",
+  tabInactiveText: "#6B6470",
+  categoryActiveBg: "#714B67",
+  categoryActiveText: "#ffffff",
+  categoryBorderColor: "#E8E3EA",
+  viewBtnBg: "#ffffff",
+  viewBtnText: "#714B67",
+  viewBtnBorder: "#714B67",
+  continueBtnBg: "#714B67",
+  continueBtnText: "#ffffff",
 };
 
 function CoursePageSettingsTab() {
@@ -102,63 +98,57 @@ function CoursePageSettingsTab() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [originalSettings, setOriginalSettings] = useState(DEFAULT_SETTINGS);
   const [hasChanges, setHasChanges] = useState(false);
-  const [showIconPicker, setShowIconPicker] = useState(false);
-  const [iconSearchTerm, setIconSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [showPreview, setShowPreview] = useState(true);
-
-  const categories = ['all', ...new Set(HERO_DECOR_ICONS.map(icon => icon.category))];
-
-  const getFilteredIcons = () => {
-    let filtered = HERO_DECOR_ICONS;
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(icon => icon.category === selectedCategory);
-    }
-    if (iconSearchTerm) {
-      const searchLower = iconSearchTerm.toLowerCase();
-      filtered = filtered.filter(icon => 
-        icon.label.toLowerCase().includes(searchLower) ||
-        icon.value.includes(searchLower)
-      );
-    }
-    return filtered;
-  };
-
-  const filteredIcons = getFilteredIcons();
 
   const parseSettingsFromApi = (apiData) => {
     if (!apiData) return DEFAULT_SETTINGS;
     const data = apiData.settings || apiData;
     return {
-      heroEyebrow: data.heroEyebrow || data['course.hero.eyebrow'] || DEFAULT_SETTINGS.heroEyebrow,
-      heroTitle: data.heroTitle || data['course.hero.title'] || DEFAULT_SETTINGS.heroTitle,
-      heroText: data.heroText || data['course.hero.text'] || DEFAULT_SETTINGS.heroText,
-      heroButtonText: data.heroButtonText || data['course.hero.button'] || DEFAULT_SETTINGS.heroButtonText,
-      heroBgStart: data.heroBgStart || data['course.hero.bg.start'] || DEFAULT_SETTINGS.heroBgStart,
-      heroBgMid: data.heroBgMid || data['course.hero.bg.mid'] || DEFAULT_SETTINGS.heroBgMid,
-      heroBgEnd: data.heroBgEnd || data['course.hero.bg.end'] || DEFAULT_SETTINGS.heroBgEnd,
-      heroDecor: data.heroDecor || data['course.hero.decor'] || DEFAULT_SETTINGS.heroDecor,
-      sectionTitleMy: data.sectionTitleMy || data['course.section.my'] || DEFAULT_SETTINGS.sectionTitleMy,
-      sectionTitleAll: data.sectionTitleAll || data['course.section.all'] || DEFAULT_SETTINGS.sectionTitleAll,
-      tabMyText: data.tabMyText || data['course.tab.my'] || DEFAULT_SETTINGS.tabMyText,
-      tabAllText: data.tabAllText || data['course.tab.all'] || DEFAULT_SETTINGS.tabAllText,
-      searchPlaceholder: data.searchPlaceholder || data['course.search.placeholder'] || DEFAULT_SETTINGS.searchPlaceholder,
-      cardDurationLabel: data.cardDurationLabel || data['course.card.duration'] || DEFAULT_SETTINGS.cardDurationLabel,
-      enrolledBadgeText: data.enrolledBadgeText || data['course.card.enrolled'] || DEFAULT_SETTINGS.enrolledBadgeText,
-      viewCourseButtonText: data.viewCourseButtonText || data['course.card.view'] || DEFAULT_SETTINGS.viewCourseButtonText,
-      continueLearningButtonText: data.continueLearningButtonText || data['course.card.continue'] || DEFAULT_SETTINGS.continueLearningButtonText,
-      emptyStateLoginTitle: data.emptyStateLoginTitle || data['course.empty.login.title'] || DEFAULT_SETTINGS.emptyStateLoginTitle,
-      emptyStateLoginText: data.emptyStateLoginText || data['course.empty.login.text'] || DEFAULT_SETTINGS.emptyStateLoginText,
-      emptyStateLoginButton: data.emptyStateLoginButton || data['course.empty.login.button'] || DEFAULT_SETTINGS.emptyStateLoginButton,
-      emptyStateNoCoursesTitle: data.emptyStateNoCoursesTitle || data['course.empty.no-courses.title'] || DEFAULT_SETTINGS.emptyStateNoCoursesTitle,
-      emptyStateNoCoursesText: data.emptyStateNoCoursesText || data['course.empty.no-courses.text'] || DEFAULT_SETTINGS.emptyStateNoCoursesText,
-      emptyStateNoCoursesButton: data.emptyStateNoCoursesButton || data['course.empty.no-courses.button'] || DEFAULT_SETTINGS.emptyStateNoCoursesButton,
-      emptyStateNoAvailableTitle: data.emptyStateNoAvailableTitle || data['course.empty.no-available.title'] || DEFAULT_SETTINGS.emptyStateNoAvailableTitle,
-      emptyStateNoAvailableText: data.emptyStateNoAvailableText || data['course.empty.no-available.text'] || DEFAULT_SETTINGS.emptyStateNoAvailableText,
-      footerText: data.footerText || data['course.footer.text'] || DEFAULT_SETTINGS.footerText,
-      sectionIcon: data.sectionIcon || data['course.section.icon'] || DEFAULT_SETTINGS.sectionIcon,
-      trackIcons: data.trackIcons || data['course.track.icons'] || DEFAULT_SETTINGS.trackIcons,
-      trackColors: data.trackColors || data['course.track.colors'] || DEFAULT_SETTINGS.trackColors,
+      heroEyebrow: data.heroEyebrow || DEFAULT_SETTINGS.heroEyebrow,
+      heroTitle: data.heroTitle || DEFAULT_SETTINGS.heroTitle,
+      heroText: data.heroText || DEFAULT_SETTINGS.heroText,
+      heroButtonText: data.heroButtonText || DEFAULT_SETTINGS.heroButtonText,
+      heroBgStart: data.heroBgStart || DEFAULT_SETTINGS.heroBgStart,
+      heroBgMid: data.heroBgMid || DEFAULT_SETTINGS.heroBgMid,
+      heroBgEnd: data.heroBgEnd || DEFAULT_SETTINGS.heroBgEnd,
+      sectionTitleMy: data.sectionTitleMy || DEFAULT_SETTINGS.sectionTitleMy,
+      sectionTitleAll: data.sectionTitleAll || DEFAULT_SETTINGS.sectionTitleAll,
+      tabMyText: data.tabMyText || DEFAULT_SETTINGS.tabMyText,
+      tabAllText: data.tabAllText || DEFAULT_SETTINGS.tabAllText,
+      searchPlaceholder: data.searchPlaceholder || DEFAULT_SETTINGS.searchPlaceholder,
+      cardDurationLabel: data.cardDurationLabel || DEFAULT_SETTINGS.cardDurationLabel,
+      enrolledBadgeText: data.enrolledBadgeText || DEFAULT_SETTINGS.enrolledBadgeText,
+      viewCourseButtonText: data.viewCourseButtonText || DEFAULT_SETTINGS.viewCourseButtonText,
+      continueLearningButtonText: data.continueLearningButtonText || DEFAULT_SETTINGS.continueLearningButtonText,
+      emptyStateLoginTitle: data.emptyStateLoginTitle || DEFAULT_SETTINGS.emptyStateLoginTitle,
+      emptyStateLoginText: data.emptyStateLoginText || DEFAULT_SETTINGS.emptyStateLoginText,
+      emptyStateLoginButton: data.emptyStateLoginButton || DEFAULT_SETTINGS.emptyStateLoginButton,
+      emptyStateNoCoursesTitle: data.emptyStateNoCoursesTitle || DEFAULT_SETTINGS.emptyStateNoCoursesTitle,
+      emptyStateNoCoursesText: data.emptyStateNoCoursesText || DEFAULT_SETTINGS.emptyStateNoCoursesText,
+      emptyStateNoCoursesButton: data.emptyStateNoCoursesButton || DEFAULT_SETTINGS.emptyStateNoCoursesButton,
+      emptyStateNoAvailableTitle: data.emptyStateNoAvailableTitle || DEFAULT_SETTINGS.emptyStateNoAvailableTitle,
+      emptyStateNoAvailableText: data.emptyStateNoAvailableText || DEFAULT_SETTINGS.emptyStateNoAvailableText,
+      footerText: data.footerText || DEFAULT_SETTINGS.footerText,
+      sectionIcon: data.sectionIcon || DEFAULT_SETTINGS.sectionIcon,
+      trackIcons: data.trackIcons || DEFAULT_SETTINGS.trackIcons,
+      trackColors: data.trackColors || DEFAULT_SETTINGS.trackColors,
+      // ─── Color Settings ──────────────────────────────────────────────
+      heroBtnBg: data.heroBtnBg || DEFAULT_SETTINGS.heroBtnBg,
+      heroBtnTextColor: data.heroBtnTextColor || DEFAULT_SETTINGS.heroBtnTextColor,
+      heroBtnHoverBg: data.heroBtnHoverBg || DEFAULT_SETTINGS.heroBtnHoverBg,
+      primaryColor: data.primaryColor || DEFAULT_SETTINGS.primaryColor,
+      iconColor: data.iconColor || DEFAULT_SETTINGS.iconColor,
+      tabActiveBg: data.tabActiveBg || DEFAULT_SETTINGS.tabActiveBg,
+      tabActiveText: data.tabActiveText || DEFAULT_SETTINGS.tabActiveText,
+      tabInactiveText: data.tabInactiveText || DEFAULT_SETTINGS.tabInactiveText,
+      categoryActiveBg: data.categoryActiveBg || DEFAULT_SETTINGS.categoryActiveBg,
+      categoryActiveText: data.categoryActiveText || DEFAULT_SETTINGS.categoryActiveText,
+      categoryBorderColor: data.categoryBorderColor || DEFAULT_SETTINGS.categoryBorderColor,
+      viewBtnBg: data.viewBtnBg || DEFAULT_SETTINGS.viewBtnBg,
+      viewBtnText: data.viewBtnText || DEFAULT_SETTINGS.viewBtnText,
+      viewBtnBorder: data.viewBtnBorder || DEFAULT_SETTINGS.viewBtnBorder,
+      continueBtnBg: data.continueBtnBg || DEFAULT_SETTINGS.continueBtnBg,
+      continueBtnText: data.continueBtnText || DEFAULT_SETTINGS.continueBtnText,
     };
   };
 
@@ -171,7 +161,6 @@ function CoursePageSettingsTab() {
       heroBgStart: settingsData.heroBgStart,
       heroBgMid: settingsData.heroBgMid,
       heroBgEnd: settingsData.heroBgEnd,
-      heroDecor: settingsData.heroDecor,
       sectionTitleMy: settingsData.sectionTitleMy,
       sectionTitleAll: settingsData.sectionTitleAll,
       tabMyText: settingsData.tabMyText,
@@ -193,6 +182,23 @@ function CoursePageSettingsTab() {
       sectionIcon: settingsData.sectionIcon,
       trackIcons: settingsData.trackIcons,
       trackColors: settingsData.trackColors,
+      // ─── Color Settings ──────────────────────────────────────────────
+      heroBtnBg: settingsData.heroBtnBg,
+      heroBtnTextColor: settingsData.heroBtnTextColor,
+      heroBtnHoverBg: settingsData.heroBtnHoverBg,
+      primaryColor: settingsData.primaryColor,
+      iconColor: settingsData.iconColor,
+      tabActiveBg: settingsData.tabActiveBg,
+      tabActiveText: settingsData.tabActiveText,
+      tabInactiveText: settingsData.tabInactiveText,
+      categoryActiveBg: settingsData.categoryActiveBg,
+      categoryActiveText: settingsData.categoryActiveText,
+      categoryBorderColor: settingsData.categoryBorderColor,
+      viewBtnBg: settingsData.viewBtnBg,
+      viewBtnText: settingsData.viewBtnText,
+      viewBtnBorder: settingsData.viewBtnBorder,
+      continueBtnBg: settingsData.continueBtnBg,
+      continueBtnText: settingsData.continueBtnText,
     };
   };
 
@@ -387,6 +393,23 @@ function CoursePageSettingsTab() {
     return option ? option.label : 'Grid View';
   };
 
+  // ─── Color Preview Helper ────────────────────────────────────────
+  const ColorPreview = ({ bg, text }) => (
+    <div style={{
+      display: 'inline-block',
+      padding: '2px 8px',
+      borderRadius: '4px',
+      background: bg || '#ffffff',
+      color: text || '#000000',
+      fontSize: '10px',
+      fontWeight: 600,
+      border: '1px solid #e4e7ec',
+      marginLeft: '4px',
+    }}>
+      Preview
+    </div>
+  );
+
   return (
     <div style={styles.container}>
       {/* Header Actions */}
@@ -421,7 +444,7 @@ function CoursePageSettingsTab() {
             <span style={styles.previewBadge}>Real-time</span>
           </div>
 
-          {/* Hero Section */}
+          {/* Hero Section - NO DECOR ICON */}
           <div style={{
             ...styles.previewHero,
             background: `linear-gradient(135deg, ${settings.heroBgStart || '#3B2340'} 0%, ${settings.heroBgMid || '#5B3A63'} 55%, ${settings.heroBgEnd || '#83698A'} 100%)`
@@ -430,19 +453,21 @@ function CoursePageSettingsTab() {
               <div style={styles.previewEyebrow}>{settings.heroEyebrow}</div>
               <h2 style={styles.previewTitleText}>{settings.heroTitle}</h2>
               <p style={styles.previewHeroText}>{settings.heroText}</p>
-              <div style={styles.previewHeroBtn}>
+              <div style={{
+                ...styles.previewHeroBtn,
+                background: settings.heroBtnBg || '#4f46e5',
+                color: settings.heroBtnTextColor || '#ffffff',
+              }}>
                 <span>{settings.heroButtonText}</span>
               </div>
             </div>
-            <div style={styles.previewHeroDecor}>
-              <span style={styles.previewDecorEmoji}>{settings.heroDecor || '🎓'}</span>
-            </div>
+            {/* ✅ HERO DECOR REMOVED */}
           </div>
 
           {/* Section Bar */}
           <div style={styles.previewSectionBar}>
             <div style={styles.previewSectionTitle}>
-              <GridViewIcon style={{ fontSize: '20px', color: '#714B67' }} />
+              <GridViewIcon style={{ fontSize: '20px', color: settings.iconColor || '#714B67' }} />
               <span style={{ marginLeft: '8px' }}>{settings.sectionTitleAll}</span>
               <span style={styles.previewCount}>4</span>
               <span style={styles.previewIconLabel}>({getSectionIconName()})</span>
@@ -460,8 +485,15 @@ function CoursePageSettingsTab() {
 
           {/* Tabs */}
           <div style={styles.previewTabContainer}>
-            <button style={styles.previewTabActive}>{settings.tabMyText}</button>
-            <button style={styles.previewTabInactive}>{settings.tabAllText}</button>
+            <button style={{
+              ...styles.previewTabActive,
+              background: settings.tabActiveBg || '#714B67',
+              color: settings.tabActiveText || '#ffffff',
+            }}>{settings.tabMyText}</button>
+            <button style={{
+              ...styles.previewTabInactive,
+              color: settings.tabInactiveText || '#6B6470',
+            }}>{settings.tabAllText}</button>
           </div>
 
           {/* Course Grid */}
@@ -483,7 +515,12 @@ function CoursePageSettingsTab() {
                     </div>
                   </div>
                   <div style={styles.previewCardFooter}>
-                    <button style={styles.previewViewBtn}>
+                    <button style={{
+                      ...styles.previewViewBtn,
+                      background: settings.viewBtnBg || '#ffffff',
+                      color: settings.viewBtnText || '#714B67',
+                      borderColor: settings.viewBtnBorder || '#714B67',
+                    }}>
                       {settings.viewCourseButtonText}
                     </button>
                   </div>
@@ -551,87 +588,7 @@ function CoursePageSettingsTab() {
             />
           </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Hero Decor Icon</label>
-            <div style={styles.iconPickerWrapper}>
-              <div style={styles.iconSelector} onClick={() => setShowIconPicker(!showIconPicker)}>
-                <span style={styles.selectedIcon}>{settings.heroDecor || '🎓'}</span>
-                <span style={styles.iconSelectorLabel}>
-                  {HERO_DECOR_ICONS.find(i => i.value === settings.heroDecor)?.label || 'Select icon'}
-                </span>
-                {showIconPicker ? <ExpandLessIcon style={styles.iconChevron} /> : <ExpandMoreIcon style={styles.iconChevron} />}
-              </div>
-            </div>
-
-            {showIconPicker && (
-              <div style={styles.iconPickerDropdown}>
-                <input
-                  type="text"
-                  placeholder="Search icons..."
-                  value={iconSearchTerm}
-                  onChange={(e) => setIconSearchTerm(e.target.value)}
-                  style={styles.iconSearchInput}
-                />
-                <div style={styles.categoryFilters}>
-                  {categories.map(cat => (
-                    <button
-                      key={cat}
-                      style={{
-                        ...styles.categoryFilterBtn,
-                        background: selectedCategory === cat ? '#4f46e5' : 'transparent',
-                        color: selectedCategory === cat ? '#ffffff' : '#64748b',
-                      }}
-                      onClick={() => setSelectedCategory(cat)}
-                    >
-                      {cat === 'all' ? 'All' : cat}
-                    </button>
-                  ))}
-                </div>
-                <div style={styles.iconGrid}>
-                  {filteredIcons.length === 0 ? (
-                    <div style={styles.noIcons}>No icons found</div>
-                  ) : (
-                    filteredIcons.map(icon => (
-                      <button
-                        key={icon.value}
-                        style={{
-                          ...styles.iconOption,
-                          background: settings.heroDecor === icon.value ? '#4f46e5' : 'transparent',
-                          color: settings.heroDecor === icon.value ? '#ffffff' : '#0f172a',
-                        }}
-                        onClick={() => {
-                          handleChange('heroDecor', icon.value);
-                          setShowIconPicker(false);
-                          setIconSearchTerm('');
-                        }}
-                        title={icon.label}
-                      >
-                        <span style={styles.iconOptionEmoji}>{icon.value}</span>
-                        <span style={styles.iconOptionLabel}>{icon.label}</span>
-                      </button>
-                    ))
-                  )}
-                </div>
-                <div style={styles.customIconInput}>
-                  <span style={styles.customIconLabel}>Or type custom:</span>
-                  <input
-                    type="text"
-                    value={settings.heroDecor || ''}
-                    onChange={(e) => handleChange('heroDecor', e.target.value)}
-                    style={styles.customIconField}
-                    placeholder="Enter any emoji or text"
-                    maxLength="10"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div style={styles.iconPreview}>
-              <span style={styles.previewLabel}>Preview:</span>
-              <span style={styles.previewIcon}>{settings.heroDecor || '🎓'}</span>
-              <span style={styles.previewValue}>{settings.heroDecor || '🎓'}</span>
-            </div>
-          </div>
+          {/* ✅ HERO DECOR ICON FIELD REMOVED */}
 
           {/* ─── Section Icon Picker ─────────────────────────── */}
           <div style={styles.field}>
@@ -719,6 +676,367 @@ function CoursePageSettingsTab() {
               background: `linear-gradient(135deg, ${settings.heroBgStart || '#3B2340'} 0%, ${settings.heroBgMid || '#5B3A63'} 55%, ${settings.heroBgEnd || '#83698A'} 100%)`
             }}>
               <span style={styles.previewText}>Preview</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── THEME COLORS SECTION ─────────────────────────────────── */}
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>
+            <ColorLensIcon style={styles.sectionIcon} /> Theme Colors
+          </h3>
+          <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px' }}>
+            Customize all button and UI colors across the course page
+          </p>
+
+          {/* Hero Button Colors */}
+          <div style={styles.colorGrid}>
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Hero Button BG</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.heroBtnBg || '#4f46e5'}
+                  onChange={(e) => handleChange('heroBtnBg', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.heroBtnBg || ''}
+                  onChange={(e) => handleChange('heroBtnBg', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+                <ColorPreview bg={settings.heroBtnBg} text={settings.heroBtnTextColor} />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Hero Button Text</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.heroBtnTextColor || '#ffffff'}
+                  onChange={(e) => handleChange('heroBtnTextColor', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.heroBtnTextColor || ''}
+                  onChange={(e) => handleChange('heroBtnTextColor', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+                <ColorPreview bg={settings.heroBtnBg} text={settings.heroBtnTextColor} />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Hero Button Hover</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.heroBtnHoverBg || '#4338ca'}
+                  onChange={(e) => handleChange('heroBtnHoverBg', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.heroBtnHoverBg || ''}
+                  onChange={(e) => handleChange('heroBtnHoverBg', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Primary Color</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.primaryColor || '#4f46e5'}
+                  onChange={(e) => handleChange('primaryColor', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.primaryColor || ''}
+                  onChange={(e) => handleChange('primaryColor', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Icon Color</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.iconColor || '#714B67'}
+                  onChange={(e) => handleChange('iconColor', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.iconColor || ''}
+                  onChange={(e) => handleChange('iconColor', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+          </div>
+
+          <hr style={styles.divider} />
+
+          {/* Tab Colors */}
+          <div style={styles.colorGrid}>
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Tab Active BG</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.tabActiveBg || '#714B67'}
+                  onChange={(e) => handleChange('tabActiveBg', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.tabActiveBg || ''}
+                  onChange={(e) => handleChange('tabActiveBg', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Tab Active Text</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.tabActiveText || '#ffffff'}
+                  onChange={(e) => handleChange('tabActiveText', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.tabActiveText || ''}
+                  onChange={(e) => handleChange('tabActiveText', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Tab Inactive Text</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.tabInactiveText || '#6B6470'}
+                  onChange={(e) => handleChange('tabInactiveText', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.tabInactiveText || ''}
+                  onChange={(e) => handleChange('tabInactiveText', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+          </div>
+
+          <hr style={styles.divider} />
+
+          {/* Category Tab Colors */}
+          <div style={styles.colorGrid}>
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Category Active BG</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.categoryActiveBg || '#714B67'}
+                  onChange={(e) => handleChange('categoryActiveBg', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.categoryActiveBg || ''}
+                  onChange={(e) => handleChange('categoryActiveBg', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Category Active Text</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.categoryActiveText || '#ffffff'}
+                  onChange={(e) => handleChange('categoryActiveText', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.categoryActiveText || ''}
+                  onChange={(e) => handleChange('categoryActiveText', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Category Border</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.categoryBorderColor || '#E8E3EA'}
+                  onChange={(e) => handleChange('categoryBorderColor', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.categoryBorderColor || ''}
+                  onChange={(e) => handleChange('categoryBorderColor', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+          </div>
+
+          <hr style={styles.divider} />
+
+          {/* View & Continue Button Colors */}
+          <div style={styles.colorGrid}>
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>View Button BG</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.viewBtnBg || '#ffffff'}
+                  onChange={(e) => handleChange('viewBtnBg', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.viewBtnBg || ''}
+                  onChange={(e) => handleChange('viewBtnBg', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>View Button Text</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.viewBtnText || '#714B67'}
+                  onChange={(e) => handleChange('viewBtnText', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.viewBtnText || ''}
+                  onChange={(e) => handleChange('viewBtnText', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>View Button Border</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.viewBtnBorder || '#714B67'}
+                  onChange={(e) => handleChange('viewBtnBorder', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.viewBtnBorder || ''}
+                  onChange={(e) => handleChange('viewBtnBorder', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Continue Button BG</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.continueBtnBg || '#714B67'}
+                  onChange={(e) => handleChange('continueBtnBg', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.continueBtnBg || ''}
+                  onChange={(e) => handleChange('continueBtnBg', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+
+            <div style={styles.colorField}>
+              <label style={styles.colorLabel}>Continue Button Text</label>
+              <div style={styles.colorRow}>
+                <input
+                  type="color"
+                  value={settings.continueBtnText || '#ffffff'}
+                  onChange={(e) => handleChange('continueBtnText', e.target.value)}
+                  style={styles.colorPickerSmall}
+                />
+                <input
+                  type="text"
+                  value={settings.continueBtnText || ''}
+                  onChange={(e) => handleChange('continueBtnText', e.target.value)}
+                  style={styles.colorInputSmall}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Live Preview */}
+          <div style={styles.livePreview}>
+            <p style={styles.livePreviewLabel}>🔴 Live Preview:</p>
+            <div style={styles.livePreviewButtons}>
+              <button style={{
+                background: settings.heroBtnBg || '#4f46e5',
+                color: settings.heroBtnTextColor || '#ffffff',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'default',
+              }}>
+                Hero Button
+              </button>
+              <button style={{
+                background: settings.viewBtnBg || '#ffffff',
+                color: settings.viewBtnText || '#714B67',
+                border: `2px solid ${settings.viewBtnBorder || '#714B67'}`,
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'default',
+              }}>
+                View Course
+              </button>
+              <button style={{
+                background: settings.continueBtnBg || '#714B67',
+                color: settings.continueBtnText || '#ffffff',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '6px',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'default',
+              }}>
+                Continue Learning
+              </button>
             </div>
           </div>
         </div>
@@ -1288,11 +1606,10 @@ const styles = {
     color: '#ffffff',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
     minHeight: '180px',
   },
   previewHeroInner: {
-    maxWidth: '60%',
+    maxWidth: '100%',
     flex: 1,
   },
   previewEyebrow: {
@@ -1314,13 +1631,11 @@ const styles = {
     fontSize: '13px',
     lineHeight: 1.6,
     opacity: 0.88,
-    maxWidth: '400px',
+    maxWidth: '480px',
     marginBottom: '14px',
   },
   previewHeroBtn: {
     display: 'inline-block',
-    background: '#ffffff',
-    color: '#714B67',
     border: 'none',
     borderRadius: '8px',
     padding: '8px 18px',
@@ -1328,15 +1643,6 @@ const styles = {
     fontSize: '13px',
     cursor: 'pointer',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-  },
-  previewHeroDecor: {
-    fontSize: '40px',
-    opacity: 0.15,
-    lineHeight: 1,
-    userSelect: 'none',
-  },
-  previewDecorEmoji: {
-    fontSize: '56px',
   },
 
   // Section Bar
@@ -1399,8 +1705,6 @@ const styles = {
     padding: '6px 16px',
     borderRadius: '8px',
     border: 'none',
-    background: '#714B67',
-    color: '#ffffff',
     fontSize: '13px',
     fontWeight: 600,
     cursor: 'pointer',
@@ -1410,7 +1714,6 @@ const styles = {
     borderRadius: '8px',
     border: 'none',
     background: 'transparent',
-    color: '#64748b',
     fontSize: '13px',
     fontWeight: 500,
     cursor: 'pointer',
@@ -1476,9 +1779,7 @@ const styles = {
   previewViewBtn: {
     width: '100%',
     padding: '6px',
-    background: '#fff',
-    color: '#714B67',
-    border: '1px solid #714B67',
+    border: '1px solid',
     borderRadius: '8px',
     fontSize: '12px',
     fontWeight: 600,
@@ -1496,173 +1797,58 @@ const styles = {
     background: '#ffffff',
   },
 
-  // ─── Icon Picker Styles ────────────────────────────────────────
-  iconPickerWrapper: {
-    position: 'relative',
-  },
-  iconSelector: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '10px 14px',
-    border: '1px solid #e4e7ec',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    background: '#ffffff',
-    '&:hover': {
-      borderColor: '#4f46e5',
-    },
-  },
-  selectedIcon: {
-    fontSize: '28px',
-    lineHeight: 1,
-  },
-  iconSelectorLabel: {
-    flex: 1,
-    fontSize: '14px',
-    color: '#334155',
-  },
-  iconChevron: {
-    color: '#94a3b8',
-  },
-  iconPickerDropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    marginTop: '4px',
-    background: '#ffffff',
-    border: '1px solid #e4e7ec',
-    borderRadius: '8px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-    zIndex: 1000,
-    padding: '16px',
-    maxHeight: '400px',
-    overflow: 'auto',
-  },
-  iconSearchInput: {
-    width: '100%',
-    padding: '8px 12px',
-    border: '1px solid #e4e7ec',
-    borderRadius: '6px',
-    fontSize: '14px',
-    outline: 'none',
-    boxSizing: 'border-box',
-    marginBottom: '12px',
-    '&:focus': {
-      borderColor: '#4f46e5',
-    },
-  },
-  categoryFilters: {
-    display: 'flex',
-    gap: '4px',
-    flexWrap: 'wrap',
-    marginBottom: '12px',
-  },
-  categoryFilterBtn: {
-    padding: '4px 12px',
-    borderRadius: '4px',
-    border: '1px solid #e4e7ec',
-    fontSize: '12px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    '&:hover': {
-      borderColor: '#4f46e5',
-    },
-  },
-  iconGrid: {
+  // ─── Theme Color Styles ────────────────────────────────────────
+  colorGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-    gap: '4px',
-    maxHeight: '200px',
-    overflow: 'auto',
-  },
-  iconOption: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '2px',
-    padding: '6px',
-    borderRadius: '6px',
-    border: '1px solid transparent',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    fontSize: '11px',
-    '&:hover': {
-      borderColor: '#e4e7ec',
-      background: '#f8fafc',
-    },
-  },
-  iconOptionEmoji: {
-    fontSize: '24px',
-    lineHeight: 1.2,
-  },
-  iconOptionLabel: {
-    fontSize: '9px',
-    textAlign: 'center',
-    opacity: 0.7,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    maxWidth: '70px',
-  },
-  noIcons: {
-    padding: '20px',
-    textAlign: 'center',
-    color: '#94a3b8',
-    gridColumn: '1 / -1',
-  },
-  customIconInput: {
-    display: 'flex',
-    alignItems: 'center',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
     gap: '8px',
-    marginTop: '12px',
-    paddingTop: '12px',
-    borderTop: '1px solid #f1f5f9',
+    marginBottom: '8px',
   },
-  customIconLabel: {
-    fontSize: '12px',
+  colorField: {
+    marginBottom: '4px',
+  },
+  colorLabel: {
+    display: 'block',
+    fontSize: '10px',
+    fontWeight: 500,
     color: '#64748b',
-    whiteSpace: 'nowrap',
+    marginBottom: '2px',
   },
-  customIconField: {
-    flex: 1,
-    padding: '6px 10px',
+  colorPickerSmall: {
+    width: '28px',
+    height: '28px',
     border: '1px solid #e4e7ec',
-    borderRadius: '6px',
-    fontSize: '14px',
-    outline: 'none',
-    '&:focus': {
-      borderColor: '#4f46e5',
-    },
+    borderRadius: '4px',
+    cursor: 'pointer',
+    padding: '1px',
+    flexShrink: 0,
   },
-  iconPreview: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginTop: '8px',
-    padding: '8px 12px',
-    background: '#f8fafc',
-    borderRadius: '6px',
-    border: '1px solid #f1f5f9',
-  },
-  previewLabel: {
-    fontSize: '12px',
-    color: '#94a3b8',
-  },
-  previewIcon: {
-    fontSize: '32px',
-    lineHeight: 1,
-  },
-  previewValue: {
-    fontSize: '13px',
+  colorInputSmall: {
+    width: '70px',
+    padding: '4px 6px',
+    border: '1px solid #e4e7ec',
+    borderRadius: '4px',
+    fontSize: '11px',
+    background: '#ffffff',
     color: '#0f172a',
     fontFamily: 'monospace',
-    background: '#ffffff',
-    padding: '2px 8px',
-    borderRadius: '4px',
+  },
+  livePreview: {
+    marginTop: '12px',
+    padding: '12px',
+    background: '#f8fafc',
+    borderRadius: '8px',
     border: '1px solid #e4e7ec',
+  },
+  livePreviewLabel: {
+    fontSize: '12px',
+    color: '#64748b',
+    marginBottom: '8px',
+  },
+  livePreviewButtons: {
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap',
   },
 };
 

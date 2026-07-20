@@ -38,19 +38,23 @@ import ViewWeekIcon from '@mui/icons-material/ViewWeek';
 const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-size='14'%3EImage Not Found%3C/text%3E%3C/svg%3E";
 
 // ─── Section Icons Mapping ──────────────────────────────────────────
-const SECTION_ICONS = {
-  grid: <GridViewIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  apps: <AppsIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  dashboard: <DashboardIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  module: <ViewModuleIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  list: <ViewListIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  carousel: <ViewCarouselIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  quilt: <ViewQuiltIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  stream: <ViewStreamIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  agenda: <ViewAgendaIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  compact: <ViewCompactIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  day: <ViewDayIcon style={{ fontSize: '28px', color: '#714B67' }} />,
-  week: <ViewWeekIcon style={{ fontSize: '28px', color: '#714B67' }} />,
+const getSectionIcon = (iconName, iconColor = '#714B67') => {
+  const iconStyle = { fontSize: '28px', color: iconColor };
+  const icons = {
+    grid: <GridViewIcon style={iconStyle} />,
+    apps: <AppsIcon style={iconStyle} />,
+    dashboard: <DashboardIcon style={iconStyle} />,
+    module: <ViewModuleIcon style={iconStyle} />,
+    list: <ViewListIcon style={iconStyle} />,
+    carousel: <ViewCarouselIcon style={iconStyle} />,
+    quilt: <ViewQuiltIcon style={iconStyle} />,
+    stream: <ViewStreamIcon style={iconStyle} />,
+    agenda: <ViewAgendaIcon style={iconStyle} />,
+    compact: <ViewCompactIcon style={iconStyle} />,
+    day: <ViewDayIcon style={iconStyle} />,
+    week: <ViewWeekIcon style={iconStyle} />,
+  };
+  return icons[iconName] || icons.grid;
 };
 
 // ─── DEFAULT CONFIG (Fallback if API fails) ──────────────────────────
@@ -62,7 +66,7 @@ const DEFAULT_CONFIG = {
   heroBgStart: "#3B2340",
   heroBgMid: "#5B3A63",
   heroBgEnd: "#83698A",
-  heroDecor: "🎓",
+  // ❌ heroDecor: "🎓",  // REMOVED
   sectionTitleMy: "My Courses",
   sectionTitleAll: "All Courses",
   myCoursesTabText: "My Courses",
@@ -82,6 +86,27 @@ const DEFAULT_CONFIG = {
   emptyStateNoAvailableText: "Check back later for new courses.",
   footerText: "Browse our course catalog. Sign in to enroll and track progress.",
   sectionIcon: "grid",
+  // ─── Button Colors ──────────────────────────────────────────────
+  heroBtnBg: "#4f46e5",
+  heroBtnTextColor: "#ffffff",
+  heroBtnHoverBg: "#4338ca",
+  primaryColor: "#4f46e5",
+  iconColor: "#714B67",
+  // ─── Tab Colors ─────────────────────────────────────────────────
+  tabActiveBg: "#714B67",
+  tabActiveText: "#ffffff",
+  tabInactiveText: "#6B6470",
+  // ─── Category Tab Colors ───────────────────────────────────────
+  categoryActiveBg: "#714B67",
+  categoryActiveText: "#ffffff",
+  categoryBorderColor: "#E8E3EA",
+  // ─── View Button Colors ─────────────────────────────────────────
+  viewBtnBg: "#ffffff",
+  viewBtnText: "#714B67",
+  viewBtnBorder: "#714B67",
+  // ─── Continue Button Colors ────────────────────────────────────
+  continueBtnBg: "#714B67",
+  continueBtnText: "#ffffff",
   trackIcons: {
     ccna: "🌐",
     ccnp: "🚀",
@@ -271,6 +296,7 @@ function MyCoursesPage() {
         }
         
         const newConfig = {
+          // Hero Section
           heroEyebrow: data.heroEyebrow || DEFAULT_CONFIG.heroEyebrow,
           heroTitle: data.heroTitle || DEFAULT_CONFIG.heroTitle,
           heroText: data.heroText || DEFAULT_CONFIG.heroText,
@@ -278,16 +304,19 @@ function MyCoursesPage() {
           heroBgStart: data.heroBgStart || DEFAULT_CONFIG.heroBgStart,
           heroBgMid: data.heroBgMid || DEFAULT_CONFIG.heroBgMid,
           heroBgEnd: data.heroBgEnd || DEFAULT_CONFIG.heroBgEnd,
-          heroDecor: data.heroDecor || DEFAULT_CONFIG.heroDecor,
+          // ❌ heroDecor: data.heroDecor || DEFAULT_CONFIG.heroDecor,  // REMOVED
+          // Section Titles
           sectionTitleMy: data.sectionTitleMy || DEFAULT_CONFIG.sectionTitleMy,
           sectionTitleAll: data.sectionTitleAll || DEFAULT_CONFIG.sectionTitleAll,
           myCoursesTabText: data.tabMyText || data.myCoursesTabText || DEFAULT_CONFIG.myCoursesTabText,
           allCoursesTabText: data.tabAllText || data.allCoursesTabText || DEFAULT_CONFIG.allCoursesTabText,
           searchPlaceholder: data.searchPlaceholder || DEFAULT_CONFIG.searchPlaceholder,
+          // Card Labels
           cardDurationLabel: data.cardDurationLabel || DEFAULT_CONFIG.cardDurationLabel,
           enrolledBadgeText: data.enrolledBadgeText || DEFAULT_CONFIG.enrolledBadgeText,
           viewCourseButtonText: data.viewCourseButtonText || DEFAULT_CONFIG.viewCourseButtonText,
           continueLearningButtonText: data.continueLearningButtonText || DEFAULT_CONFIG.continueLearningButtonText,
+          // Empty States
           emptyStateLoginTitle: data.emptyStateLoginTitle || DEFAULT_CONFIG.emptyStateLoginTitle,
           emptyStateLoginText: data.emptyStateLoginText || DEFAULT_CONFIG.emptyStateLoginText,
           emptyStateLoginButton: data.emptyStateLoginButton || DEFAULT_CONFIG.emptyStateLoginButton,
@@ -297,7 +326,24 @@ function MyCoursesPage() {
           emptyStateNoAvailableTitle: data.emptyStateNoAvailableTitle || DEFAULT_CONFIG.emptyStateNoAvailableTitle,
           emptyStateNoAvailableText: data.emptyStateNoAvailableText || DEFAULT_CONFIG.emptyStateNoAvailableText,
           footerText: data.footerText || DEFAULT_CONFIG.footerText,
-          sectionIcon: data.sectionIcon || data['course.section.icon'] || DEFAULT_CONFIG.sectionIcon,
+          // ─── Colors ──────────────────────────────────────────────────
+          sectionIcon: data.sectionIcon || DEFAULT_CONFIG.sectionIcon,
+          heroBtnBg: data.heroBtnBg || DEFAULT_CONFIG.heroBtnBg,
+          heroBtnTextColor: data.heroBtnTextColor || DEFAULT_CONFIG.heroBtnTextColor,
+          heroBtnHoverBg: data.heroBtnHoverBg || DEFAULT_CONFIG.heroBtnHoverBg,
+          primaryColor: data.primaryColor || DEFAULT_CONFIG.primaryColor,
+          iconColor: data.iconColor || DEFAULT_CONFIG.iconColor,
+          tabActiveBg: data.tabActiveBg || DEFAULT_CONFIG.tabActiveBg,
+          tabActiveText: data.tabActiveText || DEFAULT_CONFIG.tabActiveText,
+          tabInactiveText: data.tabInactiveText || DEFAULT_CONFIG.tabInactiveText,
+          categoryActiveBg: data.categoryActiveBg || DEFAULT_CONFIG.categoryActiveBg,
+          categoryActiveText: data.categoryActiveText || DEFAULT_CONFIG.categoryActiveText,
+          categoryBorderColor: data.categoryBorderColor || DEFAULT_CONFIG.categoryBorderColor,
+          viewBtnBg: data.viewBtnBg || DEFAULT_CONFIG.viewBtnBg,
+          viewBtnText: data.viewBtnText || DEFAULT_CONFIG.viewBtnText,
+          viewBtnBorder: data.viewBtnBorder || DEFAULT_CONFIG.viewBtnBorder,
+          continueBtnBg: data.continueBtnBg || DEFAULT_CONFIG.continueBtnBg,
+          continueBtnText: data.continueBtnText || DEFAULT_CONFIG.continueBtnText,
           trackIcons: trackIcons,
           trackColors: trackColors,
         };
@@ -762,8 +808,6 @@ function MyCoursesPage() {
             onClick={handleLogin}
             style={{
               ...styles.heroBtn,
-              background: COLORS.accent,
-              color: '#fff',
               marginTop: '8px',
             }}
           >
@@ -783,8 +827,6 @@ function MyCoursesPage() {
             onClick={() => setActiveTab('all')}
             style={{
               ...styles.heroBtn,
-              background: COLORS.accent,
-              color: '#fff',
               marginTop: '8px',
             }}
           >
@@ -805,8 +847,6 @@ function MyCoursesPage() {
               onClick={() => fetchAllCourses()}
               style={{
                 ...styles.heroBtn,
-                background: COLORS.accent,
-                color: '#fff',
                 marginTop: '8px',
               }}
             >
@@ -869,6 +909,7 @@ function MyCoursesPage() {
       borderRadius: 0,
     },
 
+    // ✅ HERO SECTION - WITHOUT DECOR
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
@@ -877,7 +918,7 @@ function MyCoursesPage() {
       color: '#fff',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      // ❌ justifyContent: 'space-between',  // REMOVED
       minHeight: isMobile ? 'auto' : '280px',
     },
     heroInner: { 
@@ -906,9 +947,10 @@ function MyCoursesPage() {
       maxWidth: '480px', 
       marginBottom: '22px' 
     },
+    // ✅ UPDATED: Hero Button with dynamic colors
     heroBtn: { 
-      background: '#fff', 
-      color: COLORS.accent, 
+      background: config.heroBtnBg || '#4f46e5',
+      color: config.heroBtnTextColor || '#ffffff',
       border: 'none', 
       borderRadius: '8px', 
       padding: '12px 24px', 
@@ -919,16 +961,14 @@ function MyCoursesPage() {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '8px',
-      transition: 'transform 0.2s, box-shadow 0.2s',
+      transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
+      ':hover': {
+        background: config.heroBtnHoverBg || '#4338ca',
+        transform: 'translateY(-2px)',
+        boxShadow: '0 14px 30px -8px rgba(0,0,0,0.5)',
+      },
     },
-    heroDecor: {
-      fontSize: '48px',
-      marginLeft: isMobile ? '0' : '32px',
-      marginTop: isMobile ? '16px' : '0',
-      opacity: 0.15,
-      lineHeight: 1,
-      userSelect: 'none',
-    },
+    // ❌ heroDecor: { ... },  // REMOVED
 
     sectionBar: { 
       display: 'flex', 
@@ -981,12 +1021,13 @@ function MyCoursesPage() {
       maxWidth: '1440px',
       margin: '0 auto',
     },
+    // ✅ UPDATED: Tab Button with dynamic colors
     tabButton: (active) => ({
       padding: '8px 20px',
       borderRadius: '10px',
       border: 'none',
-      background: active ? COLORS.accent : 'transparent',
-      color: active ? '#fff' : COLORS.slate,
+      background: active ? (config.tabActiveBg || COLORS.accent) : 'transparent',
+      color: active ? (config.tabActiveText || '#fff') : (config.tabInactiveText || COLORS.slate),
       fontSize: '14px',
       fontWeight: active ? 700 : 500,
       cursor: 'pointer',
@@ -1005,12 +1046,13 @@ function MyCoursesPage() {
       overflowX: 'auto',
       flexWrap: isMobile ? 'nowrap' : 'wrap',
     },
+    // ✅ UPDATED: Category Tab with dynamic colors
     categoryTab: (active) => ({
       padding: '6px 16px',
       borderRadius: '8px',
-      border: `2px solid ${active ? COLORS.accent : COLORS.line}`,
-      background: active ? COLORS.accent : COLORS.paper,
-      color: active ? '#fff' : COLORS.slate,
+      border: `2px solid ${active ? (config.categoryActiveBg || COLORS.accent) : (config.categoryBorderColor || COLORS.line)}`,
+      background: active ? (config.categoryActiveBg || COLORS.accent) : COLORS.paper,
+      color: active ? (config.categoryActiveText || '#fff') : COLORS.slate,
       fontSize: '12px',
       fontWeight: 600,
       cursor: 'pointer',
@@ -1124,12 +1166,13 @@ function MyCoursesPage() {
       padding: '0 16px 14px',
       marginTop: '2px',
     },
+    // ✅ UPDATED: View Button with dynamic colors
     viewBtn: { 
       width: '100%', 
       padding: '10px', 
-      background: '#fff', 
-      color: COLORS.accent, 
-      border: `2px solid ${COLORS.accent}`, 
+      background: config.viewBtnBg || '#ffffff',
+      color: config.viewBtnText || COLORS.accent,
+      border: `2px solid ${config.viewBtnBorder || COLORS.accent}`,
       borderRadius: '10px', 
       fontWeight: 600, 
       fontSize: '13px', 
@@ -1140,11 +1183,12 @@ function MyCoursesPage() {
       justifyContent: 'center',
       gap: '6px',
     },
+    // ✅ UPDATED: Continue Button with dynamic colors
     continueBtn: { 
       width: '100%', 
       padding: '10px', 
-      background: COLORS.accent, 
-      color: '#fff', 
+      background: config.continueBtnBg || COLORS.accent,
+      color: config.continueBtnText || '#ffffff',
       border: 'none', 
       borderRadius: '10px', 
       fontWeight: 600, 
@@ -1249,8 +1293,9 @@ function MyCoursesPage() {
   }
 
   // ─── Render: Course Catalog ───────────────────────────────────────────
-  const heroDecor = config.heroDecor || '🎓';
-  const sectionIcon = SECTION_ICONS[config.sectionIcon] || SECTION_ICONS.grid;
+  // ❌ const heroDecor = config.heroDecor || '🎓';  // REMOVED
+  // ✅ DYNAMIC SECTION ICON with color from config
+  const sectionIcon = getSectionIcon(config.sectionIcon, config.iconColor);
 
   const formatCategoryName = (cat) => {
     if (cat === 'all') return 'All';
@@ -1318,25 +1363,37 @@ function MyCoursesPage() {
       </div>
 
       {/* ─── Hero Section ────────────────────────────────────────────── */}
+      {/* ✅ WITHOUT HERO DECOR */}
       <div style={styles.hero}>
         <div style={styles.heroInner}>
           <div style={styles.heroEyebrow}>{config.heroEyebrow}</div>
           <h1 style={styles.heroTitle}>{config.heroTitle}</h1>
           <p style={styles.heroText}>{config.heroText}</p>
-          <button style={styles.heroBtn} onClick={() => {
-            document.getElementById('courses-section')?.scrollIntoView({ behavior: 'smooth' });
-          }}>
+          <button 
+            style={styles.heroBtn} 
+            onClick={() => {
+              document.getElementById('courses-section')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = config.heroBtnHoverBg || '#4338ca';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = config.heroBtnBg || '#4f46e5';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
             <WhatshotIcon style={{ fontSize: '18px' }} />
             {config.heroButtonText}
           </button>
         </div>
-        <div style={styles.heroDecor}>{heroDecor}</div>
+        {/* ❌ <div style={styles.heroDecor}>{heroDecor}</div>  // REMOVED */}
       </div>
 
       {/* ─── Section Bar ──────────────────────────────────────────────── */}
       <div style={styles.sectionBar} id="courses-section">
         <div style={styles.sectionTitle}>
-          {/* ✅ DYNAMIC SECTION ICON */}
+          {/* ✅ DYNAMIC SECTION ICON with color from config */}
           {sectionIcon}
           <span style={{ marginLeft: '8px' }}>
             {activeTab === 'my' && isLoggedIn ? config.sectionTitleMy : config.sectionTitleAll}
