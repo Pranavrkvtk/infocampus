@@ -303,7 +303,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: '60vh', padding: '20px', background: COLORS.pageBg
+        justifyContent: 'center', minHeight: '100vh', padding: '20px', background: COLORS.pageBg
       }}>
         <div style={{
           width: '50px', height: '50px', border: '4px solid #e5e7eb',
@@ -320,7 +320,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: '60vh', padding: '20px', textAlign: 'center', background: COLORS.pageBg
+        minHeight: '100vh', padding: '20px', textAlign: 'center', background: COLORS.pageBg
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
         <h2 style={{ color: '#dc2626', marginBottom: '8px' }}>Error</h2>
@@ -340,7 +340,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: '60vh', padding: '20px', textAlign: 'center', background: COLORS.pageBg
+        minHeight: '100vh', padding: '20px', textAlign: 'center', background: COLORS.pageBg
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>📚</div>
         <h2 style={{ color: '#1f2937', marginBottom: '8px' }}>Course Not Found</h2>
@@ -374,9 +374,8 @@ const Enrollments = ({ isMobile, onBack }) => {
 
   // ✅ Get details from course
   const courseDetails = course.details || '';
-  const courseDescription = course.description || '';
 
-  // Format description with proper paragraphs
+  // Format content with proper paragraphs
   const formatContent = (content) => {
     if (!content) return null;
     return content.split('\n').map((paragraph, index) => {
@@ -389,7 +388,7 @@ const Enrollments = ({ isMobile, onBack }) => {
             display: 'flex',
             alignItems: 'flex-start',
             gap: '8px',
-            marginBottom: '4px',
+            marginBottom: '6px',
             paddingLeft: '4px',
           }}>
             <span style={{ color: COLORS.purpleText, fontWeight: 'bold' }}>•</span>
@@ -402,6 +401,8 @@ const Enrollments = ({ isMobile, onBack }) => {
         <p key={index} style={{
           margin: '0 0 12px 0',
           lineHeight: '1.8',
+          fontSize: '16px',
+          color: '#3f3f46',
         }}>
           {trimmed}
         </p>
@@ -410,7 +411,13 @@ const Enrollments = ({ isMobile, onBack }) => {
   };
 
   return (
-    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", minHeight: "100vh", background: COLORS.pageBg }}>
+    <div style={{ 
+      fontFamily: "'Inter', 'Segoe UI', sans-serif", 
+      minHeight: "100vh", 
+      background: COLORS.pageBg,
+      display: "flex",
+      flexDirection: "column",
+    }}>
 
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────────── */}
       <div style={{
@@ -423,6 +430,9 @@ const Enrollments = ({ isMobile, onBack }) => {
         padding: 0,
         color: TOPBAR.text,
         boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        flexShrink: 0,
+        zIndex: 10,
+        position: 'relative',
       }}>
         <div style={{
           display: 'flex',
@@ -550,81 +560,33 @@ const Enrollments = ({ isMobile, onBack }) => {
         </div>
       </div>
 
-      {/* ─── HERO HEADER ───────────────────────────────────────────── */}
+      {/* ─── MAIN CONTENT - LEFT ALIGNED (Odoo Style) ──────────────── */}
       <div style={{
-        background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
-        padding: isMobileDevice ? '20px 20px 80px' : '40px 48px 120px',
-        color: '#fff',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        minHeight: isMobileDevice ? '180px' : '280px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
+        flex: 1,
+        width: '100%',
+        maxWidth: '1400px',
+        margin: '0 auto 0 0',  // Left aligned
+        padding: '0 24px 40px',  // No top padding - NO GAP
+        alignSelf: 'flex-start',
       }}>
         <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          width: '100%',
-          padding: isMobileDevice ? '0' : '0 40px',
-        }}>
-          <h1 style={{
-            margin: 0,
-            fontSize: isMobileDevice ? '36px' : '56px',
-            fontWeight: 700,
-            letterSpacing: '-0.5px',
-            color: '#ffffff',
-            textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-            lineHeight: '1.2',
-          }}>
-            {course.title}
-          </h1>
-          {course.subtitle && (
-            <p style={{
-              margin: '8px 0 0 0',
-              fontSize: isMobileDevice ? '16px' : '20px',
-              opacity: 0.85,
-              fontWeight: 400,
-              color: '#ffffff',
-              textShadow: '0 1px 2px rgba(0,0,0,0.15)',
-            }}>
-              {course.subtitle}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* ─── MAIN CONTENT ──────────────────────────────────────────── */}
-      <div style={{
-        maxWidth: '1200px',
-        margin: isMobileDevice ? '-40px auto 0' : '-80px auto 0',
-        padding: isMobileDevice ? '0 16px 60px' : '0 40px 80px',
-        position: 'relative',
-        zIndex: 1,
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobileDevice ? '1fr' : '320px 1fr',
-          gap: '32px',
-          alignItems: 'flex-start',
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: '4px',
+          overflow: 'hidden',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          background: COLORS.cardBg,
         }}>
 
-          {/* ── LEFT COLUMN: Image + Enroll Card ──────────────────── */}
+          {/* Row 1: Image + Title bar */}
           <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            position: isMobileDevice ? 'static' : 'sticky',
-            top: '24px',
+            display: 'grid',
+            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
           }}>
-            {/* Course Image */}
             <div style={{
               width: '100%',
-              aspectRatio: '16/9',
+              aspectRatio: '4/3',
               background: '#e5e7eb',
-              borderRadius: '8px',
               overflow: 'hidden',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             }}>
               {imageUrl ? (
                 <img
@@ -633,32 +595,90 @@ const Enrollments = ({ isMobile, onBack }) => {
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
                     e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:48px;opacity:0.3;">🖼️</div>';
+                    e.target.parentElement.innerHTML =
+                      '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:48px;opacity:0.3;">🖼️</div>';
                   }}
                 />
               ) : (
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  fontSize: '48px',
-                  opacity: 0.3
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  height: '100%', fontSize: '48px', opacity: 0.3
                 }}>
                   🖼️
                 </div>
               )}
             </div>
 
-            {/* Enroll Card */}
             <div style={{
-              background: COLORS.cardBg,
-              borderRadius: '8px',
-              overflow: 'hidden',
-              border: `1px solid ${COLORS.border}`,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+              background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
+              display: 'flex',
+              alignItems: 'center',
+              padding: isMobileDevice ? '16px 20px' : '0 32px',
+              minHeight: isMobileDevice ? 'auto' : '180px',
             }}>
-              {/* "JOIN THIS COURSE" button */}
+              <div>
+                <h1 style={{
+                  margin: 0,
+                  fontSize: isMobileDevice ? '28px' : '42px',
+                  fontWeight: 700,
+                  color: '#fff',
+                  letterSpacing: '-0.5px',
+                }}>
+                  {course.title}
+                </h1>
+                {course.subtitle && (
+                  <p style={{
+                    margin: '6px 0 0 0',
+                    fontSize: isMobileDevice ? '14px' : '18px',
+                    color: 'rgba(255,255,255,0.8)',
+                  }}>
+                    {course.subtitle}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Tab bar */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
+            borderBottom: `1px solid ${COLORS.border}`,
+          }}>
+            <div style={{ display: isMobileDevice ? 'none' : 'block' }} />
+            <div style={{
+              background: COLORS.titleBarDark,
+              padding: '8px 24px',
+            }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#fff',
+                color: COLORS.titleBarDark,
+                fontSize: '13px',
+                fontWeight: 700,
+                padding: '4px 14px',
+                borderRadius: '3px',
+              }}>
+                <HomeOutlinedIcon style={{ fontSize: '14px' }} />
+                Course
+              </span>
+            </div>
+          </div>
+
+          {/* Row 3: Sidebar + Description */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
+            minHeight: '300px',
+          }}>
+
+            {/* Sidebar */}
+            <div style={{
+              borderRight: isMobileDevice ? 'none' : `1px solid ${COLORS.border}`,
+              borderBottom: isMobileDevice ? `1px solid ${COLORS.border}` : 'none',
+            }}>
               <button
                 onClick={handleMainAction}
                 disabled={enrolling}
@@ -668,14 +688,12 @@ const Enrollments = ({ isMobile, onBack }) => {
                   color: '#fff',
                   border: 'none',
                   padding: '14px 16px',
-                  fontSize: '15px',
+                  fontSize: '14px',
                   fontWeight: 700,
                   letterSpacing: '0.5px',
-                  textTransform: 'uppercase',
                   cursor: enrolling ? 'not-allowed' : 'pointer',
                   opacity: enrolling ? 0.7 : 1,
                   transition: 'background 0.2s',
-                  textAlign: 'center',
                 }}
                 onMouseEnter={(e) => {
                   if (!enrolling && !isEnrolled) e.currentTarget.style.background = COLORS.titleBarDark;
@@ -684,12 +702,9 @@ const Enrollments = ({ isMobile, onBack }) => {
                   if (!enrolling && !isEnrolled) e.currentTarget.style.background = COLORS.titleBar;
                 }}
               >
-                {enrolling ? 'Processing…' :
-                 isEnrolled ? '✅ Enrolled' :
-                 'JOIN THIS COURSE'}
+                {enrolling ? 'Processing…' : isEnrolled ? '✅ Enrolled' : 'Join This Course'}
               </button>
 
-              {/* Course info in compact list format */}
               <div style={{ padding: '16px 20px' }}>
                 {/* Last Update */}
                 <div style={{
@@ -703,7 +718,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                   <span style={{ fontWeight: 600, color: COLORS.textDark }}>{formatDate(course.updatedAt)}</span>
                 </div>
 
-                {/* Duration */}
+                {/* Completion Time */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -711,8 +726,8 @@ const Enrollments = ({ isMobile, onBack }) => {
                   borderBottom: `1px solid ${COLORS.border}`,
                   fontSize: '14px'
                 }}>
-                  <span style={{ color: COLORS.textMuted }}>Duration</span>
-                  <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.duration || '10-20 hours'}</span>
+                  <span style={{ color: COLORS.textMuted }}>Completion Time</span>
+                  <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.duration || '2 hours 40 minutes'}</span>
                 </div>
 
                 {/* Members */}
@@ -770,68 +785,28 @@ const Enrollments = ({ isMobile, onBack }) => {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* ── RIGHT COLUMN: Course Details (Odoo Style) ────────── */}
-          <div style={{
-            background: 'transparent',
-            border: 'none',
-            boxShadow: 'none',
-            padding: isMobileDevice ? '0' : '0 32px',
-          }}>
-            {/* Breadcrumb */}
-            <div style={{
-              fontSize: '13px',
-              color: COLORS.textMuted,
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
+            {/* Description */}
+            <div style={{ 
+              padding: isMobileDevice ? '20px' : '24px 32px',
+              overflowY: 'auto',
             }}>
-              <span>🏠</span>
-              <span style={{ color: COLORS.textMuted }}>Courses</span>
-              <span style={{ color: COLORS.textMuted }}>/</span>
-              <span style={{ color: COLORS.textDark, fontWeight: 500 }}>{course.title}</span>
-            </div>
-
-            {/* Course Description */}
-            <div>
-              <h2 style={{
-                fontSize: '24px',
-                fontWeight: 700,
-                color: COLORS.textDark,
-                margin: '0 0 16px 0',
-              }}>
-                Course Description
-              </h2>
-
-              {/* Description Content */}
-              {courseDescription && (
+              {courseDetails ? (
                 <div style={{
-                  fontSize: '15px',
+                  fontSize: '16px',
                   lineHeight: '1.8',
-                  color: COLORS.textDark,
-                  marginBottom: '24px',
+                  color: '#1a1a2e',
                 }}>
-                  {formatContent(courseDescription)}
-                </div>
-              )}
-
-              {/* Details Content */}
-              {courseDetails && (
-                <div>
                   {formatContent(courseDetails)}
                 </div>
-              )}
-
-              {/* If no content */}
-              {!courseDetails && !courseDescription && (
+              ) : (
                 <div style={{
                   textAlign: 'center',
                   padding: '40px 20px',
                   color: COLORS.textMuted,
                 }}>
-                  <p style={{ fontSize: '15px' }}>No course description available.</p>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
+                  <p style={{ fontSize: '15px' }}>No course details available.</p>
                 </div>
               )}
             </div>
