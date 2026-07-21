@@ -269,6 +269,42 @@ export const getCourseDetails = async (courseId) => {
 };
 
 // =========================================================================
+//  EXTRACT COURSE DETAILS HELPER
+// =========================================================================
+
+/**
+ * Helper to extract course details with proper fields including 'details'
+ */
+export const extractCourseDetails = (courseData) => {
+  if (!courseData) return null;
+  
+  return {
+    id: courseData.id,
+    title: courseData.title,
+    description: courseData.description || '',
+    details: courseData.details || '',  // ✅ Extract details field
+    level: courseData.level || 'All Levels',
+    duration: courseData.duration || 'Self-paced',
+    price: courseData.price || 0,
+    imageUrl: courseData.imageUrl || courseData.image || null,
+    instructor: courseData.instructor || 'Expert Instructor',
+    members: courseData.members || 0,
+    language: courseData.language || 'English',
+    certificate: courseData.certificate || false,
+    lastUpdate: courseData.lastUpdate || courseData.updatedAt || new Date().toISOString(),
+    topics: courseData.topics || [],
+    totalTopics: courseData.totalTopics || 0,
+    hasTopics: courseData.hasTopics || false,
+    isAuthenticated: courseData.isAuthenticated || false,
+    isEnrolled: courseData.isEnrolled || false,
+    requiresLoginForRemaining: courseData.requiresLoginForRemaining || false,
+    message: courseData.message || '',
+    // Include details length for debugging
+    detailsLength: courseData.details ? courseData.details.length : 0
+  };
+};
+
+// =========================================================================
 //  COURSE IMAGE UPLOAD (Admin Only)
 // =========================================================================
 
@@ -315,31 +351,52 @@ export const getEnrolledCourses = async () => {
     if (response.data && response.data.success) {
       // If response has success flag, extract courses
       if (response.data.courses) {
-        return response.data.courses;
+        return response.data.courses.map(course => ({
+          ...course,
+          details: course.details || ''  // ✅ Ensure details field exists
+        }));
       }
       // If response has data field
       if (response.data.data) {
-        return response.data.data;
+        return Array.isArray(response.data.data) ? response.data.data : [response.data.data];
       }
       // If response has enrollments field
       if (response.data.enrollments) {
-        return response.data.enrollments.map(e => e.course).filter(Boolean);
+        return response.data.enrollments
+          .map(e => e.course)
+          .filter(Boolean)
+          .map(course => ({
+            ...course,
+            details: course.details || ''  // ✅ Ensure details field exists
+          }));
       }
     }
     
     // If response is directly an array
     if (Array.isArray(response.data)) {
-      return response.data;
+      return response.data.map(course => ({
+        ...course,
+        details: course.details || ''  // ✅ Ensure details field exists
+      }));
     }
     
     // If response has courses array directly
     if (response.data && Array.isArray(response.data.courses)) {
-      return response.data.courses;
+      return response.data.courses.map(course => ({
+        ...course,
+        details: course.details || ''  // ✅ Ensure details field exists
+      }));
     }
     
     // Fallback: try to extract from enrollments
     if (response.data && Array.isArray(response.data.enrollments)) {
-      return response.data.enrollments.map(e => e.course).filter(Boolean);
+      return response.data.enrollments
+        .map(e => e.course)
+        .filter(Boolean)
+        .map(course => ({
+          ...course,
+          details: course.details || ''  // ✅ Ensure details field exists
+        }));
     }
     
     return [];
@@ -368,7 +425,14 @@ export const getMyEnrollments = async () => {
     console.log('📋 My enrollments response:', response.data);
     
     if (response.data && response.data.success) {
-      return response.data.enrollments || [];
+      const enrollments = response.data.enrollments || [];
+      return enrollments.map(enrollment => ({
+        ...enrollment,
+        course: enrollment.course ? {
+          ...enrollment.course,
+          details: enrollment.course.details || ''  // ✅ Ensure details field exists
+        } : null
+      }));
     }
     
     return response.data || [];
@@ -877,6 +941,9 @@ const userApi = {
   
   // ✅ NEW: Auto-detected course data
   getCourseData,
+  
+  // ✅ NEW: Helper to extract course details
+  extractCourseDetails,
   
   // Enrollment (✅ FIXED)
   getEnrolledCourses,

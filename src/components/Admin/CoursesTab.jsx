@@ -164,6 +164,7 @@ export default function CoursesTab({
     setEditingCourse({ 
       ...course, 
       description: course.description || '',
+      details: course.details || '',  // ✅ ADD DETAILS FIELD
       duration: course.duration || '',
       level: course.level || 'Beginner',
       price: course.price || 0,
@@ -183,15 +184,17 @@ export default function CoursesTab({
       const updateData = {
         title: editingCourse.title,
         description: editingCourse.description || "",
+        details: editingCourse.details || "",  // ✅ ADD DETAILS TO UPDATE DATA
         price: editingCourse.price || 0,
-        duration: editingCourse.duration || "",        // ✅ Include duration
-        level: editingCourse.level || "Beginner",      // ✅ Include level
+        duration: editingCourse.duration || "",
+        level: editingCourse.level || "Beginner",
         videoUrl: editingCourse.videoUrl || "",
         imageUrl: editingCourse.imageUrl || "",
         status: editingCourse.status || "PUBLISHED"
       };
 
       console.log('Sending update data:', updateData);
+      console.log('Details length:', updateData.details.length);
       
       if (isInstructor) {
         await updateInstructorCourse(editingCourse.id, updateData);
@@ -408,8 +411,9 @@ export default function CoursesTab({
               <th style={{ padding: "12px", textAlign: "left" }}>ID</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Course Name</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Description</th>
-              <th style={{ padding: "12px", textAlign: "left" }}>Duration</th>  {/* ✅ NEW */}
-              <th style={{ padding: "12px", textAlign: "left" }}>Level</th>     {/* ✅ NEW */}
+              <th style={{ padding: "12px", textAlign: "left" }}>Details</th>  {/* ✅ NEW - Details column */}
+              <th style={{ padding: "12px", textAlign: "left" }}>Duration</th>
+              <th style={{ padding: "12px", textAlign: "left" }}>Level</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Price</th>
               <th style={{ padding: "12px", textAlign: "left" }}>Status</th>
               <th style={{ padding: "12px", textAlign: "center" }}>Actions</th>
@@ -418,7 +422,7 @@ export default function CoursesTab({
           <tbody>
             {filteredAndSortedCourses.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ padding: "40px", textAlign: "center", color: colors.textMuted }}>
+                <td colSpan="10" style={{ padding: "40px", textAlign: "center", color: colors.textMuted }}>
                   {isInstructor ? 'No courses assigned yet.' : 'No courses available.'}
                 </td>
               </tr>
@@ -468,7 +472,7 @@ export default function CoursesTab({
                         c.title || "Untitled"
                       )}
                     </td>
-                    <td style={{ padding: "12px", maxWidth: "200px" }}>
+                    <td style={{ padding: "12px", maxWidth: "150px" }}>
                       {isEditing ? (
                         <textarea
                           value={editingCourse.description || ''}
@@ -498,6 +502,43 @@ export default function CoursesTab({
                           wordBreak: "break-word"
                         }}>
                           {c.description || "—"}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px", maxWidth: "150px" }}>
+                      {isEditing ? (
+                        <textarea
+                          value={editingCourse.details || ''}
+                          onChange={(e) => setEditingCourse({ ...editingCourse, details: e.target.value })}
+                          style={{
+                            width: "100%",
+                            padding: "4px 8px",
+                            border: `1px solid ${colors.primary}`,
+                            borderRadius: 4,
+                            fontSize: "13px",
+                            minHeight: "40px",
+                            resize: "vertical",
+                            fontFamily: "inherit",
+                          }}
+                          rows={2}
+                          placeholder="Enter additional details"
+                        />
+                      ) : (
+                        <div style={{ 
+                          fontSize: "13px", 
+                          color: colors.textSecondary,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          wordBreak: "break-word"
+                        }}>
+                          {c.details ? (
+                            <span title={c.details}>{c.details.substring(0, 50)}...</span>
+                          ) : (
+                            <span style={{ color: "#aaa", fontSize: "12px" }}>—</span>
+                          )}
                         </div>
                       )}
                     </td>

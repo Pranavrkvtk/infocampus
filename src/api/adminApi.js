@@ -112,6 +112,90 @@ export const getAdminCoursesSimple = () => {
   return api.get("/admin/courses");
 };
 
+// ==================== COURSE SEARCH & FILTERS ====================
+
+/**
+ * Search courses by keyword in title, description, and details
+ * GET /api/admin/courses/search?keyword=java
+ */
+export const searchCourses = (keyword) => {
+  return api.get(`/admin/courses/search`, { params: { keyword } });
+};
+
+/**
+ * Search courses with pagination
+ * GET /api/admin/courses/search-paginated?keyword=java&page=0&size=10
+ */
+export const searchCoursesPaginated = (keyword, page = 0, size = 10) => {
+  return api.get(`/admin/courses/search-paginated`, { 
+    params: { keyword, page, size } 
+  });
+};
+
+/**
+ * Get courses by status
+ * GET /api/admin/courses/status/PUBLISHED
+ */
+export const getCoursesByStatus = (status) => {
+  return api.get(`/admin/courses/status/${status}`);
+};
+
+/**
+ * Get courses by level
+ * GET /api/admin/courses/level/Beginner
+ */
+export const getCoursesByLevel = (level) => {
+  return api.get(`/admin/courses/level/${level}`);
+};
+
+/**
+ * Get courses by category
+ * GET /api/admin/courses/category/Programming
+ */
+export const getCoursesByCategory = (category) => {
+  return api.get(`/admin/courses/category/${category}`);
+};
+
+/**
+ * Get recent courses
+ * GET /api/admin/courses/recent?limit=5
+ */
+export const getRecentCourses = (limit = 5) => {
+  return api.get(`/admin/courses/recent`, { params: { limit } });
+};
+
+/**
+ * Get course statistics
+ * GET /api/admin/courses/stats
+ */
+export const getCourseStats = () => {
+  return api.get(`/admin/courses/stats`);
+};
+
+/**
+ * Get courses with details
+ * GET /api/admin/courses/with-details
+ */
+export const getCoursesWithDetails = () => {
+  return api.get(`/admin/courses/with-details`);
+};
+
+/**
+ * Get courses without details
+ * GET /api/admin/courses/without-details
+ */
+export const getCoursesWithoutDetails = () => {
+  return api.get(`/admin/courses/without-details`);
+};
+
+/**
+ * Get course by ID with details
+ * GET /api/admin/courses/{id}/with-details
+ */
+export const getCourseWithDetails = (id) => {
+  return api.get(`/admin/courses/${id}/with-details`);
+};
+
 // ==================== INSTRUCTOR COURSE MANAGEMENT ====================
 
 // Get instructor's courses (for instructor dashboard)
@@ -488,9 +572,24 @@ export const updateUserStatus = (id, status) => {
   });
 };
 
-// Delete user
+// ✅ DELETE USER - Hard delete (permanent deletion)
 export const deleteUser = (id) => {
-  return api.delete(`/admin/users/${id}`);
+  return api.delete(`/admin/users/${id}/hard-delete`);
+};
+
+// ✅ Soft delete user (sets status to DELETED)
+export const softDeleteUser = (id) => {
+  return api.patch(`/admin/users/${id}/soft-delete`);
+};
+
+// ✅ Restore user (sets status to ACTIVE)
+export const restoreUser = (id) => {
+  return api.patch(`/admin/users/${id}/restore`);
+};
+
+// ✅ Delete user by phone number
+export const deleteUserByPhone = (phone) => {
+  return api.delete(`/admin/users/by-phone/${encodeURIComponent(phone)}`);
 };
 
 // ==================== STUDENT MANAGEMENT APIs ====================
@@ -880,6 +979,18 @@ const adminApi = {
   updateCourseStatus,
   getAdminCoursesSimple,
   
+  // Course Search & Filters
+  searchCourses,
+  searchCoursesPaginated,
+  getCoursesByStatus,
+  getCoursesByLevel,
+  getCoursesByCategory,
+  getRecentCourses,
+  getCourseStats,
+  getCoursesWithDetails,
+  getCoursesWithoutDetails,
+  getCourseWithDetails,
+  
   // Course Management - Instructor
   getInstructorCourses,
   createInstructorCourse,
@@ -927,6 +1038,9 @@ const adminApi = {
   updateUserRole,
   updateUserStatus,
   deleteUser,
+  softDeleteUser,
+  restoreUser,
+  deleteUserByPhone,
   
   // Student Management
   getAllStudents,

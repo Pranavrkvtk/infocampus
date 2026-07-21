@@ -372,6 +372,43 @@ const Enrollments = ({ isMobile, onBack }) => {
 
   const imageUrl = getCourseImage();
 
+  // ✅ Get details from course
+  const courseDetails = course.details || '';
+  const courseDescription = course.description || '';
+
+  // Format description with proper paragraphs
+  const formatContent = (content) => {
+    if (!content) return null;
+    return content.split('\n').map((paragraph, index) => {
+      const trimmed = paragraph.trim();
+      if (!trimmed) return null;
+      // Check if line is a bullet point
+      if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+        return (
+          <div key={index} style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            marginBottom: '4px',
+            paddingLeft: '4px',
+          }}>
+            <span style={{ color: COLORS.purpleText, fontWeight: 'bold' }}>•</span>
+            <span>{trimmed.substring(1).trim()}</span>
+          </div>
+        );
+      }
+      // Regular paragraph
+      return (
+        <p key={index} style={{
+          margin: '0 0 12px 0',
+          lineHeight: '1.8',
+        }}>
+          {trimmed}
+        </p>
+      );
+    }).filter(Boolean);
+  };
+
   return (
     <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", minHeight: "100vh", background: COLORS.pageBg }}>
 
@@ -513,7 +550,7 @@ const Enrollments = ({ isMobile, onBack }) => {
         </div>
       </div>
 
-      {/* ─── FULL-WIDTH TITLE BAR ──────────────────────────────────── */}
+      {/* ─── HERO HEADER ───────────────────────────────────────────── */}
       <div style={{
         background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
         padding: isMobileDevice ? '20px 20px 80px' : '40px 48px 120px',
@@ -522,39 +559,45 @@ const Enrollments = ({ isMobile, onBack }) => {
         minHeight: isMobileDevice ? '180px' : '280px',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start',
-        alignItems: 'center',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
       }}>
-        <h1 style={{
-          margin: isMobileDevice ? '40px 0 0' : '70px 0 0',
-          fontSize: isMobileDevice ? '28px' : '40px',
-          fontWeight: 700,
-          letterSpacing: '-0.5px',
-          textAlign: 'center',
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
           width: '100%',
-          maxWidth: '800px',
+          padding: isMobileDevice ? '0' : '0 40px',
         }}>
-          {course.title}
-        </h1>
-        {course.subtitle && (
-          <p style={{
-            margin: '12px 0 0 0',
-            fontSize: isMobileDevice ? '14px' : '18px',
-            opacity: 0.85,
-            fontWeight: 400,
-            textAlign: 'center',
-            width: '100%',
-            maxWidth: '800px',
+          <h1 style={{
+            margin: 0,
+            fontSize: isMobileDevice ? '36px' : '56px',
+            fontWeight: 700,
+            letterSpacing: '-0.5px',
+            color: '#ffffff',
+            textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            lineHeight: '1.2',
           }}>
-            {course.subtitle}
-          </p>
-        )}
+            {course.title}
+          </h1>
+          {course.subtitle && (
+            <p style={{
+              margin: '8px 0 0 0',
+              fontSize: isMobileDevice ? '16px' : '20px',
+              opacity: 0.85,
+              fontWeight: 400,
+              color: '#ffffff',
+              textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+            }}>
+              {course.subtitle}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* ─── MAIN CONTENT ──────────────────────────────────────────── */}
       <div style={{
         maxWidth: '1200px',
-        margin: isMobileDevice ? '-80px auto 0' : '-180px auto 0',
+        margin: isMobileDevice ? '-40px auto 0' : '-80px auto 0',
         padding: isMobileDevice ? '0 16px 60px' : '0 40px 80px',
         position: 'relative',
         zIndex: 1,
@@ -563,7 +606,7 @@ const Enrollments = ({ isMobile, onBack }) => {
           display: 'grid',
           gridTemplateColumns: isMobileDevice ? '1fr' : '320px 1fr',
           gap: '32px',
-          alignItems: 'start'
+          alignItems: 'flex-start',
         }}>
 
           {/* ── LEFT COLUMN: Image + Enroll Card ──────────────────── */}
@@ -672,7 +715,17 @@ const Enrollments = ({ isMobile, onBack }) => {
                   <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.duration || '10-20 hours'}</span>
                 </div>
 
-                {/* ✅ Members section removed */}
+                {/* Members */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '8px 0',
+                  borderBottom: `1px solid ${COLORS.border}`,
+                  fontSize: '14px'
+                }}>
+                  <span style={{ color: COLORS.textMuted }}>Members</span>
+                  <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.members || 0}</span>
+                </div>
 
                 {/* Price */}
                 <div style={{
@@ -715,12 +768,74 @@ const Enrollments = ({ isMobile, onBack }) => {
                     Share
                   </button>
                 </div>
-
-                {/* ✅ "Sign in to enroll" button removed */}
               </div>
             </div>
           </div>
 
+          {/* ── RIGHT COLUMN: Course Details (Odoo Style) ────────── */}
+          <div style={{
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            padding: isMobileDevice ? '0' : '0 32px',
+          }}>
+            {/* Breadcrumb */}
+            <div style={{
+              fontSize: '13px',
+              color: COLORS.textMuted,
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <span>🏠</span>
+              <span style={{ color: COLORS.textMuted }}>Courses</span>
+              <span style={{ color: COLORS.textMuted }}>/</span>
+              <span style={{ color: COLORS.textDark, fontWeight: 500 }}>{course.title}</span>
+            </div>
+
+            {/* Course Description */}
+            <div>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: 700,
+                color: COLORS.textDark,
+                margin: '0 0 16px 0',
+              }}>
+                Course Description
+              </h2>
+
+              {/* Description Content */}
+              {courseDescription && (
+                <div style={{
+                  fontSize: '15px',
+                  lineHeight: '1.8',
+                  color: COLORS.textDark,
+                  marginBottom: '24px',
+                }}>
+                  {formatContent(courseDescription)}
+                </div>
+              )}
+
+              {/* Details Content */}
+              {courseDetails && (
+                <div>
+                  {formatContent(courseDetails)}
+                </div>
+              )}
+
+              {/* If no content */}
+              {!courseDetails && !courseDescription && (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  color: COLORS.textMuted,
+                }}>
+                  <p style={{ fontSize: '15px' }}>No course description available.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

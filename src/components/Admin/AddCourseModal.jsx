@@ -15,6 +15,7 @@ export default function AddCourseModal({
   const [form, setForm] = useState({ 
     title: "", 
     description: "", 
+    details: "",  // ✅ ADDED DETAILS FIELD
     price: "", 
     duration: "", 
     level: ""
@@ -75,6 +76,7 @@ export default function AddCourseModal({
     setForm({ 
       title: "", 
       description: "", 
+      details: "",  // ✅ RESET DETAILS FIELD
       price: "", 
       duration: "", 
       level: ""
@@ -108,6 +110,7 @@ export default function AddCourseModal({
       const courseData = {
         title: form.title.trim(),
         description: form.description?.trim() || '',
+        details: form.details?.trim() || '',  // ✅ ADD DETAILS TO COURSE DATA
         price: priceValue,
         duration: form.duration || '',
         level: form.level || '',
@@ -115,6 +118,7 @@ export default function AddCourseModal({
 
       console.log('📤 STEP 1: Creating course with data:', courseData);
       console.log('📤 Mode:', isInstructor ? 'Instructor' : 'Admin');
+      console.log('📤 Details length:', courseData.details.length);
       setUploadProgress(30);
       
       let response;
@@ -418,6 +422,35 @@ export default function AddCourseModal({
               placeholder="Enter course description"
               maxLength={500}
             />
+          </div>
+
+          {/* ✅ ADD DETAILS TEXTAREA */}
+          <div style={{ marginBottom: 10 }}>
+            <label style={label}>Additional Details</label>
+            <textarea 
+              name="details" 
+              value={form.details} 
+              onChange={handleChange} 
+              rows={4} 
+              style={{ 
+                ...input, 
+                resize: "vertical",
+                fontFamily: "inherit",
+                fontSize: 12,
+                lineHeight: 1.6
+              }} 
+              placeholder="Enter additional course information like:\n• Course objectives\n• What students will learn\n• Prerequisites\n• Target audience\n• Course highlights"
+            />
+            <div style={{ 
+              fontSize: 10, 
+              color: "var(--text-secondary)", 
+              marginTop: 3,
+              display: "flex",
+              justifyContent: "space-between"
+            }}>
+              <span>You can add multiple paragraphs and bullet points</span>
+              <span>{form.details.length}/5000</span>
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
