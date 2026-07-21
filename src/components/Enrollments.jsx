@@ -565,8 +565,8 @@ const Enrollments = ({ isMobile, onBack }) => {
         flex: 1,
         width: '100%',
         maxWidth: '1400px',
-        margin: '0 auto 0 0',  // Left aligned
-        padding: '0 24px 40px',  // No top padding - NO GAP
+        margin: 0,  // No margin at all
+        padding: '0 24px 40px 0',  // No left padding - REMOVED LEFT GAP
         alignSelf: 'flex-start',
       }}>
         <div style={{
