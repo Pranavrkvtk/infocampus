@@ -411,9 +411,9 @@ const Enrollments = ({ isMobile, onBack }) => {
   };
 
   return (
-    <div style={{ 
-      fontFamily: "'Inter', 'Segoe UI', sans-serif", 
-      minHeight: "100vh", 
+    <div style={{
+      fontFamily: "'Inter', 'Segoe UI', sans-serif",
+      minHeight: "100vh",
       background: COLORS.pageBg,
       display: "flex",
       flexDirection: "column",
@@ -638,29 +638,40 @@ const Enrollments = ({ isMobile, onBack }) => {
             </div>
           </div>
 
-          {/* Row 2: Tab bar */}
+          {/* Row 2: Tab bar — thin purple strip, tab hugs the sidebar edge */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobileDevice ? '1fr' : 'minmax(260px, 320px) minmax(0, 1fr)',
-            borderBottom: `1px solid ${COLORS.border}`,
           }}>
             <div style={{ display: isMobileDevice ? 'none' : 'block' }} />
             <div style={{
               background: COLORS.titleBarDark,
-              padding: '8px 24px',
+              padding: '4px 24px 0',
             }}>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: '#fff',
-                color: COLORS.titleBarDark,
-                fontSize: '13px',
-                fontWeight: 700,
-                padding: '4px 14px',
-                borderRadius: '3px',
-              }}>
-                <HomeOutlinedIcon style={{ fontSize: '14px' }} />
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+
+                  background: '#fff',
+                  color: '#333',
+
+                  padding: '6px 16px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+
+                  border: '1px solid #d9d9d9',
+                  borderBottom: 'none',
+                  borderRadius: '3px 3px 0 0',
+                }}
+              >
+                <HomeOutlinedIcon
+                  style={{
+                    fontSize: '14px',
+                    color: '#333'
+                  }}
+                />
                 Course
               </span>
             </div>
@@ -671,6 +682,7 @@ const Enrollments = ({ isMobile, onBack }) => {
             display: 'grid',
             gridTemplateColumns: isMobileDevice ? '1fr' : 'minmax(260px, 320px) minmax(0, 1fr)',
             minHeight: '300px',
+            borderTop: `1px solid ${COLORS.border}`,
           }}>
 
             {/* Sidebar */}
@@ -792,7 +804,7 @@ const Enrollments = ({ isMobile, onBack }) => {
             </div>
 
             {/* Description */}
-            <div style={{ 
+            <div style={{
               padding: isMobileDevice ? '20px' : '32px 40px',
               overflowY: 'auto',
               background: '#ffffff',
