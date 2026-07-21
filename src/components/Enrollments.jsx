@@ -1,4 +1,5 @@
 // src/components/Enrollments.jsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -135,13 +136,13 @@ const Enrollments = ({ isMobile, onBack }) => {
 
   // ✅ Handle free preview
   const handleFreePreview = () => {
-    navigate(`/course/${courseId}`, { 
-      state: { 
+    navigate(`/course/${courseId}`, {
+      state: {
         course: course,
         isPreview: true,
         isEnrolled: false,
         from: 'enrollments'
-      } 
+      }
     });
   };
 
@@ -522,26 +523,64 @@ const Enrollments = ({ isMobile, onBack }) => {
         color: '#fff',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
       }}>
-        <div style={{ 
-          maxWidth: '1200px', 
+        <div style={{
+          maxWidth: '1200px',
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: isMobileDevice ? '1fr' : '1fr 280px',
+          // ✅ Image column now comes first (280px), text column second (1fr)
+          gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
           gap: '32px',
           alignItems: 'center'
         }}>
+
+          {/* ✅ Course Image — moved to the left */}
+          <div style={{
+            width: '100%',
+            height: isMobileDevice ? '160px' : '200px',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            background: 'rgba(255,255,255,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={course.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = '<div style="font-size:64px;opacity:0.3;">🖼️</div>';
+                }}
+              />
+            ) : (
+              <div style={{
+                fontSize: '64px',
+                opacity: 0.3,
+              }}>
+                🖼️
+              </div>
+            )}
+          </div>
+
+          {/* ✅ Text content — moved to the right */}
           <div>
-            <h1 style={{ 
-              margin: 0, 
-              fontSize: isMobileDevice ? '28px' : '38px', 
+            <h1 style={{
+              margin: 0,
+              fontSize: isMobileDevice ? '28px' : '38px',
               fontWeight: 700,
               letterSpacing: '-0.5px',
               marginBottom: '8px'
             }}>
               {course.title}
             </h1>
-            <p style={{ 
-              color: '#b8b0c9', 
+            <p style={{
+              color: '#b8b0c9',
               fontSize: isMobileDevice ? '14px' : '16px',
               marginBottom: '24px'
             }}>
@@ -567,54 +606,20 @@ const Enrollments = ({ isMobile, onBack }) => {
             </div>
           </div>
 
-          {/* Course Image */}
-          <div style={{
-            width: '100%',
-            height: isMobileDevice ? '160px' : '200px',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            background: 'rgba(255,255,255,0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            {imageUrl ? (
-              <img 
-                src={imageUrl} 
-                alt={course.title}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = '<div style="font-size:64px;opacity:0.3;">🖼️</div>';
-                }}
-              />
-            ) : (
-              <div style={{
-                fontSize: '64px',
-                opacity: 0.3,
-              }}>
-                🖼️
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
       {/* ─── MAIN CONTENT ────────────────────────────────────────── */}
-      <div style={{ 
-        maxWidth: '1200px', 
-        margin: '0 auto', 
-        padding: isMobileDevice ? '24px 16px 60px' : '32px 40px 80px' 
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: isMobileDevice ? '24px 16px 60px' : '32px 40px 80px'
       }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: isMobileDevice ? '1fr' : '300px 1fr', 
-          gap: '32px', 
-          alignItems: 'start' 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobileDevice ? '1fr' : '300px 1fr',
+          gap: '32px',
+          alignItems: 'start'
         }}>
 
           {/* ── Left: Enroll Card ── */}
@@ -627,10 +632,10 @@ const Enrollments = ({ isMobile, onBack }) => {
             top: '24px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
           }}>
-            <h2 style={{ 
-              fontSize: '18px', 
-              fontWeight: 600, 
-              marginTop: 0, 
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: 600,
+              marginTop: 0,
               marginBottom: '20px',
               color: '#fff'
             }}>
@@ -638,8 +643,8 @@ const Enrollments = ({ isMobile, onBack }) => {
             </h2>
 
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ 
-                display: 'flex', 
+              <div style={{
+                display: 'flex',
                 justifyContent: 'space-between',
                 padding: '8px 0',
                 borderBottom: '1px solid rgba(255,255,255,0.1)',
@@ -648,8 +653,8 @@ const Enrollments = ({ isMobile, onBack }) => {
                 <span style={{ opacity: 0.7 }}>Price</span>
                 <span style={{ fontWeight: 600 }}>${price}</span>
               </div>
-              <div style={{ 
-                display: 'flex', 
+              <div style={{
+                display: 'flex',
                 justifyContent: 'space-between',
                 padding: '8px 0',
                 borderBottom: '1px solid rgba(255,255,255,0.1)',
@@ -658,8 +663,8 @@ const Enrollments = ({ isMobile, onBack }) => {
                 <span style={{ opacity: 0.7 }}>Period</span>
                 <span style={{ fontWeight: 600 }}>{period}</span>
               </div>
-              <div style={{ 
-                display: 'flex', 
+              <div style={{
+                display: 'flex',
                 justifyContent: 'space-between',
                 padding: '8px 0',
                 fontSize: '14px'
@@ -697,9 +702,9 @@ const Enrollments = ({ isMobile, onBack }) => {
                 e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              {enrolling ? 'Processing…' : 
-               isEnrolled ? '✅ Enrolled' : 
-               isLoggedIn ? 'Enroll Now' : 
+              {enrolling ? 'Processing…' :
+               isEnrolled ? '✅ Enrolled' :
+               isLoggedIn ? 'Enroll Now' :
                'Join Free'}
             </button>
 
