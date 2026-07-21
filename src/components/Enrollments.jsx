@@ -358,7 +358,6 @@ const Enrollments = ({ isMobile, onBack }) => {
   const price = course.price ?? 299;
   const period = course.pricePeriod || 'lifetime';
   const isMobileDevice = isMobile || window.innerWidth < 768;
-  const membersCount = course.membersCount ?? course.enrolledCount ?? course.studentsCount ?? 0;
 
   // ✅ Get the image URL using the utility
   const getCourseImage = () => {
@@ -515,7 +514,6 @@ const Enrollments = ({ isMobile, onBack }) => {
       </div>
 
       {/* ─── FULL-WIDTH TITLE BAR ──────────────────────────────────── */}
-      {/* ✅ Reduced bottom padding to make hero section shorter */}
       <div style={{
         background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
         padding: isMobileDevice ? '20px 20px 80px' : '40px 48px 120px',
@@ -554,7 +552,6 @@ const Enrollments = ({ isMobile, onBack }) => {
       </div>
 
       {/* ─── MAIN CONTENT ──────────────────────────────────────────── */}
-      {/* ✅ Increased negative margin to pull content higher */}
       <div style={{
         maxWidth: '1200px',
         margin: isMobileDevice ? '-80px auto 0' : '-180px auto 0',
@@ -675,17 +672,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                   <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.duration || '10-20 hours'}</span>
                 </div>
 
-                {/* Members */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '8px 0',
-                  borderBottom: `1px solid ${COLORS.border}`,
-                  fontSize: '14px'
-                }}>
-                  <span style={{ color: COLORS.textMuted }}>Members</span>
-                  <span style={{ fontWeight: 600, color: COLORS.textDark }}>{membersCount}</span>
-                </div>
+                {/* ✅ Members section removed */}
 
                 {/* Price */}
                 <div style={{
@@ -729,34 +716,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                   </button>
                 </div>
 
-                {!isLoggedIn && !isEnrolled && (
-                  <button
-                    onClick={() => navigate('/login', { state: { from: `/enrollments/${courseId}` } })}
-                    style={{
-                      width: '100%',
-                      background: 'transparent',
-                      color: COLORS.purpleText,
-                      border: `1px solid ${COLORS.purpleText}`,
-                      borderRadius: '6px',
-                      padding: '8px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      marginTop: '10px',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = COLORS.purpleText;
-                      e.currentTarget.style.color = '#fff';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = COLORS.purpleText;
-                    }}
-                  >
-                    Sign in to enroll
-                  </button>
-                )}
+                {/* ✅ "Sign in to enroll" button removed */}
               </div>
             </div>
           </div>
