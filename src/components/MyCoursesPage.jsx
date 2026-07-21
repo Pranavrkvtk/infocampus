@@ -882,7 +882,6 @@ function MyCoursesPage() {
       color: COLORS.ink 
     },
 
-    // ✅ UPDATED: Top bar now matches CourseDetailView (smaller height)
     topBar: {
       height: isMobile ? '28px' : '32px',
       background: TOPBAR.bgGradient,
@@ -917,7 +916,6 @@ function MyCoursesPage() {
       borderRadius: 0,
     },
 
-    // ✅ HERO SECTION - WITHOUT DECOR
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
@@ -1092,22 +1090,6 @@ function MyCoursesPage() {
       height: '100%',
       objectFit: 'cover',
       transition: 'transform 0.3s ease',
-    },
-    cardTrackBadge: {
-      position: 'absolute',
-      top: '12px',
-      left: '12px',
-      background: 'rgba(0,0,0,0.6)',
-      color: '#fff',
-      padding: '4px 10px',
-      borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: 600,
-      backdropFilter: 'blur(4px)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      zIndex: 1,
     },
     cardBody: { 
       padding: '14px 16px 10px', 
@@ -1299,7 +1281,7 @@ function MyCoursesPage() {
 
   return (
     <div style={styles.page}>
-      {/* ─── TOP NAVIGATION BAR (now matches CourseDetailView) ────── */}
+      {/* ─── TOP NAVIGATION BAR ────────────────────────────────────── */}
       <div style={styles.topBar}>
         <div style={styles.topBarRight}>
           <button
@@ -1483,7 +1465,6 @@ function MyCoursesPage() {
           {visibleCourses.map((course) => {
             const isEnrolled = isLoggedIn && isCourseEnrolled(course.id);
             const imageUrl = getCourseImage(course);
-            const trackInfo = getTrackInfo(course.title);
             
             return (
               <div key={course.id} style={styles.card}>
@@ -1504,13 +1485,6 @@ function MyCoursesPage() {
                       e.target.src = fallback;
                     }}
                   />
-                  <div style={{
-                    ...styles.cardTrackBadge,
-                    background: trackInfo.color,
-                    color: '#1F1B24',
-                  }}>
-                    {trackInfo.icon} {course.level || ''}
-                  </div>
                   {isEnrolled && (
                     <span style={styles.enrolledBadge}>
                       <BookmarkIcon style={{ fontSize: '12px' }} />
@@ -1528,12 +1502,6 @@ function MyCoursesPage() {
                       <AccessTimeIcon style={styles.metaIcon} />
                       {course.duration || '—'}
                     </span>
-                    {course.level && (
-                      <span style={styles.metaItem}>
-                        <EmojiEventsIcon style={styles.metaIcon} />
-                        {course.level}
-                      </span>
-                    )}
                   </div>
                 </div>
                 <div style={styles.cardFooter}>
