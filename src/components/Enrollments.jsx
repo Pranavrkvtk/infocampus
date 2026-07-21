@@ -560,14 +560,13 @@ const Enrollments = ({ isMobile, onBack }) => {
         </div>
       </div>
 
-      {/* ─── MAIN CONTENT - LEFT ALIGNED (Odoo Style) ──────────────── */}
+      {/* ─── MAIN CONTENT - FULL WIDTH ────────────────────────────── */}
       <div style={{
         flex: 1,
         width: '100%',
-        maxWidth: '1400px',
-        margin: 0,  // No margin at all
-        padding: '0 24px 40px 0',  // No left padding - REMOVED LEFT GAP
-        alignSelf: 'flex-start',
+        margin: 0,
+        padding: 0,
+        alignSelf: 'stretch',
       }}>
         <div style={{
           border: `1px solid ${COLORS.border}`,
@@ -580,7 +579,7 @@ const Enrollments = ({ isMobile, onBack }) => {
           {/* Row 1: Image + Title bar */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
+            gridTemplateColumns: isMobileDevice ? '1fr' : 'minmax(260px, 320px) minmax(0, 1fr)',
           }}>
             <div style={{
               width: '100%',
@@ -642,7 +641,7 @@ const Enrollments = ({ isMobile, onBack }) => {
           {/* Row 2: Tab bar */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
+            gridTemplateColumns: isMobileDevice ? '1fr' : 'minmax(260px, 320px) minmax(0, 1fr)',
             borderBottom: `1px solid ${COLORS.border}`,
           }}>
             <div style={{ display: isMobileDevice ? 'none' : 'block' }} />
@@ -670,7 +669,7 @@ const Enrollments = ({ isMobile, onBack }) => {
           {/* Row 3: Sidebar + Description */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
+            gridTemplateColumns: isMobileDevice ? '1fr' : 'minmax(260px, 320px) minmax(0, 1fr)',
             minHeight: '300px',
           }}>
 
@@ -678,6 +677,7 @@ const Enrollments = ({ isMobile, onBack }) => {
             <div style={{
               borderRight: isMobileDevice ? 'none' : `1px solid ${COLORS.border}`,
               borderBottom: isMobileDevice ? `1px solid ${COLORS.border}` : 'none',
+              background: isMobileDevice ? 'transparent' : '#fafafa',
             }}>
               <button
                 onClick={handleMainAction}
@@ -788,21 +788,23 @@ const Enrollments = ({ isMobile, onBack }) => {
 
             {/* Description */}
             <div style={{ 
-              padding: isMobileDevice ? '20px' : '24px 32px',
+              padding: isMobileDevice ? '20px' : '32px 40px',
               overflowY: 'auto',
+              background: '#ffffff',
             }}>
               {courseDetails ? (
                 <div style={{
                   fontSize: '16px',
-                  lineHeight: '1.8',
+                  lineHeight: '1.9',
                   color: '#1a1a2e',
+                  maxWidth: '100%',
                 }}>
                   {formatContent(courseDetails)}
                 </div>
               ) : (
                 <div style={{
                   textAlign: 'center',
-                  padding: '40px 20px',
+                  padding: '60px 20px',
                   color: COLORS.textMuted,
                 }}>
                   <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
