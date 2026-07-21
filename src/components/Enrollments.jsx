@@ -41,6 +41,10 @@ const COLORS = {
   heroGradTo: '#2a2438',
   heroBlob: 'rgba(255,255,255,0.06)',
   purpleCard: 'linear-gradient(160deg, #2C3540 0%, #1A232E 100%)',
+  // Odoo-style accents
+  titleBar: '#7c4a72',
+  titleBarDark: '#6b3f63',
+  tabStrip: '#5e3856',
 };
 
 const formatDate = (d) => {
@@ -361,6 +365,7 @@ const Enrollments = ({ isMobile, onBack }) => {
   const price = course.price ?? 299;
   const period = course.pricePeriod || 'lifetime';
   const isMobileDevice = isMobile || window.innerWidth < 768;
+  const membersCount = course.membersCount ?? course.enrolledCount ?? course.studentsCount ?? 0;
 
   // ✅ Get the image URL using the utility - support both image and imageUrl fields
   const getCourseImage = () => {
@@ -378,7 +383,7 @@ const Enrollments = ({ isMobile, onBack }) => {
   return (
     <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", minHeight: "100vh", background: COLORS.pageBg }}>
 
-      {/* ─── TOP NAVIGATION BAR ────────────────────────────────────── */}
+      {/* ─── TOP NAVIGATION BAR (unchanged) ────────────────────────── */}
       <div style={{
         height: isMobileDevice ? '28px' : '32px',
         background: TOPBAR.bgGradient,
@@ -516,97 +521,68 @@ const Enrollments = ({ isMobile, onBack }) => {
         </div>
       </div>
 
-      {/* ─── HERO / HEADER with Image ──────────────────────────────── */}
-      <div style={{
-        background: `linear-gradient(135deg, ${COLORS.heroGradFrom} 0%, ${COLORS.heroGradTo} 100%)`,
-        padding: isMobileDevice ? '32px 20px' : '48px 40px',
-        color: '#fff',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-      }}>
+      {/* ─── ODOO-STYLE HEADER: compact thumbnail + title bar ─────── */}
+      <div style={{ display: 'flex', alignItems: 'stretch', width: '100%' }}>
+        {/* Small thumbnail (image path/logic unchanged) */}
         <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'grid',
-          // ✅ Image column now comes first (280px), text column second (1fr)
-          gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
-          gap: '32px',
-          alignItems: 'center'
+          width: isMobileDevice ? '90px' : '220px',
+          height: isMobileDevice ? '90px' : '150px',
+          flexShrink: 0,
+          background: '#e5e7eb',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
-
-          {/* ✅ Course Image — moved to the left */}
-          <div style={{
-            width: '100%',
-            height: isMobileDevice ? '160px' : '200px',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            background: 'rgba(255,255,255,0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={course.title}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = '<div style="font-size:64px;opacity:0.3;">🖼️</div>';
-                }}
-              />
-            ) : (
-              <div style={{
-                fontSize: '64px',
-                opacity: 0.3,
-              }}>
-                🖼️
-              </div>
-            )}
-          </div>
-
-          {/* ✅ Text content — moved to the right */}
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontSize: isMobileDevice ? '28px' : '38px',
-              fontWeight: 700,
-              letterSpacing: '-0.5px',
-              marginBottom: '8px'
-            }}>
-              {course.title}
-            </h1>
-            <p style={{
-              color: '#b8b0c9',
-              fontSize: isMobileDevice ? '14px' : '16px',
-              marginBottom: '24px'
-            }}>
-              {course.subtitle || 'Join this course'}
-            </p>
-
-            {/* Course Stats */}
-            <div style={{
-              display: 'flex',
-              gap: isMobileDevice ? '16px' : '32px',
-              flexWrap: 'wrap',
-              fontSize: isMobileDevice ? '13px' : '15px',
-              color: '#d4cfe0'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <UpdateIcon style={{ fontSize: '18px' }} />
-                <span>Last Update: {formatDate(course.updatedAt)}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AccessTimeIcon style={{ fontSize: '18px' }} />
-                <span>Completion: {course.duration || '2 hours 40 minutes'}</span>
-              </div>
-            </div>
-          </div>
-
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={course.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentElement.innerHTML = '<div style="font-size:40px;opacity:0.3;">🖼️</div>';
+              }}
+            />
+          ) : (
+            <div style={{ fontSize: isMobileDevice ? '32px' : '48px', opacity: 0.3 }}>🖼️</div>
+          )}
         </div>
+
+        {/* Title bar */}
+        <div style={{
+          flex: 1,
+          background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
+          display: 'flex',
+          alignItems: 'center',
+          padding: isMobileDevice ? '0 16px' : '0 40px',
+          color: '#fff',
+        }}>
+          <h1 style={{
+            margin: 0,
+            fontSize: isMobileDevice ? '20px' : '32px',
+            fontWeight: 700,
+            letterSpacing: '-0.5px',
+          }}>
+            {course.title}
+          </h1>
+        </div>
+      </div>
+
+      {/* ─── Tab strip (Course) ────────────────────────────────────── */}
+      <div style={{
+        background: COLORS.tabStrip,
+        padding: isMobileDevice ? '10px 16px' : '10px 40px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        color: '#f1e9ef',
+        fontSize: '14px',
+        fontWeight: 600,
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+      }}>
+        <HomeOutlinedIcon style={{ fontSize: '17px' }} />
+        <span>Course</span>
       </div>
 
       {/* ─── MAIN CONTENT ────────────────────────────────────────── */}
@@ -617,151 +593,139 @@ const Enrollments = ({ isMobile, onBack }) => {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobileDevice ? '1fr' : '300px 1fr',
+          gridTemplateColumns: isMobileDevice ? '1fr' : '260px 1fr',
           gap: '32px',
           alignItems: 'start'
         }}>
 
-          {/* ── Left: Enroll Card ── */}
+          {/* ── Left: Enroll Card (Odoo-style stat list) ── */}
           <div style={{
-            background: COLORS.purpleCard,
-            borderRadius: '16px',
-            padding: '24px',
-            color: '#fff',
+            background: COLORS.cardBg,
+            borderRadius: '4px',
+            overflow: 'hidden',
+            border: `1px solid ${COLORS.border}`,
             position: isMobileDevice ? 'static' : 'sticky',
             top: '24px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
           }}>
-            <h2 style={{
-              fontSize: '18px',
-              fontWeight: 600,
-              marginTop: 0,
-              marginBottom: '20px',
-              color: '#fff'
-            }}>
-              Join This Course
-            </h2>
-
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '8px 0',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                fontSize: '14px'
-              }}>
-                <span style={{ opacity: 0.7 }}>Price</span>
-                <span style={{ fontWeight: 600 }}>${price}</span>
-              </div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '8px 0',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                fontSize: '14px'
-              }}>
-                <span style={{ opacity: 0.7 }}>Period</span>
-                <span style={{ fontWeight: 600 }}>{period}</span>
-              </div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '8px 0',
-                fontSize: '14px'
-              }}>
-                <span style={{ opacity: 0.7 }}>Access</span>
-                <span style={{ fontWeight: 600, color: COLORS.green }}>Lifetime</span>
-              </div>
-            </div>
-
             <button
               onClick={handleMainAction}
               disabled={enrolling}
               style={{
                 width: '100%',
-                background: isEnrolled ? '#2e7d32' : '#fff',
-                color: isEnrolled ? '#fff' : '#1A232E',
+                background: isEnrolled ? '#2e7d32' : COLORS.titleBar,
+                color: '#fff',
                 border: 'none',
-                borderRadius: '8px',
                 padding: '14px',
-                fontSize: '16px',
+                fontSize: '13px',
                 fontWeight: 700,
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
                 cursor: enrolling ? 'not-allowed' : 'pointer',
                 opacity: enrolling ? 0.7 : 1,
-                transition: 'all 0.2s',
-                marginBottom: '12px'
+                transition: 'background 0.2s',
               }}
               onMouseEnter={(e) => {
-                if (!enrolling && !isEnrolled) {
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,255,255,0.2)';
-                }
+                if (!enrolling && !isEnrolled) e.currentTarget.style.background = COLORS.titleBarDark;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = 'none';
+                if (!enrolling && !isEnrolled) e.currentTarget.style.background = COLORS.titleBar;
               }}
             >
               {enrolling ? 'Processing…' :
                isEnrolled ? '✅ Enrolled' :
-               isLoggedIn ? 'Enroll Now' :
-               'Join Free'}
+               'Join This Course'}
             </button>
 
-            {!isLoggedIn && !isEnrolled && (
+            <div style={{ padding: '16px 20px' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '10px 0',
+                borderBottom: `1px solid ${COLORS.border}`,
+                fontSize: '14px'
+              }}>
+                <span style={{ color: COLORS.textMuted }}>Last Update</span>
+                <span style={{ fontWeight: 600, color: COLORS.textDark }}>{formatDate(course.updatedAt)}</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '10px 0',
+                borderBottom: `1px solid ${COLORS.border}`,
+                fontSize: '14px'
+              }}>
+                <span style={{ color: COLORS.textMuted }}>Completion Time</span>
+                <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.duration || '2 hours 40 minutes'}</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '10px 0',
+                borderBottom: `1px solid ${COLORS.border}`,
+                fontSize: '14px'
+              }}>
+                <span style={{ color: COLORS.textMuted }}>Members</span>
+                <span style={{ fontWeight: 600, color: COLORS.textDark }}>{membersCount}</span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '10px 0',
+                fontSize: '14px'
+              }}>
+                <span style={{ color: COLORS.textMuted }}>Price</span>
+                <span style={{ fontWeight: 600, color: COLORS.purpleText }}>${price} / {period}</span>
+              </div>
+
+              {!isLoggedIn && !isEnrolled && (
+                <button
+                  onClick={() => navigate('/login', { state: { from: `/enrollments/${courseId}` } })}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    color: COLORS.purpleText,
+                    border: `1px solid ${COLORS.purpleText}`,
+                    borderRadius: '4px',
+                    padding: '10px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    marginTop: '14px',
+                  }}
+                >
+                  Sign in to enroll
+                </button>
+              )}
+
               <button
-                onClick={() => navigate('/login', { state: { from: `/enrollments/${courseId}` } })}
+                onClick={handleShare}
                 style={{
                   width: '100%',
-                  background: 'rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  fontSize: '14px',
+                  background: 'transparent',
+                  color: COLORS.textMuted,
+                  border: 'none',
+                  padding: '10px 0 0',
+                  fontSize: '13px',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  transition: 'background 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
               >
-                Sign in to enroll
+                <ShareOutlinedIcon style={{ fontSize: '16px' }} />
+                Share
               </button>
-            )}
-
-            <button
-              onClick={handleShare}
-              style={{
-                width: '100%',
-                background: 'transparent',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '8px',
-                padding: '12px',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                marginTop: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <ShareOutlinedIcon style={{ fontSize: '18px' }} />
-              Share
-            </button>
+            </div>
           </div>
 
           {/* ── Right: Course Description ── */}
           <div style={{
             background: COLORS.cardBg,
-            borderRadius: '16px',
-            padding: '32px',
+            borderRadius: '4px',
+            border: `1px solid ${COLORS.border}`,
+            padding: '28px 32px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           }}>
             <p style={{
