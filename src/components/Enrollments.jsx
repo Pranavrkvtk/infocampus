@@ -679,33 +679,50 @@ const Enrollments = ({ isMobile, onBack }) => {
               borderBottom: isMobileDevice ? `1px solid ${COLORS.border}` : 'none',
               background: isMobileDevice ? 'transparent' : '#fafafa',
             }}>
+              {/* Odoo-style button - centered with margins */}
               <button
                 onClick={handleMainAction}
                 disabled={enrolling}
                 style={{
-                  width: '100%',
-                  background: isEnrolled ? '#2e7d32' : COLORS.titleBar,
-                  color: '#fff',
-                  border: 'none',
-                  padding: '14px 16px',
-                  fontSize: '14px',
+                  display: "block",
+                  width: "calc(100% - 36px)",
+                  margin: "14px 18px",
+                  padding: "10px 14px",
+
+                  background: isEnrolled ? "#2e7d32" : COLORS.titleBar,
+                  color: "#fff",
+
+                  border: "1px solid rgba(255,255,255,.15)",
+                  borderRadius: "2px",
+
+                  fontSize: "13px",
                   fontWeight: 700,
-                  letterSpacing: '0.5px',
-                  cursor: enrolling ? 'not-allowed' : 'pointer',
-                  opacity: enrolling ? 0.7 : 1,
-                  transition: 'background 0.2s',
+                  textTransform: "uppercase",
+                  letterSpacing: ".3px",
+
+                  cursor: enrolling ? "not-allowed" : "pointer",
+                  transition: "all .2s ease",
+                  boxShadow: "0 1px 2px rgba(0,0,0,.15)"
                 }}
                 onMouseEnter={(e) => {
-                  if (!enrolling && !isEnrolled) e.currentTarget.style.background = COLORS.titleBarDark;
+                  if (!enrolling && !isEnrolled) {
+                    e.currentTarget.style.background = COLORS.titleBarDark;
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  if (!enrolling && !isEnrolled) e.currentTarget.style.background = COLORS.titleBar;
+                  if (!enrolling && !isEnrolled) {
+                    e.currentTarget.style.background = COLORS.titleBar;
+                  }
                 }}
               >
-                {enrolling ? 'Processing…' : isEnrolled ? '✅ Enrolled' : 'Join This Course'}
+                {enrolling
+                  ? "Processing..."
+                  : isEnrolled
+                  ? "Enrolled"
+                  : "Join This Course"}
               </button>
 
-              <div style={{ padding: '16px 20px' }}>
+              <div style={{ padding: '0 20px 16px 20px' }}>
                 {/* Last Update */}
                 <div style={{
                   display: 'flex',
@@ -728,18 +745,6 @@ const Enrollments = ({ isMobile, onBack }) => {
                 }}>
                   <span style={{ color: COLORS.textMuted }}>Completion Time</span>
                   <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.duration || '2 hours 40 minutes'}</span>
-                </div>
-
-                {/* Members */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '8px 0',
-                  borderBottom: `1px solid ${COLORS.border}`,
-                  fontSize: '14px'
-                }}>
-                  <span style={{ color: COLORS.textMuted }}>Members</span>
-                  <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.members || 0}</span>
                 </div>
 
                 {/* Price */}
