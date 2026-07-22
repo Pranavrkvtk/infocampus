@@ -26,7 +26,7 @@ const TOPBAR = {
 
 // ─── Palette ──────────────────────────────────────────────────────────
 const COLORS = {
-  pageBg: '#f0f2f5',
+  pageBg: '#f0f2f5', // Keep this for other parts, but we'll override with white
   cardBg: '#ffffff',
   textDark: '#1a1a2e',
   textMuted: '#6b7280',
@@ -255,7 +255,7 @@ const Enrollments = ({ isMobile, onBack }) => {
       <div style={{
         fontFamily: "'Inter', 'Segoe UI', sans-serif",
         minHeight: "100vh",
-        background: COLORS.pageBg,
+        background: "#ffffff", // Changed from COLORS.pageBg
         display: "flex",
         alignItems: "center",
         justifyContent: "center"
@@ -303,7 +303,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: '100vh', padding: '20px', background: COLORS.pageBg
+        justifyContent: 'center', minHeight: '100vh', padding: '20px', background: "#ffffff" // Changed
       }}>
         <div style={{
           width: '50px', height: '50px', border: '4px solid #e5e7eb',
@@ -320,7 +320,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', padding: '20px', textAlign: 'center', background: COLORS.pageBg
+        minHeight: '100vh', padding: '20px', textAlign: 'center', background: "#ffffff" // Changed
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
         <h2 style={{ color: '#dc2626', marginBottom: '8px' }}>Error</h2>
@@ -340,7 +340,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', padding: '20px', textAlign: 'center', background: COLORS.pageBg
+        minHeight: '100vh', padding: '20px', textAlign: 'center', background: "#ffffff" // Changed
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>📚</div>
         <h2 style={{ color: '#1f2937', marginBottom: '8px' }}>Course Not Found</h2>
@@ -417,7 +417,7 @@ const Enrollments = ({ isMobile, onBack }) => {
       fontFamily: "'Inter', 'Segoe UI', sans-serif",
       display: "flex",
       flexDirection: "column",
-      background: COLORS.pageBg,
+      background: "#ffffff", // ← CHANGED: from COLORS.pageBg to #ffffff
       overflow: "hidden",
       margin: 0,
       padding: 0,
@@ -573,13 +573,15 @@ const Enrollments = ({ isMobile, onBack }) => {
         overflow: 'auto',
         margin: 0,
         padding: 0,
+        background: '#ffffff', // ← ADDED: white background
       }}>
         <div style={{
           border: "none",
           borderRadius: 0,
           overflow: 'hidden',
           boxShadow: "none",
-          background: COLORS.cardBg,
+          background: "#ffffff", // ← CHANGED: from COLORS.cardBg to #ffffff
+          minHeight: "100%", // ← ADDED: ensures it fills the container
         }}>
 
           {/* ════════════════════════════════════════════════════════ */}
@@ -701,7 +703,7 @@ const Enrollments = ({ isMobile, onBack }) => {
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobileDevice ? '1fr' : '260px 1fr',
-            borderTop: 'none', // ← REMOVED the border
+            borderTop: 'none',
           }}>
 
             {/* ─── LEFT COLUMN: Sidebar Card ────────────────────── */}
@@ -715,7 +717,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                 background: '#ffffff',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
                 overflow: 'hidden',
-                margin: isMobileDevice ? '0px' : '0px 8px 8px 0px', // ← Aligns with tab
+                margin: isMobileDevice ? '0px' : '0px 8px 8px 0px',
                 width: '100%',
               }}>
                 {/* Odoo-style button */}
