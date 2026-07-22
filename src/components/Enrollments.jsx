@@ -566,7 +566,7 @@ const Enrollments = ({ isMobile, onBack }) => {
         </div>
       </div>
 
-      {/* ─── MAIN CONTENT - FULL WIDTH, SCROLLS INDEPENDENTLY ───────── */}
+      {/* ─── MAIN CONTENT - ODOO 2-ROW LAYOUT ────────────────────── */}
       <div style={{
         flex: 1,
         width: '100%',
@@ -582,16 +582,18 @@ const Enrollments = ({ isMobile, onBack }) => {
           background: COLORS.cardBg,
         }}>
 
-          {/* Row 1: Image + Title bar - Odoo style with purple background behind image */}
+          {/* ════════════════════════════════════════════════════════ */}
+          {/* ROW 1: Image + Purple Header                          */}
+          {/* ════════════════════════════════════════════════════════ */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
+            gridTemplateColumns: isMobileDevice ? '1fr' : '260px 1fr',
             background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
           }}>
-            {/* Image Container - sits on top of purple background */}
+            {/* Image Container */}
             <div style={{
               width: '100%',
-              padding: '16px 16px 16px 16px',
+              padding: '12px 12px 8px 12px',
               background: 'transparent',
               boxSizing: 'border-box',
               display: 'flex',
@@ -600,19 +602,19 @@ const Enrollments = ({ isMobile, onBack }) => {
               <div style={{
                 position: 'relative',
                 width: '100%',
-                height: isMobileDevice ? '190px' : '230px',
+                height: isMobileDevice ? '170px' : '200px',
                 borderRadius: '6px',
                 background: '#e5e7eb',
                 overflow: 'hidden',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
               }}>
-                {/* Small floating icon, top-left of the image, Odoo-style */}
+                {/* Floating icon */}
                 <div style={{
                   position: 'absolute',
-                  top: '12px',
-                  left: '12px',
-                  width: '32px',
-                  height: '32px',
+                  top: '10px',
+                  left: '10px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '6px',
                   background: 'rgba(0,0,0,0.3)',
                   backdropFilter: 'blur(4px)',
@@ -622,7 +624,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                   boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                   zIndex: 1,
                 }}>
-                  <HomeOutlinedIcon style={{ fontSize: '18px', color: '#fff' }} />
+                  <HomeOutlinedIcon style={{ fontSize: '16px', color: '#fff' }} />
                 </div>
 
                 {imageUrl ? (
@@ -660,18 +662,18 @@ const Enrollments = ({ isMobile, onBack }) => {
               </div>
             </div>
 
-            {/* Title Container - purple background */}
+            {/* Title Container */}
             <div style={{
               background: 'transparent',
               display: 'flex',
               alignItems: 'center',
-              padding: isMobileDevice ? '16px 20px 20px 20px' : '16px 32px 16px 0',
+              padding: isMobileDevice ? '12px 20px 16px 20px' : '12px 32px 12px 0',
               minHeight: isMobileDevice ? 'auto' : 'auto',
             }}>
               <div>
                 <h1 style={{
                   margin: 0,
-                  fontSize: isMobileDevice ? '28px' : '38px',
+                  fontSize: isMobileDevice ? '26px' : '34px',
                   fontWeight: 700,
                   color: '#fff',
                   letterSpacing: '-0.5px',
@@ -681,8 +683,8 @@ const Enrollments = ({ isMobile, onBack }) => {
                 </h1>
                 {course.subtitle && (
                   <p style={{
-                    margin: '8px 0 0 0',
-                    fontSize: isMobileDevice ? '14px' : '17px',
+                    margin: '6px 0 0 0',
+                    fontSize: isMobileDevice ? '13px' : '16px',
                     color: 'rgba(255,255,255,0.85)',
                     fontWeight: 400,
                   }}>
@@ -693,53 +695,18 @@ const Enrollments = ({ isMobile, onBack }) => {
             </div>
           </div>
 
-          {/* Row 2: Tab bar — thin purple strip, tab hugs the sidebar edge */}
+          {/* ════════════════════════════════════════════════════════ */}
+          {/* ROW 2: Sidebar + Right Panel (Tab + Description)      */}
+          {/* ════════════════════════════════════════════════════════ */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
-          }}>
-            <div style={{ display: isMobileDevice ? 'none' : 'block' }} />
-            <div style={{
-              background: COLORS.titleBarDark,
-              padding: '3px 24px 0',
-            }}>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: '#fff',
-                  color: '#333',
-                  padding: '5px 16px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: '1px solid #d9d9d9',
-                  borderBottom: 'none',
-                  borderRadius: '3px 3px 0 0',
-                }}
-              >
-                <HomeOutlinedIcon
-                  style={{
-                    fontSize: '13px',
-                    color: '#000000'
-                  }}
-                />
-                Course
-              </span>
-            </div>
-          </div>
-
-          {/* Row 3: Sidebar + Description */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobileDevice ? '1fr' : '280px 1fr',
-            borderTop: `1px solid ${COLORS.border}`,
+            gridTemplateColumns: isMobileDevice ? '1fr' : '260px 1fr',
+            borderTop: 'none', // ← REMOVED the border
           }}>
 
-            {/* Sidebar — Odoo style with minimal spacing */}
+            {/* ─── LEFT COLUMN: Sidebar Card ────────────────────── */}
             <div style={{
-              alignSelf: 'start',
-              padding: isMobileDevice ? '8px' : '0px',
+              padding: isMobileDevice ? '8px' : '0px 0px 0px 8px',
               background: 'transparent',
             }}>
               <div style={{
@@ -748,10 +715,10 @@ const Enrollments = ({ isMobile, onBack }) => {
                 background: '#ffffff',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
                 overflow: 'hidden',
-                margin: isMobileDevice ? '0px' : '4px 8px 8px 8px',
-                width: isMobileDevice ? '100%' : 'calc(100% - 16px)',
+                margin: isMobileDevice ? '0px' : '0px 8px 8px 0px', // ← Aligns with tab
+                width: '100%',
               }}>
-                {/* Odoo-style button - centered with margins */}
+                {/* Odoo-style button */}
                 <button
                   onClick={handleMainAction}
                   disabled={enrolling}
@@ -860,31 +827,70 @@ const Enrollments = ({ isMobile, onBack }) => {
               </div>
             </div>
 
-            {/* Description */}
+            {/* ─── RIGHT COLUMN: Tab + Description ────────────── */}
             <div style={{
-              padding: isMobileDevice ? '20px' : '32px 40px',
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
               background: '#ffffff',
             }}>
-              {courseDetails ? (
-                <div style={{
-                  fontSize: '16px',
-                  lineHeight: '1.9',
-                  color: '#1a1a2e',
-                  maxWidth: '100%',
-                }}>
-                  {formatContent(courseDetails)}
-                </div>
-              ) : (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '60px 20px',
-                  color: COLORS.textMuted,
-                }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
-                  <p style={{ fontSize: '15px' }}>No course details available.</p>
-                </div>
-              )}
+              {/* Tab Bar - starts at the top of the right column */}
+              <div style={{
+                background: COLORS.titleBarDark,
+                padding: '3px 24px 0',
+                borderBottom: `1px solid ${COLORS.border}`,
+              }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: '#fff',
+                    color: '#333',
+                    padding: '5px 16px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    border: '1px solid #d9d9d9',
+                    borderBottom: 'none',
+                    borderRadius: '3px 3px 0 0',
+                  }}
+                >
+                  <HomeOutlinedIcon
+                    style={{
+                      fontSize: '13px',
+                      color: '#000000'
+                    }}
+                  />
+                  Course
+                </span>
+              </div>
+
+              {/* Description Content */}
+              <div style={{
+                padding: isMobileDevice ? '20px' : '32px 40px',
+                overflowY: 'auto',
+                flex: 1,
+                background: '#ffffff',
+              }}>
+                {courseDetails ? (
+                  <div style={{
+                    fontSize: '16px',
+                    lineHeight: '1.9',
+                    color: '#1a1a2e',
+                    maxWidth: '100%',
+                  }}>
+                    {formatContent(courseDetails)}
+                  </div>
+                ) : (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '60px 20px',
+                    color: COLORS.textMuted,
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
+                    <p style={{ fontSize: '15px' }}>No course details available.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
