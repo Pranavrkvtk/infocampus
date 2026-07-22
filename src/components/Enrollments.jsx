@@ -411,22 +411,31 @@ const Enrollments = ({ isMobile, onBack }) => {
   };
 
   return (
+    // ✅ FIXED: position:fixed + inset:0 pins this component to the true
+    // viewport edges (top-left corner included), independent of any parent
+    // layout padding/margin. This is what removes the purple/white gap.
     <div style={{
+      position: "fixed",
+      inset: 0,
       fontFamily: "'Inter', 'Segoe UI', sans-serif",
-      minHeight: "100vh",
-      background: COLORS.pageBg,
       display: "flex",
       flexDirection: "column",
+      background: COLORS.pageBg,
+      overflow: "hidden",
+      margin: 0,
+      padding: 0,
     }}>
 
       {/* ─── TOP NAVIGATION BAR ────────────────────────────────────── */}
       <div style={{
         height: isMobileDevice ? '28px' : '32px',
+        width: '100%',
         background: TOPBAR.bgGradient,
-        borderBottom: `1px solid ${TOPBAR.border}`,
+        borderBottom: "none",
         display: 'flex',
         alignItems: 'stretch',
         justifyContent: 'flex-end',
+        margin: 0,
         padding: 0,
         color: TOPBAR.text,
         boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
@@ -560,19 +569,19 @@ const Enrollments = ({ isMobile, onBack }) => {
         </div>
       </div>
 
-      {/* ─── MAIN CONTENT - FULL WIDTH ────────────────────────────── */}
+      {/* ─── MAIN CONTENT - FULL WIDTH, SCROLLS INDEPENDENTLY ───────── */}
       <div style={{
         flex: 1,
         width: '100%',
+        overflow: 'auto',
         margin: 0,
         padding: 0,
-        alignSelf: 'stretch',
       }}>
         <div style={{
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: '4px',
+          border: "none",
+          borderRadius: 0,
           overflow: 'hidden',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          boxShadow: "none",
           background: COLORS.cardBg,
         }}>
 
@@ -669,7 +678,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                 <HomeOutlinedIcon
                   style={{
                     fontSize: '14px',
-                    color: '#333'
+                    color: '#000000' // ✅ FULL BLACK
                   }}
                 />
                 Course
