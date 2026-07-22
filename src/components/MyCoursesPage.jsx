@@ -875,23 +875,34 @@ function MyCoursesPage() {
 
   // ─── Styles ──────────────────────────────────────────────────────
   const styles = {
+    // Main container - fixed position to cover full viewport
     page: { 
-      minHeight: '100vh', 
+      position: "fixed",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
       background: COLORS.canvas, 
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif", 
-      color: COLORS.ink 
+      color: COLORS.ink,
+      overflow: "hidden",
+      margin: 0,
+      padding: 0,
     },
 
+    // Top bar - fixed at top, not scrollable
     topBar: {
       height: isMobile ? '28px' : '32px',
       background: TOPBAR.bgGradient,
-      borderBottom: `1px solid ${TOPBAR.border}`,
+      borderBottom: "none", // Remove border to match Enrollments page
       display: 'flex',
       alignItems: 'stretch',
       justifyContent: 'flex-end',
       padding: 0,
       color: TOPBAR.text,
       boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+      flexShrink: 0,
+      zIndex: 10,
+      position: 'relative',
     },
     topBarRight: {
       display: 'flex',
@@ -914,6 +925,15 @@ function MyCoursesPage() {
       color: TOPBAR.text,
       height: '100%',
       borderRadius: 0,
+    },
+
+    // Scrollable content area
+    scrollableContent: {
+      flex: 1,
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      padding: 0,
+      margin: 0,
     },
 
     hero: { 
@@ -1281,7 +1301,7 @@ function MyCoursesPage() {
 
   return (
     <div style={styles.page}>
-      {/* ─── TOP NAVIGATION BAR ────────────────────────────────────── */}
+      {/* ─── TOP NAVIGATION BAR - FIXED AT TOP ────────────────────── */}
       <div style={styles.topBar}>
         <div style={styles.topBarRight}>
           <button
@@ -1339,205 +1359,209 @@ function MyCoursesPage() {
         </div>
       </div>
 
-      {/* ─── Hero Section ────────────────────────────────────────────── */}
-      <div style={styles.hero}>
-        <div style={styles.heroInner}>
-          <div style={styles.heroEyebrow}>{config.heroEyebrow}</div>
-          <h1 style={styles.heroTitle}>{config.heroTitle}</h1>
-          <p style={styles.heroText}>{config.heroText}</p>
-          <button 
-            style={styles.heroBtn} 
-            onClick={() => {
-              document.getElementById('courses-section')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = config.heroBtnHoverBg || '#4338ca';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = config.heroBtnBg || '#4f46e5';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            {heroIcon}
-            {config.heroButtonText}
-          </button>
+      {/* ─── SCROLLABLE CONTENT ────────────────────────────────────── */}
+      <div style={styles.scrollableContent}>
+        {/* Hero Section */}
+        <div style={styles.hero}>
+          <div style={styles.heroInner}>
+            <div style={styles.heroEyebrow}>{config.heroEyebrow}</div>
+            <h1 style={styles.heroTitle}>{config.heroTitle}</h1>
+            <p style={styles.heroText}>{config.heroText}</p>
+            <button 
+              style={styles.heroBtn} 
+              onClick={() => {
+                document.getElementById('courses-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = config.heroBtnHoverBg || '#4338ca';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = config.heroBtnBg || '#4f46e5';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              {heroIcon}
+              {config.heroButtonText}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* ─── Section Bar ──────────────────────────────────────────────── */}
-      <div style={styles.sectionBar} id="courses-section">
-        <div style={styles.sectionTitle}>
-          {sectionIcon}
-          <span style={{ marginLeft: '8px' }}>
-            {activeTab === 'my' && isLoggedIn ? config.sectionTitleMy : config.sectionTitleAll}
-          </span>
-          <span style={{ 
-            fontSize: '14px', 
-            fontWeight: 400, 
-            color: COLORS.slate,
-            marginLeft: '12px',
-            background: COLORS.line,
-            padding: '2px 12px',
-            borderRadius: '20px',
-          }}>
-            {visibleCourses.length}
-          </span>
+        {/* Section Bar */}
+        <div style={styles.sectionBar} id="courses-section">
+          <div style={styles.sectionTitle}>
+            {sectionIcon}
+            <span style={{ marginLeft: '8px' }}>
+              {activeTab === 'my' && isLoggedIn ? config.sectionTitleMy : config.sectionTitleAll}
+            </span>
+            <span style={{ 
+              fontSize: '14px', 
+              fontWeight: 400, 
+              color: COLORS.slate,
+              marginLeft: '12px',
+              background: COLORS.line,
+              padding: '2px 12px',
+              borderRadius: '20px',
+            }}>
+              {visibleCourses.length}
+            </span>
+          </div>
+          <div style={styles.searchWrap}>
+            <SearchIcon style={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder={config.searchPlaceholder}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+          </div>
         </div>
-        <div style={styles.searchWrap}>
-          <SearchIcon style={styles.searchIcon} />
-          <input
-            type="text"
-            placeholder={config.searchPlaceholder}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-        </div>
-      </div>
 
-      {/* ─── Tabs: My Courses | All Courses ────────────────────────── */}
-      <div style={styles.tabContainer}>
-        {isLoggedIn && (
+        {/* Tabs */}
+        <div style={styles.tabContainer}>
+          {isLoggedIn && (
+            <button
+              style={styles.tabButton(activeTab === 'my')}
+              onClick={() => {
+                setActiveTab('my');
+                setActiveCategory('all');
+                setSearchTerm('');
+              }}
+            >
+              {config.myCoursesTabText}
+              {enrolledCourses.length > 0 && (
+                <span style={{
+                  fontSize: '11px',
+                  background: activeTab === 'my' ? 'rgba(255,255,255,0.2)' : COLORS.line,
+                  padding: '1px 8px',
+                  borderRadius: '10px',
+                }}>
+                  {enrolledCourses.length}
+                </span>
+              )}
+            </button>
+          )}
           <button
-            style={styles.tabButton(activeTab === 'my')}
+            style={styles.tabButton(activeTab === 'all')}
             onClick={() => {
-              setActiveTab('my');
+              setActiveTab('all');
               setActiveCategory('all');
               setSearchTerm('');
             }}
           >
-            {config.myCoursesTabText}
-            {enrolledCourses.length > 0 && (
+            {config.allCoursesTabText}
+            {allCourses.length > 0 && (
               <span style={{
                 fontSize: '11px',
-                background: activeTab === 'my' ? 'rgba(255,255,255,0.2)' : COLORS.line,
+                background: activeTab === 'all' ? 'rgba(255,255,255,0.2)' : COLORS.line,
                 padding: '1px 8px',
                 borderRadius: '10px',
               }}>
-                {enrolledCourses.length}
+                {allCourses.length}
               </span>
             )}
           </button>
-        )}
-        <button
-          style={styles.tabButton(activeTab === 'all')}
-          onClick={() => {
-            setActiveTab('all');
-            setActiveCategory('all');
-            setSearchTerm('');
-          }}
-        >
-          {config.allCoursesTabText}
-          {allCourses.length > 0 && (
-            <span style={{
-              fontSize: '11px',
-              background: activeTab === 'all' ? 'rgba(255,255,255,0.2)' : COLORS.line,
-              padding: '1px 8px',
-              borderRadius: '10px',
-            }}>
-              {allCourses.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* ─── Category Tabs ────────────────────────────────────────────── */}
-      {activeTab === 'all' && categories.length > 1 && (
-        <div style={styles.categoryTabs}>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              style={styles.categoryTab(activeCategory === cat)}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {formatCategoryName(cat)}
-            </button>
-          ))}
         </div>
-      )}
 
-      {/* ─── Courses Grid ────────────────────────────────────────────── */}
-      {visibleCourses.length === 0 ? (
-        renderEmptyState()
-      ) : (
-        <div style={styles.grid}>
-          {visibleCourses.map((course) => {
-            const isEnrolled = isLoggedIn && isCourseEnrolled(course.id);
-            const imageUrl = getCourseImage(course);
-            
-            return (
-              <div key={course.id} style={styles.card}>
-                <div style={styles.cardImageWrapper}>
-                  <img 
-                    src={imageUrl} 
-                    alt={course.title}
-                    style={styles.cardImage}
-                    onError={(e) => {
-                      const name = course?.title?.toLowerCase() || '';
-                      let fallback = COURSE_IMAGES.default;
-                      for (const [key, url] of Object.entries(COURSE_IMAGES)) {
-                        if (name.includes(key)) {
-                          fallback = url;
-                          break;
+        {/* Category Tabs */}
+        {activeTab === 'all' && categories.length > 1 && (
+          <div style={styles.categoryTabs}>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                style={styles.categoryTab(activeCategory === cat)}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {formatCategoryName(cat)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Courses Grid */}
+        {visibleCourses.length === 0 ? (
+          renderEmptyState()
+        ) : (
+          <div style={styles.grid}>
+            {visibleCourses.map((course) => {
+              const isEnrolled = isLoggedIn && isCourseEnrolled(course.id);
+              const imageUrl = getCourseImage(course);
+              
+              return (
+                <div key={course.id} style={styles.card}>
+                  <div style={styles.cardImageWrapper}>
+                    <img 
+                      src={imageUrl} 
+                      alt={course.title}
+                      style={styles.cardImage}
+                      onError={(e) => {
+                        const name = course?.title?.toLowerCase() || '';
+                        let fallback = COURSE_IMAGES.default;
+                        for (const [key, url] of Object.entries(COURSE_IMAGES)) {
+                          if (name.includes(key)) {
+                            fallback = url;
+                            break;
+                          }
                         }
-                      }
-                      e.target.src = fallback;
-                    }}
-                  />
-                  {isEnrolled && (
-                    <span style={styles.enrolledBadge}>
-                      <BookmarkIcon style={{ fontSize: '12px' }} />
-                      {config.enrolledBadgeText}
-                    </span>
-                  )}
-                </div>
-                <div style={styles.cardBody}>
-                  <div style={styles.cardTitle}>{course.title}</div>
-                  {course.description && (
-                    <div style={styles.cardDescription}>{course.description}</div>
-                  )}
-                  <div style={styles.cardMetaRow}>
-                    <span style={styles.metaItem}>
-                      <AccessTimeIcon style={styles.metaIcon} />
-                      {course.duration || '—'}
-                    </span>
+                        e.target.src = fallback;
+                      }}
+                    />
+                    {isEnrolled && (
+                      <span style={styles.enrolledBadge}>
+                        <BookmarkIcon style={{ fontSize: '12px' }} />
+                        {config.enrolledBadgeText}
+                      </span>
+                    )}
+                  </div>
+                  <div style={styles.cardBody}>
+                    <div style={styles.cardTitle}>{course.title}</div>
+                    {course.description && (
+                      <div style={styles.cardDescription}>{course.description}</div>
+                    )}
+                    <div style={styles.cardMetaRow}>
+                      <span style={styles.metaItem}>
+                        <AccessTimeIcon style={styles.metaIcon} />
+                        {course.duration || '—'}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={styles.cardFooter}>
+                    {isEnrolled ? (
+                      <button 
+                        style={styles.continueBtn} 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleContinueLearning(course); 
+                        }}
+                      >
+                        <PlayArrowIcon style={{ fontSize: '16px' }} />
+                        {config.continueLearningButtonText}
+                      </button>
+                    ) : (
+                      <button
+                        style={styles.viewBtn}
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleViewCourse(course); 
+                        }}
+                      >
+                        <ArrowBackIcon style={{ fontSize: '16px', transform: 'rotate(180deg)' }} />
+                        {isLoggedIn ? config.viewCourseButtonText : 'View Details'}
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div style={styles.cardFooter}>
-                  {isEnrolled ? (
-                    <button 
-                      style={styles.continueBtn} 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        handleContinueLearning(course); 
-                      }}
-                    >
-                      <PlayArrowIcon style={{ fontSize: '16px' }} />
-                      {config.continueLearningButtonText}
-                    </button>
-                  ) : (
-                    <button
-                      style={styles.viewBtn}
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        handleViewCourse(course); 
-                      }}
-                    >
-                      <ArrowBackIcon style={{ fontSize: '16px', transform: 'rotate(180deg)' }} />
-                      {isLoggedIn ? config.viewCourseButtonText : 'View Details'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
 
-      <div style={styles.footer}>
-        <p>{config.footerText}</p>
+        <div style={styles.footer}>
+          <p>{config.footerText}</p>
+        </div>
       </div>
+
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
