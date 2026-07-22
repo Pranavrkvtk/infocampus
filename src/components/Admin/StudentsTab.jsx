@@ -3,6 +3,15 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { colors } from "./AdminStyles";
 import Swal from "sweetalert2";
 import { searchUsersByPhone, searchUsersByEmail } from "../../api/adminApi";
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 
 export default function StudentsTab({
   students = [],
@@ -32,7 +41,7 @@ export default function StudentsTab({
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
+  const [itemsPerPage] = useState(15);
 
   // --- Debounced search ---
   const [localSearch, setLocalSearch] = useState(searchTerm || "");
@@ -82,7 +91,6 @@ export default function StudentsTab({
       
       setPhoneSearchResults(users);
       setShowPhoneResults(true);
-      console.log(`📱 Found ${users.length} users with phone: ${phoneSearch}`);
     } catch (error) {
       console.error("Error searching by phone:", error);
       Swal.fire({
@@ -126,7 +134,6 @@ export default function StudentsTab({
       
       setEmailSearchResults(users);
       setShowEmailResults(true);
-      console.log(`📧 Found ${users.length} users with email: ${emailSearch}`);
     } catch (error) {
       console.error("Error searching by email:", error);
       Swal.fire({
@@ -152,7 +159,7 @@ export default function StudentsTab({
     const total = studentsArray.length;
     const active = studentsArray.filter((s) => (s.status || "ACTIVE") === "ACTIVE").length;
     const inactive = studentsArray.filter((s) => s.status === "INACTIVE").length;
-    const withPhone = studentsArray.filter((s) => s.phone && s.phone && s.phone.length > 0).length;
+    const withPhone = studentsArray.filter((s) => s.phone && s.phone.length > 0).length;
     return { total, active, inactive, withPhone };
   }, [students]);
 
@@ -160,17 +167,14 @@ export default function StudentsTab({
   const filteredStudents = useMemo(() => {
     const studentsArray = Array.isArray(students) ? students : [];
     
-    // If phone search is active, show phone search results
     if (showPhoneResults && phoneSearchResults.length > 0) {
       return phoneSearchResults;
     }
     
-    // If email search is active, show email search results
     if (showEmailResults && emailSearchResults.length > 0) {
       return emailSearchResults;
     }
     
-    // Otherwise filter by status only
     return studentsArray.filter((s) => {
       const status = s.status || "ACTIVE";
       const matchesStatus = filterStatus === "ALL" || status === filterStatus;
@@ -204,32 +208,22 @@ export default function StudentsTab({
     }
   };
 
-  // Handle next page
-  const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      const tableContainer = document.querySelector('.table-container');
-      if (tableContainer) {
-        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  };
-
-  // Handle previous page
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      const tableContainer = document.querySelector('.table-container');
-      if (tableContainer) {
-        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  };
-
   const getStatusBadge = (status) => {
     const statusMap = {
-      ACTIVE: { bg: "#d1fae5", color: "#065f46", text: "🟢 Active" },
-      INACTIVE: { bg: "#fee2e2", color: "#991b1b", text: "🔴 Inactive" },
+      ACTIVE: { 
+        bg: "#d1fae5", 
+        color: "#065f46", 
+        text: "Active",
+        dot: "#065f46",
+        icon: <CheckCircleOutlinedIcon style={{ fontSize: "14px" }} />
+      },
+      INACTIVE: { 
+        bg: "#fee2e2", 
+        color: "#991b1b", 
+        text: "Inactive",
+        dot: "#991b1b",
+        icon: <CancelOutlinedIcon style={{ fontSize: "14px" }} />
+      },
     };
     return statusMap[status] || statusMap["ACTIVE"];
   };
@@ -301,7 +295,6 @@ export default function StudentsTab({
     });
 
     try {
-      // Try to delete all with force=true
       const deletePromises = selectedStudents.map((id) => handleDeleteStudent(id));
       await Promise.all(deletePromises);
 
@@ -356,7 +349,6 @@ export default function StudentsTab({
     });
 
     try {
-      // Try to delete with force=true first
       await handleDeleteStudent(student.id);
       
       Swal.fire({
@@ -369,12 +361,9 @@ export default function StudentsTab({
     } catch (error) {
       console.error('Delete error:', error);
       
-      // Check if error is about soft delete first
       if (error.response?.data?.error?.includes('soft deleted first')) {
         try {
-          // First soft delete
           await handleToggleStatus(student.id, student.status);
-          // Then hard delete with force=true
           await handleDeleteStudent(student.id);
           
           Swal.fire({
@@ -402,42 +391,78 @@ export default function StudentsTab({
   };
 
   return (
-    <div style={{ padding: isMobile ? "0" : "0 20px" }}>
+    <div style={{ padding: isMobile ? "0" : "0 4px" }}>
       {/* Stats Cards */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
-          gap: "16px",
+          gap: "12px",
           marginBottom: "24px",
         }}
       >
-        <div style={statCardStyle}>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+        }}>
           <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--text-primary)" }}>
             {stats.total}
           </div>
-          <div style={statLabelStyle}>Total Students</div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            👥 Total Students
+          </div>
         </div>
 
-        <div style={statCardStyle}>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+        }}>
           <div style={{ fontSize: "24px", fontWeight: 700, color: "#065f46" }}>
             {stats.active}
           </div>
-          <div style={statLabelStyle}>🟢 Active</div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            🟢 Active
+          </div>
         </div>
 
-        <div style={statCardStyle}>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+        }}>
           <div style={{ fontSize: "24px", fontWeight: 700, color: "#991b1b" }}>
             {stats.inactive}
           </div>
-          <div style={statLabelStyle}>🔴 Inactive</div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            🔴 Inactive
+          </div>
         </div>
 
-        <div style={statCardStyle}>
+        <div style={{
+          background: "var(--surface)",
+          padding: "16px",
+          borderRadius: "12px",
+          border: "1px solid var(--border-light)",
+          textAlign: "center",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+        }}>
           <div style={{ fontSize: "24px", fontWeight: 700, color: "#7c3aed" }}>
             {stats.withPhone}
           </div>
-          <div style={statLabelStyle}>📱 With Phone</div>
+          <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+            📱 With Phone
+          </div>
         </div>
       </div>
 
@@ -447,33 +472,62 @@ export default function StudentsTab({
           display: "flex",
           flexWrap: "wrap",
           gap: "12px",
-          marginBottom: "16px",
+          marginBottom: "20px",
           alignItems: "center",
         }}
       >
-        <div style={{ flex: 1, minWidth: "200px" }}>
+        <div style={{ flex: 1, minWidth: "200px", position: "relative" }}>
+          <SearchOutlinedIcon style={{
+            position: "absolute",
+            left: "12px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--text-secondary)",
+            fontSize: "18px"
+          }} />
           <input
             type="text"
-            placeholder="🔍 Search users by name..."
+            placeholder="Search users by name..."
             value={localSearch}
             onChange={onSearchInput}
-            style={inputStyle}
+            style={{
+              width: "100%",
+              padding: "10px 16px 10px 40px",
+              borderRadius: "10px",
+              border: "1px solid var(--border-light)",
+              fontSize: "14px",
+              outline: "none",
+              background: "var(--surface)",
+              color: "var(--text-primary)",
+              transition: "border-color 0.2s"
+            }}
+            onFocus={(e) => e.target.style.borderColor = colors.primary}
+            onBlur={(e) => e.target.style.borderColor = "var(--border-light)"}
           />
         </div>
 
-        {/* ✅ Phone Search Input */}
-        <div style={{ display: "flex", gap: "8px", minWidth: "200px" }}>
+        {/* Phone Search */}
+        <div style={{ display: "flex", gap: "8px", minWidth: "160px" }}>
           <input
             type="text"
-            placeholder="📱 Search by phone..."
+            placeholder="📱 Search phone..."
             value={phoneSearch}
             onChange={(e) => setPhoneSearch(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handlePhoneSearch()}
             style={{
-              ...inputStyle,
-              minWidth: "150px",
+              width: "100%",
+              padding: "10px 16px",
+              borderRadius: "10px",
+              border: "1px solid var(--border-light)",
+              fontSize: "14px",
+              outline: "none",
+              background: "var(--surface)",
+              color: "var(--text-primary)",
               fontFamily: "monospace",
+              transition: "border-color 0.2s"
             }}
+            onFocus={(e) => e.target.style.borderColor = colors.primary}
+            onBlur={(e) => e.target.style.borderColor = "var(--border-light)"}
           />
           <button
             onClick={handlePhoneSearch}
@@ -491,7 +545,7 @@ export default function StudentsTab({
               transition: "all 0.2s ease",
             }}
           >
-            {isPhoneSearching ? "⏳" : "🔍"}
+            {isPhoneSearching ? "⏳" : "Search"}
           </button>
           {showPhoneResults && (
             <button
@@ -506,25 +560,37 @@ export default function StudentsTab({
                 fontSize: "13px",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
+                transition: "all 0.2s"
               }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
             >
               ✕ Clear
             </button>
           )}
         </div>
 
-        {/* ✅ Email Search Input */}
-        <div style={{ display: "flex", gap: "8px", minWidth: "200px" }}>
+        {/* Email Search */}
+        <div style={{ display: "flex", gap: "8px", minWidth: "180px" }}>
           <input
             type="text"
-            placeholder="📧 Search by email..."
+            placeholder="📧 Search email..."
             value={emailSearch}
             onChange={(e) => setEmailSearch(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleEmailSearch()}
             style={{
-              ...inputStyle,
-              minWidth: "180px",
+              width: "100%",
+              padding: "10px 16px",
+              borderRadius: "10px",
+              border: "1px solid var(--border-light)",
+              fontSize: "14px",
+              outline: "none",
+              background: "var(--surface)",
+              color: "var(--text-primary)",
+              transition: "border-color 0.2s"
             }}
+            onFocus={(e) => e.target.style.borderColor = colors.primary}
+            onBlur={(e) => e.target.style.borderColor = "var(--border-light)"}
           />
           <button
             onClick={handleEmailSearch}
@@ -542,7 +608,7 @@ export default function StudentsTab({
               transition: "all 0.2s ease",
             }}
           >
-            {isEmailSearching ? "⏳" : "🔍"}
+            {isEmailSearching ? "⏳" : "Search"}
           </button>
           {showEmailResults && (
             <button
@@ -557,7 +623,10 @@ export default function StudentsTab({
                 fontSize: "13px",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
+                transition: "all 0.2s"
               }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
             >
               ✕ Clear
             </button>
@@ -567,7 +636,17 @@ export default function StudentsTab({
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          style={selectStyle}
+          style={{
+            padding: "10px 16px",
+            borderRadius: "10px",
+            border: "1px solid var(--border-light)",
+            fontSize: "14px",
+            outline: "none",
+            background: "var(--surface)",
+            color: "var(--text-primary)",
+            cursor: "pointer",
+            minWidth: "140px"
+          }}
         >
           <option value="ALL">📊 All Status</option>
           <option value="ACTIVE">🟢 Active</option>
@@ -589,8 +668,9 @@ export default function StudentsTab({
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "8px",
+              gap: "6px",
               transition: "all 0.2s ease",
+              whiteSpace: "nowrap"
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#b91c1c";
@@ -601,7 +681,8 @@ export default function StudentsTab({
               e.currentTarget.style.transform = "scale(1)";
             }}
           >
-            🗑️ Delete Selected ({selectedStudents.length})
+            <DeleteOutlinedIcon style={{ fontSize: "18px" }} />
+            Delete ({selectedStudents.length})
           </button>
         )}
       </div>
@@ -623,10 +704,10 @@ export default function StudentsTab({
           }}
         >
           <span style={{ color: "#5b21b6", fontSize: "14px", fontWeight: 500 }}>
-            📱 Phone Search Results: Found {phoneSearchResults.length} user{phoneSearchResults.length !== 1 ? 's' : ''}
+            📱 Found {phoneSearchResults.length} user{phoneSearchResults.length !== 1 ? 's' : ''}
           </span>
           <span style={{ color: "#7c3aed", fontSize: "12px" }}>
-            Search term: <strong>{phoneSearch}</strong>
+            Phone: <strong>{phoneSearch}</strong>
           </span>
         </div>
       )}
@@ -647,10 +728,10 @@ export default function StudentsTab({
           }}
         >
           <span style={{ color: "#1e40af", fontSize: "14px", fontWeight: 500 }}>
-            📧 Email Search Results: Found {emailSearchResults.length} user{emailSearchResults.length !== 1 ? 's' : ''}
+            📧 Found {emailSearchResults.length} user{emailSearchResults.length !== 1 ? 's' : ''}
           </span>
           <span style={{ color: "#3b82f6", fontSize: "12px" }}>
-            Search term: <strong>{emailSearch}</strong>
+            Email: <strong>{emailSearch}</strong>
           </span>
         </div>
       )}
@@ -688,10 +769,11 @@ export default function StudentsTab({
             borderRadius: "16px",
             overflow: "hidden",
             border: "1px solid var(--border-light)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
           }}
         >
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "850px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "700px", fontSize: "14px" }}>
               <thead>
                 <tr
                   style={{
@@ -699,7 +781,16 @@ export default function StudentsTab({
                     borderBottom: "2px solid var(--border-light)",
                   }}
                 >
-                  <th style={{ ...thStyle, textAlign: "center", width: "40px" }}>
+                  <th style={{ 
+                    padding: "14px 16px", 
+                    textAlign: "center", 
+                    fontSize: "12px", 
+                    fontWeight: 600, 
+                    color: "var(--text-secondary)", 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.5px",
+                    width: "40px"
+                  }}>
                     <input
                       type="checkbox"
                       checked={selectAll}
@@ -712,12 +803,61 @@ export default function StudentsTab({
                       }}
                     />
                   </th>
-                  <th style={thStyle}>ID</th>
-                  <th style={thStyle}>Student</th>
-                  <th style={thStyle}>Email</th>
-                  <th style={{ ...thStyle, textAlign: "center" }}>📱 Phone</th>
-                  <th style={{ ...thStyle, textAlign: "center" }}>Status</th>
-                  <th style={{ ...thStyle, textAlign: "center" }}>Actions</th>
+                  <th style={{ 
+                    padding: "14px 16px", 
+                    textAlign: "left", 
+                    fontSize: "12px", 
+                    fontWeight: 600, 
+                    color: "var(--text-secondary)", 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.5px" 
+                  }}>
+                    Student
+                  </th>
+                  <th style={{ 
+                    padding: "14px 16px", 
+                    textAlign: "left", 
+                    fontSize: "12px", 
+                    fontWeight: 600, 
+                    color: "var(--text-secondary)", 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.5px" 
+                  }}>
+                    <EmailOutlinedIcon style={{ fontSize: "14px", verticalAlign: "middle" }} /> Email
+                  </th>
+                  <th style={{ 
+                    padding: "14px 16px", 
+                    textAlign: "center", 
+                    fontSize: "12px", 
+                    fontWeight: 600, 
+                    color: "var(--text-secondary)", 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.5px" 
+                  }}>
+                    <PhoneOutlinedIcon style={{ fontSize: "14px", verticalAlign: "middle" }} /> Phone
+                  </th>
+                  <th style={{ 
+                    padding: "14px 16px", 
+                    textAlign: "center", 
+                    fontSize: "12px", 
+                    fontWeight: 600, 
+                    color: "var(--text-secondary)", 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.5px" 
+                  }}>
+                    Status
+                  </th>
+                  <th style={{ 
+                    padding: "14px 16px", 
+                    textAlign: "center", 
+                    fontSize: "12px", 
+                    fontWeight: 600, 
+                    color: "var(--text-secondary)", 
+                    textTransform: "uppercase", 
+                    letterSpacing: "0.5px" 
+                  }}>
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
@@ -738,6 +878,7 @@ export default function StudentsTab({
                         background: index % 2 === 0 ? "var(--surface)" : "var(--bg-base)",
                         opacity: status === "INACTIVE" ? 0.7 : 1,
                         ...(isSelected && { background: colors.primarySoft }),
+                        transition: "background 0.2s"
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
@@ -751,7 +892,11 @@ export default function StudentsTab({
                         }
                       }}
                     >
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ 
+                        padding: "12px 16px", 
+                        textAlign: "center", 
+                        verticalAlign: "middle" 
+                      }}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -767,40 +912,40 @@ export default function StudentsTab({
                         />
                       </td>
 
-                      <td style={tdStyle}>#{student.id}</td>
-
-                      <td style={tdStyle}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <div
                             style={{
-                              width: 38,
-                              height: 38,
+                              width: "36px",
+                              height: "36px",
                               borderRadius: "50%",
-                              background: status === "ACTIVE" ? colors.primarySoft : colors.coralSoft,
+                              background: status === "ACTIVE" ? colors.primarySoft : "#fee2e2",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               fontWeight: 700,
-                              color: status === "ACTIVE" ? colors.primary : colors.coral,
+                              color: status === "ACTIVE" ? colors.primary : "#dc2626",
                               flexShrink: 0,
+                              fontSize: "14px"
                             }}
                           >
                             {student.name?.charAt(0)?.toUpperCase() || '?'}
                           </div>
 
                           <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                               <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
                                 {student.name || 'Unknown'}
                               </span>
                               {isProtectedAdmin && (
                                 <span
                                   style={{
-                                    fontSize: 9,
-                                    padding: "2px 6px",
-                                    borderRadius: 20,
-                                    background: colors.coralSoft,
-                                    color: colors.coral,
+                                    fontSize: "9px",
+                                    padding: "2px 8px",
+                                    borderRadius: "12px",
+                                    background: "#fee2e2",
+                                    color: "#dc2626",
+                                    fontWeight: 600
                                   }}
                                 >
                                   🔒 Protected
@@ -811,12 +956,20 @@ export default function StudentsTab({
                         </div>
                       </td>
 
-                      <td style={{ ...tdStyle, color: "var(--text-secondary)" }}>
+                      <td style={{ 
+                        padding: "12px 16px", 
+                        verticalAlign: "middle",
+                        color: "var(--text-secondary)" 
+                      }}>
                         {student.email || '-'}
                       </td>
 
                       {/* Phone column */}
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ 
+                        padding: "12px 16px", 
+                        textAlign: "center", 
+                        verticalAlign: "middle" 
+                      }}>
                         {student.phone ? (
                           <span
                             style={{
@@ -840,23 +993,35 @@ export default function StudentsTab({
                       </td>
 
                       {/* Status column */}
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <td style={{ 
+                        padding: "12px 16px", 
+                        textAlign: "center", 
+                        verticalAlign: "middle" 
+                      }}>
                         <span
                           style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
                             padding: "4px 12px",
                             borderRadius: "20px",
-                            fontSize: "11px",
+                            fontSize: "12px",
                             fontWeight: 600,
                             background: statusBadge.bg,
                             color: statusBadge.color,
                           }}
                         >
+                          {statusBadge.icon}
                           {statusBadge.text}
                         </span>
                       </td>
 
-                      <td style={{ ...tdStyle, textAlign: "center" }}>
-                        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+                      <td style={{ 
+                        padding: "12px 16px", 
+                        textAlign: "center", 
+                        verticalAlign: "middle" 
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
                           <button
                             onClick={() => handleToggleStatus(student.id, student.status)}
                             disabled={isProtectedAdmin}
@@ -870,9 +1035,20 @@ export default function StudentsTab({
                               background: status === "ACTIVE" ? "#fee2e2" : "#d1fae5",
                               color: status === "ACTIVE" ? "#dc2626" : "#065f46",
                               opacity: isProtectedAdmin ? 0.6 : 1,
+                              transition: "all 0.2s"
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isProtectedAdmin) {
+                                e.currentTarget.style.opacity = "0.8";
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isProtectedAdmin) {
+                                e.currentTarget.style.opacity = "1";
+                              }
                             }}
                           >
-                            {status === "ACTIVE" ? "🔴 Deactivate" : "🟢 Activate"}
+                            {status === "ACTIVE" ? "Deactivate" : "Activate"}
                           </button>
 
                           <button
@@ -888,9 +1064,23 @@ export default function StudentsTab({
                               background: "#fee2e2",
                               color: "#dc2626",
                               opacity: isProtectedAdmin ? 0.6 : 1,
+                              transition: "all 0.2s"
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isProtectedAdmin) {
+                                e.currentTarget.style.background = "#fecaca";
+                                e.currentTarget.style.transform = "scale(1.05)";
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isProtectedAdmin) {
+                                e.currentTarget.style.background = "#fee2e2";
+                                e.currentTarget.style.transform = "scale(1)";
+                              }
                             }}
                           >
-                            🗑️ Delete
+                            <DeleteOutlinedIcon style={{ fontSize: "14px", verticalAlign: "middle" }} />
+                            Delete
                           </button>
                         </div>
                       </td>
@@ -908,7 +1098,7 @@ export default function StudentsTab({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "16px 20px",
+                padding: "14px 20px",
                 borderTop: "1px solid var(--border-light)",
                 background: "var(--bg-base)",
                 flexWrap: "wrap",
@@ -921,12 +1111,20 @@ export default function StudentsTab({
                 {filteredStudents.length} students
               </div>
 
-              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
                 <button
-                  onClick={prevPage}
+                  onClick={() => {
+                    if (currentPage > 1) {
+                      setCurrentPage(currentPage - 1);
+                      const tableContainer = document.querySelector('.table-container');
+                      if (tableContainer) {
+                        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }
+                  }}
                   disabled={currentPage === 1}
                   style={{
-                    padding: "6px 12px",
+                    padding: "6px 14px",
                     borderRadius: "6px",
                     border: "1px solid var(--border-light)",
                     background: currentPage === 1 ? "var(--bg-base)" : "var(--surface)",
@@ -934,11 +1132,13 @@ export default function StudentsTab({
                     cursor: currentPage === 1 ? "not-allowed" : "pointer",
                     fontSize: "13px",
                     opacity: currentPage === 1 ? 0.5 : 1,
+                    transition: "all 0.2s"
                   }}
                 >
-                  ← Previous
+                  ← Prev
                 </button>
 
+                {/* Page numbers */}
                 <div style={{ display: "flex", gap: "4px" }}>
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum;
@@ -957,17 +1157,23 @@ export default function StudentsTab({
                     return (
                       <button
                         key={pageNum}
-                        onClick={() => paginate(pageNum)}
+                        onClick={() => {
+                          setCurrentPage(pageNum);
+                          const tableContainer = document.querySelector('.table-container');
+                          if (tableContainer) {
+                            tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
                         style={{
                           padding: "6px 12px",
                           borderRadius: "6px",
                           border: "1px solid var(--border-light)",
-                          background: currentPage === pageNum ? colors.primary : "var(--surface)",
+                          background: currentPage === pageNum ? (colors.primary || "#4f46e5") : "var(--surface)",
                           color: currentPage === pageNum ? "#fff" : "var(--text-primary)",
                           cursor: "pointer",
                           fontSize: "13px",
                           fontWeight: currentPage === pageNum ? 600 : 400,
-                          transition: "all 0.2s",
+                          transition: "all 0.2s"
                         }}
                       >
                         {pageNum}
@@ -977,10 +1183,18 @@ export default function StudentsTab({
                 </div>
 
                 <button
-                  onClick={nextPage}
+                  onClick={() => {
+                    if (currentPage < totalPages) {
+                      setCurrentPage(currentPage + 1);
+                      const tableContainer = document.querySelector('.table-container');
+                      if (tableContainer) {
+                        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }
+                  }}
                   disabled={currentPage === totalPages}
                   style={{
-                    padding: "6px 12px",
+                    padding: "6px 14px",
                     borderRadius: "6px",
                     border: "1px solid var(--border-light)",
                     background: currentPage === totalPages ? "var(--bg-base)" : "var(--surface)",
@@ -988,6 +1202,7 @@ export default function StudentsTab({
                     cursor: currentPage === totalPages ? "not-allowed" : "pointer",
                     fontSize: "13px",
                     opacity: currentPage === totalPages ? 0.5 : 1,
+                    transition: "all 0.2s"
                   }}
                 >
                   Next →
@@ -1000,52 +1215,3 @@ export default function StudentsTab({
     </div>
   );
 }
-
-const statCardStyle = {
-  background: "var(--surface)",
-  padding: "16px",
-  borderRadius: "12px",
-  border: "1px solid var(--border-light)",
-  textAlign: "center",
-};
-
-const statLabelStyle = {
-  fontSize: "13px",
-  color: "var(--text-secondary)",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "10px 16px",
-  borderRadius: "10px",
-  border: "1px solid var(--border-light)",
-  fontSize: "14px",
-  outline: "none",
-  background: "var(--surface)",
-  color: "var(--text-primary)",
-};
-
-const selectStyle = {
-  padding: "10px 16px",
-  borderRadius: "10px",
-  border: "1px solid var(--border-light)",
-  fontSize: "14px",
-  outline: "none",
-  background: "var(--surface)",
-  color: "var(--text-primary)",
-  cursor: "pointer",
-};
-
-const thStyle = {
-  padding: "12px 16px",
-  textAlign: "left",
-  fontSize: "13px",
-  fontWeight: 600,
-  color: "var(--text-secondary)",
-};
-
-const tdStyle = {
-  padding: "12px 16px",
-  verticalAlign: "middle",
-  fontSize: "13px",
-};
