@@ -11,16 +11,30 @@ import {
   updateInstructorCourse
 } from "../../api/instructorApi";
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
-import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import { getImageUrl } from "../../utils/imageUtils";
+
+// ✅ Currency symbol helper
+const getCurrencySymbol = (currencyCode) => {
+  const currencyMap = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    INR: '₹',
+    JPY: '¥',
+    CAD: 'C$',
+    AUD: 'A$',
+    BRL: 'R$',
+    CNY: '¥',
+    KRW: '₩'
+  };
+  return currencyMap[currencyCode] || '$';
+};
 
 export default function CoursesTab({
   courses,
@@ -33,8 +47,6 @@ export default function CoursesTab({
 }) {
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [editingCourse, setEditingCourse] = useState(null);
-  const [updating, setUpdating] = useState(false);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -171,64 +183,10 @@ export default function CoursesTab({
     }
   };
 
-  const handleInlineEdit = (course) => {
-    setEditingCourse({ 
-      ...course, 
-      description: course.description || '',
-      details: course.details || '',
-      duration: course.duration || '',
-      level: course.level || 'Beginner',
-      price: course.price || 0,
-      status: course.status || 'PUBLISHED'
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingCourse(null);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingCourse) return;
-    
-    setUpdating(true);
-    try {
-      const updateData = {
-        title: editingCourse.title,
-        description: editingCourse.description || "",
-        details: editingCourse.details || "",
-        price: editingCourse.price || 0,
-        duration: editingCourse.duration || "",
-        level: editingCourse.level || "Beginner",
-        videoUrl: editingCourse.videoUrl || "",
-        imageUrl: editingCourse.imageUrl || "",
-        status: editingCourse.status || "PUBLISHED"
-      };
-
-      if (isInstructor) {
-        await updateInstructorCourse(editingCourse.id, updateData);
-      } else {
-        await updateAdminCourse(editingCourse.id, updateData);
-      }
-      
-      await fetchCourses();
-      setEditingCourse(null);
-      Swal.fire({
-        title: 'Updated!',
-        text: 'Course updated successfully',
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false
-      });
-    } catch (error) {
-      console.error("Update error:", error);
-      Swal.fire({
-        title: 'Failed!',
-        text: error.response?.data?.message || 'Failed to update course',
-        icon: 'error'
-      });
-    } finally {
-      setUpdating(false);
-    }
+  // ✅ Open Edit Modal instead of inline edit
+  const handleEditCourse = (course) => {
+    setSelectedCourse(course);
+    setIsEditCourseModalOpen(true);
   };
 
   // Filter and sort courses
@@ -414,8 +372,7 @@ export default function CoursesTab({
             onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-base)"}
             onMouseLeave={(e) => e.currentTarget.style.background = "var(--surface)"}
           >
-            <CloseOutlinedIcon style={{ fontSize: "16px" }} />
-            Clear
+            ✕ Clear
           </button>
         )}
 
@@ -491,7 +448,7 @@ export default function CoursesTab({
           <table style={{ 
             width: "100%", 
             borderCollapse: "collapse", 
-            minWidth: "900px",
+            minWidth: "800px",
             fontSize: "14px"
           }}>
             <thead>
@@ -612,7 +569,6 @@ export default function CoursesTab({
               ) : (
                 currentItems.map((course, index) => {
                   const isSelected = selectedCourses.includes(course.id);
-                  const isEditing = editingCourse?.id === course.id;
                   const statusBadge = getStatusBadge(course.status || 'PUBLISHED');
                   const levelBadge = getLevelBadge(course.level || 'Beginner');
 
@@ -687,26 +643,9 @@ export default function CoursesTab({
                             </div>
                           )}
                           <div>
-                            {isEditing ? (
-                              <input
-                                type="text"
-                                value={editingCourse.title}
-                                onChange={(e) => setEditingCourse({ ...editingCourse, title: e.target.value })}
-                                style={{
-                                  width: "100%",
-                                  padding: "4px 8px",
-                                  border: `1px solid ${colors.primary}`,
-                                  borderRadius: "4px",
-                                  fontSize: "13px",
-                                  background: "#fff",
-                                  color: "var(--text-primary)"
-                                }}
-                              />
-                            ) : (
-                              <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
-                                {course.title || "Untitled"}
-                              </div>
-                            )}
+                            <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                              {course.title || "Untitled"}
+                            </div>
                             <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
                               ID: #{course.id}
                             </div>
@@ -714,61 +653,22 @@ export default function CoursesTab({
                         </div>
                       </td>
                       <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editingCourse.duration || ''}
-                            onChange={(e) => setEditingCourse({ ...editingCourse, duration: e.target.value })}
-                            style={{
-                              padding: "4px 8px",
-                              border: `1px solid ${colors.primary}`,
-                              borderRadius: "4px",
-                              fontSize: "13px",
-                              width: "100px",
-                              background: "#fff",
-                              color: "var(--text-primary)"
-                            }}
-                            placeholder="e.g., 20+ hours"
-                          />
-                        ) : (
-                          <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-                            {course.duration || "—"}
-                          </span>
-                        )}
+                        <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                          {course.duration || "—"}
+                        </span>
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>
-                        {isEditing ? (
-                          <select
-                            value={editingCourse.level || 'Beginner'}
-                            onChange={(e) => setEditingCourse({ ...editingCourse, level: e.target.value })}
-                            style={{
-                              padding: "4px 8px",
-                              border: `1px solid ${colors.primary}`,
-                              borderRadius: "4px",
-                              fontSize: "12px",
-                              background: "#fff",
-                              color: "var(--text-primary)",
-                              width: "100px"
-                            }}
-                          >
-                            <option value="Beginner">Beginner</option>
-                            <option value="Intermediate">Intermediate</option>
-                            <option value="Advanced">Advanced</option>
-                            <option value="All Levels">All Levels</option>
-                          </select>
-                        ) : (
-                          <span style={{
-                            display: "inline-block",
-                            padding: "4px 12px",
-                            borderRadius: "20px",
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            background: levelBadge.bg,
-                            color: levelBadge.color
-                          }}>
-                            {levelBadge.text}
-                          </span>
-                        )}
+                        <span style={{
+                          display: "inline-block",
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          background: levelBadge.bg,
+                          color: levelBadge.color
+                        }}>
+                          {levelBadge.text}
+                        </span>
                       </td>
                       <td style={{ 
                         padding: "12px 16px", 
@@ -777,170 +677,77 @@ export default function CoursesTab({
                         fontWeight: 700,
                         color: colors.teal || "#14b8a6"
                       }}>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={editingCourse.price || 0}
-                            onChange={(e) => setEditingCourse({ ...editingCourse, price: parseFloat(e.target.value) || 0 })}
-                            style={{
-                              padding: "4px 8px",
-                              border: `1px solid ${colors.primary}`,
-                              borderRadius: "4px",
-                              fontSize: "13px",
-                              width: "70px",
-                              textAlign: "center",
-                              background: "#fff",
-                              color: "var(--text-primary)"
-                            }}
-                          />
-                        ) : (
-                          `$${course.price || "0"}`
-                        )}
+                        {`${getCurrencySymbol(course.currency || 'USD')}${course.price || "0"}`}
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>
-                        {isEditing ? (
-                          <select
-                            value={editingCourse.status || 'PUBLISHED'}
-                            onChange={(e) => setEditingCourse({ ...editingCourse, status: e.target.value })}
-                            style={{
-                              padding: "4px 8px",
-                              border: `1px solid ${colors.primary}`,
-                              borderRadius: "4px",
-                              fontSize: "12px",
-                              background: "#fff",
-                              color: "var(--text-primary)",
-                              width: "100px"
-                            }}
-                          >
-                            <option value="PUBLISHED">✅ Published</option>
-                            <option value="DRAFT">📝 Draft</option>
-                            <option value="ARCHIVED">📦 Archived</option>
-                          </select>
-                        ) : (
+                        <span style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          background: statusBadge.bg,
+                          color: statusBadge.color
+                        }}>
                           <span style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            padding: "4px 12px",
-                            borderRadius: "20px",
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            background: statusBadge.bg,
-                            color: statusBadge.color
-                          }}>
-                            <span style={{
-                              width: "6px",
-                              height: "6px",
-                              borderRadius: "50%",
-                              background: statusBadge.dot,
-                              display: "inline-block"
-                            }} />
-                            {statusBadge.text}
-                          </span>
-                        )}
+                            width: "6px",
+                            height: "6px",
+                            borderRadius: "50%",
+                            background: statusBadge.dot,
+                            display: "inline-block"
+                          }} />
+                          {statusBadge.text}
+                        </span>
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>
-                        {isEditing ? (
-                          <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
-                            <button
-                              onClick={handleSaveEdit}
-                              disabled={updating}
-                              style={{
-                                padding: "6px 12px",
-                                borderRadius: "8px",
-                                border: "none",
-                                background: "#16a34a",
-                                color: "#fff",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                cursor: updating ? "not-allowed" : "pointer",
-                                opacity: updating ? 0.6 : 1,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px",
-                                transition: "all 0.2s"
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!updating) e.currentTarget.style.background = "#15803d";
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!updating) e.currentTarget.style.background = "#16a34a";
-                              }}
-                            >
-                              <SaveOutlinedIcon style={{ fontSize: "16px" }} />
-                              Save
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              style={{
-                                padding: "6px 12px",
-                                borderRadius: "8px",
-                                border: "1px solid var(--border-light)",
-                                background: "var(--surface)",
-                                color: "var(--text-secondary)",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px",
-                                transition: "all 0.2s"
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-base)"}
-                              onMouseLeave={(e) => e.currentTarget.style.background = "var(--surface)"}
-                            >
-                              <CloseOutlinedIcon style={{ fontSize: "16px" }} />
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", gap: "4px", justifyContent: "center", flexWrap: "wrap" }}>
-                            <button
-                              onClick={() => handleInlineEdit(course)}
-                              style={{
-                                padding: "6px 12px",
-                                borderRadius: "8px",
-                                border: "none",
-                                background: "var(--primary-soft)",
-                                color: "var(--primary)",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px",
-                                transition: "all 0.2s"
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"}
-                              onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                            >
-                              <EditOutlinedIcon style={{ fontSize: "16px" }} />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCourse(course.id, course.title)}
-                              style={{
-                                padding: "6px 12px",
-                                borderRadius: "8px",
-                                border: "none",
-                                background: "#fee2e2",
-                                color: "#dc2626",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px",
-                                transition: "all 0.2s"
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"}
-                              onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                            >
-                              <DeleteOutlinedIcon style={{ fontSize: "16px" }} />
-                              Delete
-                            </button>
-                          </div>
-                        )}
+                        <div style={{ display: "flex", gap: "4px", justifyContent: "center", flexWrap: "wrap" }}>
+                          <button
+                            onClick={() => handleEditCourse(course)}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: "8px",
+                              border: "none",
+                              background: "var(--primary-soft)",
+                              color: "var(--primary)",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              transition: "all 0.2s"
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
+                          >
+                            <EditOutlinedIcon style={{ fontSize: "16px" }} />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCourse(course.id, course.title)}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: "8px",
+                              border: "none",
+                              background: "#fee2e2",
+                              color: "#dc2626",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              transition: "all 0.2s"
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = "0.8"}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
+                          >
+                            <DeleteOutlinedIcon style={{ fontSize: "16px" }} />
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

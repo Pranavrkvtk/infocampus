@@ -3,7 +3,22 @@ import React, { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 import { colors } from "./AdminStyles";
 import { updateAdminCourse } from "../../api/adminApi";
+import { updateInstructorCourse } from "../../api/instructorApi";
 import axiosInstance from "../../api/axios";
+
+// ✅ Currency options
+const currencyOptions = [
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "EUR", symbol: "€", name: "Euro" },
+  { code: "GBP", symbol: "£", name: "British Pound" },
+  { code: "INR", symbol: "₹", name: "Indian Rupee" },
+  { code: "JPY", symbol: "¥", name: "Japanese Yen" },
+  { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
+  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
+  { code: "BRL", symbol: "R$", name: "Brazilian Real" },
+  { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
+  { code: "KRW", symbol: "₩", name: "South Korean Won" },
+];
 
 const resolveImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
@@ -20,11 +35,19 @@ const resolveImageUrl = (imageUrl) => {
   return `${API_BASE}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
 };
 
-export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdated }) {
+export default function EditCourseModal({ 
+  isOpen, 
+  onClose, 
+  course, 
+  onCourseUpdated,
+  isInstructor = false 
+}) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    details: "",  // ✅ ADD DETAILS
     price: "",
+    currency: "USD",  // ✅ ADD CURRENCY
     instructor: "",
     duration: "",
     level: "",
@@ -34,8 +57,8 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
   });
 
   // ── Image upload state ─────────────────────────────────────────
-  const [imageFile, setImageFile] = useState(null);       // newly picked file
-  const [imagePreview, setImagePreview] = useState(null); // local preview (data URL)
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
@@ -48,7 +71,9 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
       setFormData({
         title: course.title || "",
         description: course.description || "",
+        details: course.details || "",  // ✅ SET DETAILS
         price: course.price || "",
+        currency: course.currency || "USD",  // ✅ SET CURRENCY
         instructor: course.instructor || "",
         duration: course.duration || "",
         level: course.level || "",
@@ -100,11 +125,17 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
     setRemoveExistingImage(true);
   };
 
+  const getCurrencySymbol = (currencyCode) => {
+    const currency = currencyOptions.find(c => c.code === currencyCode);
+    return currency ? currency.symbol : '$';
+  };
+
   const resetForm = () => {
     setFormData({
-      title: "", description: "", price: "",
-      instructor: "", duration: "", level: "",
-      videoUrl: "", imageUrl: "", status: "PUBLISHED"
+      title: "", description: "", details: "",
+      price: "", currency: "USD", instructor: "",
+      duration: "", level: "", videoUrl: "",
+      imageUrl: "", status: "PUBLISHED"
     });
     clearNewImage();
     setRemoveExistingImage(false);
@@ -121,10 +152,25 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
     setLoading(true);
     setError("");
 
+    const priceValue = parseFloat(formData.price);
+    if (isNaN(priceValue) || priceValue <= 0) {
+      Swal.fire("Error", "Please enter a valid price greater than 0", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      Swal.fire("Error", "Please enter a course title", "error");
+      setLoading(false);
+      return;
+    }
+
     const courseData = {
-      title: formData.title,
-      description: formData.description || null,
-      price: parseFloat(formData.price),
+      title: formData.title.trim(),
+      description: formData.description?.trim() || null,
+      details: formData.details?.trim() || null,  // ✅ ADD DETAILS
+      price: priceValue,
+      currency: formData.currency || "USD",  // ✅ ADD CURRENCY
       instructor: formData.instructor,
       duration: formData.duration || null,
       videoUrl: formData.videoUrl || null,
@@ -135,7 +181,11 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
 
     try {
       // 1. Update the course's text/meta fields
-      await updateAdminCourse(course.id, courseData);
+      if (isInstructor) {
+        await updateInstructorCourse(course.id, courseData);
+      } else {
+        await updateAdminCourse(course.id, courseData);
+      }
 
       // 2. If a new image file was picked, upload it separately
       if (imageFile) {
@@ -177,6 +227,11 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
     } catch (err) {
       console.error("Error updating course:", err);
       setError(err.response?.data?.message || "Failed to update course");
+      Swal.fire({
+        title: "Error",
+        text: err.response?.data?.message || "Failed to update course",
+        icon: "error"
+      });
     } finally {
       setLoading(false);
     }
@@ -185,15 +240,24 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
   if (!isOpen || !course) return null;
 
   const inputStyle = {
-    width: "100%", padding: "8px 12px",
+    width: "100%",
+    padding: "8px 12px",
     border: `1px solid ${colors.borderLight}`,
-    borderRadius: 10, fontSize: 13, outline: "none",
+    borderRadius: 10,
+    fontSize: 13,
+    outline: "none",
     boxSizing: "border-box",
+    background: "var(--bg-base)",
+    color: "var(--text-primary)",
+    transition: "border-color 0.2s"
   };
 
   const labelStyle = {
-    display: "block", fontSize: 12, fontWeight: 600,
-    color: colors.textPrimary, marginBottom: 4,
+    display: "block",
+    fontSize: 12,
+    fontWeight: 600,
+    color: "var(--text-secondary)",
+    marginBottom: 4,
   };
 
   // What to actually show in the preview box
@@ -202,33 +266,87 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
 
   return (
     <div style={{
-      position: "fixed", inset: 0,
+      position: "fixed",
+      inset: 0,
       backgroundColor: "rgba(0,0,0,0.5)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      zIndex: 1000, backdropFilter: "blur(4px)",
+      backdropFilter: "blur(4px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+      animation: "fadeIn 0.2s ease"
     }} onClick={handleClose}>
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+        `}
+      </style>
       <div style={{
-        backgroundColor: colors.surface, borderRadius: 20,
-        width: "90%", maxWidth: 500, maxHeight: "85vh",
-        overflowY: "auto", boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+        backgroundColor: "var(--surface)",
+        borderRadius: 12,
+        width: "90%",
+        maxWidth: 500,
+        maxHeight: "85vh",
+        overflowY: "auto",
+        overflowX: "hidden",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+        animation: "slideUp 0.3s ease"
       }} onClick={(e) => e.stopPropagation()}>
 
         <div style={{
-          padding: "16px 20px", borderBottom: `1px solid ${colors.borderLight}`,
-          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "12px 16px",
+          borderBottom: `1px solid ${colors.borderLight}`,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "var(--bg-base)",
+          borderRadius: "12px 12px 0 0"
         }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>✏️ Edit Course</h2>
-            <p style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>Update course information</p>
+            <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+              ✏️ Edit Course
+            </h2>
+            <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+              {isInstructor ? "Update your course information" : "Update course information"}
+            </p>
           </div>
           <button onClick={handleClose} style={{
-            background: "transparent", border: "none",
-            fontSize: 20, cursor: "pointer", color: colors.textMuted,
-          }}>✕</button>
+            background: "transparent",
+            border: "none",
+            fontSize: 20,
+            cursor: "pointer",
+            color: "var(--text-secondary)",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            transition: "background 0.2s"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-hover)"}
+          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+          >
+            ✕
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: "16px 20px" }}>
-          {error && <div style={{ background: colors.coralSoft, color: colors.coral, padding: "8px 12px", borderRadius: 10, fontSize: 12, marginBottom: 16 }}>⚠️ {error}</div>}
+          {error && (
+            <div style={{
+              background: "#fee2e2",
+              color: "#dc2626",
+              padding: "8px 12px",
+              borderRadius: 8,
+              fontSize: 12,
+              marginBottom: 16
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
 
           {/* ── Course Image Upload ───────────────────────────────── */}
           <div style={{ marginBottom: 14 }}>
@@ -241,6 +359,7 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
                 textAlign: "center",
                 background: displayedImage ? "transparent" : "rgba(0,0,0,0.02)",
                 position: "relative",
+                transition: "all 0.3s ease"
               }}
             >
               {displayedImage ? (
@@ -257,18 +376,32 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
                     onError={(e) => { e.target.style.opacity = 0.3; }}
                   />
                   <div style={{
-                    position: "absolute", top: "8px", right: "8px",
-                    display: "flex", gap: 6,
+                    position: "absolute",
+                    top: "8px",
+                    right: "8px",
+                    display: "flex",
+                    gap: 6,
                   }}>
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       title="Replace image"
                       style={{
-                        background: "rgba(0,0,0,0.7)", color: "#fff", border: "none",
-                        borderRadius: "50%", width: 28, height: 28, fontSize: 13,
-                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "rgba(0,0,0,0.7)",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 28,
+                        height: 28,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.2s"
                       }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.9)"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.7)"}
                     >
                       ✏️
                     </button>
@@ -277,19 +410,36 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
                       onClick={imageFile ? clearNewImage : handleRemoveExistingImage}
                       title="Remove image"
                       style={{
-                        background: "rgba(0,0,0,0.7)", color: "#fff", border: "none",
-                        borderRadius: "50%", width: 28, height: 28, fontSize: 14,
-                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "rgba(0,0,0,0.7)",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 28,
+                        height: 28,
+                        fontSize: 14,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.2s"
                       }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.9)"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = "rgba(0,0,0,0.7)"}
                     >
                       ✕
                     </button>
                   </div>
                   {imageFile && (
                     <div style={{
-                      position: "absolute", bottom: "8px", left: "8px",
-                      background: "rgba(46, 139, 87, 0.9)", color: "#fff",
-                      fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 10,
+                      position: "absolute",
+                      bottom: "8px",
+                      left: "8px",
+                      background: "rgba(46, 139, 87, 0.9)",
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: "3px 8px",
+                      borderRadius: 10,
                     }}>
                       New image selected
                     </div>
@@ -305,10 +455,10 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
               ) : (
                 <div>
                   <div style={{ fontSize: "36px", marginBottom: "8px" }}>🖼️</div>
-                  <p style={{ fontSize: "13px", color: colors.textMuted, margin: "0 0 8px 0" }}>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "0 0 8px 0" }}>
                     Click to upload a course image
                   </p>
-                  <p style={{ fontSize: "11px", color: colors.textMuted, opacity: 0.7, margin: 0 }}>
+                  <p style={{ fontSize: "11px", color: "var(--text-secondary)", opacity: 0.7, margin: 0 }}>
                     JPG, PNG, WEBP, GIF (max 5MB)
                   </p>
                   <input
@@ -317,45 +467,145 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
                     accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                     onChange={handleImageChange}
                     style={{
-                      position: "absolute", inset: 0, width: "100%", height: "100%",
-                      opacity: 0, cursor: "pointer",
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      opacity: 0,
+                      cursor: "pointer",
                     }}
                   />
                 </div>
               )}
             </div>
             {uploadingImage && (
-              <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 6 }}>
-                ⏳ Uploading image…
+              <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+                ⏳ Uploading image...
               </div>
             )}
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Course Title *</label>
-            <input type="text" name="title" value={formData.title} onChange={handleChange} required style={inputStyle} />
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              required
+              style={inputStyle}
+              placeholder="Enter course title"
+            />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Description</label>
-            <textarea name="description" value={formData.description} onChange={handleChange} rows={2} style={inputStyle} />
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={2}
+              style={{ ...inputStyle, resize: "vertical" }}
+              placeholder="Enter course description"
+            />
           </div>
 
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Additional Details</label>
+            <textarea
+              name="details"
+              value={formData.details}
+              onChange={handleChange}
+              rows={3}
+              style={{
+                ...inputStyle,
+                resize: "vertical",
+                fontFamily: "inherit",
+                lineHeight: 1.6
+              }}
+              placeholder="Enter additional course information"
+            />
+          </div>
+
+          {/* ✅ Price with Currency */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
             <div>
-              <label style={labelStyle}>Price ($) *</label>
-              <input type="number" name="price" value={formData.price} onChange={handleChange} required step="0.01" style={inputStyle} />
+              <label style={labelStyle}>Price *</label>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  required
+                  step="1"
+                  min="1"
+                  style={{ ...inputStyle, flex: 1, minWidth: "80px" }}
+                  placeholder="0"
+                />
+                <select
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleChange}
+                  style={{
+                    ...inputStyle,
+                    width: "80px",
+                    flexShrink: 0,
+                    cursor: "pointer",
+                    padding: "8px 6px"
+                  }}
+                >
+                  {currencyOptions.map(currency => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{
+                fontSize: 10,
+                color: "var(--text-secondary)",
+                marginTop: 3
+              }}>
+                Currency: <strong>{getCurrencySymbol(formData.currency)} {formData.currency}</strong>
+              </div>
             </div>
             <div>
               <label style={labelStyle}>Instructor *</label>
-              <input type="text" name="instructor" value={formData.instructor} onChange={handleChange} required style={inputStyle} />
+              {isInstructor ? (
+                <div style={{
+                  ...inputStyle,
+                  background: '#f5f5f5',
+                  color: '#666',
+                  cursor: 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  You (Logged-in instructor)
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  name="instructor"
+                  value={formData.instructor}
+                  onChange={handleChange}
+                  required
+                  style={inputStyle}
+                  placeholder="Instructor name or ID"
+                />
+              )}
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Duration</label>
-              <select name="duration" value={formData.duration} onChange={handleChange} style={inputStyle}>
+              <select
+                name="duration"
+                value={formData.duration}
+                onChange={handleChange}
+                style={inputStyle}
+              >
                 <option value="">Select</option>
                 <option value="1-2 hours">1–2 hours</option>
                 <option value="3-5 hours">3–5 hours</option>
@@ -366,7 +616,12 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
             </div>
             <div>
               <label style={labelStyle}>Level</label>
-              <select name="level" value={formData.level} onChange={handleChange} style={inputStyle}>
+              <select
+                name="level"
+                value={formData.level}
+                onChange={handleChange}
+                style={inputStyle}
+              >
                 <option value="">Select</option>
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
@@ -377,8 +632,13 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
 
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Status</label>
-            <select name="status" value={formData.status} onChange={handleChange} style={inputStyle}>
-              <option value="PUBLISHED">📢 Published</option>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              style={inputStyle}
+            >
+              <option value="PUBLISHED">✅ Published</option>
               <option value="DRAFT">📝 Draft</option>
               <option value="ARCHIVED">📦 Archived</option>
             </select>
@@ -386,13 +646,49 @@ export default function EditCourseModal({ isOpen, onClose, course, onCourseUpdat
 
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Video URL</label>
-            <input type="url" name="videoUrl" value={formData.videoUrl} onChange={handleChange} style={inputStyle} />
+            <input
+              type="url"
+              name="videoUrl"
+              value={formData.videoUrl}
+              onChange={handleChange}
+              style={inputStyle}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
           </div>
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button type="button" onClick={handleClose} style={{ padding: "6px 16px", borderRadius: 30, border: `1px solid ${colors.borderLight}`, background: "transparent" }}>Cancel</button>
-            <button type="submit" disabled={loading || uploadingImage} style={{ padding: "6px 20px", borderRadius: 30, background: colors.gradPrimary, border: "none", color: "#fff", opacity: (loading || uploadingImage) ? 0.7 : 1 }}>
-              {loading ? "Updating..." : "Update Course"}
+            <button
+              type="button"
+              onClick={handleClose}
+              style={{
+                padding: "6px 16px",
+                borderRadius: 30,
+                border: `1px solid ${colors.borderLight}`,
+                background: "transparent",
+                color: "var(--text-secondary)",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-hover)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || uploadingImage}
+              style={{
+                padding: "6px 20px",
+                borderRadius: 30,
+                background: colors.gradPrimary,
+                border: "none",
+                color: "#fff",
+                cursor: (loading || uploadingImage) ? "not-allowed" : "pointer",
+                opacity: (loading || uploadingImage) ? 0.7 : 1,
+                transition: "opacity 0.2s"
+              }}
+            >
+              {loading ? "Updating..." : uploadingImage ? "Uploading..." : "Update Course"}
             </button>
           </div>
         </form>

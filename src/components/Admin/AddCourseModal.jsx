@@ -15,8 +15,9 @@ export default function AddCourseModal({
   const [form, setForm] = useState({ 
     title: "", 
     description: "", 
-    details: "",  // ✅ ADDED DETAILS FIELD
+    details: "",
     price: "", 
+    currency: "USD",  // ✅ ADD CURRENCY FIELD
     duration: "", 
     level: ""
   });
@@ -25,6 +26,20 @@ export default function AddCourseModal({
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
+
+  // Currency options
+  const currencyOptions = [
+    { code: "USD", symbol: "$", name: "US Dollar" },
+    { code: "EUR", symbol: "€", name: "Euro" },
+    { code: "GBP", symbol: "£", name: "British Pound" },
+    { code: "INR", symbol: "₹", name: "Indian Rupee" },
+    { code: "JPY", symbol: "¥", name: "Japanese Yen" },
+    { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
+    { code: "AUD", symbol: "A$", name: "Australian Dollar" },
+    { code: "BRL", symbol: "R$", name: "Brazilian Real" },
+    { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
+    { code: "KRW", symbol: "₩", name: "South Korean Won" },
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -76,8 +91,9 @@ export default function AddCourseModal({
     setForm({ 
       title: "", 
       description: "", 
-      details: "",  // ✅ RESET DETAILS FIELD
+      details: "",
       price: "", 
+      currency: "USD",
       duration: "", 
       level: ""
     });
@@ -87,6 +103,11 @@ export default function AddCourseModal({
   const handleClose = () => { 
     reset(); 
     onClose(); 
+  };
+
+  const getCurrencySymbol = (currencyCode) => {
+    const currency = currencyOptions.find(c => c.code === currencyCode);
+    return currency ? currency.symbol : '$';
   };
 
   const handleSubmit = async (e) => {
@@ -110,8 +131,9 @@ export default function AddCourseModal({
       const courseData = {
         title: form.title.trim(),
         description: form.description?.trim() || '',
-        details: form.details?.trim() || '',  // ✅ ADD DETAILS TO COURSE DATA
+        details: form.details?.trim() || '',
         price: priceValue,
+        currency: form.currency || 'USD',  // ✅ ADD CURRENCY TO COURSE DATA
         duration: form.duration || '',
         level: form.level || '',
       };
@@ -119,6 +141,7 @@ export default function AddCourseModal({
       console.log('📤 STEP 1: Creating course with data:', courseData);
       console.log('📤 Mode:', isInstructor ? 'Instructor' : 'Admin');
       console.log('📤 Details length:', courseData.details.length);
+      console.log('📤 Currency:', courseData.currency);
       setUploadProgress(30);
       
       let response;
@@ -424,7 +447,6 @@ export default function AddCourseModal({
             />
           </div>
 
-          {/* ✅ ADD DETAILS TEXTAREA */}
           <div style={{ marginBottom: 10 }}>
             <label style={label}>Additional Details</label>
             <textarea 
@@ -439,7 +461,12 @@ export default function AddCourseModal({
                 fontSize: 12,
                 lineHeight: 1.6
               }} 
-              placeholder="Enter additional course information like:\n• Course objectives\n• What students will learn\n• Prerequisites\n• Target audience\n• Course highlights"
+              placeholder="Enter additional course information like:
+• Course objectives
+• What students will learn
+• Prerequisites
+• Target audience
+• Course highlights"
             />
             <div style={{ 
               fontSize: 10, 
@@ -453,20 +480,52 @@ export default function AddCourseModal({
             </div>
           </div>
 
+          {/* ✅ Price with Currency Selection */}
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
-              <label style={label}>Price (₹) *</label>
-              <input 
-                type="number" 
-                name="price" 
-                value={form.price} 
-                onChange={handleChange} 
-                required 
-                step="1" 
-                min="1"
-                style={input} 
-                placeholder="0"
-              />
+              <label style={label}>Price *</label>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input 
+                  type="number" 
+                  name="price" 
+                  value={form.price} 
+                  onChange={handleChange} 
+                  required 
+                  step="1" 
+                  min="1"
+                  style={{ 
+                    ...input, 
+                    flex: 1,
+                    minWidth: "80px"
+                  }} 
+                  placeholder="0"
+                />
+                <select
+                  name="currency"
+                  value={form.currency}
+                  onChange={handleChange}
+                  style={{
+                    ...input,
+                    width: "80px",
+                    flexShrink: 0,
+                    cursor: "pointer",
+                    padding: "6px 6px"
+                  }}
+                >
+                  {currencyOptions.map(currency => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ 
+                fontSize: 10, 
+                color: "var(--text-secondary)", 
+                marginTop: 3 
+              }}>
+                Current currency: <strong>{getCurrencySymbol(form.currency)} {form.currency}</strong>
+              </div>
             </div>
             
             {isInstructor && (
