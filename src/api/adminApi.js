@@ -572,9 +572,9 @@ export const updateUserStatus = (id, status) => {
   });
 };
 
-// ✅ DELETE USER - Hard delete (permanent deletion)
-export const deleteUser = (id) => {
-  return api.delete(`/admin/users/${id}/hard-delete`);
+// ✅ DELETE USER - Hard delete (permanent deletion) with force parameter
+export const deleteUser = (id, force = false) => {
+  return api.delete(`/admin/users/${id}/hard-delete?force=${force}`);
 };
 
 // ✅ Soft delete user (sets status to DELETED)
@@ -590,6 +590,27 @@ export const restoreUser = (id) => {
 // ✅ Delete user by phone number
 export const deleteUserByPhone = (phone) => {
   return api.delete(`/admin/users/by-phone/${encodeURIComponent(phone)}`);
+};
+
+// ✅ NEW: Delete user completely (handles soft delete if needed)
+export const deleteUserCompletely = async (id) => {
+  try {
+    // Try hard delete with force=true first
+    await deleteUser(id, true);
+    return { success: true, message: 'User deleted successfully' };
+  } catch (error) {
+    // If error is about soft delete first, do soft delete then hard delete
+    if (error.response?.data?.error?.includes('soft deleted first')) {
+      try {
+        await softDeleteUser(id);
+        await deleteUser(id, true);
+        return { success: true, message: 'User deleted successfully (soft deleted first)' };
+      } catch (retryError) {
+        throw retryError;
+      }
+    }
+    throw error;
+  }
 };
 
 // ==================== STUDENT MANAGEMENT APIs ====================
@@ -1041,6 +1062,7 @@ const adminApi = {
   softDeleteUser,
   restoreUser,
   deleteUserByPhone,
+  deleteUserCompletely,
   
   // Student Management
   getAllStudents,
@@ -1096,7 +1118,7 @@ const adminApi = {
   getStudentLabsProgress,
   getCourseLabs,
   
-  // Course Page Settings (NEW)
+  // Course Page Settings
   getCoursePageSettings,
   updateCoursePageSettings,
   initializeCoursePageSettings,

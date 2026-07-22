@@ -8,6 +8,8 @@ import {
   updateUserStatus,
   getAllEnrollments,
   deleteUser,
+  softDeleteUser,
+  deleteUserCompletely,
 } from "../../api/adminApi";
 import Swal from "sweetalert2";
 import { colors, LoadingSpinner, DateTimeWidget } from "./AdminStyles";
@@ -22,7 +24,7 @@ import EnrollmentsTab from "./EnrollmentsTab";
 import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
-import CoursePageSettingsTab from "./CoursePageSettingsTab"; // 👈 NEW IMPORT
+import CoursePageSettingsTab from "./CoursePageSettingsTab";
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -81,13 +83,10 @@ export default function AdminDashboard() {
       const response = await getAllStudents();
       console.log('📥 Students API response:', response);
       
-      // ✅ Handle different response formats
       let studentsData = [];
       if (response.data && response.data.success) {
-        // New format: { success: true, count: 30, users: [...] }
         studentsData = response.data.users || [];
       } else if (response.data && Array.isArray(response.data)) {
-        // Old format: directly array
         studentsData = response.data;
       } else if (Array.isArray(response)) {
         studentsData = response;
@@ -216,9 +215,27 @@ export default function AdminDashboard() {
     }
   };
 
+  // ✅ UPDATED: handleDeleteStudent with automatic two-step deletion
   const handleDeleteStudent = async (studentId) => {
-    await deleteUser(studentId);
-    await fetchAllStudents();
+    try {
+      console.log(`🗑️ Deleting student ${studentId}...`);
+      
+      // Use deleteUserCompletely which handles soft delete if needed
+      await deleteUserCompletely(studentId);
+      
+      console.log(`✅ Student ${studentId} deleted successfully`);
+      
+      // Refresh the user list
+      await fetchAllStudents();
+      
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Error deleting student:', error);
+      
+      // Show user-friendly error message
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to delete student';
+      throw new Error(errorMessage);
+    }
   };
 
   const handleSearchChange = (e) => {
@@ -280,22 +297,20 @@ export default function AdminDashboard() {
       case "pdf-viewer":  return <PdfViewerTab onViewCourse={handleViewCourse} />;
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
-      case "page-settings": return <CoursePageSettingsTab />; // 👈 NEW CASE
+      case "page-settings": return <CoursePageSettingsTab />;
       default: return null;
     }
   };
 
-  // ✅ UPDATED: Added "Page Settings" to navigation
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
     { icon: "👨‍🎓", label: "Students",      id: "students"       },
     { icon: "📋", label: "Enrollments",    id: "enrollments"    },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
-    { icon: "⚙️", label: "Page Settings",  id: "page-settings"  }, // 👈 NEW
+    { icon: "⚙️", label: "Page Settings",  id: "page-settings"  },
   ];
 
-  // ✅ UPDATED: Added page settings to titles
   const PAGE_TITLES = {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
@@ -303,10 +318,9 @@ export default function AdminDashboard() {
     enrollments:     "Enrollment Management",
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
-    "page-settings": "Course Page Settings", // 👈 NEW
+    "page-settings": "Course Page Settings",
   };
 
-  // ✅ UPDATED: Added page settings to subs
   const PAGE_SUBS = {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
@@ -314,7 +328,7 @@ export default function AdminDashboard() {
     enrollments:     "View all student enrollments",
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, exam questions, interview questions and labs ",
-    "page-settings": "Customize hero section, colors, text, and more", // 👈 NEW
+    "page-settings": "Customize hero section, colors, text, and more",
   };
 
   // ===================== SIDEBAR NAV ITEM =====================

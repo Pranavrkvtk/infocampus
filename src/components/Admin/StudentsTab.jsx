@@ -281,7 +281,7 @@ export default function StudentsTab({
         <ul style="text-align: left; max-height: 150px; overflow-y: auto; font-size: 13px; margin-top: 10px;">
           ${selectedStudents.map(id => {
             const student = students.find(s => s.id === id);
-            return `<li>${student?.name || 'Unknown'} (${student?.email || 'No email'})</li>`;
+            return `<li>${student?.name || 'Unknown'} (${student?.email || 'No email'}) - ${student?.status || 'ACTIVE'}</li>`;
           }).join('')}
         </ul>
       `,
@@ -301,6 +301,7 @@ export default function StudentsTab({
     });
 
     try {
+      // Try to delete all with force=true
       const deletePromises = selectedStudents.map((id) => handleDeleteStudent(id));
       await Promise.all(deletePromises);
 
@@ -315,10 +316,11 @@ export default function StudentsTab({
         showConfirmButton: false,
       });
     } catch (error) {
+      console.error('Bulk delete error:', error);
       Swal.fire({
-        title: "Failed!",
-        text: error?.response?.data?.message || "Failed to delete some students",
-        icon: "error",
+        title: "Partial Failure",
+        text: "Some students could not be deleted. Please try again individually.",
+        icon: "warning",
       });
     }
   };
@@ -333,6 +335,10 @@ export default function StudentsTab({
           ⚠️ This will permanently delete the student account and all associated data.
           <br>This action <strong>cannot</strong> be undone!
         </p>
+        ${student.status === 'ACTIVE' ? 
+          '<p style="color: #f59e0b; font-size: 13px;">💡 This user is active. They will be soft-deleted first, then permanently deleted.</p>' : 
+          ''
+        }
       `,
       icon: "warning",
       showCancelButton: true,
@@ -350,7 +356,9 @@ export default function StudentsTab({
     });
 
     try {
+      // Try to delete with force=true first
       await handleDeleteStudent(student.id);
+      
       Swal.fire({
         title: "Deleted!",
         text: `${student.name} has been permanently removed.`,
@@ -359,11 +367,37 @@ export default function StudentsTab({
         showConfirmButton: false,
       });
     } catch (error) {
-      Swal.fire({
-        title: "Failed!",
-        text: error?.response?.data?.message || "Failed to delete student",
-        icon: "error",
-      });
+      console.error('Delete error:', error);
+      
+      // Check if error is about soft delete first
+      if (error.response?.data?.error?.includes('soft deleted first')) {
+        try {
+          // First soft delete
+          await handleToggleStatus(student.id, student.status);
+          // Then hard delete with force=true
+          await handleDeleteStudent(student.id);
+          
+          Swal.fire({
+            title: "Deleted!",
+            text: `${student.name} has been permanently removed.`,
+            icon: "success",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } catch (retryError) {
+          Swal.fire({
+            title: "Failed!",
+            text: retryError.response?.data?.error || "Failed to delete student",
+            icon: "error",
+          });
+        }
+      } else {
+        Swal.fire({
+          title: "Failed!",
+          text: error.response?.data?.error || "Failed to delete student",
+          icon: "error",
+        });
+      }
     }
   };
 
