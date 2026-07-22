@@ -233,6 +233,25 @@ const resolveImageUrl = (imageUrl) => {
   return `${BASE_URL}/${normalizedPath}`;
 };
 
+// ─── Helper: Clean Hero Text ──────────────────────────────────────────
+const cleanHeroText = (text) => {
+  if (!text) return '';
+  // Remove extra whitespace and duplicate sentences
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  // Split by sentence endings and get unique sentences
+  const sentences = cleaned.split(/(?<=[.!?])\s+/);
+  const uniqueSentences = [];
+  const seen = new Set();
+  for (const sentence of sentences) {
+    const trimmed = sentence.trim();
+    if (trimmed && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      uniqueSentences.push(trimmed);
+    }
+  }
+  return uniqueSentences.join(' ');
+};
+
 function MyCoursesPage() {
   const navigate = useNavigate();
   
@@ -893,7 +912,7 @@ function MyCoursesPage() {
     topBar: {
       height: isMobile ? '28px' : '32px',
       background: TOPBAR.bgGradient,
-      borderBottom: "none", // Remove border to match Enrollments page
+      borderBottom: "none",
       display: 'flex',
       alignItems: 'stretch',
       justifyContent: 'flex-end',
@@ -936,18 +955,20 @@ function MyCoursesPage() {
       margin: 0,
     },
 
+    // ─── UPDATED HERO STYLES ───────────────────────────────────────
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
       background: `linear-gradient(135deg, ${config.heroBgStart} 0%, ${config.heroBgMid} 55%, ${config.heroBgEnd} 100%)`, 
-      padding: isMobile ? '40px 20px' : '56px 48px', 
+      padding: isMobile ? '40px 20px' : '60px 70px', 
       color: '#fff',
       display: 'flex',
       alignItems: 'center',
-      minHeight: isMobile ? 'auto' : '280px',
+      minHeight: isMobile ? 'auto' : '320px',
     },
     heroInner: { 
-      maxWidth: '680px',
+      width: '100%',
+      maxWidth: '900px',  // Increased from 680px
       flex: 1,
     },
     heroEyebrow: { 
@@ -966,11 +987,12 @@ function MyCoursesPage() {
       marginBottom: '14px' 
     },
     heroText: { 
-      fontSize: isMobile ? '14px' : '16px', 
-      lineHeight: 1.6, 
+      fontSize: isMobile ? '14px' : '17px', 
+      lineHeight: 1.9, 
       opacity: 0.88, 
-      maxWidth: '480px', 
-      marginBottom: '22px' 
+      maxWidth: '800px',  // Increased from 480px
+      width: '100%',
+      marginBottom: '28px' 
     },
     heroBtn: { 
       background: config.heroBtnBg || '#4f46e5',
@@ -1299,6 +1321,9 @@ function MyCoursesPage() {
     return cat.charAt(0).toUpperCase() + cat.slice(1);
   };
 
+  // Clean the hero text before rendering
+  const cleanedHeroText = cleanHeroText(config.heroText);
+
   return (
     <div style={styles.page}>
       {/* ─── TOP NAVIGATION BAR - FIXED AT TOP ────────────────────── */}
@@ -1361,12 +1386,14 @@ function MyCoursesPage() {
 
       {/* ─── SCROLLABLE CONTENT ────────────────────────────────────── */}
       <div style={styles.scrollableContent}>
-        {/* Hero Section */}
+        {/* Hero Section - UPDATED with cleaned text */}
         <div style={styles.hero}>
           <div style={styles.heroInner}>
             <div style={styles.heroEyebrow}>{config.heroEyebrow}</div>
             <h1 style={styles.heroTitle}>{config.heroTitle}</h1>
-            <p style={styles.heroText}>{config.heroText}</p>
+            <p style={styles.heroText}>
+              {cleanedHeroText}
+            </p>
             <button 
               style={styles.heroBtn} 
               onClick={() => {
