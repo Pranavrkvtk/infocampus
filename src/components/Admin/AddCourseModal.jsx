@@ -17,7 +17,7 @@ export default function AddCourseModal({
     description: "", 
     details: "",
     price: "", 
-    currency: "USD",  // ✅ ADD CURRENCY FIELD
+    currency: "INR",  // ✅ Changed from USD to INR
     duration: "", 
     level: ""
   });
@@ -27,12 +27,12 @@ export default function AddCourseModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
 
-  // Currency options
+  // Currency options - INR first
   const currencyOptions = [
+    { code: "INR", symbol: "₹", name: "Indian Rupee" },
     { code: "USD", symbol: "$", name: "US Dollar" },
     { code: "EUR", symbol: "€", name: "Euro" },
     { code: "GBP", symbol: "£", name: "British Pound" },
-    { code: "INR", symbol: "₹", name: "Indian Rupee" },
     { code: "JPY", symbol: "¥", name: "Japanese Yen" },
     { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
     { code: "AUD", symbol: "A$", name: "Australian Dollar" },
@@ -93,7 +93,7 @@ export default function AddCourseModal({
       description: "", 
       details: "",
       price: "", 
-      currency: "USD",
+      currency: "INR",  // ✅ Changed from USD to INR
       duration: "", 
       level: ""
     });
@@ -107,7 +107,7 @@ export default function AddCourseModal({
 
   const getCurrencySymbol = (currencyCode) => {
     const currency = currencyOptions.find(c => c.code === currencyCode);
-    return currency ? currency.symbol : '$';
+    return currency ? currency.symbol : '₹';  // ✅ Changed default to ₹
   };
 
   const handleSubmit = async (e) => {
@@ -133,7 +133,7 @@ export default function AddCourseModal({
         description: form.description?.trim() || '',
         details: form.details?.trim() || '',
         price: priceValue,
-        currency: form.currency || 'USD',  // ✅ ADD CURRENCY TO COURSE DATA
+        currency: form.currency || 'INR',  // ✅ Changed from USD to INR
         duration: form.duration || '',
         level: form.level || '',
       };
@@ -480,7 +480,7 @@ export default function AddCourseModal({
             </div>
           </div>
 
-          {/* ✅ Price with Currency Selection */}
+          {/* ✅ Price with Currency Selection - INR default */}
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={label}>Price *</label>
@@ -524,7 +524,7 @@ export default function AddCourseModal({
                 color: "var(--text-secondary)", 
                 marginTop: 3 
               }}>
-                Current currency: <strong>{getCurrencySymbol(form.currency)} {form.currency}</strong>
+                Currency: <strong>{getCurrencySymbol(form.currency)} {form.currency}</strong>
               </div>
             </div>
             

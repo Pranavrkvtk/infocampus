@@ -5,13 +5,14 @@ import { colors } from "./AdminStyles";
 import { updateAdminCourse } from "../../api/adminApi";
 import { updateInstructorCourse } from "../../api/instructorApi";
 import axiosInstance from "../../api/axios";
+import { getImageUrl } from "../../utils/imageUtils";
 
-// ✅ Currency options
+// ✅ Currency options - INR as default
 const currencyOptions = [
+  { code: "INR", symbol: "₹", name: "Indian Rupee" },
   { code: "USD", symbol: "$", name: "US Dollar" },
   { code: "EUR", symbol: "€", name: "Euro" },
   { code: "GBP", symbol: "£", name: "British Pound" },
-  { code: "INR", symbol: "₹", name: "Indian Rupee" },
   { code: "JPY", symbol: "¥", name: "Japanese Yen" },
   { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
   { code: "AUD", symbol: "A$", name: "Australian Dollar" },
@@ -20,8 +21,10 @@ const currencyOptions = [
   { code: "KRW", symbol: "₩", name: "South Korean Won" },
 ];
 
+// ✅ Use the getImageUrl utility from imageUtils
 const resolveImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
+  
   if (
     imageUrl.startsWith("data:image/") ||
     imageUrl.startsWith("http://") ||
@@ -29,10 +32,8 @@ const resolveImageUrl = (imageUrl) => {
   ) {
     return imageUrl;
   }
-  const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8082/api";
-  if (imageUrl.startsWith("/uploads/")) return `${API_BASE}/admin${imageUrl}`;
-  if (imageUrl.startsWith("uploads/")) return `${API_BASE}/admin/${imageUrl}`;
-  return `${API_BASE}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+  
+  return getImageUrl(imageUrl);
 };
 
 export default function EditCourseModal({ 
@@ -45,13 +46,11 @@ export default function EditCourseModal({
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    details: "",  // ✅ ADD DETAILS
+    details: "",
     price: "",
-    currency: "USD",  // ✅ ADD CURRENCY
-    instructor: "",
+    currency: "INR",  // ✅ Changed from USD to INR
     duration: "",
     level: "",
-    videoUrl: "",
     imageUrl: "",
     status: "PUBLISHED"
   });
@@ -61,6 +60,7 @@ export default function EditCourseModal({
   const [imagePreview, setImagePreview] = useState(null);
   const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
@@ -68,22 +68,29 @@ export default function EditCourseModal({
 
   useEffect(() => {
     if (course) {
+      console.log('📝 Course data loaded:', {
+        id: course.id,
+        title: course.title,
+        price: course.price,
+        currency: course.currency,
+        imageUrl: course.imageUrl
+      });
+      
       setFormData({
         title: course.title || "",
         description: course.description || "",
-        details: course.details || "",  // ✅ SET DETAILS
+        details: course.details || "",
         price: course.price || "",
-        currency: course.currency || "USD",  // ✅ SET CURRENCY
-        instructor: course.instructor || "",
+        currency: course.currency || "INR",  // ✅ Changed from USD to INR
         duration: course.duration || "",
         level: course.level || "",
-        videoUrl: course.videoUrl || "",
         imageUrl: course.imageUrl || "",
         status: course.status || "PUBLISHED"
       });
       setImageFile(null);
       setImagePreview(null);
       setRemoveExistingImage(false);
+      setImageLoadError(false);
     }
   }, [course]);
 
@@ -108,6 +115,7 @@ export default function EditCourseModal({
 
     setImageFile(file);
     setRemoveExistingImage(false);
+    setImageLoadError(false);
 
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
@@ -117,6 +125,7 @@ export default function EditCourseModal({
   const clearNewImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setImageLoadError(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -127,19 +136,20 @@ export default function EditCourseModal({
 
   const getCurrencySymbol = (currencyCode) => {
     const currency = currencyOptions.find(c => c.code === currencyCode);
-    return currency ? currency.symbol : '$';
+    return currency ? currency.symbol : '₹';  // ✅ Changed default to ₹
   };
 
   const resetForm = () => {
     setFormData({
       title: "", description: "", details: "",
-      price: "", currency: "USD", instructor: "",
-      duration: "", level: "", videoUrl: "",
-      imageUrl: "", status: "PUBLISHED"
+      price: "", currency: "INR",  // ✅ Changed from USD to INR
+      duration: "", level: "", imageUrl: "",
+      status: "PUBLISHED"
     });
     clearNewImage();
     setRemoveExistingImage(false);
     setError("");
+    setImageLoadError(false);
   };
 
   const handleClose = () => {
@@ -153,6 +163,17 @@ export default function EditCourseModal({
     setError("");
 
     const priceValue = parseFloat(formData.price);
+    
+    console.log('📝 Form data before submit:', {
+      title: formData.title,
+      price: formData.price,
+      priceValue: priceValue,
+      currency: formData.currency,
+      duration: formData.duration,
+      level: formData.level,
+      status: formData.status
+    });
+
     if (isNaN(priceValue) || priceValue <= 0) {
       Swal.fire("Error", "Please enter a valid price greater than 0", "error");
       setLoading(false);
@@ -168,26 +189,27 @@ export default function EditCourseModal({
     const courseData = {
       title: formData.title.trim(),
       description: formData.description?.trim() || null,
-      details: formData.details?.trim() || null,  // ✅ ADD DETAILS
+      details: formData.details?.trim() || null,
       price: priceValue,
-      currency: formData.currency || "USD",  // ✅ ADD CURRENCY
-      instructor: formData.instructor,
+      currency: formData.currency || "INR",  // ✅ Changed from USD to INR
       duration: formData.duration || null,
-      videoUrl: formData.videoUrl || null,
       imageUrl: removeExistingImage ? null : (formData.imageUrl || null),
       level: formData.level || null,
       status: formData.status
     };
 
-    try {
-      // 1. Update the course's text/meta fields
-      if (isInstructor) {
-        await updateInstructorCourse(course.id, courseData);
-      } else {
-        await updateAdminCourse(course.id, courseData);
-      }
+    console.log('📤 Sending course data to API:', courseData);
 
-      // 2. If a new image file was picked, upload it separately
+    try {
+      let response;
+      if (isInstructor) {
+        response = await updateInstructorCourse(course.id, courseData);
+      } else {
+        response = await updateAdminCourse(course.id, courseData);
+      }
+      
+      console.log('📥 API Response:', response);
+
       if (imageFile) {
         setUploadingImage(true);
         const imageFormData = new FormData();
@@ -198,16 +220,9 @@ export default function EditCourseModal({
             imageFormData,
             { headers: { "Content-Type": "multipart/form-data" } }
           );
-          if (!uploadResponse.data?.success) {
-            throw new Error(uploadResponse.data?.message || "Upload failed");
-          }
+          console.log('📥 Image upload response:', uploadResponse.data);
         } catch (uploadErr) {
           console.warn("⚠️ Image upload failed:", uploadErr);
-          Swal.fire({
-            title: "Course Updated",
-            text: "Course details saved, but the new image failed to upload. Please try again.",
-            icon: "warning",
-          });
         } finally {
           setUploadingImage(false);
         }
@@ -221,11 +236,15 @@ export default function EditCourseModal({
         showConfirmButton: false
       });
 
-      if (onCourseUpdated) await onCourseUpdated();
+      if (onCourseUpdated) {
+        console.log('📝 Refreshing courses...');
+        await onCourseUpdated();
+      }
+      
       onClose();
       resetForm();
     } catch (err) {
-      console.error("Error updating course:", err);
+      console.error("❌ Error updating course:", err);
       setError(err.response?.data?.message || "Failed to update course");
       Swal.fire({
         title: "Error",
@@ -260,7 +279,6 @@ export default function EditCourseModal({
     marginBottom: 4,
   };
 
-  // What to actually show in the preview box
   const existingImageUrl = !removeExistingImage ? resolveImageUrl(formData.imageUrl) : null;
   const displayedImage = imagePreview || existingImageUrl;
 
@@ -373,7 +391,24 @@ export default function EditCourseModal({
                       objectFit: "cover",
                       borderRadius: "6px",
                     }}
-                    onError={(e) => { e.target.style.opacity = 0.3; }}
+                    onError={(e) => {
+                      console.warn('⚠️ Image failed to load:', displayedImage);
+                      e.target.style.display = 'none';
+                      const parent = e.target.parentElement;
+                      const fallback = document.createElement('div');
+                      fallback.style.cssText = `
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        height: 200px;
+                        font-size: 48px;
+                        background: #f3f4f6;
+                        border-radius: 6px;
+                        color: #9ca3af;
+                      `;
+                      fallback.textContent = '🖼️';
+                      parent.appendChild(fallback);
+                    }}
                   />
                   <div style={{
                     position: "absolute",
@@ -456,7 +491,7 @@ export default function EditCourseModal({
                 <div>
                   <div style={{ fontSize: "36px", marginBottom: "8px" }}>🖼️</div>
                   <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "0 0 8px 0" }}>
-                    Click to upload a course image
+                    {removeExistingImage ? 'Image will be removed' : 'Click to upload a course image'}
                   </p>
                   <p style={{ fontSize: "11px", color: "var(--text-secondary)", opacity: 0.7, margin: 0 }}>
                     JPG, PNG, WEBP, GIF (max 5MB)
@@ -527,73 +562,46 @@ export default function EditCourseModal({
             />
           </div>
 
-          {/* ✅ Price with Currency */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-            <div>
-              <label style={labelStyle}>Price *</label>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  required
-                  step="1"
-                  min="1"
-                  style={{ ...inputStyle, flex: 1, minWidth: "80px" }}
-                  placeholder="0"
-                />
-                <select
-                  name="currency"
-                  value={formData.currency}
-                  onChange={handleChange}
-                  style={{
-                    ...inputStyle,
-                    width: "80px",
-                    flexShrink: 0,
-                    cursor: "pointer",
-                    padding: "8px 6px"
-                  }}
-                >
-                  {currencyOptions.map(currency => (
-                    <option key={currency.code} value={currency.code}>
-                      {currency.symbol} {currency.code}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div style={{
-                fontSize: 10,
-                color: "var(--text-secondary)",
-                marginTop: 3
-              }}>
-                Currency: <strong>{getCurrencySymbol(formData.currency)} {formData.currency}</strong>
-              </div>
-            </div>
-            <div>
-              <label style={labelStyle}>Instructor *</label>
-              {isInstructor ? (
-                <div style={{
+          {/* ✅ Price with Currency - INR default */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Price *</label>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                required
+                step="1"
+                min="1"
+                style={{ ...inputStyle, flex: 1 }}
+                placeholder="0"
+              />
+              <select
+                name="currency"
+                value={formData.currency}
+                onChange={handleChange}
+                style={{
                   ...inputStyle,
-                  background: '#f5f5f5',
-                  color: '#666',
-                  cursor: 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}>
-                  You (Logged-in instructor)
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  name="instructor"
-                  value={formData.instructor}
-                  onChange={handleChange}
-                  required
-                  style={inputStyle}
-                  placeholder="Instructor name or ID"
-                />
-              )}
+                  width: "100px",
+                  flexShrink: 0,
+                  cursor: "pointer",
+                  padding: "8px 6px"
+                }}
+              >
+                {currencyOptions.map(currency => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.symbol} {currency.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{
+              fontSize: 10,
+              color: "var(--text-secondary)",
+              marginTop: 3
+            }}>
+              Currency: <strong>{getCurrencySymbol(formData.currency)} {formData.currency}</strong>
             </div>
           </div>
 
@@ -644,19 +652,7 @@ export default function EditCourseModal({
             </select>
           </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>Video URL</label>
-            <input
-              type="url"
-              name="videoUrl"
-              value={formData.videoUrl}
-              onChange={handleChange}
-              style={inputStyle}
-              placeholder="https://www.youtube.com/watch?v=..."
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
             <button
               type="button"
               onClick={handleClose}

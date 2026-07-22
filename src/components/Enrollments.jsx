@@ -26,7 +26,7 @@ const TOPBAR = {
 
 // ─── Palette ──────────────────────────────────────────────────────────
 const COLORS = {
-  pageBg: '#f0f2f5', // Keep this for other parts, but we'll override with white
+  pageBg: '#f0f2f5',
   cardBg: '#ffffff',
   textDark: '#1a1a2e',
   textMuted: '#6b7280',
@@ -38,6 +38,24 @@ const COLORS = {
   heroGradTo: '#2a2438',
   titleBar: '#7c4a72',
   titleBarDark: '#6b3f63',
+};
+
+// ✅ Currency symbol helper - INR as default
+const getCurrencySymbol = (currencyCode) => {
+  const currencyMap = {
+    INR: '₹',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    JPY: '¥',
+    CAD: 'C$',
+    AUD: 'A$',
+    BRL: 'R$',
+    CNY: '¥',
+    KRW: '₩'
+  };
+  const code = currencyCode || 'INR';
+  return currencyMap[code] || '₹';
 };
 
 const formatDate = (d) => {
@@ -255,7 +273,7 @@ const Enrollments = ({ isMobile, onBack }) => {
       <div style={{
         fontFamily: "'Inter', 'Segoe UI', sans-serif",
         minHeight: "100vh",
-        background: "#ffffff", // Changed from COLORS.pageBg
+        background: "#ffffff",
         display: "flex",
         alignItems: "center",
         justifyContent: "center"
@@ -303,7 +321,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: '100vh', padding: '20px', background: "#ffffff" // Changed
+        justifyContent: 'center', minHeight: '100vh', padding: '20px', background: "#ffffff"
       }}>
         <div style={{
           width: '50px', height: '50px', border: '4px solid #e5e7eb',
@@ -320,7 +338,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', padding: '20px', textAlign: 'center', background: "#ffffff" // Changed
+        minHeight: '100vh', padding: '20px', textAlign: 'center', background: "#ffffff"
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
         <h2 style={{ color: '#dc2626', marginBottom: '8px' }}>Error</h2>
@@ -340,7 +358,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', padding: '20px', textAlign: 'center', background: "#ffffff" // Changed
+        minHeight: '100vh', padding: '20px', textAlign: 'center', background: "#ffffff"
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>📚</div>
         <h2 style={{ color: '#1f2937', marginBottom: '8px' }}>Course Not Found</h2>
@@ -357,6 +375,7 @@ const Enrollments = ({ isMobile, onBack }) => {
 
   const price = course.price ?? 299;
   const period = course.pricePeriod || 'lifetime';
+  const currency = course.currency || 'INR';  // ✅ Get currency from course or default to INR
   const isMobileDevice = isMobile || window.innerWidth < 768;
 
   // ✅ Get the image URL using the utility
@@ -417,7 +436,7 @@ const Enrollments = ({ isMobile, onBack }) => {
       fontFamily: "'Inter', 'Segoe UI', sans-serif",
       display: "flex",
       flexDirection: "column",
-      background: "#ffffff", // ← CHANGED: from COLORS.pageBg to #ffffff
+      background: "#ffffff",
       overflow: "hidden",
       margin: 0,
       padding: 0,
@@ -573,15 +592,15 @@ const Enrollments = ({ isMobile, onBack }) => {
         overflow: 'auto',
         margin: 0,
         padding: 0,
-        background: '#ffffff', // ← ADDED: white background
+        background: '#ffffff',
       }}>
         <div style={{
           border: "none",
           borderRadius: 0,
           overflow: 'hidden',
           boxShadow: "none",
-          background: "#ffffff", // ← CHANGED: from COLORS.cardBg to #ffffff
-          minHeight: "100%", // ← ADDED: ensures it fills the container
+          background: "#ffffff",
+          minHeight: "100%",
         }}>
 
           {/* ════════════════════════════════════════════════════════ */}
@@ -784,7 +803,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                     <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.duration || '2 hours 40 minutes'}</span>
                   </div>
 
-                  {/* Price */}
+                  {/* ✅ Price with Currency */}
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -792,7 +811,9 @@ const Enrollments = ({ isMobile, onBack }) => {
                     fontSize: '13px'
                   }}>
                     <span style={{ color: COLORS.textMuted }}>Price</span>
-                    <span style={{ fontWeight: 700, color: COLORS.purpleText }}>${price} / {period}</span>
+                    <span style={{ fontWeight: 700, color: COLORS.purpleText }}>
+                      {getCurrencySymbol(currency)}{price} / {period}
+                    </span>
                   </div>
 
                   {/* Share button */}

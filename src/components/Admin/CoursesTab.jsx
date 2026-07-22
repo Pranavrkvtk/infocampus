@@ -19,13 +19,13 @@ import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import { getImageUrl } from "../../utils/imageUtils";
 
-// ✅ Currency symbol helper
+// ✅ Currency symbol helper - INR as default
 const getCurrencySymbol = (currencyCode) => {
   const currencyMap = {
+    INR: '₹',  // ✅ INR first
     USD: '$',
     EUR: '€',
     GBP: '£',
-    INR: '₹',
     JPY: '¥',
     CAD: 'C$',
     AUD: 'A$',
@@ -33,7 +33,9 @@ const getCurrencySymbol = (currencyCode) => {
     CNY: '¥',
     KRW: '₩'
   };
-  return currencyMap[currencyCode] || '$';
+  // ✅ Default to INR if currency is undefined
+  const code = currencyCode || 'INR';
+  return currencyMap[code] || '₹';
 };
 
 export default function CoursesTab({
@@ -677,7 +679,7 @@ export default function CoursesTab({
                         fontWeight: 700,
                         color: colors.teal || "#14b8a6"
                       }}>
-                        {`${getCurrencySymbol(course.currency || 'USD')}${course.price || "0"}`}
+                        {`${getCurrencySymbol(course.currency)}${course.price || "0"}`}
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "center", verticalAlign: "middle" }}>
                         <span style={{
