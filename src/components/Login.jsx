@@ -116,6 +116,14 @@ function Login() {
     }
   };
 
+  // ✅ Function to handle password input - only allows numbers
+  const handlePasswordChange = (e) => {
+    const value = e.target.value;
+    // Remove any non-digit characters
+    const numericValue = value.replace(/\D/g, "");
+    setPassword(numericValue);
+  };
+
   return (
     <div className="login-container">
       <div className="blob blob-1" />
@@ -181,9 +189,11 @@ function Login() {
                 placeholder="••••••••"
                 className="login-input"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
                 disabled={loading}
                 required
+                inputMode="numeric"
+                pattern="[0-9]*"
               />
               <button
                 type="button"
