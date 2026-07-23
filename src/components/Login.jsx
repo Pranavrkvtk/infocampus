@@ -29,7 +29,13 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await login({ email, password });
+      // ✅ FIX: Normalize email to lowercase before sending
+      const normalizedEmail = email.trim().toLowerCase();
+
+      console.log("📧 Original email:", email);
+      console.log("📧 Normalized email:", normalizedEmail);
+
+      const response = await login({ email: normalizedEmail, password });
       const data = response.data;
 
       console.log("🔍 Login Response:", data);
@@ -60,7 +66,6 @@ function Login() {
       } else {
         navigate("/");
       }
-
     } catch (error) {
       console.error("❌ Login Error:", error);
 
@@ -82,7 +87,8 @@ function Login() {
         if (status === 403) {
           errorTitle = "Account Inactive ⛔";
           if (errorMessage.includes("inactive") || errorMessage.includes("deleted")) {
-            errorMessage = "Your account has been deactivated or deleted. Please contact the administrator.";
+            errorMessage =
+              "Your account has been deactivated or deleted. Please contact the administrator.";
             localStorage.clear();
           }
         } else if (status === 401) {
@@ -94,7 +100,8 @@ function Login() {
         }
       } else if (error.request) {
         errorTitle = "Network Error 🌐";
-        errorMessage = "Unable to connect to the server. Please check your internet connection.";
+        errorMessage =
+          "Unable to connect to the server. Please check your internet connection.";
       }
 
       Swal.fire({
@@ -119,14 +126,32 @@ function Login() {
         <div className="login-logo">
           <span className="logo-icon">
             <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <circle cx="18" cy="18" r="18" fill="#4a7fb5"/>
-              <path d="M9 24 Q11 13 18 11 Q25 13 27 24" stroke="#f5c842" strokeWidth="3" fill="none" strokeLinecap="round"/>
-              <circle cx="18" cy="11" r="3.5" fill="#3abf94"/>
-              <path d="M15 18 L21 18" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M18 15 L18 21" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="18" cy="18" r="18" fill="#4a7fb5" />
+              <path
+                d="M9 24 Q11 13 18 11 Q25 13 27 24"
+                stroke="#f5c842"
+                strokeWidth="3"
+                fill="none"
+                strokeLinecap="round"
+              />
+              <circle cx="18" cy="11" r="3.5" fill="#3abf94" />
+              <path
+                d="M15 18 L21 18"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M18 15 L18 21"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </span>
-          <span className="logo-text">Info<span>campus</span></span>
+          <span className="logo-text">
+            Info<span>campus</span>
+          </span>
         </div>
 
         <h2 className="login-heading">Welcome back</h2>
