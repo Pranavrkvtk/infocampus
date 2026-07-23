@@ -63,6 +63,22 @@ export const getHomeVideo = async () => {
 };
 
 /**
+ * ✅ NEW: Get home images (public)
+ * GET /api/public/home-images
+ * No authentication required
+ */
+export const getPublicHomeImages = async () => {
+  try {
+    const response = await api.get("/public/home-images");
+    console.log('📸 Public home images:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching public home images:', error);
+    return { success: false, images: [], count: 0 };
+  }
+};
+
+/**
  * Get subtopic images (public)
  */
 export const getPublicSubtopicImages = async (subtopicId) => {
@@ -926,6 +942,7 @@ const userApi = {
   getPublicCourseById,
   getPublicCourseData,
   getHomeVideo,
+  getPublicHomeImages, // ✅ NEW: Public home images
   getPublicSubtopicImages,
   
   // Course Page Settings (NEW)

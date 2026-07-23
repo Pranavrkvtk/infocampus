@@ -8,6 +8,7 @@ import {
   getSubtopicImages,
   getPublicCourses,
   getCoursePageSettings,
+  getPublicHomeImages,
 } from '../api/UserApi';
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
@@ -236,9 +237,7 @@ const resolveImageUrl = (imageUrl) => {
 // ─── Helper: Clean Hero Text ──────────────────────────────────────────
 const cleanHeroText = (text) => {
   if (!text) return '';
-  // Remove extra whitespace and duplicate sentences
   const cleaned = text.replace(/\s+/g, ' ').trim();
-  // Split by sentence endings and get unique sentences
   const sentences = cleaned.split(/(?<=[.!?])\s+/);
   const uniqueSentences = [];
   const seen = new Set();
@@ -258,6 +257,11 @@ function MyCoursesPage() {
   // ─── State ──────────────────────────────────────────────────────────
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  
+  // ─── Home Images State ──────────────────────────────────────────────
+  const [homeImages, setHomeImages] = useState([]);
+  const [loadingHomeImages, setLoadingHomeImages] = useState(false);
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
   
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -287,6 +291,45 @@ function MyCoursesPage() {
   const isSmallDesktop = window.innerWidth >= 1024 && window.innerWidth < 1280;
 
   const isLoggedIn = !!localStorage.getItem('token');
+
+  // ─── LOAD HOME IMAGES ──────────────────────────────────────────────
+  const loadHomeImages = useCallback(async () => {
+    try {
+      setLoadingHomeImages(true);
+      const data = await getPublicHomeImages();
+      console.log('📸 Home images loaded:', data);
+      
+      if (data && data.success && data.images) {
+        setHomeImages(data.images);
+      } else if (Array.isArray(data)) {
+        setHomeImages(data);
+      } else {
+        setHomeImages([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading home images:', error);
+      setHomeImages([]);
+    } finally {
+      setLoadingHomeImages(false);
+    }
+  }, []);
+
+  // ─── Auto-rotate hero images ──────────────────────────────────────
+  useEffect(() => {
+    if (homeImages.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setHeroImageIndex((prev) => (prev + 1) % homeImages.length);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [homeImages.length]);
+
+  // ─── Get home image URL ────────────────────────────────────────────
+  const getHomeImageUrl = useCallback((image) => {
+    if (!image?.imageUrl) return null;
+    return resolveImageUrl(image.imageUrl);
+  }, []);
 
   // ─── LOAD SETTINGS FROM API ──────────────────────────────────────
   const loadSettings = useCallback(async () => {
@@ -735,7 +778,8 @@ function MyCoursesPage() {
   // ─── Load settings on mount ──────────────────────────────────────
   useEffect(() => {
     loadSettings();
-  }, [loadSettings]);
+    loadHomeImages();
+  }, [loadSettings, loadHomeImages]);
 
   useEffect(() => {
     fetchAllCourses();
@@ -892,9 +936,13 @@ function MyCoursesPage() {
     );
   };
 
+  // ─── Get current hero image ──────────────────────────────────────────
+  const currentHeroImage = homeImages.length > 0 
+    ? getHomeImageUrl(homeImages[heroImageIndex]) 
+    : null;
+
   // ─── Styles ──────────────────────────────────────────────────────
   const styles = {
-    // Main container - fixed position to cover full viewport
     page: { 
       position: "fixed",
       inset: 0,
@@ -908,7 +956,6 @@ function MyCoursesPage() {
       padding: 0,
     },
 
-    // Top bar - fixed at top, not scrollable
     topBar: {
       height: isMobile ? '28px' : '32px',
       background: TOPBAR.bgGradient,
@@ -946,7 +993,6 @@ function MyCoursesPage() {
       borderRadius: 0,
     },
 
-    // Scrollable content area
     scrollableContent: {
       flex: 1,
       overflowY: 'auto',
@@ -955,7 +1001,7 @@ function MyCoursesPage() {
       margin: 0,
     },
 
-    // ─── UPDATED HERO STYLES ───────────────────────────────────────
+    // ─── HERO WITH IMAGE ON RIGHT ───────────────────────────────────
     hero: { 
       position: 'relative', 
       overflow: 'hidden', 
@@ -964,12 +1010,14 @@ function MyCoursesPage() {
       color: '#fff',
       display: 'flex',
       alignItems: 'center',
-      minHeight: isMobile ? 'auto' : '320px',
+      justifyContent: 'space-between',
+      minHeight: isMobile ? 'auto' : '340px',
+      gap: '40px',
     },
-    heroInner: { 
-      width: '100%',
-      maxWidth: '900px',  // Increased from 680px
+    heroContent: {
       flex: 1,
+      maxWidth: currentHeroImage ? '700px' : '100%',
+      zIndex: 2,
     },
     heroEyebrow: { 
       fontSize: '12px', 
@@ -987,10 +1035,10 @@ function MyCoursesPage() {
       marginBottom: '14px' 
     },
     heroText: { 
-      fontSize: isMobile ? '14px' : '17px', 
-      lineHeight: 1.9, 
+      fontSize: isMobile ? '14px' : '16px', 
+      lineHeight: 1.8, 
       opacity: 0.88, 
-      maxWidth: '800px',  // Increased from 480px
+      maxWidth: '600px',
       width: '100%',
       marginBottom: '28px' 
     },
@@ -1008,6 +1056,61 @@ function MyCoursesPage() {
       alignItems: 'center',
       gap: '8px',
       transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
+    },
+    // ─── Hero Image Card ────────────────────────────────────────────
+// ─── Hero Image Card ────────────────────────────────────────────
+heroImageCard: {
+  flex: '0 0 520px',
+  maxWidth: '520px',
+  width: '100%',
+  height: isMobile ? '240px' : '360px',
+  borderRadius: '20px',
+  overflow: 'hidden',
+  boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+  border: '1px solid rgba(255,255,255,0.15)',
+  position: 'relative',
+  zIndex: 2,
+  background: '#ffffff',
+},
+heroImage: {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  objectPosition: 'left center',
+  display: 'block',
+  transition: 'opacity 1s ease-in-out',
+},
+    heroImage: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      transition: 'opacity 1s ease-in-out',
+    },
+    heroImageIndicator: {
+      position: 'absolute',
+      bottom: '12px',
+      right: '16px',
+      display: 'flex',
+      gap: '6px',
+      alignItems: 'center',
+      background: 'rgba(0,0,0,0.5)',
+      backdropFilter: 'blur(8px)',
+      padding: '4px 12px',
+      borderRadius: '16px',
+      zIndex: 3,
+    },
+    heroImageDot: (active) => ({
+      width: '8px',
+      height: '8px',
+      borderRadius: '50%',
+      background: active ? '#ffffff' : 'rgba(255,255,255,0.4)',
+      transition: 'all 0.3s ease',
+      cursor: 'pointer',
+    }),
+    heroImageCounter: {
+      fontSize: '10px',
+      color: 'rgba(255,255,255,0.7)',
+      marginLeft: '4px',
     },
 
     sectionBar: { 
@@ -1321,12 +1424,11 @@ function MyCoursesPage() {
     return cat.charAt(0).toUpperCase() + cat.slice(1);
   };
 
-  // Clean the hero text before rendering
   const cleanedHeroText = cleanHeroText(config.heroText);
 
   return (
     <div style={styles.page}>
-      {/* ─── TOP NAVIGATION BAR - FIXED AT TOP ────────────────────── */}
+      {/* ─── TOP NAVIGATION BAR ────────────────────────────────────── */}
       <div style={styles.topBar}>
         <div style={styles.topBarRight}>
           <button
@@ -1386,9 +1488,9 @@ function MyCoursesPage() {
 
       {/* ─── SCROLLABLE CONTENT ────────────────────────────────────── */}
       <div style={styles.scrollableContent}>
-        {/* Hero Section - UPDATED with cleaned text */}
+        {/* Hero Section - WITH IMAGE ON RIGHT (Conditional) */}
         <div style={styles.hero}>
-          <div style={styles.heroInner}>
+          <div style={styles.heroContent}>
             <div style={styles.heroEyebrow}>{config.heroEyebrow}</div>
             <h1 style={styles.heroTitle}>{config.heroTitle}</h1>
             <p style={styles.heroText}>
@@ -1412,6 +1514,37 @@ function MyCoursesPage() {
               {config.heroButtonText}
             </button>
           </div>
+
+          {/* ─── HOME IMAGE ON RIGHT SIDE - CONDITIONAL RENDERING ───────────── */}
+          {currentHeroImage && (
+            <div style={styles.heroImageCard}>
+              <img 
+                src={currentHeroImage} 
+                alt="Home page banner"
+                style={styles.heroImage}
+                onError={(e) => {
+                  e.target.src = FALLBACK_IMAGE;
+                }}
+              />
+              {homeImages.length > 1 && (
+                <div style={styles.heroImageIndicator}>
+                  {homeImages.map((_, index) => (
+                    <div
+                      key={index}
+                      style={styles.heroImageDot(index === heroImageIndex)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHeroImageIndex(index);
+                      }}
+                    />
+                  ))}
+                  <span style={styles.heroImageCounter}>
+                    {heroImageIndex + 1}/{homeImages.length}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Section Bar */}

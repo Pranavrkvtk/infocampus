@@ -34,7 +34,7 @@ export const getDashboardStats = () => {
 
 // Get all courses for admin (with full details)
 export const getAdminCourses = () => {
-  return api.get("/admin/courses/all");
+  return api.get("/admin/courses");
 };
 
 // Get course by ID for admin
@@ -791,6 +791,172 @@ export const updateHomeVideoUrl = (videoUrl) => {
   return api.patch("/admin/home-video", { videoUrl });
 };
 
+// ==================== HOME IMAGE MANAGEMENT APIs ====================
+
+/**
+ * Get all home images (Admin)
+ * GET /api/admin/home-images
+ */
+export const getHomeImages = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.get('/admin/home-images', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching home images:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get home image by ID (Admin)
+ * GET /api/admin/home-images/{id}
+ */
+export const getHomeImageById = async (id) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.get(`/admin/home-images/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching home image:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new home image (Admin)
+ * POST /api/admin/home-images
+ * @param {Object} imageData - { imageUrl: string }
+ */
+export const createHomeImage = async (imageData) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.post('/admin/home-images', imageData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating home image:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload a home image file (Admin)
+ * POST /api/admin/home-images/upload
+ * @param {File} file - The image file to upload
+ * @param {Function} onUploadProgress - Optional progress callback
+ */
+export const uploadHomeImage = async (file, onUploadProgress) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/admin/home-images/upload', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: onUploadProgress,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading home image:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update a home image (Admin)
+ * PUT /api/admin/home-images/{id}
+ * @param {number|string} id - The image ID
+ * @param {Object} imageData - { imageUrl: string }
+ */
+export const updateHomeImage = async (id, imageData) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.put(`/admin/home-images/${id}`, imageData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating home image:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a home image (Admin)
+ * DELETE /api/admin/home-images/{id}
+ */
+export const deleteHomeImage = async (id) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.delete(`/admin/home-images/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting home image:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get public home images (No authentication required)
+ * GET /api/public/home-images
+ */
+export const getPublicHomeImages = async () => {
+  try {
+    const response = await api.get('/api/public/home-images');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching public home images:', error);
+    throw error;
+  }
+};
+
 // ==================== STATISTICS APIs ====================
 
 // Get lab completion statistics
@@ -1102,6 +1268,15 @@ const adminApi = {
   uploadHomeVideo,
   deleteHomeVideo,
   updateHomeVideoUrl,
+  
+  // Home Image Management
+  getHomeImages,
+  getHomeImageById,
+  createHomeImage,
+  uploadHomeImage,
+  updateHomeImage,
+  deleteHomeImage,
+  getPublicHomeImages,
   
   // Statistics
   getLabCompletionStats,

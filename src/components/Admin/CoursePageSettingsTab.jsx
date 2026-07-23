@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import {
-  getAdminCoursePageSettings,
+  getCoursePageSettings as getAdminCoursePageSettings,
   updateCoursePageSettings,
   initializeCoursePageSettings,
-} from '../../api/UserApi';
+} from '../../api/adminApi';
+import { getAdminCourses } from '../../api/adminApi';
 import { colors, LoadingSpinner } from './AdminStyles';
 
 // ─── Material UI Icons ──────────────────────────────────────────────
@@ -33,6 +34,13 @@ import ViewAgendaIcon from '@mui/icons-material/ViewAgenda';
 import ViewCompactIcon from '@mui/icons-material/ViewCompact';
 import ViewDayIcon from '@mui/icons-material/ViewDay';
 import ViewWeekIcon from '@mui/icons-material/ViewWeek';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ImageIcon from '@mui/icons-material/Image';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
+import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
+import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
 
 // ─── Hero Button Icons ──────────────────────────────────────────────
 import WhatshotIcon from '@mui/icons-material/Whatshot';
@@ -115,6 +123,10 @@ const DEFAULT_SETTINGS = {
   viewBtnBorder: "#714B67",
   continueBtnBg: "#714B67",
   continueBtnText: "#ffffff",
+  // ─── Alignment Settings ──────────────────────────────────────────────
+  heroAlignment: "left",
+  heroCardAlignment: "right",
+  heroTextAlign: "left",
 };
 
 function CoursePageSettingsTab() {
@@ -124,6 +136,10 @@ function CoursePageSettingsTab() {
   const [originalSettings, setOriginalSettings] = useState(DEFAULT_SETTINGS);
   const [hasChanges, setHasChanges] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+
+  // ─── Real courses from API ──────────────────────────────────────
+  const [realCourses, setRealCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
 
   const parseSettingsFromApi = (apiData) => {
     if (!apiData) return DEFAULT_SETTINGS;
@@ -175,6 +191,10 @@ function CoursePageSettingsTab() {
       viewBtnBorder: data.viewBtnBorder || DEFAULT_SETTINGS.viewBtnBorder,
       continueBtnBg: data.continueBtnBg || DEFAULT_SETTINGS.continueBtnBg,
       continueBtnText: data.continueBtnText || DEFAULT_SETTINGS.continueBtnText,
+      // ─── Alignment Settings ──────────────────────────────────────────────
+      heroAlignment: data.heroAlignment || DEFAULT_SETTINGS.heroAlignment,
+      heroCardAlignment: data.heroCardAlignment || DEFAULT_SETTINGS.heroCardAlignment,
+      heroTextAlign: data.heroTextAlign || DEFAULT_SETTINGS.heroTextAlign,
     };
   };
 
@@ -226,7 +246,48 @@ function CoursePageSettingsTab() {
       viewBtnBorder: settingsData.viewBtnBorder,
       continueBtnBg: settingsData.continueBtnBg,
       continueBtnText: settingsData.continueBtnText,
+      // ─── Alignment Settings ──────────────────────────────────────────────
+      heroAlignment: settingsData.heroAlignment,
+      heroCardAlignment: settingsData.heroCardAlignment,
+      heroTextAlign: settingsData.heroTextAlign,
     };
+  };
+
+  // ─── Load real courses from API ──────────────────────────────────
+  const loadRealCourses = async () => {
+    try {
+      setLoadingCourses(true);
+      const response = await getAdminCourses();
+      console.log('📚 Real courses loaded:', response.data);
+
+      // Handle different response formats
+      let courses = [];
+      if (response.data && Array.isArray(response.data)) {
+        courses = response.data;
+      } else if (response.data && response.data.content && Array.isArray(response.data.content)) {
+        courses = response.data.content;
+      } else if (response.data && response.data.courses && Array.isArray(response.data.courses)) {
+        courses = response.data.courses;
+      } else if (Array.isArray(response)) {
+        courses = response;
+      } else if (response.data && typeof response.data === 'object') {
+        // Try to find array in response
+        for (const key of ['data', 'items', 'results', 'list']) {
+          if (response.data[key] && Array.isArray(response.data[key])) {
+            courses = response.data[key];
+            break;
+          }
+        }
+      }
+
+      setRealCourses(courses);
+      console.log('✅ Set real courses:', courses.length);
+    } catch (error) {
+      console.error('Error loading real courses:', error);
+      setRealCourses([]);
+    } finally {
+      setLoadingCourses(false);
+    }
   };
 
   const loadSettings = async () => {
@@ -329,7 +390,7 @@ function CoursePageSettingsTab() {
 
     const jsonFields = ['trackIcons', 'trackColors'];
     const invalidFields = jsonFields.filter(f => !isValidJson(settings[f]));
-    
+
     if (invalidFields.length > 0) {
       Swal.fire({
         icon: 'error',
@@ -384,6 +445,7 @@ function CoursePageSettingsTab() {
 
   useEffect(() => {
     loadSettings();
+    loadRealCourses();
   }, []);
 
   if (loading) {
@@ -418,14 +480,7 @@ function CoursePageSettingsTab() {
     return option ? option.label : 'Grid View';
   };
 
-  // ─── Sample courses for preview ──────────────────────────────────
-  const sampleCourses = [
-    { id: 1, title: 'CCNA Routing & Switching', level: 'Intermediate', duration: '6 weeks', track: 'ccna' },
-    { id: 2, title: 'CCNP Enterprise', level: 'Advanced', duration: '8 weeks', track: 'ccnp' },
-    { id: 3, title: 'CCIE Security', level: 'Expert', duration: '12 weeks', track: 'ccie' },
-    { id: 4, title: 'Cyber Security Fundamentals', level: 'Beginner', duration: '4 weeks', track: 'security' },
-  ];
-
+  // ─── Get track icon for course ──────────────────────────────────
   const getTrackInfo = (track) => {
     const icon = trackIcons[track] || trackIcons.default || '📄';
     return { icon };
@@ -454,12 +509,49 @@ function CoursePageSettingsTab() {
     </div>
   );
 
+  // ─── Get image URL helper ────────────────────────────────────────
+  const getCourseImageUrl = (course) => {
+    if (course.imageUrl) {
+      return course.imageUrl.startsWith('http')
+        ? course.imageUrl
+        : `${process.env.REACT_APP_API_URL || 'http://localhost:8082'}/${course.imageUrl}`;
+    }
+    return null;
+  };
+
+  // ─── Use real courses for preview, fallback to sample if none ──
+  const previewCourses = realCourses.length > 0 ? realCourses : [
+    { id: 1, title: 'CCNA Routing & Switching', level: 'Intermediate', duration: '6 weeks', track: 'ccna' },
+    { id: 2, title: 'CCNP Enterprise', level: 'Advanced', duration: '8 weeks', track: 'ccnp' },
+    { id: 3, title: 'CCIE Security', level: 'Expert', duration: '12 weeks', track: 'ccie' },
+    { id: 4, title: 'Cyber Security Fundamentals', level: 'Beginner', duration: '4 weeks', track: 'security' },
+  ];
+
+  // ─── Alignment Button Helper ─────────────────────────────────────
+  const AlignmentButton = ({ value, current, icon, label, onChange }) => (
+    <button
+      style={{
+        ...styles.alignmentBtn,
+        background: current === value ? '#4f46e5' : '#f1f5f9',
+        color: current === value ? '#ffffff' : '#64748b',
+        borderColor: current === value ? '#4f46e5' : '#e4e7ec',
+      }}
+      onClick={() => onChange(value)}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+
   return (
     <div style={styles.container}>
       {/* Header Actions */}
       <div style={styles.headerActions}>
         <span style={styles.status}>
           {hasChanges ? '⚠️ Unsaved changes' : '✅ All saved'}
+        </span>
+        <span style={styles.courseCount}>
+          📚 {realCourses.length} courses loaded
         </span>
         <button onClick={() => setShowPreview(!showPreview)} style={styles.previewToggleBtn}>
           {showPreview ? (
@@ -486,40 +578,89 @@ function CoursePageSettingsTab() {
           <div style={styles.previewHeader}>
             <span style={styles.previewTitle}>📄 Full Page Preview</span>
             <span style={styles.previewBadge}>Real-time</span>
+            <span style={styles.previewCourseCount}>
+              {realCourses.length > 0 ? `✅ ${realCourses.length} real courses` : '⚠️ Using sample data'}
+            </span>
           </div>
 
-          {/* Hero Section - NO DECOR ICON */}
+          {/* Hero Section - NOW SUPPORTS ALL ALIGNMENT OPTIONS */}
           <div style={{
             ...styles.previewHero,
-            background: `linear-gradient(135deg, ${settings.heroBgStart || '#3B2340'} 0%, ${settings.heroBgMid || '#5B3A63'} 55%, ${settings.heroBgEnd || '#83698A'} 100%)`
+            background: `linear-gradient(135deg, ${settings.heroBgStart || '#3B2340'} 0%, ${settings.heroBgMid || '#5B3A63'} 55%, ${settings.heroBgEnd || '#83698A'} 100%)`,
+            justifyContent: settings.heroAlignment === 'center' ? 'center' :
+                           settings.heroAlignment === 'right' ? 'flex-end' : 'space-between',
           }}>
-            <div style={styles.previewHeroInner}>
-              <div style={styles.previewEyebrow}>{settings.heroEyebrow}</div>
-              <h2 style={styles.previewTitleText}>{settings.heroTitle}</h2>
-              <p style={styles.previewHeroText}>{settings.heroText}</p>
+            <div style={{
+              ...styles.previewHeroInner,
+              textAlign: settings.heroTextAlign || 'left',
+              alignItems: settings.heroTextAlign === 'center' ? 'center' :
+                         settings.heroTextAlign === 'right' ? 'flex-end' : 'flex-start',
+              maxWidth: settings.heroAlignment === 'center' ? '800px' : '600px',
+              margin: settings.heroAlignment === 'center' ? '0 auto' : '0',
+            }}>
+              <div style={{
+                ...styles.previewEyebrow,
+                textAlign: settings.heroTextAlign || 'left',
+                width: '100%',
+              }}>{settings.heroEyebrow}</div>
+              <h2 style={{
+                ...styles.previewTitleText,
+                textAlign: settings.heroTextAlign || 'left',
+                width: '100%',
+              }}>{settings.heroTitle}</h2>
+              <p style={{
+                ...styles.previewHeroText,
+                textAlign: settings.heroTextAlign || 'left',
+                maxWidth: settings.heroAlignment === 'center' ? '100%' : '580px',
+                margin: settings.heroTextAlign === 'center' ? '0 auto 14px' : 
+                        settings.heroTextAlign === 'right' ? '0 0 14px auto' : '0 0 14px 0',
+              }}>{settings.heroText}</p>
               <div style={{
                 ...styles.previewHeroBtn,
                 background: settings.heroBtnBg || '#4f46e5',
                 color: settings.heroBtnTextColor || '#ffffff',
+                alignSelf: settings.heroTextAlign === 'center' ? 'center' :
+                           settings.heroTextAlign === 'right' ? 'flex-end' : 'flex-start',
               }}>
                 {getHeroIconPreview()}
                 <span style={{ marginLeft: '6px' }}>{settings.heroButtonText}</span>
               </div>
             </div>
-            {/* ✅ HERO DECOR REMOVED */}
+            {/* Hero Card - Hidden when centered, position controlled by heroCardAlignment */}
+            {settings.heroAlignment !== 'center' && previewCourses.length > 0 && (
+              <div style={{
+                ...styles.previewHeroCard,
+                order: settings.heroCardAlignment === 'left' ? -1 : 1,
+                flexShrink: 0,
+              }}>
+                <div style={{
+                  ...styles.previewHeroCardImage,
+                  backgroundImage: previewCourses[0].imageUrl ? `url(${getCourseImageUrl(previewCourses[0])})` : 'linear-gradient(135deg, #e8ecf0 0%, #d5dadd 100%)',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}>
+                  <span style={styles.previewHeroCardBadge}>⭐ Featured</span>
+                </div>
+                <div style={styles.previewHeroCardContent}>
+                  <div style={styles.previewHeroCardTitle}>{previewCourses[0].title || 'Course'}</div>
+                  <div style={styles.previewHeroCardMeta}>
+                    <span>{previewCourses[0].duration || 'Self-paced'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Section Bar - WITH DYNAMIC SECTION ICON */}
+          {/* Section Bar */}
           <div style={styles.previewSectionBar}>
             <div style={styles.previewSectionTitle}>
-              {/* ✅ DYNAMIC SECTION ICON with color from settings */}
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {React.cloneElement(getSectionIconPreview(), { 
-                  style: { fontSize: '20px', color: settings.iconColor || '#714B67' } 
+                {React.cloneElement(getSectionIconPreview(), {
+                  style: { fontSize: '20px', color: settings.iconColor || '#714B67' }
                 })}
                 <span style={{ marginLeft: '8px' }}>{settings.sectionTitleAll}</span>
               </span>
-              <span style={styles.previewCount}>4</span>
+              <span style={styles.previewCount}>{previewCourses.length}</span>
               <span style={styles.previewIconLabel}>({getSectionIconName()})</span>
             </div>
             <div style={styles.previewSearchWrap}>
@@ -548,20 +689,25 @@ function CoursePageSettingsTab() {
 
           {/* Course Grid */}
           <div style={styles.previewGrid}>
-            {sampleCourses.map((course) => {
-              const trackInfo = getTrackInfo(course.track);
+            {previewCourses.slice(0, 8).map((course) => {
+              const trackInfo = getTrackInfo(course.track || 'default');
+              const imageUrl = getCourseImageUrl(course);
               return (
                 <div key={course.id} style={styles.previewCard}>
-                  <div style={styles.previewCardImage}>
+                  <div style={{
+                    ...styles.previewCardImage,
+                    backgroundImage: imageUrl ? `url(${imageUrl})` : 'linear-gradient(135deg, #e8ecf0 0%, #d5dadd 100%)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}>
                     <div style={styles.previewCardBadge}>
-                      <span>{trackInfo.icon}</span> {course.level}
+                      <span>{trackInfo.icon}</span>
                     </div>
                   </div>
                   <div style={styles.previewCardBody}>
                     <div style={styles.previewCardTitle}>{course.title}</div>
                     <div style={styles.previewCardMeta}>
-                      <span><AccessTimeIcon style={{ fontSize: '12px' }} /> {course.duration}</span>
-                      <span><EmojiEventsIcon style={{ fontSize: '12px' }} /> {course.level}</span>
+                      <span><AccessTimeIcon style={{ fontSize: '12px' }} /> {course.duration || 'Self-paced'}</span>
                     </div>
                   </div>
                   <div style={styles.previewCardFooter}>
@@ -593,7 +739,7 @@ function CoursePageSettingsTab() {
           <h3 style={styles.sectionTitle}>
             <TextFieldsIcon style={styles.sectionIcon} /> Hero Section
           </h3>
-          
+
           <div style={styles.field}>
             <label style={styles.label}>Eyebrow Text</label>
             <input
@@ -638,7 +784,7 @@ function CoursePageSettingsTab() {
             />
           </div>
 
-          {/* ✅ HERO BUTTON ICON PICKER */}
+          {/* HERO BUTTON ICON PICKER */}
           <div style={styles.field}>
             <label style={styles.label}>Hero Button Icon</label>
             <div style={styles.selectWrapper}>
@@ -657,13 +803,12 @@ function CoursePageSettingsTab() {
                 Icon shown inside the hero "Pick a course" button
               </span>
             </div>
-            {/* Hero Icon Preview */}
             <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '13px', color: '#64748b' }}>Preview:</span>
               {HERO_BUTTON_ICON_OPTIONS.find(o => o.value === settings.heroButtonIcon)?.icon && (
-                <span style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   gap: '6px',
                   padding: '4px 12px',
                   background: '#f1f5f9',
@@ -679,9 +824,7 @@ function CoursePageSettingsTab() {
             </div>
           </div>
 
-          {/* ✅ HERO DECOR ICON FIELD REMOVED */}
-
-          {/* ─── Section Icon Picker WITH PREVIEW ─────────────────── */}
+          {/* ─── Section Icon Picker ─────────────────────────────────── */}
           <div style={styles.field}>
             <label style={styles.label}>Section Icon</label>
             <div style={styles.selectWrapper}>
@@ -700,12 +843,11 @@ function CoursePageSettingsTab() {
                 This icon appears next to "All Courses" / "My Courses" title
               </span>
             </div>
-            
-            {/* ✅ SECTION ICON PREVIEW */}
-            <div style={{ 
-              marginTop: '8px', 
-              display: 'flex', 
-              alignItems: 'center', 
+
+            <div style={{
+              marginTop: '8px',
+              display: 'flex',
+              alignItems: 'center',
               gap: '12px',
               padding: '10px 14px',
               background: '#f8fafc',
@@ -716,20 +858,20 @@ function CoursePageSettingsTab() {
               <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>
                 Preview:
               </span>
-              <span style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
                 gap: '8px',
                 padding: '6px 14px',
                 background: '#ffffff',
                 borderRadius: '6px',
                 border: '1px solid #e4e7ec',
               }}>
-                {React.cloneElement(getSectionIconPreview(), { 
-                  style: { fontSize: '28px', color: settings.iconColor || '#714B67' } 
+                {React.cloneElement(getSectionIconPreview(), {
+                  style: { fontSize: '28px', color: settings.iconColor || '#714B67' }
                 })}
-                <span style={{ 
-                  fontSize: '13px', 
+                <span style={{
+                  fontSize: '13px',
                   color: '#0f172a',
                   fontWeight: 500,
                   marginLeft: '4px',
@@ -737,20 +879,20 @@ function CoursePageSettingsTab() {
                   {getSectionIconLabel()}
                 </span>
               </span>
-              <span style={{ 
-                fontSize: '11px', 
+              <span style={{
+                fontSize: '11px',
                 color: '#94a3b8',
                 fontStyle: 'italic',
               }}>
                 (Color: {settings.iconColor || '#714B67'})
               </span>
             </div>
-            
+
             {/* Color picker for icon color */}
-            <div style={{ 
-              marginTop: '8px', 
-              display: 'flex', 
-              alignItems: 'center', 
+            <div style={{
+              marginTop: '8px',
+              display: 'flex',
+              alignItems: 'center',
               gap: '10px',
               flexWrap: 'wrap',
             }}>
@@ -785,13 +927,91 @@ function CoursePageSettingsTab() {
                   color: '#0f172a',
                 }}
               />
-              <span style={{ 
-                fontSize: '11px', 
-                color: '#94a3b8',
-              }}>
-                (Changes icon color in preview)
-              </span>
             </div>
+          </div>
+
+          {/* ─── HERO ALIGNMENT CONTROLS ─────────────────────────────── */}
+          <div style={styles.alignmentSection}>
+            <label style={styles.label}>Hero Content Alignment</label>
+            <div style={styles.alignmentOptions}>
+              <AlignmentButton
+                value="left"
+                current={settings.heroAlignment}
+                icon={<FormatAlignLeftIcon style={{ fontSize: '16px' }} />}
+                label="Left"
+                onChange={(val) => handleChange('heroAlignment', val)}
+              />
+              <AlignmentButton
+                value="center"
+                current={settings.heroAlignment}
+                icon={<FormatAlignCenterIcon style={{ fontSize: '16px' }} />}
+                label="Center"
+                onChange={(val) => handleChange('heroAlignment', val)}
+              />
+              <AlignmentButton
+                value="right"
+                current={settings.heroAlignment}
+                icon={<FormatAlignRightIcon style={{ fontSize: '16px' }} />}
+                label="Right"
+                onChange={(val) => handleChange('heroAlignment', val)}
+              />
+            </div>
+            <span style={styles.selectHint}>
+              Controls the alignment of hero text and button (card hides when centered)
+            </span>
+          </div>
+
+          <div style={styles.alignmentSection}>
+            <label style={styles.label}>Hero Card Position</label>
+            <div style={styles.alignmentOptions}>
+              <AlignmentButton
+                value="left"
+                current={settings.heroCardAlignment}
+                icon={<span style={{ fontSize: '16px' }}>◀</span>}
+                label="Left"
+                onChange={(val) => handleChange('heroCardAlignment', val)}
+              />
+              <AlignmentButton
+                value="right"
+                current={settings.heroCardAlignment}
+                icon={<span style={{ fontSize: '16px' }}>▶</span>}
+                label="Right"
+                onChange={(val) => handleChange('heroCardAlignment', val)}
+              />
+            </div>
+            <span style={styles.selectHint}>
+              Position of the course card relative to hero text (hidden when centered)
+            </span>
+          </div>
+
+          <div style={styles.alignmentSection}>
+            <label style={styles.label}>Hero Text Alignment</label>
+            <div style={styles.alignmentOptions}>
+              <AlignmentButton
+                value="left"
+                current={settings.heroTextAlign}
+                icon={<FormatAlignLeftIcon style={{ fontSize: '16px' }} />}
+                label="Left"
+                onChange={(val) => handleChange('heroTextAlign', val)}
+              />
+              <AlignmentButton
+                value="center"
+                current={settings.heroTextAlign}
+                icon={<FormatAlignCenterIcon style={{ fontSize: '16px' }} />}
+                label="Center"
+                onChange={(val) => handleChange('heroTextAlign', val)}
+              />
+              <AlignmentButton
+                value="right"
+                current={settings.heroTextAlign}
+                icon={<FormatAlignRightIcon style={{ fontSize: '16px' }} />}
+                label="Right"
+                onChange={(val) => handleChange('heroTextAlign', val)}
+              />
+            </div>
+            <span style={styles.selectHint}>
+              Controls the text alignment within the hero section
+            </span>
           </div>
         </div>
 
@@ -1210,7 +1430,7 @@ function CoursePageSettingsTab() {
                 fontSize: '13px',
                 cursor: 'default',
               }}>
-               View Details
+                View Details
               </button>
               <button style={{
                 background: settings.continueBtnBg || '#714B67',
@@ -1509,6 +1729,14 @@ const styles = {
     color: '#64748b',
     marginRight: 'auto',
   },
+  courseCount: {
+    fontSize: '13px',
+    fontWeight: 500,
+    padding: '4px 12px',
+    borderRadius: '16px',
+    background: '#dbeafe',
+    color: '#1e40af',
+  },
   previewToggleBtn: {
     display: 'flex',
     alignItems: 'center',
@@ -1723,8 +1951,6 @@ const styles = {
     borderTop: '1px solid #f1f5f9',
     margin: '14px 0',
   },
-
-  // ─── Section Icon Select Styles ────────────────────────────────
   selectWrapper: {
     position: 'relative',
   },
@@ -1757,6 +1983,33 @@ const styles = {
     fontWeight: 400,
   },
 
+  // ─── Alignment Styles ────────────────────────────────────────────
+  alignmentSection: {
+    marginBottom: '14px',
+  },
+  alignmentOptions: {
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap',
+    marginTop: '4px',
+  },
+  alignmentBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '6px 12px',
+    border: '1px solid #e4e7ec',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    '&:hover': {
+      transform: 'scale(1.02)',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    },
+  },
+
   // ─── Preview Styles ────────────────────────────────────────────
   previewContainer: {
     marginBottom: '24px',
@@ -1772,6 +2025,8 @@ const styles = {
     padding: '12px 20px',
     background: '#f8fafc',
     borderBottom: '1px solid #e4e7ec',
+    flexWrap: 'wrap',
+    gap: '8px',
   },
   previewTitle: {
     fontSize: '14px',
@@ -1786,6 +2041,14 @@ const styles = {
     color: '#ffffff',
     borderRadius: '12px',
   },
+  previewCourseCount: {
+    fontSize: '11px',
+    fontWeight: 500,
+    padding: '2px 12px',
+    background: '#dbeafe',
+    color: '#1e40af',
+    borderRadius: '12px',
+  },
   previewHero: {
     position: 'relative',
     overflow: 'hidden',
@@ -1793,11 +2056,13 @@ const styles = {
     color: '#ffffff',
     display: 'flex',
     alignItems: 'center',
-    minHeight: '180px',
+    gap: '40px',
+    minHeight: '220px',
   },
   previewHeroInner: {
-    maxWidth: '100%',
     flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
   previewEyebrow: {
     fontSize: '12px',
@@ -1818,7 +2083,6 @@ const styles = {
     fontSize: '13px',
     lineHeight: 1.6,
     opacity: 0.88,
-    maxWidth: '480px',
     marginBottom: '14px',
   },
   previewHeroBtn: {
@@ -1831,6 +2095,58 @@ const styles = {
     fontSize: '13px',
     cursor: 'pointer',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  },
+  previewHeroCard: {
+    flex: '0 0 260px',
+    maxWidth: '260px',
+    background: 'rgba(255,255,255,0.12)',
+    backdropFilter: 'blur(20px)',
+    borderRadius: '16px',
+    padding: '12px',
+    border: '1px solid rgba(255,255,255,0.15)',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+  },
+  previewHeroCardImage: {
+    width: '100%',
+    height: '140px',
+    borderRadius: '10px',
+    position: 'relative',
+  },
+  previewHeroCardBadge: {
+    position: 'absolute',
+    top: '8px',
+    left: '8px',
+    background: 'rgba(0,0,0,0.6)',
+    color: '#fff',
+    padding: '2px 10px',
+    borderRadius: '10px',
+    fontSize: '10px',
+    fontWeight: 600,
+    backdropFilter: 'blur(4px)',
+  },
+  previewHeroCardContent: {
+    padding: '10px 4px 4px',
+  },
+  previewHeroCardTitle: {
+    fontSize: '14px',
+    fontWeight: 700,
+    marginBottom: '4px',
+    color: '#fff',
+  },
+  previewHeroCardMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  previewHeroCardLevel: {
+    background: 'rgba(255,255,255,0.2)',
+    padding: '2px 10px',
+    borderRadius: '10px',
+    fontSize: '10px',
+    fontWeight: 600,
+    color: '#fff',
   },
 
   // Section Bar
@@ -1924,7 +2240,6 @@ const styles = {
   },
   previewCardImage: {
     height: '100px',
-    background: 'linear-gradient(135deg, #e8ecf0 0%, #d5dadd 100%)',
     position: 'relative',
   },
   previewCardBadge: {

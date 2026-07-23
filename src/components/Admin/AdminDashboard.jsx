@@ -25,6 +25,7 @@ import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
 import CoursePageSettingsTab from "./CoursePageSettingsTab";
+import HomeImagesTab from "./HomeImagesTab"; // ✅ NEW
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -283,6 +284,7 @@ export default function AdminDashboard() {
           else if (activeTab === "courses") fetchCourses();
           else if (activeTab === "enrollments") fetchEnrollments();
           else if (activeTab === "page-settings") window.location.reload();
+          else if (activeTab === "home-images") window.location.reload();
           else fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
           Retry
@@ -298,6 +300,7 @@ export default function AdminDashboard() {
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
       case "page-settings": return <CoursePageSettingsTab />;
+      case "home-images": return <HomeImagesTab />; // ✅ NEW
       default: return null;
     }
   };
@@ -309,6 +312,7 @@ export default function AdminDashboard() {
     { icon: "📋", label: "Enrollments",    id: "enrollments"    },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
     { icon: "⚙️", label: "Page Settings",  id: "page-settings"  },
+    { icon: "🖼️", label: "Home Images",    id: "home-images"    }, // ✅ NEW
   ];
 
   const PAGE_TITLES = {
@@ -319,6 +323,7 @@ export default function AdminDashboard() {
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
     "page-settings": "Course Page Settings",
+    "home-images":   "Home Images Management", // ✅ NEW
   };
 
   const PAGE_SUBS = {
@@ -329,6 +334,7 @@ export default function AdminDashboard() {
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, exam questions, interview questions and labs ",
     "page-settings": "Customize hero section, colors, text, and more",
+    "home-images":   "Upload, manage, and organize home page slider images", // ✅ NEW
   };
 
   // ===================== SIDEBAR NAV ITEM =====================
