@@ -949,7 +949,7 @@ export const deleteHomeImage = async (id) => {
  */
 export const getPublicHomeImages = async () => {
   try {
-    const response = await api.get('/api/public/home-images');
+    const response = await api.get('/public/home-images');
     return response.data;
   } catch (error) {
     console.error('Error fetching public home images:', error);
@@ -1126,6 +1126,215 @@ export const initializeCoursePageSettings = async () => {
   }
 };
 
+// ==================== SITE SETTINGS MANAGEMENT APIs ====================
+
+/**
+ * Get site settings (Public - no authentication required)
+ * GET /api/site-settings
+ * @returns {Promise} - Returns the site settings
+ */
+export const getSiteSettings = async () => {
+  try {
+    const response = await api.get('/site-settings');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching site settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get site settings (Admin only)
+ * GET /api/admin/site-settings
+ * @returns {Promise} - Returns the site settings
+ */
+export const getAdminSiteSettings = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.get('/admin/site-settings', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching site settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update site settings (Admin only)
+ * PUT /api/admin/site-settings
+ * @param {Object} settings - The settings object to update
+ * @returns {Promise} - Returns the updated settings
+ */
+export const updateSiteSettings = async (settings) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.put('/admin/site-settings', settings, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating site settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Initialize site settings with defaults (Admin only)
+ * POST /api/admin/site-settings/initialize
+ * @returns {Promise} - Returns the initialized settings
+ */
+export const initializeSiteSettings = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const response = await api.post('/admin/site-settings/initialize', {}, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error initializing site settings:', error);
+    throw error;
+  }
+};
+
+// ==================== SITE SETTINGS FILE UPLOAD APIs ====================
+
+/**
+ * Upload site logo image (Admin only)
+ * POST /api/admin/site-settings/upload-logo
+ * @param {File} file - The image file to upload
+ * @returns {Promise} - Returns the uploaded file URL
+ */
+export const uploadSiteLogo = async (file) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/admin/site-settings/upload-logo', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading site logo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload favicon image (Admin only)
+ * POST /api/admin/site-settings/upload-favicon
+ * @param {File} file - The image file to upload
+ * @returns {Promise} - Returns the uploaded file URL
+ */
+export const uploadSiteFavicon = async (file) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/admin/site-settings/upload-favicon', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading favicon:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload Apple touch icon (Admin only)
+ * POST /api/admin/site-settings/upload-apple-icon
+ * @param {File} file - The image file to upload
+ * @returns {Promise} - Returns the uploaded file URL
+ */
+export const uploadSiteAppleIcon = async (file) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/admin/site-settings/upload-apple-icon', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading Apple icon:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload Open Graph image (Admin only)
+ * POST /api/admin/site-settings/upload-og-image
+ * @param {File} file - The image file to upload
+ * @returns {Promise} - Returns the uploaded file URL
+ */
+export const uploadSiteOgImage = async (file) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found. Please login again.');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/admin/site-settings/upload-og-image', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading OG image:', error);
+    throw error;
+  }
+};
+
 // ==================== AUTHENTICATION & UTILITY ====================
 
 // Check if user is admin
@@ -1297,6 +1506,16 @@ const adminApi = {
   getCoursePageSettings,
   updateCoursePageSettings,
   initializeCoursePageSettings,
+  
+  // Site Settings
+  getSiteSettings,
+  getAdminSiteSettings,
+  updateSiteSettings,
+  initializeSiteSettings,
+  uploadSiteLogo,
+  uploadSiteFavicon,
+  uploadSiteAppleIcon,
+  uploadSiteOgImage,
   
   // Utility
   checkAdminRole,

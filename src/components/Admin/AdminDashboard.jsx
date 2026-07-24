@@ -26,6 +26,7 @@ import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
 import CoursePageSettingsTab from "./CoursePageSettingsTab";
 import HomeImagesTab from "./HomeImagesTab";
+import SiteSettingsTab from "./SiteSettingsTab"; // ✅ NEW IMPORT
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -309,6 +310,7 @@ export default function AdminDashboard() {
           else if (activeTab === "enrollments") fetchEnrollments();
           else if (activeTab === "page-settings") window.location.reload();
           else if (activeTab === "home-images") window.location.reload();
+          else if (activeTab === "site-settings") window.location.reload();
           else fetchDashboardStats();
         }} style={{ marginLeft: 12, padding: "6px 12px", background: "var(--primary)", color: "white", border: "none", borderRadius: 6, cursor: "pointer" }}>
           Retry
@@ -325,10 +327,12 @@ export default function AdminDashboard() {
       case "course-manager": return <AdminCourseManager />;
       case "page-settings": return <CoursePageSettingsTab />;
       case "home-images": return <HomeImagesTab />;
+      case "site-settings": return <SiteSettingsTab />; // ✅ NEW
       default: return null;
     }
   };
 
+  // ✅ UPDATED: Added Site Settings to navItems
   const navItems = [
     { icon: "📊", label: "Dashboard",      id: "dashboard"      },
     { icon: "🌐", label: "Courses",        id: "courses"        },
@@ -337,8 +341,10 @@ export default function AdminDashboard() {
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
     { icon: "⚙️", label: "Page Settings",  id: "page-settings"  },
     { icon: "🖼️", label: "Home Images",    id: "home-images"    },
+    { icon: "🔧", label: "Site Settings",  id: "site-settings"  }, // ✅ NEW
   ];
 
+  // ✅ UPDATED: Added Site Settings to PAGE_TITLES
   const PAGE_TITLES = {
     dashboard:       "Dashboard",
     courses:         "Course Catalog",
@@ -348,8 +354,10 @@ export default function AdminDashboard() {
     "course-manager":"Course Manager",
     "page-settings": "Course Page Settings",
     "home-images":   "Home Images Management",
+    "site-settings": "Site Settings", // ✅ NEW
   };
 
+  // ✅ UPDATED: Added Site Settings to PAGE_SUBS
   const PAGE_SUBS = {
     dashboard:       "Welcome back! Track your networking academy performance",
     courses:         "Manage all your courses from one place",
@@ -359,6 +367,7 @@ export default function AdminDashboard() {
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, exam questions, interview questions and labs ",
     "page-settings": "Customize hero section, colors, text, and more",
     "home-images":   "Upload, manage, and organize home page slider images",
+    "site-settings": "Manage site branding, SEO, social media, and custom code", // ✅ NEW
   };
 
   // ===================== SIDEBAR NAV ITEM =====================
