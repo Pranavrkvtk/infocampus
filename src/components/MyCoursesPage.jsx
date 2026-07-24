@@ -1057,33 +1057,25 @@ function MyCoursesPage() {
       gap: '8px',
       transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
     },
-    // ─── Hero Image Card ────────────────────────────────────────────
-// ─── Hero Image Card ────────────────────────────────────────────
-heroImageCard: {
-  flex: '0 0 520px',
-  maxWidth: '520px',
-  width: '100%',
-  height: isMobile ? '240px' : '360px',
-  borderRadius: '20px',
-  overflow: 'hidden',
-  boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
-  border: '1px solid rgba(255,255,255,0.15)',
-  position: 'relative',
-  zIndex: 2,
-  background: '#ffffff',
-},
-heroImage: {
-  width: '100%',
-  height: '100%',
-  objectFit: 'cover',
-  objectPosition: 'left center',
-  display: 'block',
-  transition: 'opacity 1s ease-in-out',
-},
+    heroImageCard: {
+      flex: '0 0 520px',
+      maxWidth: '520px',
+      width: '100%',
+      height: isMobile ? '240px' : '360px',
+      borderRadius: '20px',
+      overflow: 'hidden',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+      border: '1px solid rgba(255,255,255,0.15)',
+      position: 'relative',
+      zIndex: 2,
+      background: '#ffffff',
+    },
     heroImage: {
       width: '100%',
       height: '100%',
       objectFit: 'cover',
+      objectPosition: 'left center',
+      display: 'block',
       transition: 'opacity 1s ease-in-out',
     },
     heroImageIndicator: {
@@ -1578,9 +1570,9 @@ heroImage: {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={styles.tabContainer}>
-          {isLoggedIn && (
+        {/* ─── TABS - WRAPPED WITH isLoggedIn CHECK ─────────────────── */}
+        {isLoggedIn && (
+          <div style={styles.tabContainer}>
             <button
               style={styles.tabButton(activeTab === 'my')}
               onClick={() => {
@@ -1601,28 +1593,28 @@ heroImage: {
                 </span>
               )}
             </button>
-          )}
-          <button
-            style={styles.tabButton(activeTab === 'all')}
-            onClick={() => {
-              setActiveTab('all');
-              setActiveCategory('all');
-              setSearchTerm('');
-            }}
-          >
-            {config.allCoursesTabText}
-            {allCourses.length > 0 && (
-              <span style={{
-                fontSize: '11px',
-                background: activeTab === 'all' ? 'rgba(255,255,255,0.2)' : COLORS.line,
-                padding: '1px 8px',
-                borderRadius: '10px',
-              }}>
-                {allCourses.length}
-              </span>
-            )}
-          </button>
-        </div>
+            <button
+              style={styles.tabButton(activeTab === 'all')}
+              onClick={() => {
+                setActiveTab('all');
+                setActiveCategory('all');
+                setSearchTerm('');
+              }}
+            >
+              {config.allCoursesTabText}
+              {allCourses.length > 0 && (
+                <span style={{
+                  fontSize: '11px',
+                  background: activeTab === 'all' ? 'rgba(255,255,255,0.2)' : COLORS.line,
+                  padding: '1px 8px',
+                  borderRadius: '10px',
+                }}>
+                  {allCourses.length}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Category Tabs */}
         {activeTab === 'all' && categories.length > 1 && (

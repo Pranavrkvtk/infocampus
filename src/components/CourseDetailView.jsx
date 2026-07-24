@@ -7,6 +7,7 @@
 // ✅ Auto-open sidebar on fullscreen exit
 // ✅ Odoo-style content rendering with questions, options, and sections
 // ✅ Content panel now stretches full width like Odoo (no 900px "paper" gap)
+// ✅ PDF viewer now uses white background matching Notes tab (using react-pdf)
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -21,6 +22,9 @@ import {
   getLabsContent,
 } from '../api/UserApi';
 import { getImageUrl } from '../utils/imageUtils';
+
+// ─── Import the new PDF Viewer Component ──────────────────────────────
+import PdfViewerComponent from './PdfViewerComponent';
 
 // ─── Material UI Icons ──────────────────────────────────────────────────
 import ShareIcon from '@mui/icons-material/Share';
@@ -38,6 +42,7 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import ScienceIcon from '@mui/icons-material/Science';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
 // ─── Course Detail Config ──────────────────────────────────────────────────
 const CONFIG = {
@@ -543,6 +548,45 @@ const buildOdooStyles = (colors) => `
     box-sizing: border-box;
   }
 
+  /* ─── PDF Viewer Styles ─── */
+  .pdf-container {
+    width: 100%;
+    height: 100%;
+    background: #ffffff !important;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pdf-container .react-pdf__Document {
+    background: #ffffff !important;
+    width: 100%;
+  }
+
+  .pdf-container .react-pdf__Page {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    margin: 0 auto 24px !important;
+    border: none !important;
+  }
+
+  .pdf-container .react-pdf__Page canvas {
+    display: block;
+    margin: auto;
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  .pdf-container iframe,
+  .pdf-container embed,
+  .pdf-container object {
+    width: 100%;
+    height: 800px;
+    border: none;
+    background: #ffffff !important;
+  }
+
   .lesson-page-wrapper::-webkit-scrollbar {
     width: 8px;
   }
@@ -577,6 +621,11 @@ const buildOdooStyles = (colors) => `
     .odoo-question-wrapper { padding: 12px 16px; }
     .odoo-question-text { font-size: 15px; }
     .odoo-option-item { font-size: 13px; }
+    .pdf-container iframe,
+    .pdf-container embed,
+    .pdf-container object {
+      height: 500px;
+    }
   }
 `;
 
@@ -1397,7 +1446,7 @@ export default function CourseDetailView({
   const config = CONFIG;
 
   // ─── Define the display order of content types ──────────────────────
-  const typeOrder = ['notes', 'video', 'exam-content', 'interview-content', 'interview', 'exam', 'labs'];
+  const typeOrder = ['notes', 'video', 'pdf', 'exam-content', 'interview-content', 'interview', 'exam', 'labs'];
 
   // ─── Build content types from config ──────────────────────────
   const CONTENT_TYPES = [
@@ -1412,6 +1461,12 @@ export default function CourseDetailView({
       icon: <YouTubeIcon sx={{ fontSize: 20, color: '#FF0000' }} />,
       label: 'Video',
       color: '#3b82f6',
+    },
+    {
+      key: 'pdf',
+      icon: <PictureAsPdfIcon sx={{ fontSize: 18, color: '#dc2626' }} />,
+      label: 'PDF',
+      color: '#dc2626',
     },
     {
       key: 'exam-content',
@@ -1517,6 +1572,12 @@ export default function CourseDetailView({
               isEnrolled: data.isEnrolled,
               hasContent: hasContent,
               hasVideo: hasVideo,
+              // PDF detection
+              isPdf: sub.fileType === 'pdf' || 
+                     (sub.content && sub.content.includes('.pdf')) ||
+                     (sub.content && sub.content.startsWith('https://') && sub.content.includes('.pdf')),
+              fileType: sub.fileType || 'text',
+              pdfUrl: sub.pdfUrl || sub.content || '',
               ...sub
             });
           });
@@ -1841,10 +1902,12 @@ export default function CourseDetailView({
     const hasExam = !!(sub.examContent && sub.examContent.trim() !== '');
     const hasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
     const hasLabs = !!(sub.labsContent && sub.labsContent.trim() !== '');
+    const hasPdf = !!(sub.isPdf || sub.pdfUrl);
 
     const subAvailableTypes = [];
     if (hasVideo) subAvailableTypes.push('video');
     if (hasNotes) subAvailableTypes.push('notes');
+    if (hasPdf) subAvailableTypes.push('pdf');
     if (hasExam) subAvailableTypes.push('exam-content');
     if (hasInterview) subAvailableTypes.push('interview-content');
     if (hasLabs) subAvailableTypes.push('labs');
@@ -1905,9 +1968,11 @@ export default function CourseDetailView({
       const hasExam = !!(currentSubtopic.examContent && currentSubtopic.examContent.trim() !== '');
       const hasInterview = !!(currentSubtopic.interviewContent && currentSubtopic.interviewContent.trim() !== '');
       const hasLabs = !!(currentSubtopic.labsContent && currentSubtopic.labsContent.trim() !== '');
+      const hasPdf = !!(currentSubtopic.isPdf || currentSubtopic.pdfUrl);
 
       if (hasVideo) out.push('video');
       if (hasNotes) out.push('notes');
+      if (hasPdf) out.push('pdf');
       if (hasExam) out.push('exam-content');
       if (hasInterview) out.push('interview-content');
       if (hasLabs) out.push('labs');
@@ -1938,6 +2003,8 @@ export default function CourseDetailView({
         );
       case 'notes':
         return <NotesTab content={currentSubtopic.content} config={config} />;
+      case 'pdf':
+        return <PdfViewerComponent pdfUrl={currentSubtopic.pdfUrl || currentSubtopic.content} config={config} />;
       case 'exam-content':
         return <ExamContentTab content={currentSubtopic.examContent} config={config} />;
       case 'interview-content':
@@ -1973,11 +2040,35 @@ export default function CourseDetailView({
     }
   };
 
+  // ─── Handle Logout with Enhanced Popup ─────────────────────────────
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('userId');
-    navigate('/login');
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'You will be logged out of your account.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Logout',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6B6470',
+      reverseButtons: true,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Show success message before redirect
+        Swal.fire({
+          title: 'Logged Out!',
+          text: 'You have been successfully logged out.',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          localStorage.removeItem('userId');
+          navigate('/login');
+        });
+      }
+    });
   };
 
   const handleHomeClick = () => {
@@ -2346,6 +2437,33 @@ export default function CourseDetailView({
           -webkit-touch-callout: none !important;
         }
 
+        /* ─── PDF Viewer Styles ─── */
+        .lesson-page-wrapper {
+          background: #ffffff !important;
+        }
+        .lesson-paper {
+          background: #ffffff !important;
+        }
+        .pdf-container {
+          background: #ffffff !important;
+        }
+        .pdf-container .react-pdf__Document {
+          background: #ffffff !important;
+        }
+        .pdf-container .react-pdf__Page {
+          background: #ffffff !important;
+          box-shadow: none !important;
+        }
+        .pdf-container .react-pdf__Page canvas {
+          display: block;
+          margin: auto;
+        }
+        .pdf-container iframe,
+        .pdf-container embed,
+        .pdf-container object {
+          background: #ffffff !important;
+        }
+
         @media (max-width: 768px) {
           .action-btn span { display: none; }
           .action-btn { padding: 0 6px !important; }
@@ -2618,10 +2736,12 @@ export default function CourseDetailView({
                         const subHasExam = !!(sub.examContent && sub.examContent.trim() !== '');
                         const subHasInterview = !!(sub.interviewContent && sub.interviewContent.trim() !== '');
                         const subHasLabs = !!(sub.labsContent && sub.labsContent.trim() !== '');
+                        const subHasPdf = !!(sub.isPdf || sub.pdfUrl);
 
                         const subAvailableTypes = [];
                         if (subHasVideo) subAvailableTypes.push('video');
                         if (subHasNotes) subAvailableTypes.push('notes');
+                        if (subHasPdf) subAvailableTypes.push('pdf');
                         if (subHasExam) subAvailableTypes.push('exam-content');
                         if (subHasInterview) subAvailableTypes.push('interview-content');
                         if (subHasLabs) subAvailableTypes.push('labs');
@@ -2672,7 +2792,7 @@ export default function CourseDetailView({
                                   <LockIcon style={{ fontSize: isMobile ? '12px' : '14px', color: SIDEBAR.textMuted, flexShrink: 0 }} />
                                 ) : (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '4px' : '6px', flexShrink: 0 }}>
-                                    {(subHasVideo || subHasNotes || subHasLabs) ? (
+                                    {(subHasVideo || subHasNotes || subHasLabs || subHasPdf) ? (
                                       <FlagIcon style={{ fontSize: isMobile ? '16px' : '18px', color: '#FFC107' }} />
                                     ) : !subtopicLocked ? (
                                       <span style={{ fontSize: isMobile ? '10px' : '11px', color: SIDEBAR.textMuted }}>●</span>

@@ -25,7 +25,7 @@ import PdfViewerTab from "../PdfViewerTab";
 import CourseViewTab from "../CourseViewTab";
 import AdminCourseManager from "./AdminCourseManager";
 import CoursePageSettingsTab from "./CoursePageSettingsTab";
-import HomeImagesTab from "./HomeImagesTab"; // ✅ NEW
+import HomeImagesTab from "./HomeImagesTab";
 
 // ===================== MAIN ADMIN DASHBOARD =====================
 export default function AdminDashboard() {
@@ -261,11 +261,35 @@ export default function AdminDashboard() {
     else if (activeTab === "enrollments") fetchEnrollments();
   }, [activeTab]);
 
+  // ─── Handle Logout with Enhanced Popup ─────────────────────────────
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    localStorage.removeItem("userId");
-    window.location.replace("/login");
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'You will be logged out of your admin account.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Logout',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6B6470',
+      reverseButtons: true,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Show success message before redirect
+        Swal.fire({
+          title: 'Logged Out!',
+          text: 'You have been successfully logged out.',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          localStorage.removeItem("userId");
+          window.location.replace("/login");
+        });
+      }
+    });
   };
 
   const kpis = dashboardStats ? [
@@ -300,7 +324,7 @@ export default function AdminDashboard() {
       case "course-view": return <CourseViewTab pdf={selectedCoursePdf} onBack={() => setActiveTab("pdf-viewer")} />;
       case "course-manager": return <AdminCourseManager />;
       case "page-settings": return <CoursePageSettingsTab />;
-      case "home-images": return <HomeImagesTab />; // ✅ NEW
+      case "home-images": return <HomeImagesTab />;
       default: return null;
     }
   };
@@ -312,7 +336,7 @@ export default function AdminDashboard() {
     { icon: "📋", label: "Enrollments",    id: "enrollments"    },
     { icon: "🏗️", label: "Course Manager", id: "course-manager" },
     { icon: "⚙️", label: "Page Settings",  id: "page-settings"  },
-    { icon: "🖼️", label: "Home Images",    id: "home-images"    }, // ✅ NEW
+    { icon: "🖼️", label: "Home Images",    id: "home-images"    },
   ];
 
   const PAGE_TITLES = {
@@ -323,7 +347,7 @@ export default function AdminDashboard() {
     "pdf-viewer":    "PDF Library",
     "course-manager":"Course Manager",
     "page-settings": "Course Page Settings",
-    "home-images":   "Home Images Management", // ✅ NEW
+    "home-images":   "Home Images Management",
   };
 
   const PAGE_SUBS = {
@@ -334,7 +358,7 @@ export default function AdminDashboard() {
     "pdf-viewer":    "View all uploaded PDFs, extracted text, and images",
     "course-manager":"Create and manage courses, topics, subtopics, notes, videos, exam questions, interview questions and labs ",
     "page-settings": "Customize hero section, colors, text, and more",
-    "home-images":   "Upload, manage, and organize home page slider images", // ✅ NEW
+    "home-images":   "Upload, manage, and organize home page slider images",
   };
 
   // ===================== SIDEBAR NAV ITEM =====================

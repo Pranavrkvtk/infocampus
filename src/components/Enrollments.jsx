@@ -176,6 +176,7 @@ const Enrollments = ({ isMobile, onBack }) => {
 
       if (response && response.success !== false) {
         setIsEnrolled(true);
+        // Navigate directly to course page without showing success screen
         navigate(`/course/${courseId}`);
       } else {
         throw new Error(response?.message || 'Enrollment failed');
@@ -249,6 +250,7 @@ const Enrollments = ({ isMobile, onBack }) => {
 
   const handleHomeClick = () => navigate('/my-courses');
 
+  // ─── Handle Logout with SweetAlert2 Popup ──────────────────────────
   const handleLogout = () => {
     Swal.fire({
       title: 'Are you sure?',
@@ -256,67 +258,32 @@ const Enrollments = ({ isMobile, onBack }) => {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Logout',
+      cancelButtonText: 'Cancel',
       confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6B6470',
+      reverseButtons: true,
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        localStorage.removeItem('userId');
-        navigate('/login');
+        Swal.fire({
+          title: 'Logged Out!',
+          text: 'You have been successfully logged out.',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          localStorage.removeItem('userId');
+          navigate('/login');
+        });
       }
     });
   };
 
   const handleLogin = () => navigate('/login');
 
-  // ── Success screen ──────────────────────────────────────────────
-  if (isEnrolled && !enrolling) {
-    return (
-      <div style={{
-        fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
-        minHeight: "100vh",
-        background: "#ffffff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      }}>
-        <div style={{
-          textAlign: "center",
-          padding: "48px 40px",
-          background: "#fff",
-          borderRadius: "24px",
-          maxWidth: "520px",
-          margin: "20px",
-          boxShadow: "0 20px 40px rgba(0,0,0,0.1)"
-        }}>
-          <div style={{ fontSize: "80px", marginBottom: "20px" }}>🎉</div>
-          <h2 style={{ color: "#2e7d32", marginBottom: "16px", fontSize: "26px" }}>
-            Successfully Enrolled!
-          </h2>
-          <p style={{ color: "#666", marginBottom: "8px", fontSize: "15px" }}>
-            You now have full access to <strong>{course?.title}</strong>.
-          </p>
-          <p style={{ color: "#888", marginBottom: "32px", fontSize: "14px" }}>Start learning today!</p>
-          <button
-            onClick={() => navigate("/my-courses")}
-            style={{
-              background: COLORS.purpleText,
-              color: "#fff",
-              border: "none",
-              borderRadius: "40px",
-              padding: "14px 36px",
-              fontSize: "16px",
-              fontWeight: 700,
-              cursor: "pointer",
-              width: "100%"
-            }}
-          >
-            Go to My Learning →
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // ─── REMOVED: Success screen is now removed ────────────────────
+  // The if (isEnrolled && !enrolling) block has been removed
 
   // Loading state
   if (loading) {
@@ -743,7 +710,7 @@ const Enrollments = ({ isMobile, onBack }) => {
                 {enrolling
                   ? "Processing..."
                   : isEnrolled
-                  ? "✓ Enrolled"
+                  ? "✓ joined"
                   : "Join This Course"}
               </button>
 
