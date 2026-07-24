@@ -11,6 +11,8 @@ import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
+import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import { getImageUrl } from '../utils/imageUtils';
 
 // ─── Top Bar Colors ────────────────────────────────────────────────
@@ -24,13 +26,13 @@ const TOPBAR = {
   muted: '#C9D2DC',
 };
 
-// ─── Palette ──────────────────────────────────────────────────────────
+// ─── Odoo Palette ──────────────────────────────────────────────────
 const COLORS = {
-  pageBg: '#f0f2f5',
+  pageBg: '#f0eeee',
   cardBg: '#ffffff',
   textDark: '#1a1a2e',
   textMuted: '#6b7280',
-  border: '#e5e7eb',
+  border: '#d9d9d9',
   purpleText: '#5b21b6',
   green: '#12b76a',
   greenBg: '#e7f9ef',
@@ -271,7 +273,7 @@ const Enrollments = ({ isMobile, onBack }) => {
   if (isEnrolled && !enrolling) {
     return (
       <div style={{
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
+        fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
         minHeight: "100vh",
         background: "#ffffff",
         display: "flex",
@@ -375,8 +377,9 @@ const Enrollments = ({ isMobile, onBack }) => {
 
   const price = course.price ?? 299;
   const period = course.pricePeriod || 'lifetime';
-  const currency = course.currency || 'INR';  // ✅ Get currency from course or default to INR
+  const currency = course.currency || 'INR';
   const isMobileDevice = isMobile || window.innerWidth < 768;
+  const members = course.members || course.students || 100908;
 
   // ✅ Get the image URL using the utility
   const getCourseImage = () => {
@@ -394,34 +397,32 @@ const Enrollments = ({ isMobile, onBack }) => {
   // ✅ Get details from course
   const courseDetails = course.details || '';
 
-  // Format content with proper paragraphs
+  // Format content with proper paragraphs - Odoo style
   const formatContent = (content) => {
     if (!content) return null;
     return content.split('\n').map((paragraph, index) => {
       const trimmed = paragraph.trim();
       if (!trimmed) return null;
-      // Check if line is a bullet point
       if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
         return (
           <div key={index} style={{
             display: 'flex',
             alignItems: 'flex-start',
             gap: '8px',
-            marginBottom: '6px',
-            paddingLeft: '4px',
+            marginBottom: '4px',
+            paddingLeft: '0px',
           }}>
-            <span style={{ color: COLORS.purpleText, fontWeight: 'bold' }}>•</span>
-            <span>{trimmed.substring(1).trim()}</span>
+            <span style={{ color: COLORS.purpleText, fontWeight: 'bold', fontSize: '14px' }}>•</span>
+            <span style={{ fontSize: '14px', lineHeight: '1.6', color: '#4c4c4c' }}>{trimmed.substring(1).trim()}</span>
           </div>
         );
       }
-      // Regular paragraph
       return (
         <p key={index} style={{
-          margin: '0 0 12px 0',
-          lineHeight: '1.8',
-          fontSize: '16px',
-          color: '#3f3f46',
+          margin: '0 0 10px 0',
+          lineHeight: '1.6',
+          fontSize: '14px',
+          color: '#4c4c4c',
         }}>
           {trimmed}
         </p>
@@ -433,7 +434,7 @@ const Enrollments = ({ isMobile, onBack }) => {
     <div style={{
       position: "fixed",
       inset: 0,
-      fontFamily: "'Inter', 'Segoe UI', sans-serif",
+      fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
       display: "flex",
       flexDirection: "column",
       background: "#ffffff",
@@ -585,335 +586,334 @@ const Enrollments = ({ isMobile, onBack }) => {
         </div>
       </div>
 
-      {/* ─── MAIN CONTENT - ODOO 2-ROW LAYOUT ────────────────────── */}
+      {/* ─── MAIN CONTENT - ODOO SINGLE GRID ──────────────────────── */}
       <div style={{
         flex: 1,
         width: '100%',
-        overflow: 'auto',
+        overflow: 'hidden',
         margin: 0,
         padding: 0,
-        background: '#ffffff',
+        background: COLORS.pageBg,
       }}>
         <div style={{
-          border: "none",
-          borderRadius: 0,
-          overflow: 'hidden',
-          boxShadow: "none",
-          background: "#ffffff",
-          minHeight: "100%",
+          display: 'grid',
+          gridTemplateColumns: isMobileDevice ? '1fr' : '245px 1fr',
+          gridTemplateRows: isMobileDevice ? 'auto auto auto' : '110px 1fr',
+          height: '100%',
+          background: '#ffffff',
         }}>
 
           {/* ════════════════════════════════════════════════════════ */}
-          {/* ROW 1: Image + Purple Header                          */}
+          {/* ROW 1, COL 1: Image - Flush with header                */}
           {/* ════════════════════════════════════════════════════════ */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobileDevice ? '1fr' : '260px 1fr',
+            gridColumn: '1',
+            gridRow: '1',
+            padding: 0,
+            margin: 0,
+            height: '110px',
+            overflow: 'hidden',
             background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
           }}>
-            {/* Image Container */}
-            <div style={{
-              width: '100%',
-              padding: '12px 12px 8px 12px',
-              background: 'transparent',
-              boxSizing: 'border-box',
-              display: 'flex',
-              alignItems: 'center',
-            }}>
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={course.title}
+                style={{
+                  width: '100%',
+                  height: '110px',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;height:110px;font-size:36px;background:linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%);color:rgba(255,255,255,0.3);">
+                      📚
+                    </div>
+                  `;
+                }}
+              />
+            ) : (
               <div style={{
-                position: 'relative',
-                width: '100%',
-                height: isMobileDevice ? '170px' : '200px',
-                borderRadius: '6px',
-                background: '#e5e7eb',
-                overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '110px',
+                fontSize: '36px',
+                background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
+                color: 'rgba(255,255,255,0.3)',
               }}>
-                {/* Floating icon */}
-                <div style={{
-                  position: 'absolute',
-                  top: '10px',
-                  left: '10px',
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '6px',
-                  background: 'rgba(0,0,0,0.3)',
-                  backdropFilter: 'blur(4px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                  zIndex: 1,
+                📚
+              </div>
+            )}
+          </div>
+
+          {/* ════════════════════════════════════════════════════════ */}
+          {/* ROW 1, COL 2: Purple Header - Odoo height 110px        */}
+          {/* ════════════════════════════════════════════════════════ */}
+          <div style={{
+            gridColumn: '2',
+            gridRow: '1',
+            background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
+            height: '110px',
+            padding: '0 32px',
+            display: 'flex',
+            alignItems: 'center',
+            boxSizing: 'border-box',
+          }}>
+            <div>
+              <h1 style={{
+                margin: 0,
+                fontSize: '34px',
+                fontWeight: 600,
+                color: '#fff',
+                letterSpacing: '-0.5px',
+                lineHeight: '1.2',
+                fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
+              }}>
+                {course.title}
+              </h1>
+              {course.subtitle && (
+                <p style={{
+                  margin: '4px 0 0 0',
+                  fontSize: '14px',
+                  color: 'rgba(255,255,255,0.85)',
+                  fontWeight: 400,
                 }}>
-                  <HomeOutlinedIcon style={{ fontSize: '16px', color: '#fff' }} />
+                  {course.subtitle}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ════════════════════════════════════════════════════════ */}
+          {/* ROW 2, COL 1: Sidebar Card - No gap, no border-radius  */}
+          {/* ════════════════════════════════════════════════════════ */}
+          <div style={{
+            gridColumn: '1',
+            gridRow: '2',
+            padding: 0,
+            margin: 0,
+            background: '#ffffff',
+            borderRight: `1px solid ${COLORS.border}`,
+          }}>
+            <div style={{
+              border: `1px solid ${COLORS.border}`,
+              borderTop: 'none',
+              borderRadius: 0,
+              boxShadow: 'none',
+              margin: 0,
+              padding: 0,
+              background: '#ffffff',
+              height: '100%',
+            }}>
+              {/* Odoo-style Join Button */}
+              <button
+                onClick={handleMainAction}
+                disabled={enrolling}
+                style={{
+                  display: "block",
+                  width: "calc(100% - 24px)",
+                  margin: "14px 12px 12px 12px",
+                  padding: "10px 14px",
+                  background: isEnrolled ? "#2e7d32" : COLORS.titleBar,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "3px",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: ".4px",
+                  cursor: enrolling ? "not-allowed" : "pointer",
+                  transition: "all .2s ease",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                }}
+                onMouseEnter={(e) => {
+                  if (!enrolling && !isEnrolled) {
+                    e.currentTarget.style.background = COLORS.titleBarDark;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!enrolling && !isEnrolled) {
+                    e.currentTarget.style.background = COLORS.titleBar;
+                  }
+                }}
+              >
+                {enrolling
+                  ? "Processing..."
+                  : isEnrolled
+                  ? "✓ Enrolled"
+                  : "Join This Course"}
+              </button>
+
+              <div style={{ padding: '0 12px 12px 12px' }}>
+                {/* Last Update */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '6px 0',
+                  borderBottom: `1px solid ${COLORS.border}`,
+                  fontSize: '12px'
+                }}>
+                  <span style={{ color: COLORS.textMuted }}>Last Update</span>
+                  <span style={{ fontWeight: 600, color: COLORS.textDark }}>
+                    {formatDate(course.updatedAt)}
+                  </span>
                 </div>
 
-                {imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt={course.title}
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover',
-                      display: 'block',
-                    }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentElement.innerHTML = `
-                        <div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:48px;background:linear-gradient(135deg, #6b3f63 0%, #2a2438 100%);color:#fff;">
-                          🖼️
-                        </div>
-                      `;
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    height: '100%', 
-                    fontSize: '48px',
-                    background: 'linear-gradient(135deg, #6b3f63 0%, #2a2438 100%)',
-                    color: 'rgba(255,255,255,0.5)'
-                  }}>
-                    🖼️
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Title Container */}
-            <div style={{
-              background: 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              padding: isMobileDevice ? '12px 20px 16px 20px' : '12px 32px 12px 0',
-              minHeight: isMobileDevice ? 'auto' : 'auto',
-            }}>
-              <div>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: isMobileDevice ? '26px' : '34px',
-                  fontWeight: 700,
-                  color: '#fff',
-                  letterSpacing: '-0.5px',
-                  lineHeight: '1.2',
+                {/* Completion Time */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '6px 0',
+                  borderBottom: `1px solid ${COLORS.border}`,
+                  fontSize: '12px'
                 }}>
-                  {course.title}
-                </h1>
-                {course.subtitle && (
-                  <p style={{
-                    margin: '6px 0 0 0',
-                    fontSize: isMobileDevice ? '13px' : '16px',
-                    color: 'rgba(255,255,255,0.85)',
-                    fontWeight: 400,
-                  }}>
-                    {course.subtitle}
-                  </p>
-                )}
+                  <span style={{ color: COLORS.textMuted }}>Completion Time</span>
+                  <span style={{ fontWeight: 600, color: COLORS.textDark }}>
+                    {course.duration || '2 hours 40 minutes'}
+                  </span>
+                </div>
+
+                {/* Members */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '6px 0',
+                  borderBottom: `1px solid ${COLORS.border}`,
+                  fontSize: '12px'
+                }}>
+                  <span style={{ color: COLORS.textMuted }}>Members</span>
+                  <span style={{ fontWeight: 600, color: COLORS.textDark }}>
+                    <PeopleAltOutlinedIcon style={{ fontSize: '13px', marginRight: '3px', verticalAlign: 'middle' }} />
+                    {members.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Price with Currency */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '6px 0',
+                  fontSize: '12px'
+                }}>
+                  <span style={{ color: COLORS.textMuted }}>Price</span>
+                  <span style={{ fontWeight: 700, color: COLORS.purpleText, fontSize: '13px' }}>
+                    {getCurrencySymbol(currency)}{price} / {period}
+                  </span>
+                </div>
+
+                {/* Share button */}
+                <div style={{
+                  marginTop: '8px',
+                  paddingTop: '10px',
+                  borderTop: `1px solid ${COLORS.border}`,
+                }}>
+                  <button
+                    onClick={handleShare}
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      color: COLORS.textMuted,
+                      border: 'none',
+                      padding: '3px 0',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      justifyContent: 'center',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = COLORS.titleBar}
+                    onMouseLeave={(e) => e.currentTarget.style.color = COLORS.textMuted}
+                  >
+                    <ShareOutlinedIcon style={{ fontSize: '14px' }} />
+                    Share
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* ════════════════════════════════════════════════════════ */}
-          {/* ROW 2: Sidebar + Right Panel (Tab + Description)      */}
+          {/* ROW 2, COL 2: PURPLE Tab Bar + WHITE Course Tab        */}
           {/* ════════════════════════════════════════════════════════ */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobileDevice ? '1fr' : '260px 1fr',
-            borderTop: 'none',
+            gridColumn: '2',
+            gridRow: '2',
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#ffffff',
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden',
           }}>
-
-            {/* ─── LEFT COLUMN: Sidebar Card ────────────────────── */}
+            {/* ─── Purple Tab Bar Background ── */}
             <div style={{
-              padding: isMobileDevice ? '8px' : '0px 0px 0px 8px',
-              background: 'transparent',
+              background: `linear-gradient(135deg, ${COLORS.titleBar} 0%, ${COLORS.heroGradTo} 100%)`,
+              padding: '0 16px',
+              borderBottom: `1px solid ${COLORS.titleBarDark}`,
+              display: 'flex',
+              alignItems: 'flex-end',
+              height: '31px',
+              flexShrink: 0,
             }}>
+              {/* ─── White Course Tab ── */}
               <div style={{
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
                 background: '#ffffff',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-                overflow: 'hidden',
-                margin: isMobileDevice ? '0px' : '0px 8px 8px 0px',
-                width: '100%',
+                color: '#333',
+                padding: '0 14px',
+                height: '31px',
+                fontSize: '12px',
+                fontWeight: 600,
+                border: `1px solid ${COLORS.border}`,
+                borderBottom: 'none',
+                borderRadius: '2px 2px 0 0',
+                marginBottom: '-1px',
+                fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
               }}>
-                {/* Odoo-style button */}
-                <button
-                  onClick={handleMainAction}
-                  disabled={enrolling}
-                  style={{
-                    display: "block",
-                    width: "calc(100% - 32px)",
-                    margin: "12px 16px",
-                    padding: "10px 14px",
-                    background: isEnrolled ? "#2e7d32" : COLORS.titleBar,
-                    color: "#fff",
-                    border: "1px solid rgba(255,255,255,.15)",
-                    borderRadius: "3px",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: ".3px",
-                    cursor: enrolling ? "not-allowed" : "pointer",
-                    transition: "all .2s ease",
-                    boxShadow: "0 1px 2px rgba(0,0,0,.15)"
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!enrolling && !isEnrolled) {
-                      e.currentTarget.style.background = COLORS.titleBarDark;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!enrolling && !isEnrolled) {
-                      e.currentTarget.style.background = COLORS.titleBar;
-                    }
-                  }}
-                >
-                  {enrolling
-                    ? "Processing..."
-                    : isEnrolled
-                    ? "Enrolled"
-                    : "Join This Course"}
-                </button>
-
-                <div style={{ padding: '0 16px 12px 16px' }}>
-                  {/* Last Update */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '7px 0',
-                    borderBottom: `1px solid ${COLORS.border}`,
-                    fontSize: '13px'
-                  }}>
-                    <span style={{ color: COLORS.textMuted }}>Last Update</span>
-                    <span style={{ fontWeight: 600, color: COLORS.textDark }}>{formatDate(course.updatedAt)}</span>
-                  </div>
-
-                  {/* Completion Time */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '7px 0',
-                    borderBottom: `1px solid ${COLORS.border}`,
-                    fontSize: '13px'
-                  }}>
-                    <span style={{ color: COLORS.textMuted }}>Completion Time</span>
-                    <span style={{ fontWeight: 600, color: COLORS.textDark }}>{course.duration || '2 hours 40 minutes'}</span>
-                  </div>
-
-                  {/* ✅ Price with Currency */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '7px 0',
-                    fontSize: '13px'
-                  }}>
-                    <span style={{ color: COLORS.textMuted }}>Price</span>
-                    <span style={{ fontWeight: 700, color: COLORS.purpleText }}>
-                      {getCurrencySymbol(currency)}{price} / {period}
-                    </span>
-                  </div>
-
-                  {/* Share button */}
-                  <div style={{
-                    marginTop: '10px',
-                    paddingTop: '10px',
-                    borderTop: `1px solid ${COLORS.border}`,
-                  }}>
-                    <button
-                      onClick={handleShare}
-                      style={{
-                        width: '100%',
-                        background: 'transparent',
-                        color: COLORS.textMuted,
-                        border: 'none',
-                        padding: '4px 0',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        justifyContent: 'center',
-                        transition: 'color 0.2s',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = COLORS.textDark}
-                      onMouseLeave={(e) => e.currentTarget.style.color = COLORS.textMuted}
-                    >
-                      <ShareOutlinedIcon style={{ fontSize: '16px' }} />
-                      Share
-                    </button>
-                  </div>
-                </div>
+                <HomeOutlinedIcon style={{ fontSize: '12px', color: COLORS.titleBar }} />
+                Course
               </div>
             </div>
 
-            {/* ─── RIGHT COLUMN: Tab + Description ────────────── */}
+            {/* ─── Description Content - Odoo padding ── */}
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
+              padding: '18px 28px',
+              overflowY: 'auto',
+              flex: 1,
               background: '#ffffff',
+              width: '100%',
+              boxSizing: 'border-box',
             }}>
-              {/* Tab Bar - starts at the top of the right column */}
-              <div style={{
-                background: COLORS.titleBarDark,
-                padding: '3px 24px 0',
-                borderBottom: `1px solid ${COLORS.border}`,
-              }}>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: '#fff',
-                    color: '#333',
-                    padding: '5px 16px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    border: '1px solid #d9d9d9',
-                    borderBottom: 'none',
-                    borderRadius: '3px 3px 0 0',
-                  }}
-                >
-                  <HomeOutlinedIcon
-                    style={{
-                      fontSize: '13px',
-                      color: '#000000'
-                    }}
-                  />
-                  Course
-                </span>
-              </div>
-
-              {/* Description Content */}
-              <div style={{
-                padding: isMobileDevice ? '20px' : '32px 40px',
-                overflowY: 'auto',
-                flex: 1,
-                background: '#ffffff',
-              }}>
-                {courseDetails ? (
-                  <div style={{
-                    fontSize: '16px',
-                    lineHeight: '1.9',
-                    color: '#1a1a2e',
-                    maxWidth: '100%',
-                  }}>
-                    {formatContent(courseDetails)}
-                  </div>
-                ) : (
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '60px 20px',
-                    color: COLORS.textMuted,
-                  }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
-                    <p style={{ fontSize: '15px' }}>No course details available.</p>
-                  </div>
-                )}
-              </div>
+              {courseDetails ? (
+                <div style={{
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  color: '#4c4c4c',
+                  maxWidth: '100%',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
+                }}>
+                  {formatContent(courseDetails)}
+                </div>
+              ) : (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  color: COLORS.textMuted,
+                }}>
+                  <div style={{ fontSize: '36px', marginBottom: '12px' }}>📝</div>
+                  <p style={{ fontSize: '14px' }}>No course details available.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
